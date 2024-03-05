@@ -51,6 +51,8 @@ class Typir {
         return { symbolName, type }; // Placeholder for the actual symbol
     }
 
+    // helpers.....
+
     // Method to define a type relationship
     defineTypeRelationship(type: any, relationship: string): void {
         // Logic to define type relationship based on options
@@ -89,6 +91,11 @@ class Typir {
         return { typeName: 'InferredType' }; // Placeholder for the inferred type
     }
 
+
+
+
+
+
     // Accept a visitor and apply it to the given object
     // performs typechecking, type inference, etc.
     typeCheck(visitor: TypirVisitor, obj: any): void {
@@ -101,9 +108,7 @@ class Typir {
     }
 }
 
-
-
-
+// Say we have some AST type, could be Langium or another...
 type AstType = {
     $type: 'model';
     left: AstType | number;
@@ -115,7 +120,9 @@ type AstType = {
 };
 
 // Example concrete visitor implementing TypirVisitor
+// Which accepts an AST object and updates the typir instance w/ types, relationships, etc.
 class ExampleASTVisitor implements TypirVisitor {
+
     private typirInstance: Typir;
 
     constructor(typirInstance: Typir) {
@@ -123,18 +130,47 @@ class ExampleASTVisitor implements TypirVisitor {
     }
 
     visit(obj: AstType): void {
+        switch (obj.$type) {
+            case 'model':
+                this.visitModel(obj);
+                break;
+            case 'lit':
+                this.visitLit(obj);
+                break;
+        }
         // traverse this aST object, and do something with it
         // leads to side-effects in the typir instance
         // such as populating the graph, defining relationships, etc.
         // allows defining types that correspond to the AST node types, whatever they may be
     }
+
+    visitModel(obj: AstType & { $type: 'model' }): void {
+        // do something with the model node
+        // & update the typir instance
+    }
+
+    visitLit(obj: AstType & { $type: 'lit' }): void {
+        // do something with the lit node
+        // & update the typir instance
+    }
+
+    visitBinaryExpr(e1, op, e2) {
+        // e1 -> T1
+        // e2 -> T2
+        //
+        //
+        //       e = e1 op e2   e1 : T1, e2 : T2
+        //    ------------------------------------  T1 = T2
+        //              e : T1
+        //
+        // T1 = T2
+    }
 }
 
 ///////// Example Usage
 
-const typirInstance = new Typir('TS-1', {
-    enableTypeInference: true,
-    enableTypeChecking: true,
+const typirInstance = new Typir('TypeFox-1', {
+    // ... various config options
     enableTypeRelationships: true,
     enableRuleJudgments: true,
 });
@@ -187,6 +223,6 @@ const myAst: AstType = {
 // result is that the typir instance is updated with the relationships and types defined in the visitor
 // and then we can use the typir instance to do type inference, type checking, etc.
 const visitor = new ExampleASTVisitor(typirInstance);
-typirInstance.typeCheck(visitor, myAst);
 
 // check if the myAst is correct
+typirInstance.typeCheck(visitor, myAst);
