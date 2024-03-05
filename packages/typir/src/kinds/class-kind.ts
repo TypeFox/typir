@@ -5,6 +5,7 @@ import { Kind } from './kind';
 
 /**
  * Classes have a name and have fields, consisting of a name and a type.
+ * TODO sub/super class
  */
 export class ClassKind extends Kind {
     readonly $type: 'ClassKind';
