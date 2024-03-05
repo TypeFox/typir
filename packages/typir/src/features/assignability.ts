@@ -3,7 +3,7 @@ import { Type } from '../graph/type-graph';
 import { Typir } from '../main';
 
 export interface TypeAssignability {
-    areAssignable(left: Type, right: Type): boolean;
+    isAssignable(source: Type, target: Type): boolean;
 }
 
 export class DefaultTypeAssignability implements TypeAssignability {
@@ -13,20 +13,20 @@ export class DefaultTypeAssignability implements TypeAssignability {
         this.typir = typir;
     }
 
-    areAssignable(left: Type, right: Type): boolean {
+    isAssignable(source: Type, target: Type): boolean {
         // same types?
-        if (left === right) {
+        if (source === target) {
             return true;
         }
 
-        // explicit conversation possible?
-        if (this.typir.conversation.isConvertibleTo(right, left)) {
+        // explicit conversion possible?
+        if (this.typir.conversion.isConvertibleTo(source, target)) {
             return true;
         }
 
         // allow the types kind to determine the assignability
-        if (left.kind.$type === right.kind.$type) {
-            return left.kind.areAssignable(left, right);
+        if (source.kind.$type === target.kind.$type) {
+            return source.kind.isAssignable(source, target);
         }
 
         return false;

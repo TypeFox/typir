@@ -16,7 +16,7 @@ export class PrimitiveKind extends Kind {
         return primitiveType;
     }
 
-    areAssignable(left: Type, right: Type): boolean {
+    isAssignable(left: Type, right: Type): boolean {
         return left.name === right.name;
     }
 }

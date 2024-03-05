@@ -23,9 +23,9 @@ export class ClassKind extends Kind {
         // link it to all its "field types"
         for (const fieldInfos of fields) {
             // new edge between class and field with "semantics key"
-            const edge = new TypeEdge(classType, fieldInfos.type, CLASS_CONTAINS_FIELDS_TYPE);
+            const edge = new TypeEdge(classType, fieldInfos.type, FIELD_TYPE);
             // store the name of the field within the edge
-            edge.properties.set(CLASS_CONTAINS_FIELDS_NAME, fieldInfos.name);
+            edge.properties.set(FIELD_NAME, fieldInfos.name);
             this.typir.graph.addEdge(edge);
         }
 
@@ -40,7 +40,7 @@ export class ClassKind extends Kind {
         return `${type.name} { ${fields.join(', ')} }`;
     }
 
-    areAssignable(left: Type, right: Type): boolean {
+    isAssignable(left: Type, right: Type): boolean {
         if (this.structuralTyping) {
             // for structural typing:
             const leftFields = this.getFields(left);
@@ -49,9 +49,10 @@ export class ClassKind extends Kind {
                 return false;
             }
             for (const entry of leftFields.entries()) {
+                const leftType = entry[1];
                 const rightType = rightFields.get(entry[0]);
                 // TODO prevent loops during this recursion
-                if (rightType === undefined || this.typir.assignability.areAssignable(entry[1], rightType) === false) {
+                if (rightType === undefined || this.typir.assignability.isAssignable(leftType, rightType) === false) {
                     return false;
                 }
             }
@@ -64,8 +65,8 @@ export class ClassKind extends Kind {
 
     protected getFields(classType: Type): Map<string, Type> {
         const result = new Map();
-        classType.getOutgoingEdges(CLASS_CONTAINS_FIELDS_TYPE).forEach(edge => {
-            const name = edge.properties.get(CLASS_CONTAINS_FIELDS_NAME);
+        classType.getOutgoingEdges(FIELD_TYPE).forEach(edge => {
+            const name = edge.properties.get(FIELD_NAME);
             const type = edge.to;
             if (result.has(name)) {
                 throw new Error('multiple fields with same name ' + name);
@@ -81,5 +82,5 @@ export type FieldInformation = {
     type: Type;
 }
 
-const CLASS_CONTAINS_FIELDS_TYPE = 'hasField';
-const CLASS_CONTAINS_FIELDS_NAME = 'name';
+const FIELD_TYPE = 'hasField';
+const FIELD_NAME = 'name';

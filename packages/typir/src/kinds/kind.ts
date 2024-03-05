@@ -20,7 +20,7 @@ export abstract class Kind {
     }
 
     // assumption: both types habe the same kind and this kind owns the called 'areAssignable' function
-    abstract areAssignable(left: Type, right: Type): boolean;
+    abstract isAssignable(left: Type, right: Type): boolean;
 
     // TODO add more features
 }
