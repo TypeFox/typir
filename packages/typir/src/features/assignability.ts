@@ -18,13 +18,15 @@ export class DefaultTypeAssignability implements TypeAssignability {
         if (left === right) {
             return true;
         }
-        if (left.name === right.name) {
+
+        // explicit conversation possible?
+        if (this.typir.conversation.isConvertibleTo(right, left)) {
             return true;
         }
 
-        // conversation?
-        if (this.typir.conversation.isConvertibleTo(right, left)) {
-            return true;
+        // allow the types kind to determine the assignability
+        if (left.kind.$type === right.kind.$type) {
+            return left.kind.areAssignable(left, right);
         }
 
         return false;

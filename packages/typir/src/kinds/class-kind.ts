@@ -8,9 +8,11 @@ import { Kind } from './kind';
  */
 export class ClassKind extends Kind {
     readonly $type: 'ClassKind';
+    readonly structuralTyping: boolean;
 
-    constructor(typir: Typir) {
+    constructor(typir: Typir, structuralTyping: boolean) {
         super(typir);
+        this.structuralTyping = structuralTyping;
     }
 
     createClassType(className: string, ...fields: FieldInformation[]): Type {
@@ -31,8 +33,46 @@ export class ClassKind extends Kind {
     }
 
     getUserRepresentation(type: Type): string {
-        const fields = type.getOutgoingEdges(CLASS_CONTAINS_FIELDS_TYPE).map(edge => `${edge.properties.get(CLASS_CONTAINS_FIELDS_NAME)}: ${edge.to.name}`);
+        const fields: string[] = [];
+        for (const field of this.getFields(type).entries()) {
+            fields.push(`${field[0]}: ${field[1].name}`);
+        }
         return `${type.name} { ${fields.join(', ')} }`;
+    }
+
+    areAssignable(left: Type, right: Type): boolean {
+        if (this.structuralTyping) {
+            // for structural typing:
+            const leftFields = this.getFields(left);
+            const rightFields = this.getFields(right);
+            if (leftFields.size !== rightFields.size) {
+                return false;
+            }
+            for (const entry of leftFields.entries()) {
+                const rightType = rightFields.get(entry[0]);
+                // TODO prevent loops during this recursion
+                if (rightType === undefined || this.typir.assignability.areAssignable(entry[1], rightType) === false) {
+                    return false;
+                }
+            }
+            return true;
+        } else {
+            // for nominal typing:
+            return left.name === right.name;
+        }
+    }
+
+    protected getFields(classType: Type): Map<string, Type> {
+        const result = new Map();
+        classType.getOutgoingEdges(CLASS_CONTAINS_FIELDS_TYPE).forEach(edge => {
+            const name = edge.properties.get(CLASS_CONTAINS_FIELDS_NAME);
+            const type = edge.to;
+            if (result.has(name)) {
+                throw new Error('multiple fields with same name ' + name);
+            }
+            result.set(name, type);
+        });
+        return result;
     }
 }
 

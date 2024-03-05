@@ -21,8 +21,6 @@ export class Typir {
         throw new Error('missing kind ' + type);
     }
 
-    // define relationships between types
-
     // features
     assignability: TypeAssignability = new DefaultTypeAssignability(this);
     conversation: TypeConversation = new DefaultTypeConversation(this);
@@ -40,7 +38,7 @@ const typir = new Typir();
 
 // reuse predefined kinds
 const primitiveKind = new PrimitiveKind(typir);
-const classKind = new ClassKind(typir);
+const classKind = new ClassKind(typir, true);
 
 // create some primitive types
 const typeInt = primitiveKind.createPrimitiveType('Integer');
@@ -54,4 +52,6 @@ console.log(typePerson.getUserRepresentation());
 typir.conversation.markAsConvertible(typeInt, typeString);
 
 // is assignable?
+console.log(typir.assignability.areAssignable(typeInt, typeInt)); // => true
+console.log(typir.assignability.areAssignable(typeInt, typeString)); // => true
 console.log(typir.assignability.areAssignable(typeString, typeInt)); // => false

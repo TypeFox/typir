@@ -15,4 +15,8 @@ export class PrimitiveKind extends Kind {
         this.typir.graph.addNode(primitiveType);
         return primitiveType;
     }
+
+    areAssignable(left: Type, right: Type): boolean {
+        return left.name === right.name;
+    }
 }
