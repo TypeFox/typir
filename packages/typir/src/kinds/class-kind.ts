@@ -1,7 +1,8 @@
 // eslint-disable-next-line header/header
 import { Type, TypeEdge } from '../graph/type-graph';
 import { Typir } from '../main';
-import { Kind } from './kind';
+import { NameTypePair } from '../utils';
+import { Kind, isKind } from './kind';
 
 /**
  * Classes have a name and have fields, consisting of a name and a type.
@@ -16,7 +17,7 @@ export class ClassKind extends Kind {
         this.structuralTyping = structuralTyping;
     }
 
-    createClassType(className: string, ...fields: FieldInformation[]): Type {
+    createClassType(className: string, ...fields: NameTypePair[]): Type {
         // create the class type
         const classType = new Type(this, className);
         this.typir.graph.addNode(classType);
@@ -41,30 +42,33 @@ export class ClassKind extends Kind {
         return `${type.name} { ${fields.join(', ')} }`;
     }
 
-    isAssignable(left: Type, right: Type): boolean {
-        if (this.structuralTyping) {
-            // for structural typing:
-            const leftFields = this.getFields(left);
-            const rightFields = this.getFields(right);
-            if (leftFields.size !== rightFields.size) {
-                return false;
-            }
-            for (const entry of leftFields.entries()) {
-                const leftType = entry[1];
-                const rightType = rightFields.get(entry[0]);
-                // TODO prevent loops during this recursion
-                if (rightType === undefined || this.typir.assignability.isAssignable(leftType, rightType) === false) {
+    isAssignable(source: Type, target: Type): boolean {
+        if (isClassKind(source.kind) && isClassKind(target.kind)) {
+            if (this.structuralTyping) {
+                // for structural typing:
+                const sourceFields = this.getFields(source);
+                const targetFields = this.getFields(target);
+                if (sourceFields.size !== targetFields.size) {
                     return false;
                 }
+                for (const entry of sourceFields.entries()) {
+                    const sourceType = entry[1];
+                    const targetType = targetFields.get(entry[0]);
+                    // TODO prevent loops during this recursion
+                    if (targetType === undefined || this.typir.assignability.isAssignable(sourceType, targetType) === false) {
+                        return false;
+                    }
+                }
+                return true;
+            } else {
+                // for nominal typing:
+                return source.name === target.name;
             }
-            return true;
-        } else {
-            // for nominal typing:
-            return left.name === right.name;
         }
+        return false;
     }
 
-    protected getFields(classType: Type): Map<string, Type> {
+    getFields(classType: Type): Map<string, Type> {
         const result = new Map();
         classType.getOutgoingEdges(FIELD_TYPE).forEach(edge => {
             const name = edge.properties.get(FIELD_NAME);
@@ -78,10 +82,9 @@ export class ClassKind extends Kind {
     }
 }
 
-export type FieldInformation = {
-    name: string;
-    type: Type;
-}
-
 const FIELD_TYPE = 'hasField';
 const FIELD_NAME = 'name';
+
+export function isClassKind(kind: unknown): kind is ClassKind {
+    return isKind(kind) && kind.$type === 'ClassKind';
+}

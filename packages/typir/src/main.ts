@@ -1,9 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // eslint-disable-next-line header/header
 import { DefaultTypeAssignability, TypeAssignability } from './features/assignability';
 import { DefaultTypeConversion, TypeConversion } from './features/conversion';
 import { TypeInference } from './features/inference';
 import { Type, TypeGraph } from './graph/type-graph';
 import { ClassKind } from './kinds/class-kind';
+import { FixedParameterKind } from './kinds/fixed-parameters-kind';
 import { Kind } from './kinds/kind';
 import { PrimitiveKind } from './kinds/primitive-kind';
 
@@ -41,7 +43,9 @@ const typir = new Typir();
 // reuse predefined kinds
 const primitiveKind = new PrimitiveKind(typir);
 const classKind = new ClassKind(typir, true); // true for structural typing
-// more kinds: collection, list, set, map, ...; functions/operators
+const listKind = new FixedParameterKind(typir, 'List', false, 'entry'); // false for strict checking of the parameter types
+const mapKind = new FixedParameterKind(typir, 'Map', false, 'key', 'value');
+// TODO more kinds: functions/operators
 
 // create some primitive types
 const typeInt = primitiveKind.createPrimitiveType('Integer');
@@ -52,6 +56,10 @@ const typePerson = classKind.createClassType('Person',
     { name: 'firstName', type: typeString },
     { name: 'age', type: typeInt });
 console.log(typePerson.getUserRepresentation());
+
+// create some more types
+const typeListInt = listKind.createFixedParameterType(typeInt);
+const typeMapStringPerson = mapKind.createFixedParameterType(typeString, typePerson);
 
 // automated conversion from int to string
 typir.conversion.markAsConvertible(typeInt, typeString);

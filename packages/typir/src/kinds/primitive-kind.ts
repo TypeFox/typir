@@ -1,7 +1,7 @@
 // eslint-disable-next-line header/header
 import { Type } from '../graph/type-graph';
 import { Typir } from '../main';
-import { Kind } from './kind';
+import { Kind, isKind } from './kind';
 
 export class PrimitiveKind extends Kind {
     readonly $type: 'PrimitiveKind';
@@ -16,7 +16,11 @@ export class PrimitiveKind extends Kind {
         return primitiveType;
     }
 
-    isAssignable(left: Type, right: Type): boolean {
-        return left.name === right.name;
+    isAssignable(source: Type, target: Type): boolean {
+        return isPrimitiveKind(source.kind) && isPrimitiveKind(target.kind) && source.name === target.name;
     }
+}
+
+export function isPrimitiveKind(kind: unknown): kind is PrimitiveKind {
+    return isKind(kind) && kind.$type === 'PrimitiveKind';
 }
