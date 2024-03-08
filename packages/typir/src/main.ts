@@ -6,6 +6,7 @@ import { TypeInference } from './features/inference';
 import { Type, TypeGraph } from './graph/type-graph';
 import { ClassKind } from './kinds/class-kind';
 import { FixedParameterKind } from './kinds/fixed-parameters-kind';
+import { FUNCTION_MISSING_NAME, FunctionKind } from './kinds/function-kind';
 import { Kind } from './kinds/kind';
 import { PrimitiveKind } from './kinds/primitive-kind';
 
@@ -45,7 +46,8 @@ const primitiveKind = new PrimitiveKind(typir);
 const classKind = new ClassKind(typir, true); // true for structural typing
 const listKind = new FixedParameterKind(typir, 'List', false, 'entry'); // false for strict checking of the parameter types
 const mapKind = new FixedParameterKind(typir, 'Map', false, 'key', 'value');
-// TODO more kinds: functions/operators
+const functionKind = new FunctionKind(typir);
+// TODO more kinds: operators
 
 // create some primitive types
 const typeInt = primitiveKind.createPrimitiveType('Integer');
@@ -60,6 +62,7 @@ console.log(typePerson.getUserRepresentation());
 // create some more types
 const typeListInt = listKind.createFixedParameterType(typeInt);
 const typeMapStringPerson = mapKind.createFixedParameterType(typeString, typePerson);
+const typeFunctionStringLength = functionKind.createFunctionType('length', { name: FUNCTION_MISSING_NAME, type: typeInt }, { name: 'vallue', type: typeString });
 
 // automated conversion from int to string
 typir.conversion.markAsConvertible(typeInt, typeString);
@@ -80,7 +83,7 @@ typir.inference = {
     }
 };
 
-// TODO operators/functions
+// TODO declare operators/functions
 
 // is assignable?
 console.log(typir.assignability.isAssignable(typeInt, typeInt)); // => true

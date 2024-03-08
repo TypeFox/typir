@@ -39,11 +39,11 @@ export class FixedParameterKind extends Kind {
         return typeWithParameters;
     }
 
-    getUserRepresentation(type: Type): string {
+    override getUserRepresentation(type: Type): string {
         return `${this.baseName}<${this.getParameterTypes(type).map(p => p.getUserRepresentation()).join(', ')}>`;
     }
 
-    isAssignable(source: Type, target: Type): boolean {
+    override isAssignable(source: Type, target: Type): boolean {
         if (isFixedParametersKind(source.kind) && isFixedParametersKind(target.kind) && source.kind.baseName === target.kind.baseName) {
             if (this.relaxedChecking) {
                 // more relaxed checking of the parameter types

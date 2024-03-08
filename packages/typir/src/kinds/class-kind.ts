@@ -6,7 +6,9 @@ import { Kind, isKind } from './kind';
 
 /**
  * Classes have a name and have fields, consisting of a name and a type.
- * TODO sub/super class
+ *
+ * possible Extensions:
+ * - sub/super class
  */
 export class ClassKind extends Kind {
     readonly $type: 'ClassKind';
@@ -34,7 +36,7 @@ export class ClassKind extends Kind {
         return classType;
     }
 
-    getUserRepresentation(type: Type): string {
+    override getUserRepresentation(type: Type): string {
         const fields: string[] = [];
         for (const field of this.getFields(type).entries()) {
             fields.push(`${field[0]}: ${field[1].name}`);
@@ -42,7 +44,7 @@ export class ClassKind extends Kind {
         return `${type.name} { ${fields.join(', ')} }`;
     }
 
-    isAssignable(source: Type, target: Type): boolean {
+    override isAssignable(source: Type, target: Type): boolean {
         if (isClassKind(source.kind) && isClassKind(target.kind)) {
             if (this.structuralTyping) {
                 // for structural typing:

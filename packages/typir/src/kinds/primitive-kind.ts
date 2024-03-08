@@ -16,7 +16,7 @@ export class PrimitiveKind extends Kind {
         return primitiveType;
     }
 
-    isAssignable(source: Type, target: Type): boolean {
+    override isAssignable(source: Type, target: Type): boolean {
         return isPrimitiveKind(source.kind) && isPrimitiveKind(target.kind) && source.name === target.name;
     }
 }
