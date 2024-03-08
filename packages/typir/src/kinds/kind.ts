@@ -19,8 +19,9 @@ export abstract class Kind {
         return type.name;
     }
 
-    // assumption: both types habe the same kind and this kind owns the called 'areAssignable' function
+    // assumption: both types habe the same kind and this kind owns the called function
     abstract isAssignable(source: Type, target: Type): boolean;
+    abstract areTypesEqual(type1: Type, type2: Type): boolean;
 
     // TODO add more features
 }

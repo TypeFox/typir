@@ -15,7 +15,8 @@ export class DefaultTypeAssignability implements TypeAssignability {
 
     isAssignable(source: Type, target: Type): boolean {
         // same types?
-        if (source === target) {
+        // TODO does it make sense to check that? depending on the kind, this calculation might be quite complex as well
+        if (this.typir.equality.areTypesEqual(source, target)) {
             return true;
         }
 
@@ -26,6 +27,7 @@ export class DefaultTypeAssignability implements TypeAssignability {
 
         // allow the types kind to determine the assignability
         if (source.kind.$type === target.kind.$type) {
+            // TODO prevent loops due to recursion, cache results
             return source.kind.isAssignable(source, target);
         }
 

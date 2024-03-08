@@ -26,7 +26,7 @@ export class Type {
 
     constructor(kind: Kind, name: string) {
         this.kind = kind;
-        this.name = name;
+        this.name = name; // TODO Must the name of types be unique ?? => that is an important design decision!
     }
 
     getUserRepresentation(): string {

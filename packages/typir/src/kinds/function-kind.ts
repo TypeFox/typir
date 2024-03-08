@@ -1,7 +1,7 @@
 /* eslint-disable header/header */
 import { Type, TypeEdge } from '../graph/type-graph';
 import { Typir } from '../main';
-import { NameTypePair } from '../utils';
+import { NameTypePair, compareNameTypePair, compareNameTypePairs } from '../utils';
 import { Kind, isKind } from './kind';
 
 /**
@@ -68,32 +68,37 @@ export class FunctionKind extends Kind {
 
     override isAssignable(source: Type, target: Type): boolean {
         if (isFunctionKind(source) && isFunctionKind(target)) {
-            // output
-            const sourceOut = this.getOutput(source);
-            const targetOut = this.getOutput(target);
-            if ((sourceOut === undefined) !== (targetOut === undefined)) {
-                return false;
-            }
-            // target parameter must be assignable to source parameter
-            if (sourceOut && targetOut && this.typir.assignability.isAssignable(targetOut.type, sourceOut.type) === false) {
+            // output: target parameter must be assignable to source parameter
+            if (compareNameTypePair(this.getOutput(source), this.getOutput(target),
+                (s, t) => this.typir.assignability.isAssignable(t, s)) === false) {
                 return false;
             }
 
-            // input
-            const sourceIn = this.getInputs(source);
-            const targetIn = this.getInputs(target);
-            if (sourceIn.length !== targetIn.length) {
+            // input: source parameters must be assignable to target parameters
+            if (compareNameTypePairs(this.getInputs(source), this.getInputs(target),
+                (s, t) => this.typir.assignability.isAssignable(s, t)) === false) {
                 return false;
-            }
-            // source parameters must be assignable to target parameters
-            for (let i = 0; i < sourceIn.length; i++) {
-                if (this.typir.assignability.isAssignable(sourceIn[i].type, targetIn[i].type) === false) {
-                    return false;
-                }
             }
 
             // match of signatures!
             return true;
+        }
+        return false;
+    }
+
+    override areTypesEqual(type1: Type, type2: Type): boolean {
+        if (isFunctionKind(type1) && isFunctionKind(type2)) {
+            // same output?
+            if (compareNameTypePair(this.getOutput(type1), this.getOutput(type2),
+                (s, t) => this.typir.equality.areTypesEqual(s, t)) === false) {
+                return false;
+            }
+            // same input?
+            if (compareNameTypePairs(this.getInputs(type1), this.getInputs(type2),
+                (s, t) => this.typir.equality.areTypesEqual(s, t)) === false) {
+                return false;
+            }
+            return true; // yes!
         }
         return false;
     }

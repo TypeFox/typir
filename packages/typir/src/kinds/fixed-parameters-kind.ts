@@ -3,6 +3,7 @@ import assert from 'assert';
 import { Type, TypeEdge } from '../graph/type-graph';
 import { Typir } from '../main';
 import { Kind, isKind } from './kind';
+import { compareTypes } from '../utils';
 
 /**
  * Suitable for kinds like Collection<T>, List<T>, Array<T>, Map<K, V>, ..., i.e. types with a fixed number of arbitrary parameter types
@@ -26,7 +27,7 @@ export class FixedParameterKind extends Kind {
     // the order of parameters matters!
     createFixedParameterType(...parameterTypes: Type[]): Type {
         // create the class type
-        const typeWithParameters = new Type(this, this.baseName); // TODO unique type names?? => design decision!
+        const typeWithParameters = new Type(this, this.baseName);
         this.typir.graph.addNode(typeWithParameters);
 
         // add the given types to the required fixed parameters
@@ -47,27 +48,21 @@ export class FixedParameterKind extends Kind {
         if (isFixedParametersKind(source.kind) && isFixedParametersKind(target.kind) && source.kind.baseName === target.kind.baseName) {
             if (this.relaxedChecking) {
                 // more relaxed checking of the parameter types
-                return this.checkParameters(source.kind.getParameterTypes(source), target.kind.getParameterTypes(target),
+                return compareTypes(this.getParameterTypes(source), this.getParameterTypes(target),
                     (s, t) => this.typir.assignability.isAssignable(s, t));
             } else {
                 // strict checking of the parameter types
-                return this.checkParameters(source.kind.getParameterTypes(source), target.kind.getParameterTypes(target),
+                return compareTypes(source.kind.getParameterTypes(source), target.kind.getParameterTypes(target),
                     (s, t) => s === t);
             }
         }
         return false;
     }
 
-    protected checkParameters(left: Type[], right: Type[], checker: (l: Type, r: Type) => boolean): boolean {
-        if (left.length !== right.length) {
-            return false;
-        }
-        for (let i = 0; i < left.length; i++) {
-            if (checker(left[i], right[i]) === false) {
-                return false;
-            }
-        }
-        return true;
+    override areTypesEqual(type1: Type, type2: Type): boolean {
+        return isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind)
+            && type1.kind.baseName === type2.kind.baseName
+            && compareTypes(this.getParameterTypes(type1), this.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));
     }
 
     getParameterTypes(fixedParameterType: Type): Type[] {

@@ -2,6 +2,7 @@
 // eslint-disable-next-line header/header
 import { DefaultTypeAssignability, TypeAssignability } from './features/assignability';
 import { DefaultTypeConversion, TypeConversion } from './features/conversion';
+import { DefaultTypeEquality, TypeEquality } from './features/equality';
 import { TypeInference } from './features/inference';
 import { Type, TypeGraph } from './graph/type-graph';
 import { ClassKind } from './kinds/class-kind';
@@ -27,11 +28,11 @@ export class Typir {
 
     // features
     assignability: TypeAssignability = new DefaultTypeAssignability(this);
+    equality: TypeEquality = new DefaultTypeEquality(this);
     conversion: TypeConversion = new DefaultTypeConversion(this);
     inference?: TypeInference;
 
     // TODO some more features
-    // inferType(domainElement: any): Type;
     // isSubType(superType: Type, subType: Type): boolean; // 'subTypeOf', closestCommonSuperType
     // isAssignableTo(leftType: Type, rightValue: any): boolean; // or error messages ?
 }

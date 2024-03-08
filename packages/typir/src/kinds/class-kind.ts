@@ -1,7 +1,7 @@
 // eslint-disable-next-line header/header
 import { Type, TypeEdge } from '../graph/type-graph';
 import { Typir } from '../main';
-import { NameTypePair } from '../utils';
+import { NameTypePair, compareNameTypesMap } from '../utils';
 import { Kind, isKind } from './kind';
 
 /**
@@ -48,23 +48,25 @@ export class ClassKind extends Kind {
         if (isClassKind(source.kind) && isClassKind(target.kind)) {
             if (this.structuralTyping) {
                 // for structural typing:
-                const sourceFields = this.getFields(source);
-                const targetFields = this.getFields(target);
-                if (sourceFields.size !== targetFields.size) {
-                    return false;
-                }
-                for (const entry of sourceFields.entries()) {
-                    const sourceType = entry[1];
-                    const targetType = targetFields.get(entry[0]);
-                    // TODO prevent loops during this recursion
-                    if (targetType === undefined || this.typir.assignability.isAssignable(sourceType, targetType) === false) {
-                        return false;
-                    }
-                }
-                return true;
+                return compareNameTypesMap(this.getFields(source), this.getFields(target),
+                    (s, t) => this.typir.assignability.isAssignable(s, t));
             } else {
                 // for nominal typing:
                 return source.name === target.name;
+            }
+        }
+        return false;
+    }
+
+    override areTypesEqual(type1: Type, type2: Type): boolean {
+        if (isClassKind(type1.kind) && isClassKind(type2.kind)) {
+            if (this.structuralTyping) {
+                // for structural typing:
+                return compareNameTypesMap(this.getFields(type1), this.getFields(type2),
+                    (s, t) => this.typir.equality.areTypesEqual(s, t));
+            } else {
+                // for nominal typing:
+                return type1.name === type2.name;
             }
         }
         return false;
