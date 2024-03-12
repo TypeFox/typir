@@ -12,7 +12,7 @@ export interface ClassKindOptions {
  * Classes have a name and have fields, consisting of a name and a type.
  *
  * possible Extensions:
- * - sub/super class TODO
+ * - sub/super class TODO (with options to control that, multiple super classes! getFields with Option to get fields of super classes as well)
  */
 export class ClassKind implements Kind {
     readonly $type: 'ClassKind';
@@ -50,15 +50,15 @@ export class ClassKind implements Kind {
         return `${type.name} { ${fields.join(', ')} }`;
     }
 
-    isAssignable(source: Type, target: Type): boolean {
-        if (isClassKind(source.kind) && isClassKind(target.kind)) {
+    isSubType(superType: Type, subType: Type): boolean {
+        if (isClassKind(superType.kind) && isClassKind(subType.kind)) {
             if (this.options.structuralTyping) {
                 // for structural typing:
-                return compareNameTypesMap(this.getFields(source), this.getFields(target),
-                    (s, t) => this.typir.assignability.isAssignable(s, t));
+                return compareNameTypesMap(this.getFields(superType), this.getFields(subType),
+                    (superr, sub) => this.typir.assignability.isAssignable(sub, superr));
             } else {
                 // for nominal typing:
-                return source.name === target.name;
+                return superType.name === subType.name;
             }
         }
         return false;
@@ -69,7 +69,7 @@ export class ClassKind implements Kind {
             if (this.options.structuralTyping) {
                 // for structural typing:
                 return compareNameTypesMap(this.getFields(type1), this.getFields(type2),
-                    (s, t) => this.typir.equality.areTypesEqual(s, t));
+                    (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));
             } else {
                 // for nominal typing:
                 return type1.name === type2.name;

@@ -50,16 +50,16 @@ export class FixedParameterKind implements Kind {
         return `${this.baseName}<${this.getParameterTypes(type).map(p => p.getUserRepresentation()).join(', ')}>`;
     }
 
-    isAssignable(source: Type, target: Type): boolean {
-        if (isFixedParametersKind(source.kind) && isFixedParametersKind(target.kind) && source.kind.baseName === target.kind.baseName) {
+    isSubType(superType: Type, subType: Type): boolean {
+        if (isFixedParametersKind(superType.kind) && isFixedParametersKind(subType.kind) && superType.kind.baseName === subType.kind.baseName) {
             if (this.options.relaxedChecking) {
                 // more relaxed checking of the parameter types
-                return compareTypes(this.getParameterTypes(source), this.getParameterTypes(target),
-                    (s, t) => this.typir.assignability.isAssignable(s, t));
+                return compareTypes(this.getParameterTypes(superType), this.getParameterTypes(subType),
+                    (superr, sub) => this.typir.assignability.isAssignable(sub, superr));
             } else {
                 // strict checking of the parameter types
-                return compareTypes(source.kind.getParameterTypes(source), target.kind.getParameterTypes(target),
-                    (s, t) => s === t);
+                return compareTypes(superType.kind.getParameterTypes(superType), subType.kind.getParameterTypes(subType),
+                    (superr, sub) => this.typir.equality.areTypesEqual(sub, superr));
             }
         }
         return false;

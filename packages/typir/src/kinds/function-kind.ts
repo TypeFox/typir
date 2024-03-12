@@ -90,16 +90,16 @@ export class FunctionKind implements Kind {
         return name !== undefined && name !== FUNCTION_MISSING_NAME;
     }
 
-    isAssignable(source: Type, target: Type): boolean {
-        if (isFunctionKind(source) && isFunctionKind(target)) {
+    isSubType(superType: Type, subType: Type): boolean {
+        if (isFunctionKind(superType) && isFunctionKind(subType)) {
             // output: target parameter must be assignable to source parameter
-            if (compareNameTypePair(this.getOutput(source), this.getOutput(target),
+            if (compareNameTypePair(this.getOutput(superType), this.getOutput(subType),
                 (s, t) => this.typir.assignability.isAssignable(t, s)) === false) {
                 return false;
             }
 
             // input: source parameters must be assignable to target parameters
-            if (compareNameTypePairs(this.getInputs(source), this.getInputs(target),
+            if (compareNameTypePairs(this.getInputs(superType), this.getInputs(subType),
                 (s, t) => this.typir.assignability.isAssignable(s, t)) === false) {
                 return false;
             }

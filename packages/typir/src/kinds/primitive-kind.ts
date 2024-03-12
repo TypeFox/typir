@@ -22,8 +22,8 @@ export class PrimitiveKind implements Kind {
         return type.name;
     }
 
-    isAssignable(source: Type, target: Type): boolean {
-        return this.areTypesEqual(source, target);
+    isSubType(superType: Type, subType: Type): boolean {
+        return this.areTypesEqual(superType, subType);
     }
 
     areTypesEqual(type1: Type, type2: Type): boolean {

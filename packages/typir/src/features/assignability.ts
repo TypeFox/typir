@@ -3,7 +3,7 @@ import { Type } from '../graph/type-graph';
 import { Typir } from '../main';
 
 export interface TypeAssignability {
-    isAssignable(source: Type, target: Type): boolean;
+    isAssignable(source: Type, target: Type): boolean; // target := source;
 }
 
 export class DefaultTypeAssignability implements TypeAssignability {
@@ -21,14 +21,13 @@ export class DefaultTypeAssignability implements TypeAssignability {
         }
 
         // explicit conversion possible?
-        if (this.typir.conversion.isConvertibleTo(source, target)) {
+        if (this.typir.conversion.isConvertibleTo(source, target, 'IMPLICIT')) {
             return true;
         }
 
-        // allow the types kind to determine the assignability
-        if (source.kind.$type === target.kind.$type) {
-            // TODO prevent loops due to recursion, cache results
-            return source.kind.isAssignable(source, target);
+        // allow the types kind to determine about sub-type relationships
+        if (this.typir.subtype.isSubType(target, source)) {
+            return true;
         }
 
         return false;

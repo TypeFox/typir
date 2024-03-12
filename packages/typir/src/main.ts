@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // eslint-disable-next-line header/header
 import { DefaultTypeAssignability, TypeAssignability } from './features/assignability';
-import { DefaultTypeConversion, TypeConversion } from './features/conversion';
+import { DefaultTypeConversion, TypeConversion as TypeCasting } from './features/conversion';
 import { DefaultTypeEquality, TypeEquality } from './features/equality';
 import { TypeInference } from './features/inference';
+import { DefaultSubType, SubType } from './features/subtype';
 import { Type, TypeGraph } from './graph/type-graph';
 import { ClassKind } from './kinds/class-kind';
 import { FixedParameterKind } from './kinds/fixed-parameters-kind';
@@ -29,12 +30,9 @@ export class Typir {
     // features
     assignability: TypeAssignability = new DefaultTypeAssignability(this);
     equality: TypeEquality = new DefaultTypeEquality(this);
-    conversion: TypeConversion = new DefaultTypeConversion(this);
+    conversion: TypeCasting = new DefaultTypeConversion(this);
+    subtype: SubType = new DefaultSubType(this);
     inference?: TypeInference;
-
-    // TODO some more features
-    // isSubType(superType: Type, subType: Type): boolean; // 'subTypeOf', closestCommonSuperType
-    // isAssignableTo(leftType: Type, rightValue: any): boolean; // or error messages ?
 }
 
 /** Some experiments to sketch the use */
@@ -49,6 +47,7 @@ const listKind = new FixedParameterKind(typir, 'List', { relaxedChecking: false 
 const mapKind = new FixedParameterKind(typir, 'Map', { relaxedChecking: false }, 'key', 'value');
 const functionKind = new FunctionKind(typir);
 // TODO more kinds: operators
+// TODO how to bundle such definitions for reuse ("presets")?
 
 // create some primitive types
 const typeInt = primitiveKind.createPrimitiveType('Integer');
@@ -68,9 +67,9 @@ const typeFunctionStringLength = functionKind.createFunctionType('length',
     { name: 'value', type: typeString });
 
 // automated conversion from int to string
-typir.conversion.markAsConvertible(typeInt, typeString);
+typir.conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT');
 // it is possible to define multiple sources and/or targets at the same time:
-typir.conversion.markAsConvertible([typeInt, typeInt], [typeString, typeString, typeString]);
+typir.conversion.markAsConvertible([typeInt, typeInt], [typeString, typeString, typeString], 'EXPLICIT');
 
 // the rules for type inference need to be specified by the user of Typir
 typir.inference = {
@@ -82,6 +81,10 @@ typir.inference = {
             return typeString;
         }
         // TODO add example recursive type inference
+        if (Array.isArray(domainElement)) {
+            // eslint-disable-next-line dot-notation
+            return typir.inference!.inferType(domainElement['element']); // typeListInt;
+        }
         return typePerson;
     }
 };

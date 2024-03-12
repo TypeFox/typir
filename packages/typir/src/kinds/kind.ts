@@ -11,7 +11,7 @@ export interface Kind {
     getUserRepresentation(type: Type): string;
 
     // assumption: both types habe the same kind and this kind owns the called function
-    isAssignable(source: Type, target: Type): boolean;
+    isSubType(superType: Type, subType: Type): boolean;
     areTypesEqual(type1: Type, type2: Type): boolean;
 
     // TODO add more features
