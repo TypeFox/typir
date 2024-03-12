@@ -3,11 +3,13 @@ import { Type } from '../graph/type-graph';
 import { Typir } from '../main';
 import { Kind, isKind } from './kind';
 
-export class PrimitiveKind extends Kind {
+export class PrimitiveKind implements Kind {
     readonly $type: 'PrimitiveKind';
+    readonly typir: Typir;
 
     constructor(typir: Typir) {
-        super(typir);
+        this.typir = typir;
+        this.typir.registerKind(this);
     }
 
     createPrimitiveType(primitiveName: string): Type {
@@ -16,11 +18,15 @@ export class PrimitiveKind extends Kind {
         return primitiveType;
     }
 
-    override isAssignable(source: Type, target: Type): boolean {
+    getUserRepresentation(type: Type): string {
+        return type.name;
+    }
+
+    isAssignable(source: Type, target: Type): boolean {
         return this.areTypesEqual(source, target);
     }
 
-    override areTypesEqual(type1: Type, type2: Type): boolean {
+    areTypesEqual(type1: Type, type2: Type): boolean {
         return isPrimitiveKind(type1.kind) && isPrimitiveKind(type2.kind) && type1.name === type2.name;
     }
 }

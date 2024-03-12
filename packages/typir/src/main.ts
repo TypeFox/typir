@@ -44,9 +44,9 @@ const typir = new Typir();
 
 // reuse predefined kinds
 const primitiveKind = new PrimitiveKind(typir);
-const classKind = new ClassKind(typir, true); // true for structural typing
-const listKind = new FixedParameterKind(typir, 'List', false, 'entry'); // false for strict checking of the parameter types
-const mapKind = new FixedParameterKind(typir, 'Map', false, 'key', 'value');
+const classKind = new ClassKind(typir, { structuralTyping: true });
+const listKind = new FixedParameterKind(typir, 'List', { relaxedChecking: false }, 'entry');
+const mapKind = new FixedParameterKind(typir, 'Map', { relaxedChecking: false }, 'key', 'value');
 const functionKind = new FunctionKind(typir);
 // TODO more kinds: operators
 
@@ -63,7 +63,9 @@ console.log(typePerson.getUserRepresentation());
 // create some more types
 const typeListInt = listKind.createFixedParameterType(typeInt);
 const typeMapStringPerson = mapKind.createFixedParameterType(typeString, typePerson);
-const typeFunctionStringLength = functionKind.createFunctionType('length', { name: FUNCTION_MISSING_NAME, type: typeInt }, { name: 'vallue', type: typeString });
+const typeFunctionStringLength = functionKind.createFunctionType('length',
+    { name: FUNCTION_MISSING_NAME, type: typeInt },
+    { name: 'value', type: typeString });
 
 // automated conversion from int to string
 typir.conversion.markAsConvertible(typeInt, typeString);

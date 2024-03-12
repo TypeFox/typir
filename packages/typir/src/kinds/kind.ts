@@ -1,27 +1,18 @@
 // eslint-disable-next-line header/header
 import { Type } from '../graph/type-graph';
-import { Typir } from '../main';
 
 /**
  * Typir provides a default set of Kinds, e.g. primitive types and class types.
- * For domain-specific kinds, create a new sub-class.
+ * For domain-specific kinds, implement this interface or create a new sub-class of an existing kind-class.
  */
-export abstract class Kind {
+export interface Kind {
     readonly $type: string;
-    readonly typir: Typir;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
-        this.typir.registerKind(this);
-    }
-
-    getUserRepresentation(type: Type): string {
-        return type.name;
-    }
+    getUserRepresentation(type: Type): string;
 
     // assumption: both types habe the same kind and this kind owns the called function
-    abstract isAssignable(source: Type, target: Type): boolean;
-    abstract areTypesEqual(type1: Type, type2: Type): boolean;
+    isAssignable(source: Type, target: Type): boolean;
+    areTypesEqual(type1: Type, type2: Type): boolean;
 
     // TODO add more features
 }

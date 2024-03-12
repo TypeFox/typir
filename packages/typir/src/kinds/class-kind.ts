@@ -4,19 +4,25 @@ import { Typir } from '../main';
 import { NameTypePair, compareNameTypesMap } from '../utils';
 import { Kind, isKind } from './kind';
 
+export interface ClassKindOptions {
+    structuralTyping: boolean,
+}
+
 /**
  * Classes have a name and have fields, consisting of a name and a type.
  *
  * possible Extensions:
- * - sub/super class
+ * - sub/super class TODO
  */
-export class ClassKind extends Kind {
+export class ClassKind implements Kind {
     readonly $type: 'ClassKind';
-    readonly structuralTyping: boolean;
+    readonly typir: Typir;
+    readonly options: ClassKindOptions;
 
-    constructor(typir: Typir, structuralTyping: boolean) {
-        super(typir);
-        this.structuralTyping = structuralTyping;
+    constructor(typir: Typir, options: ClassKindOptions) {
+        this.typir = typir;
+        this.typir.registerKind(this);
+        this.options = options;
     }
 
     createClassType(className: string, ...fields: NameTypePair[]): Type {
@@ -36,7 +42,7 @@ export class ClassKind extends Kind {
         return classType;
     }
 
-    override getUserRepresentation(type: Type): string {
+    getUserRepresentation(type: Type): string {
         const fields: string[] = [];
         for (const field of this.getFields(type).entries()) {
             fields.push(`${field[0]}: ${field[1].name}`);
@@ -44,9 +50,9 @@ export class ClassKind extends Kind {
         return `${type.name} { ${fields.join(', ')} }`;
     }
 
-    override isAssignable(source: Type, target: Type): boolean {
+    isAssignable(source: Type, target: Type): boolean {
         if (isClassKind(source.kind) && isClassKind(target.kind)) {
-            if (this.structuralTyping) {
+            if (this.options.structuralTyping) {
                 // for structural typing:
                 return compareNameTypesMap(this.getFields(source), this.getFields(target),
                     (s, t) => this.typir.assignability.isAssignable(s, t));
@@ -58,9 +64,9 @@ export class ClassKind extends Kind {
         return false;
     }
 
-    override areTypesEqual(type1: Type, type2: Type): boolean {
+    areTypesEqual(type1: Type, type2: Type): boolean {
         if (isClassKind(type1.kind) && isClassKind(type2.kind)) {
-            if (this.structuralTyping) {
+            if (this.options.structuralTyping) {
                 // for structural typing:
                 return compareNameTypesMap(this.getFields(type1), this.getFields(type2),
                     (s, t) => this.typir.equality.areTypesEqual(s, t));

@@ -5,19 +5,25 @@ import { Typir } from '../main';
 import { Kind, isKind } from './kind';
 import { compareTypes } from '../utils';
 
+export interface FixedParameterKindOptions {
+    relaxedChecking: boolean,
+}
+
 /**
  * Suitable for kinds like Collection<T>, List<T>, Array<T>, Map<K, V>, ..., i.e. types with a fixed number of arbitrary parameter types
  */
-export class FixedParameterKind extends Kind {
+export class FixedParameterKind implements Kind {
     readonly $type: 'FixedParameterKind';
+    readonly typir: Typir;
     readonly baseName: string;
-    readonly relaxedChecking: boolean;
+    readonly options: FixedParameterKindOptions;
     readonly parameterNames: string[];
 
-    constructor(typir: Typir, baseName: string, relaxedChecking: boolean, ...parameterNames: string[]) {
-        super(typir);
+    constructor(typir: Typir, baseName: string, options: FixedParameterKindOptions, ...parameterNames: string[]) {
+        this.typir = typir;
+        this.typir.registerKind(this);
         this.baseName = baseName;
-        this.relaxedChecking = relaxedChecking;
+        this.options = options;
         this.parameterNames = parameterNames;
 
         // check input
@@ -40,13 +46,13 @@ export class FixedParameterKind extends Kind {
         return typeWithParameters;
     }
 
-    override getUserRepresentation(type: Type): string {
+    getUserRepresentation(type: Type): string {
         return `${this.baseName}<${this.getParameterTypes(type).map(p => p.getUserRepresentation()).join(', ')}>`;
     }
 
-    override isAssignable(source: Type, target: Type): boolean {
+    isAssignable(source: Type, target: Type): boolean {
         if (isFixedParametersKind(source.kind) && isFixedParametersKind(target.kind) && source.kind.baseName === target.kind.baseName) {
-            if (this.relaxedChecking) {
+            if (this.options.relaxedChecking) {
                 // more relaxed checking of the parameter types
                 return compareTypes(this.getParameterTypes(source), this.getParameterTypes(target),
                     (s, t) => this.typir.assignability.isAssignable(s, t));
@@ -59,7 +65,7 @@ export class FixedParameterKind extends Kind {
         return false;
     }
 
-    override areTypesEqual(type1: Type, type2: Type): boolean {
+    areTypesEqual(type1: Type, type2: Type): boolean {
         return isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind)
             && type1.kind.baseName === type2.kind.baseName
             && compareTypes(this.getParameterTypes(type1), this.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));

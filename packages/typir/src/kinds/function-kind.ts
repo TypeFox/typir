@@ -4,6 +4,12 @@ import { Typir } from '../main';
 import { NameTypePair, compareNameTypePair, compareNameTypePairs } from '../utils';
 import { Kind, isKind } from './kind';
 
+export interface FunctionKindOptions {
+    enforceFunctionName: boolean,
+    enforceInputParameterNames: boolean,
+    enforceOutputParameterName: boolean,
+}
+
 /**
  * Represents signatures of executable code.
  *
@@ -11,24 +17,36 @@ import { Kind, isKind } from './kind';
  * - multiple output parameters
  * - create variants of this, e.g. functions, procedures, lambdas
  */
-export class FunctionKind extends Kind {
+export class FunctionKind implements Kind {
     readonly $type: 'FunctionKind';
+    readonly typir: Typir;
+    readonly options: FunctionKindOptions;
 
-    constructor(typir: Typir) {
-        super(typir);
+    constructor(typir: Typir, options?: Partial<FunctionKindOptions>) {
+        this.typir = typir;
+        this.typir.registerKind(this);
+        this.options = {
+            enforceFunctionName: false,
+            enforceInputParameterNames: false,
+            enforceOutputParameterName: false,
+            ...options
+        };
     }
 
     createFunctionType(functionName: string,
-        outputParameter: NameTypePair | undefined, ...inputParameter: NameTypePair[]): Type {
+        outputParameter: NameTypePair | undefined,
+        ...inputParameter: NameTypePair[]): Type {
         // the order of parameters is important!
 
         // create the function type
+        this.enforceName(functionName, this.options.enforceFunctionName);
         const functionType = new Type(this, functionName);
         this.typir.graph.addNode(functionType);
 
         // output parameter
         if (outputParameter) {
             const edge = new TypeEdge(functionType, outputParameter.type, OUTPUT_PARAMETER);
+            this.enforceName(outputParameter.name, this.options.enforceOutputParameterName);
             edge.properties.set(PARAMETER_NAME, outputParameter.name);
             this.typir.graph.addEdge(edge);
         }
@@ -36,6 +54,7 @@ export class FunctionKind extends Kind {
         // input parameters
         inputParameter.forEach((input, index) => {
             const edge = new TypeEdge(functionType, input.type, INPUT_PARAMETER);
+            this.enforceName(input.name, this.options.enforceInputParameterNames);
             edge.properties.set(PARAMETER_NAME, input.name);
             edge.properties.set(PARAMETER_ORDER, index);
             this.typir.graph.addEdge(edge);
@@ -44,7 +63,7 @@ export class FunctionKind extends Kind {
         return functionType;
     }
 
-    override getUserRepresentation(type: Type): string {
+    getUserRepresentation(type: Type): string {
         const inputs = this.getInputs(type).map(input => this.printNameType(input)).join(', ');
         const outputType = this.getOutput(type)?.type.getUserRepresentation();
         if (this.hasName(type.name)) {
@@ -62,11 +81,16 @@ export class FunctionKind extends Kind {
         }
     }
 
+    protected enforceName(name: string | undefined, enforce: boolean) {
+        if (enforce && this.hasName(name) === false) {
+            throw new Error('a name is required');
+        }
+    }
     protected hasName(name: string | undefined): name is string {
         return name !== undefined && name !== FUNCTION_MISSING_NAME;
     }
 
-    override isAssignable(source: Type, target: Type): boolean {
+    isAssignable(source: Type, target: Type): boolean {
         if (isFunctionKind(source) && isFunctionKind(target)) {
             // output: target parameter must be assignable to source parameter
             if (compareNameTypePair(this.getOutput(source), this.getOutput(target),
@@ -86,7 +110,7 @@ export class FunctionKind extends Kind {
         return false;
     }
 
-    override areTypesEqual(type1: Type, type2: Type): boolean {
+    areTypesEqual(type1: Type, type2: Type): boolean {
         if (isFunctionKind(type1) && isFunctionKind(type2)) {
             // same output?
             if (compareNameTypePair(this.getOutput(type1), this.getOutput(type2),
