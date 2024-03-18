@@ -46,12 +46,12 @@ const classKind = new ClassKind(typir, { structuralTyping: true, maximumNumberOf
 const listKind = new FixedParameterKind(typir, 'List', { relaxedChecking: false }, 'entry');
 const mapKind = new FixedParameterKind(typir, 'Map', { relaxedChecking: false }, 'key', 'value');
 const functionKind = new FunctionKind(typir);
-// TODO more kinds: operators
 // TODO how to bundle such definitions for reuse ("presets")?
 
 // create some primitive types
 const typeInt = primitiveKind.createPrimitiveType('Integer');
 const typeString = primitiveKind.createPrimitiveType('String');
+const typeBoolean = primitiveKind.createPrimitiveType('Boolean');
 
 // create class type Person with firstName and age properties
 const typePerson = classKind.createClassType('Person', [],
@@ -67,6 +67,23 @@ const typeMapStringPerson = mapKind.createFixedParameterType(typeString, typePer
 const typeFunctionStringLength = functionKind.createFunctionType('length',
     { name: FUNCTION_MISSING_NAME, type: typeInt },
     { name: 'value', type: typeString });
+
+// TODO more kinds: operators; as a dedicated Service? how to pass/provide the "functionKind"?
+function binaryOperator(name: string, inputType: Type, outputType: Type = inputType): Type {
+    return functionKind.createFunctionType(name,
+        { name: FUNCTION_MISSING_NAME, type: outputType },
+        { name: 'left', type: inputType },
+        { name: 'right', type: inputType }
+    );
+}
+// binary operators on Integers
+const opAdd = binaryOperator('+', typeInt);
+const opMinus = binaryOperator('-', typeInt);
+const opLess = binaryOperator('<', typeInt, typeBoolean);
+const opEqualInt = binaryOperator('==', typeInt, typeBoolean);
+// binary operators on Booleans
+const opEqualBool = binaryOperator('==', typeBoolean);
+const opAnd = binaryOperator('&&', typeBoolean);
 
 // automated conversion from int to string
 typir.conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT');
