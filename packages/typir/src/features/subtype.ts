@@ -1,6 +1,6 @@
 /* eslint-disable header/header */
 import { Type } from '../graph/type-graph';
-import { Typir } from '../main';
+import { Typir } from '../typir';
 
 export interface SubType {
     isSubType(superType: Type, subType: Type): boolean;

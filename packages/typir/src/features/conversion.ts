@@ -1,6 +1,6 @@
 // eslint-disable-next-line header/header
 import { Type, TypeEdge } from '../graph/type-graph';
-import { Typir } from '../main';
+import { Typir } from '../typir';
 
 export type ConversionMode =
     'IMPLICIT' | // coercion

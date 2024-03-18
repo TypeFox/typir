@@ -1,6 +1,6 @@
 // eslint-disable-next-line header/header
 import { Type } from '../graph/type-graph';
-import { Typir } from '../main';
+import { Typir } from '../typir';
 
 export interface TypeAssignability {
     isAssignable(source: Type, target: Type): boolean; // target := source;

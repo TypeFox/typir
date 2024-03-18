@@ -1,6 +1,6 @@
 // eslint-disable-next-line header/header
 import { Type } from '../graph/type-graph';
-import { Typir } from '../main';
+import { Typir } from '../typir';
 import { Kind, isKind } from './kind';
 
 export class PrimitiveKind implements Kind {

@@ -1,7 +1,7 @@
 // eslint-disable-next-line header/header
 import assert from 'assert';
 import { Type, TypeEdge } from '../graph/type-graph';
-import { Typir } from '../main';
+import { Typir } from '../typir';
 import { Kind, isKind } from './kind';
 import { compareTypes } from '../utils';
 

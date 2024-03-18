@@ -1,7 +1,6 @@
 /* eslint-disable header/header */
-
 import { Type } from '../graph/type-graph';
-import { Typir } from '../main';
+import { Typir } from '../typir';
 
 export interface TypeEquality {
     areTypesEqual(type1: Type, type2: Type): boolean;
