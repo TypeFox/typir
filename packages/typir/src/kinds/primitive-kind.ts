@@ -4,7 +4,7 @@ import { Typir } from '../main';
 import { Kind, isKind } from './kind';
 
 export class PrimitiveKind implements Kind {
-    readonly $type: 'PrimitiveKind';
+    readonly $name: 'PrimitiveKind';
     readonly typir: Typir;
 
     constructor(typir: Typir) {
@@ -32,5 +32,5 @@ export class PrimitiveKind implements Kind {
 }
 
 export function isPrimitiveKind(kind: unknown): kind is PrimitiveKind {
-    return isKind(kind) && kind.$type === 'PrimitiveKind';
+    return isKind(kind) && kind.$name === 'PrimitiveKind';
 }

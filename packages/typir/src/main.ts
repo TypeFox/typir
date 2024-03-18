@@ -18,7 +18,7 @@ export class Typir {
 
     // manage kinds
     registerKind(kind: Kind): void {
-        this.kinds.set(kind.$type, kind);
+        this.kinds.set(kind.$name, kind);
     }
     getKind(type: string): Kind {
         if (this.kinds.has(type)) {
@@ -42,7 +42,7 @@ const typir = new Typir();
 
 // reuse predefined kinds
 const primitiveKind = new PrimitiveKind(typir);
-const classKind = new ClassKind(typir, { structuralTyping: true });
+const classKind = new ClassKind(typir, { structuralTyping: true, maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' });
 const listKind = new FixedParameterKind(typir, 'List', { relaxedChecking: false }, 'entry');
 const mapKind = new FixedParameterKind(typir, 'Map', { relaxedChecking: false }, 'key', 'value');
 const functionKind = new FunctionKind(typir);
@@ -54,10 +54,12 @@ const typeInt = primitiveKind.createPrimitiveType('Integer');
 const typeString = primitiveKind.createPrimitiveType('String');
 
 // create class type Person with firstName and age properties
-const typePerson = classKind.createClassType('Person',
+const typePerson = classKind.createClassType('Person', [],
     { name: 'firstName', type: typeString },
     { name: 'age', type: typeInt });
 console.log(typePerson.getUserRepresentation());
+const typeStudent = classKind.createClassType('Student', [typePerson], // a Student is a special Person
+    { name: 'studentNumber', type: typeInt });
 
 // create some more types
 const typeListInt = listKind.createFixedParameterType(typeInt);

@@ -14,7 +14,7 @@ export class DefaultSubType implements SubType {
     }
 
     isSubType(superType: Type, subType: Type): boolean {
-        if (superType.kind.$type === subType.kind.$type) {
+        if (superType.kind.$name === subType.kind.$name) {
             // TODO prevent loops due to recursion, cache results
             // TODO lazy? persistence? MemoizingService?!
             return superType.kind.isSubType(superType, subType);

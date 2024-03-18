@@ -13,7 +13,7 @@ export interface FixedParameterKindOptions {
  * Suitable for kinds like Collection<T>, List<T>, Array<T>, Map<K, V>, ..., i.e. types with a fixed number of arbitrary parameter types
  */
 export class FixedParameterKind implements Kind {
-    readonly $type: 'FixedParameterKind';
+    readonly $name: 'FixedParameterKind';
     readonly typir: Typir;
     readonly baseName: string;
     readonly options: FixedParameterKindOptions;
@@ -81,5 +81,5 @@ export class FixedParameterKind implements Kind {
 const FIXED_PARAMETER_TYPE = 'hasField';
 
 export function isFixedParametersKind(kind: unknown): kind is FixedParameterKind {
-    return isKind(kind) && kind.$type === 'FixedParameterKind';
+    return isKind(kind) && kind.$name === 'FixedParameterKind';
 }

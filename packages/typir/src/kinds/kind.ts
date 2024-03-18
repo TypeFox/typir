@@ -6,17 +6,15 @@ import { Type } from '../graph/type-graph';
  * For domain-specific kinds, implement this interface or create a new sub-class of an existing kind-class.
  */
 export interface Kind {
-    readonly $type: string;
+    readonly $name: string;
 
     getUserRepresentation(type: Type): string;
 
     // assumption: both types habe the same kind and this kind owns the called function
     isSubType(superType: Type, subType: Type): boolean;
     areTypesEqual(type1: Type, type2: Type): boolean;
-
-    // TODO add more features
 }
 
 export function isKind(kind: unknown): kind is Kind {
-    return typeof kind === 'object' && kind !== null && typeof (kind as Kind).$type === 'string';
+    return typeof kind === 'object' && kind !== null && typeof (kind as Kind).$name === 'string';
 }

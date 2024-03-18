@@ -18,7 +18,7 @@ export interface FunctionKindOptions {
  * - create variants of this, e.g. functions, procedures, lambdas
  */
 export class FunctionKind implements Kind {
-    readonly $type: 'FunctionKind';
+    readonly $name: 'FunctionKind';
     readonly typir: Typir;
     readonly options: FunctionKindOptions;
 
@@ -154,5 +154,5 @@ const PARAMETER_NAME = 'parameterName';
 const PARAMETER_ORDER = 'parameterOrder';
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
-    return isKind(kind) && kind.$type === 'FunctionKind';
+    return isKind(kind) && kind.$name === 'FunctionKind';
 }
