@@ -1,5 +1,6 @@
 /* eslint-disable header/header */
 import { TypeAssignability, DefaultTypeAssignability } from './features/assignability';
+import { DefaultTypeRelationshipCaching, TypeRelationshipCaching } from './features/caching';
 import { DefaultTypeConversion, TypeConversion } from './features/conversion';
 import { TypeEquality, DefaultTypeEquality } from './features/equality';
 import { TypeInference } from './features/inference';
@@ -28,4 +29,10 @@ export class Typir {
     conversion: TypeConversion = new DefaultTypeConversion(this);
     subtype: SubType = new DefaultSubType(this);
     inference?: TypeInference;
+    caching: TypeRelationshipCaching = new DefaultTypeRelationshipCaching(this);
 }
+
+/** Open design questions TODO
+ * - use graphology for the TypeGraph?
+ * - Must the name of types be unique?
+ */

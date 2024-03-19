@@ -14,13 +14,7 @@ export class DefaultTypeAssignability implements TypeAssignability {
     }
 
     isAssignable(source: Type, target: Type): boolean {
-        // same types?
-        // TODO does it make sense to check that? depending on the kind, this calculation might be quite complex as well
-        if (this.typir.equality.areTypesEqual(source, target)) {
-            return true;
-        }
-
-        // explicit conversion possible?
+        // conversion possible?
         if (this.typir.conversion.isConvertibleTo(source, target, 'IMPLICIT')) {
             return true;
         }

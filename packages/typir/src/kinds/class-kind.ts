@@ -10,6 +10,8 @@ export interface ClassKindOptions {
     subtypeFieldChecking: 'EQUAL_TYPE' | 'ASSIGNABLE_TYPE' | 'SUB_TYPE',
 }
 
+// TODO: Do Fields need multiplicities?
+
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
  */

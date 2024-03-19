@@ -10,8 +10,30 @@ export class TypeGraph {
         this.nodes.push(type);
     }
 
+    removeNode(type: Type): void {
+        const index = this.nodes.indexOf(type);
+        if (index >= 0) {
+            this.nodes.splice(index, 1);
+        }
+    }
+
     addEdge(edge: TypeEdge): void {
         this.edges.push(edge);
+
+        // register this new edge at the connected nodes
+        edge.to.addIncomingEdge(edge);
+        edge.from.addOutgoingEdge(edge);
+    }
+
+    removeEdge(edge: TypeEdge): void {
+        const index = this.edges.indexOf(edge);
+        if (index >= 0) {
+            this.edges.splice(index, 1);
+        }
+
+        // remove this new edge at the connected nodes
+        edge.to.removeIncomingEdge(edge);
+        edge.from.removeOutgoingEdge(edge);
     }
 
     // TODO add reusable graph algorithms here
@@ -26,7 +48,7 @@ export class Type {
 
     constructor(kind: Kind, name: string) {
         this.kind = kind;
-        this.name = name; // TODO Must the name of types be unique ?? => that is an important design decision!
+        this.name = name;
     }
 
     getUserRepresentation(): string {
@@ -51,6 +73,37 @@ export class Type {
         }
     }
 
+    removeIncomingEdge(edge: TypeEdge): boolean {
+        const key = edge.meaning;
+        const list = this.edgesIncoming.get(key);
+        if (list) {
+            const index = list.indexOf(edge);
+            if (index >= 0) {
+                list.splice(index, 1);
+                if (list.length <= 0) {
+                    this.edgesIncoming.delete(key);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+    removeOutgoingEdge(edge: TypeEdge): boolean {
+        const key = edge.meaning;
+        const list = this.edgesOutgoing.get(key);
+        if (list) {
+            const index = list.indexOf(edge);
+            if (index >= 0) {
+                list.splice(index, 1);
+                if (list.length <= 0) {
+                    this.edgesOutgoing.delete(key);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     getIncomingEdges(key: string): TypeEdge[] {
         return this.edgesIncoming.get(key) ?? [];
     }
@@ -69,11 +122,5 @@ export class TypeEdge {
         this.from = from;
         this.to = to;
         this.meaning = meaning;
-
-        // register this new edge at the connected nodes
-        this.to.addIncomingEdge(this);
-        this.from.addOutgoingEdge(this);
     }
 }
-
-// or use graphology instead?
