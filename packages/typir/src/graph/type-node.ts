@@ -3,6 +3,10 @@
 import { Kind } from '../kinds/kind';
 import { TypeEdge } from './type-edge';
 
+/**
+ * Design decisions:
+ * - features of types are realized/determined by their kinds
+ */
 export class Type {
     readonly kind: Kind;
     name: string;
@@ -15,7 +19,6 @@ export class Type {
     }
 
     getUserRepresentation(): string {
-        // features of types are realized by their kinds
         return this.kind.getUserRepresentation(this);
     }
 

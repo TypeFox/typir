@@ -1,4 +1,5 @@
 // eslint-disable-next-line header/header
+import { InferConcreteType, createInferenceRule } from '../features/inference';
 import { Type } from '../graph/type-node';
 import { Typir } from '../typir';
 import { Kind, isKind } from './kind';
@@ -12,9 +13,12 @@ export class PrimitiveKind implements Kind {
         this.typir.registerKind(this);
     }
 
-    createPrimitiveType(primitiveName: string): Type {
+    createPrimitiveType(primitiveName: string, inferenceRule: InferConcreteType | undefined = undefined): Type {
         const primitiveType = new Type(this, primitiveName);
         this.typir.graph.addNode(primitiveType);
+        if (inferenceRule) {
+            this.typir.inference.addInferenceRule(createInferenceRule(inferenceRule, primitiveType));
+        }
         return primitiveType;
     }
 

@@ -1,10 +1,10 @@
 /* eslint-disable header/header */
-import { TypeAssignability, DefaultTypeAssignability } from './features/assignability';
+import { DefaultTypeAssignability, TypeAssignability } from './features/assignability';
 import { DefaultTypeRelationshipCaching, TypeRelationshipCaching } from './features/caching';
 import { DefaultTypeConversion, TypeConversion } from './features/conversion';
-import { TypeEquality, DefaultTypeEquality } from './features/equality';
-import { TypeInference } from './features/inference';
-import { SubType, DefaultSubType } from './features/subtype';
+import { DefaultTypeEquality, TypeEquality } from './features/equality';
+import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './features/inference';
+import { DefaultSubType, SubType } from './features/subtype';
 import { TypeGraph } from './graph/type-graph';
 import { Kind } from './kinds/kind';
 
@@ -28,11 +28,12 @@ export class Typir {
     equality: TypeEquality = new DefaultTypeEquality(this);
     conversion: TypeConversion = new DefaultTypeConversion(this);
     subtype: SubType = new DefaultSubType(this);
-    inference?: TypeInference;
+    inference: TypeInferenceCollector = new DefaultTypeInferenceCollector(this);
     caching: TypeRelationshipCaching = new DefaultTypeRelationshipCaching(this);
 }
 
 /** Open design questions TODO
  * - use graphology for the TypeGraph?
  * - Must the name of types be unique?
+ * - Where should inference rules be stored? only in the central service? in types? in kinds?
  */
