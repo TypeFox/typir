@@ -22,7 +22,7 @@ export class DefaultSubType implements SubType {
             return false;
         }
 
-        const link = this.cache.getRelationship(subType, superType, SUB_TYPE);
+        const link = this.cache.getRelationship(subType, superType, SUB_TYPE, true);
 
         function save(value: RelationshipKind): void {
             this.cache.setRelationship(subType, superType, SUB_TYPE, value);

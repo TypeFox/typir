@@ -3,8 +3,8 @@ import { Type, TypeEdge } from '../graph/type-graph';
 import { Typir } from '../typir';
 
 export interface TypeRelationshipCaching {
-    getRelationship(from: Type, to: Type, meaning: string): RelationshipKind;
-    setRelationship(from: Type, to: Type, meaning: string, newValue: RelationshipKind | undefined): void;
+    getRelationship(from: Type, to: Type, meaning: string, directed: boolean): RelationshipKind;
+    setRelationship(from: Type, to: Type, meaning: string, directed: boolean, newValue: RelationshipKind | undefined): void;
 }
 
 export type RelationshipKind = 'PENDING' | 'UNKNOWN' | 'LINK_EXISTS' | 'NO_LINK';
@@ -16,8 +16,12 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
         this.typir = typir;
     }
 
-    getRelationship(from: Type, to: Type, meaning: string): RelationshipKind {
-        const edge = this.getEdge(from, to, meaning);
+    getRelationship(from: Type, to: Type, meaning: string, directed: boolean): RelationshipKind {
+        let edge = this.getEdge(from, to, meaning);
+        if (!edge && directed === false) {
+            // in case of non-directed edges, check the opposite direction as well
+            edge = this.getEdge(to, from, meaning);
+        }
         if (edge) {
             const result = edge.properties.get(TYPE_CACHING);
             if (result && typeof result === 'string') {
@@ -27,8 +31,8 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
         return 'UNKNOWN';
     }
 
-    setRelationship(from: Type, to: Type, meaning: string, newValue: RelationshipKind | undefined): void {
-        // be default, don't cache some values (but ensure, that PENDING is overridden/updated!)
+    setRelationship(from: Type, to: Type, meaning: string, _directed: boolean, newValue: RelationshipKind | undefined): void {
+        // be default, don't cache UNKNOWN and NO_LINK values (but ensure, that PENDING is overridden/updated!)
         if (newValue === 'UNKNOWN' || newValue === 'NO_LINK') {
             newValue = undefined; // 'undefined' indicates to remove an existing edge
         }
