@@ -1,5 +1,5 @@
 // eslint-disable-next-line header/header
-import { Type } from '../graph/type-graph';
+import { Type } from '../graph/type-node';
 
 /**
  * Typir provides a default set of Kinds, e.g. primitive types and class types.

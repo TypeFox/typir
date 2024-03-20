@@ -1,5 +1,6 @@
 /* eslint-disable header/header */
-import { Type, TypeEdge } from '../graph/type-graph';
+import { TypeEdge } from '../graph/type-edge';
+import { Type } from '../graph/type-node';
 import { Typir } from '../typir';
 import { NameTypePair, compareNameTypePair, compareNameTypePairs } from '../utils';
 import { Kind, isKind } from './kind';

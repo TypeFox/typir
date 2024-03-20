@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // eslint-disable-next-line header/header
-import { Type } from './graph/type-graph';
+import { Type } from './graph/type-node';
 import { ClassKind } from './kinds/class-kind';
 import { FixedParameterKind } from './kinds/fixed-parameters-kind';
 import { FUNCTION_MISSING_NAME, FunctionKind } from './kinds/function-kind';

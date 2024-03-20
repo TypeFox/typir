@@ -1,5 +1,5 @@
 /* eslint-disable header/header */
-import { Type } from '../graph/type-graph';
+import { Type } from '../graph/type-node';
 import { Typir } from '../typir';
 import { RelationshipKind, TypeRelationshipCaching } from './caching';
 

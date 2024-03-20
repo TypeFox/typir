@@ -1,9 +1,10 @@
 // eslint-disable-next-line header/header
 import assert from 'assert';
-import { Type, TypeEdge } from '../graph/type-graph';
 import { Typir } from '../typir';
 import { Kind, isKind } from './kind';
 import { compareTypes } from '../utils';
+import { TypeEdge } from '../graph/type-edge';
+import { Type } from '../graph/type-node';
 
 export interface FixedParameterKindOptions {
     relaxedChecking: boolean,
