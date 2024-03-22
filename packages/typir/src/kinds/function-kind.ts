@@ -157,5 +157,5 @@ const PARAMETER_NAME = 'parameterName';
 const PARAMETER_ORDER = 'parameterOrder';
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
-    return isKind(kind) && kind.$name === 'FunctionKind';
+    return isKind(kind) && kind.$name === FunctionKindName;
 }

@@ -13,10 +13,9 @@ export interface ClassKindOptions {
 
 export const ClassKindName = 'ClassKind';
 
-// TODO: Do Fields need multiplicities?
-
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
+ * Fields have exactly one type and no multiplicity (which can be realized with a type of kind 'MultiplicityKind').
  */
 export class ClassKind implements Kind {
     readonly $name: 'ClassKind';
@@ -194,5 +193,5 @@ const FIELD_NAME = 'name';
 const SUPER_CLASS = 'isSuperClass';
 
 export function isClassKind(kind: unknown): kind is ClassKind {
-    return isKind(kind) && kind.$name === 'ClassKind';
+    return isKind(kind) && kind.$name === ClassKindName;
 }

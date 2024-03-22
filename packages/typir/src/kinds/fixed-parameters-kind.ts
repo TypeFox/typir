@@ -84,5 +84,5 @@ export class FixedParameterKind implements Kind {
 const FIXED_PARAMETER_TYPE = 'hasField';
 
 export function isFixedParametersKind(kind: unknown): kind is FixedParameterKind {
-    return isKind(kind) && kind.$name === 'FixedParameterKind';
+    return isKind(kind) && kind.$name === FixedParameterKindName;
 }
