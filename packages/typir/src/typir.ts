@@ -4,6 +4,7 @@ import { DefaultTypeRelationshipCaching, TypeRelationshipCaching } from './featu
 import { DefaultTypeConversion, TypeConversion } from './features/conversion';
 import { DefaultTypeEquality, TypeEquality } from './features/equality';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './features/inference';
+import { DefaultOperatorManager, OperatorManager } from './features/operator';
 import { DefaultSubType, SubType } from './features/subtype';
 import { TypeGraph } from './graph/type-graph';
 import { Kind } from './kinds/kind';
@@ -14,13 +15,19 @@ export class Typir {
 
     // manage kinds
     registerKind(kind: Kind): void {
-        this.kinds.set(kind.$name, kind);
-    }
-    getKind(type: string): Kind {
-        if (this.kinds.has(type)) {
-            return this.kinds.get(type)!;
+        const key = kind.$name;
+        if (this.kinds.has(key)) {
+            if (this.kinds.get(key) === kind) {
+                // that is OK
+            } else {
+                throw new Error(`duplicate kind named '${key}'`);
+            }
+        } else {
+            this.kinds.set(key, kind);
         }
-        throw new Error('missing kind ' + type);
+    }
+    getKind(type: string): Kind | undefined {
+        return this.kinds.get(type)!;
     }
 
     // features
@@ -30,6 +37,7 @@ export class Typir {
     subtype: SubType = new DefaultSubType(this);
     inference: TypeInferenceCollector = new DefaultTypeInferenceCollector(this);
     caching: TypeRelationshipCaching = new DefaultTypeRelationshipCaching(this);
+    operators: OperatorManager = new DefaultOperatorManager(this);
 }
 
 /** Open design questions TODO

@@ -43,35 +43,26 @@ const typeFunctionStringLength = functionKind.createFunctionType('length',
     { name: FUNCTION_MISSING_NAME, type: typeInt },
     { name: 'value', type: typeString });
 
-// treat operators as functions
-// TODO open questions: function types VS return type; as a dedicated Service?; how to pass/provide the "functionKind"?
-function binaryOperator(name: string, inputType: Type, outputType: Type = inputType, inferenceRule: InferConcreteType | undefined = undefined): Type {
-    // define/register the wanted operator as "special" function
-    const newOperatorType = functionKind.createFunctionType(name,
-        { name: FUNCTION_MISSING_NAME, type: outputType },
-        { name: 'left', type: inputType },
-        { name: 'right', type: inputType }
-    );
-    // register a dedicated inference rule for this operator
-    if (inferenceRule) {
-        typir.inference.addInferenceRule(createInferenceRule(inferenceRule, newOperatorType));
-    }
-    return newOperatorType;
-}
 // binary operators on Integers
-const opAdd = binaryOperator('+', typeInt);
-const opMinus = binaryOperator('-', typeInt);
-const opLess = binaryOperator('<', typeInt, typeBoolean);
-const opEqualInt = binaryOperator('==', typeInt, typeBoolean, domainElement => ('' + domainElement).includes('=='));
+const opAdd = typir.operators.createBinaryOperator('+', typeInt);
+const opMinus = typir.operators.createBinaryOperator('-', typeInt);
+const opLess = typir.operators.createBinaryOperator('<', typeInt, typeBoolean);
+const opEqualInt = typir.operators.createBinaryOperator('==', typeInt, typeBoolean, domainElement => ('' + domainElement).includes('=='));
+// TODO are "equals" operators are the same ??
 // binary operators on Booleans
-const opEqualBool = binaryOperator('==', typeBoolean);
-const opAnd = binaryOperator('&&', typeBoolean);
+const opEqualBool = typir.operators.createBinaryOperator('==', typeBoolean);
+const opAnd = typir.operators.createBinaryOperator('&&', typeBoolean);
+// unary operators
+const opNotBool = typir.operators.createUnaryOperator('!', typeBoolean, domainElement => ('' + domainElement).includes('NOT'));
+// ternary operator
+const opTernaryIf = typir.operators.createTernaryOperator('if', typeBoolean, typeInt); // TODO support multiple/arbitrary types!
 
 // automated conversion from int to string
 typir.conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT');
 // it is possible to define multiple sources and/or targets at the same time:
 typir.conversion.markAsConvertible([typeInt, typeInt], [typeString, typeString, typeString], 'EXPLICIT');
 
+// TODO easier syntax for multiple variants of types
 // typir.defineOperator({ name: '+', returnType: 'number', operandTypes: ['number', 'number'], inferenceRule: (node) => isBinaryExpression(node) && node.operator === '+', arguments: (node) => [node.left, node.right] });
 
 // the rules for type inference need to be specified by the user of Typir

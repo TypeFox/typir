@@ -34,7 +34,7 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
 
     setRelationship(from: Type, to: Type, meaning: string, _directed: boolean, newValue: RelationshipKind | undefined): void {
         // be default, don't cache UNKNOWN and NO_LINK values (but ensure, that PENDING is overridden/updated!)
-        if (newValue === 'UNKNOWN' || newValue === 'NO_LINK') {
+        if (this.storeKind(newValue) === false) {
             newValue = undefined; // 'undefined' indicates to remove an existing edge
         }
 
@@ -55,6 +55,11 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
 
         // set/update the value
         edge.properties.set(TYPE_CACHING, newValue);
+    }
+
+    /** Override this function to store more or less relationships. */
+    protected storeKind(value: RelationshipKind | undefined): boolean {
+        return value === 'PENDING' || value === 'LINK_EXISTS';
     }
 
     protected getEdge(from: Type, to: Type, meaning: string): TypeEdge | undefined {

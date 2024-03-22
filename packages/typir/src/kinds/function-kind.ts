@@ -11,6 +11,8 @@ export interface FunctionKindOptions {
     enforceOutputParameterName: boolean,
 }
 
+export const FunctionKindName = 'FunctionKind';
+
 /**
  * Represents signatures of executable code.
  *

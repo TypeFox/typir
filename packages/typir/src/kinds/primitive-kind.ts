@@ -4,6 +4,8 @@ import { Type } from '../graph/type-node';
 import { Typir } from '../typir';
 import { Kind, isKind } from './kind';
 
+export const PrimitiveKindName = 'PrimitiveKind';
+
 export class PrimitiveKind implements Kind {
     readonly $name: 'PrimitiveKind';
     readonly typir: Typir;

@@ -11,6 +11,8 @@ export interface ClassKindOptions {
     subtypeFieldChecking: 'EQUAL_TYPE' | 'ASSIGNABLE_TYPE' | 'SUB_TYPE',
 }
 
+export const ClassKindName = 'ClassKind';
+
 // TODO: Do Fields need multiplicities?
 
 /**

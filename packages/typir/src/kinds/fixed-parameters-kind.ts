@@ -10,6 +10,8 @@ export interface FixedParameterKindOptions {
     relaxedChecking: boolean,
 }
 
+export const FixedParameterKindName = 'FixedParameterKind';
+
 /**
  * Suitable for kinds like Collection<T>, List<T>, Array<T>, Map<K, V>, ..., i.e. types with a fixed number of arbitrary parameter types
  */
