@@ -38,5 +38,5 @@ export class PrimitiveKind implements Kind {
 }
 
 export function isPrimitiveKind(kind: unknown): kind is PrimitiveKind {
-    return isKind(kind) && kind.$name === 'PrimitiveKind';
+    return isKind(kind) && kind.$name === PrimitiveKindName;
 }

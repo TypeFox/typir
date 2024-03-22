@@ -5,6 +5,7 @@ import { Type } from './graph/type-node';
 import { ClassKind } from './kinds/class-kind';
 import { FixedParameterKind } from './kinds/fixed-parameters-kind';
 import { FUNCTION_MISSING_NAME, FunctionKind } from './kinds/function-kind';
+import { MultiplicityKind } from './kinds/multiplicity-kind';
 import { PrimitiveKind } from './kinds/primitive-kind';
 import { Typir } from './typir';
 
@@ -17,6 +18,7 @@ const typir = new Typir();
 
 // reuse predefined kinds
 const primitiveKind = new PrimitiveKind(typir);
+const multiplicityKind = new MultiplicityKind(typir, { symbolForUnlimited: '*' });
 const classKind = new ClassKind(typir, { structuralTyping: true, maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' });
 const listKind = new FixedParameterKind(typir, 'List', { relaxedChecking: false }, 'entry');
 const mapKind = new FixedParameterKind(typir, 'Map', { relaxedChecking: false }, 'key', 'value');
@@ -28,9 +30,11 @@ const typeInt = primitiveKind.createPrimitiveType('Integer');
 const typeString = primitiveKind.createPrimitiveType('String', domainElement => typeof domainElement === 'string'); // combine type definition with a dedicated inference rule for it
 const typeBoolean = primitiveKind.createPrimitiveType('Boolean');
 
-// create class type Person with firstName and age properties
+// create class type Person with 1 firstName and 1..2 lastNames and a age properties
+const typeOneOrTwoStrings = multiplicityKind.createMultiplicityForType(typeString, 1, 2);
 const typePerson = classKind.createClassType('Person', [],
     { name: 'firstName', type: typeString },
+    { name: 'lastName', type: typeOneOrTwoStrings },
     { name: 'age', type: typeInt });
 console.log(typePerson.getUserRepresentation());
 const typeStudent = classKind.createClassType('Student', [typePerson], // a Student is a special Person
@@ -48,7 +52,6 @@ const opAdd = typir.operators.createBinaryOperator('+', typeInt);
 const opMinus = typir.operators.createBinaryOperator('-', typeInt);
 const opLess = typir.operators.createBinaryOperator('<', typeInt, typeBoolean);
 const opEqualInt = typir.operators.createBinaryOperator('==', typeInt, typeBoolean, domainElement => ('' + domainElement).includes('=='));
-// TODO are "equals" operators are the same ??
 // binary operators on Booleans
 const opEqualBool = typir.operators.createBinaryOperator('==', typeBoolean);
 const opAnd = typir.operators.createBinaryOperator('&&', typeBoolean);

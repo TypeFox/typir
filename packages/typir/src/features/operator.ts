@@ -15,9 +15,15 @@ export interface OperatorManager {
     createTernaryOperator(name: string, firstType: Type, secondAndThirdType: Type, inferenceRule?: InferConcreteType): Type
 }
 
-/** TODO open questions: function types VS return type
+/** TODO open questions:
+ *
+ * function type VS return type
  * - function type: is the signature of the function, assignability is required for function references
  * - return type: is the type of the value after executing(!) the function, assignability is required to check, whether the produced value can be assigned!
+ *
+ * are the two "equals" operators the same operator?
+ * - at least, that are two different types/signatures!
+ * - two different inference rules as well?
  * */
 
 export class DefaultOperatorManager implements OperatorManager {
