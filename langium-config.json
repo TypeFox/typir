@@ -1,0 +1,12 @@
+{
+    "projectName": "Ox",
+    "languages": [{
+        "id": "ox",
+        "grammar": "src/language/ox.langium",
+        "fileExtensions": [".ox"],
+        "textMate": {
+            "out": "syntaxes/ox.tmLanguage.json"
+        }
+    }],
+    "out": "src/language/generated"
+}

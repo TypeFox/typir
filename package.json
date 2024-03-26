@@ -1,0 +1,70 @@
+{
+    "name": "ox",
+    "description": "Please enter a brief description here",
+    "version": "0.0.1",
+    "files": [
+        "bin"
+    ],
+    "type": "module",
+    "scripts": {
+        "build": "tsc -b tsconfig.json && node esbuild.mjs",
+        "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\"",
+        "lint": "eslint src --ext ts",
+        "langium:generate": "langium generate",
+        "langium:watch": "langium generate --watch",
+        "vscode:prepublish": "npm run build && npm run lint"
+    },
+    "dependencies": {
+        "langium": "~2.0.1",
+        "llvm-bindings": "~0.4.2",
+        "vscode-languageclient": "~8.1.0",
+        "chalk": "~5.3.0",
+        "commander": "~11.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "~16.18.41",
+        "@typescript-eslint/parser": "~6.4.1",
+        "@typescript-eslint/eslint-plugin": "~6.4.1",
+        "eslint": "~8.47.0",
+        "langium-cli": "~2.0.1",
+        "typescript": "~5.1.6",
+        "@types/vscode": "~1.67.0",
+        "concurrently": "~8.2.1",
+        "esbuild": "~0.19.2"
+    },
+    "displayName": "ox",
+    "engines": {
+        "vscode": "^1.67.0",
+        "node": ">=16.0.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "ox",
+                "aliases": [
+                    "Ox",
+                    "ox"
+                ],
+                "extensions": [".ox"],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "ox",
+                "scopeName": "source.ox",
+                "path": "./syntaxes/ox.tmLanguage.json"
+            }
+        ]
+    },
+    "activationEvents": [
+        "onLanguage:ox"
+    ],
+    "main": "./out/extension/main.cjs",
+    "bin": {
+        "ox-cli": "./bin/cli.js"
+    }
+}
