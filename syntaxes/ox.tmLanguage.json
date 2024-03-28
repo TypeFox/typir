@@ -1,0 +1,47 @@
+{
+  "name": "ox",
+  "scopeName": "source.ox",
+  "fileTypes": [
+    ".ox"
+  ],
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "name": "keyword.control.ox",
+      "match": "\\b(and|boolean|else|false|for|fun|if|number|or|print|return|true|var|void|while)\\b"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.block.ox",
+          "begin": "/\\*",
+          "beginCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.ox"
+            }
+          },
+          "end": "\\*/",
+          "endCaptures": {
+            "0": {
+              "name": "punctuation.definition.comment.ox"
+            }
+          }
+        },
+        {
+          "begin": "//",
+          "beginCaptures": {
+            "1": {
+              "name": "punctuation.whitespace.comment.leading.ox"
+            }
+          },
+          "end": "(?=$)",
+          "name": "comment.line.ox"
+        }
+      ]
+    }
+  }
+}
