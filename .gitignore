@@ -1,5 +1,11 @@
-/node_modules
-/out
-/**/generated
 .DS_Store
 */dbg
+.vscode-test/
+coverage/
+dist/
+lib/
+out/
+node_modules/
+*.vsix
+*.tsbuildinfo
+generated/

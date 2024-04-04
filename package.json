@@ -1,5 +1,5 @@
 {
-  "name": "typir",
+  "name": "typir-workspace",
   "displayName": "typir",
   "description": "Please enter a brief description here",
   "version": "0.0.1",
@@ -7,24 +7,26 @@
   "engineStrict": true,
   "type": "module",
   "engines": {
-    "vscode": "^1.67.0",
-    "node": ">=16.0.0"
+    "node": ">= 18.0.0",
+    "npm": ">= 9.5.0"
+  },
+  "volta": {
+    "node": "18.17.1",
+    "npm": "9.6.7"
   },
   "scripts": {
-    "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo",
-    "build": "tsc -b tsconfig.json && node esbuild.mjs",
-    "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\"",
+    "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo examples/*/*.tsbuildinfo",
+    "build": "tsc -b tsconfig.build.json && npm run build --workspace=typir --workspace=examples/ox",
+    "watch": "concurrently -n tsc,vscode,ox -c blue,yellow,green \"tsc -b tsconfig.build.json -w\" \"npm run watch --workspace=typir\" \"npm run watch --workspace=examples/ox\"",
     "build:clean": "npm run clean && npm run build",
+    "lint": "npm run lint --workspaces",
     "test": "vitest",
     "test-ui": "vitest --ui",
-    "coverage": "vitest run --coverage",
-    "lint": "eslint src --ext ts",
-    "langium:generate": "langium generate",
-    "langium:watch": "langium generate --watch",
-    "vscode:prepublish": "npm run build && npm run lint"
+    "langium:generate": "npm run langium:generate --workspace=examples/ox",
+    "langium:watch": "npm run langium:watch --workspace=examples/ox",
+    "vscode:prepublish": "npm run build && npm run lint",
+    "reset:repo": "git clean -f -X -d"
 },
-  "author": "TypeFox GmbH",
-  "license": "MIT",
   "dependencies": {
     "langium": "~2.0.1",
     "vscode-languageclient": "~8.1.0",
@@ -36,53 +38,17 @@
     "@types/vscode": "~1.67.0",
     "@typescript-eslint/eslint-plugin": "~6.4.1",
     "@typescript-eslint/parser": "~6.4.1",
-    "@vitest/coverage-c8": "~0.28.4",
-    "@vitest/ui": "~0.28.4",
     "concurrently": "~8.2.1",
-    "eslint": "~8.47.0",
+    "esbuild": "~0.19.2",
+    "eslint": "~8.56.0",
     "eslint-plugin-header": "^3.1.1",
-    "editorconfig": "~1.0.2",
+    "editorconfig": "~2.0.0",
     "shx": "^0.3.4",
-    "langium-cli": "~2.0.1",
     "typescript": "~5.1.6",
-    "vitest": "~0.28.4",
-    "esbuild": "~0.19.2"
+    "vitest": "~0.28.5"
 },
-  "workspaces": [
-    "packages/*",
-    "examples/*"
-  ],
-    "files": [
-        "bin"
-    ],
-    "categories": [
-        "Programming Languages"
-    ],
-    "contributes": {
-        "languages": [
-            {
-                "id": "ox",
-                "aliases": [
-                    "Ox",
-                    "ox"
-                ],
-                "extensions": [".ox"],
-                "configuration": "./language-configuration.json"
-            }
-        ],
-        "grammars": [
-            {
-                "language": "ox",
-                "scopeName": "source.ox",
-                "path": "./syntaxes/ox.tmLanguage.json"
-            }
-        ]
-    },
-    "activationEvents": [
-        "onLanguage:ox"
-    ],
-    "main": "./out/extension/main.cjs",
-    "bin": {
-        "ox-cli": "./bin/cli.js"
-    }
+"workspaces": [
+    "packages/typir",
+    "examples/ox"
+]
 }

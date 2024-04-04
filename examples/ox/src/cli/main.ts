@@ -1,3 +1,9 @@
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
 import { Command } from 'commander';
 import { OxLanguageMetaData } from '../language/generated/module.js';
 import { extractDestinationAndName } from './cli-util.js';

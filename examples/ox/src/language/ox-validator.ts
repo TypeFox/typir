@@ -1,3 +1,9 @@
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
 import type { ValidationAcceptor, ValidationChecks } from 'langium';
 import type { OxAstType, VariableDeclaration } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
