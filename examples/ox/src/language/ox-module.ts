@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import type { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, Module, PartialLangiumServices } from 'langium';
-import { createDefaultModule, createDefaultSharedModule, inject } from 'langium';
+import { Module, inject } from 'langium';
+import { LangiumServices, PartialLangiumServices, DefaultSharedModuleContext, LangiumSharedServices, createDefaultSharedModule, createDefaultModule } from 'langium/lsp';
 import { OxGeneratedModule, OxGeneratedSharedModule } from './generated/module.js';
 import { OxValidator, registerValidationChecks } from './ox-validator.js';
 
