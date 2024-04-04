@@ -16,6 +16,7 @@ export class PrimitiveKind implements Kind {
     readonly typir: Typir;
 
     constructor(typir: Typir) {
+        this.$name = 'PrimitiveKind';
         this.typir = typir;
         this.typir.registerKind(this);
     }

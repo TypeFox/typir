@@ -15,8 +15,28 @@ import { TypeGraph } from './graph/type-graph.js';
 import { Kind } from './kinds/kind.js';
 
 export class Typir {
+    // store types and kinds
     graph: TypeGraph = new TypeGraph();
     kinds: Map<string, Kind> = new Map(); // name of kind => kind (for an easier look-up)
+
+    // features
+    assignability: TypeAssignability;
+    equality: TypeEquality;
+    conversion: TypeConversion;
+    subtype: SubType;
+    inference: TypeInferenceCollector;
+    caching: TypeRelationshipCaching;
+    operators: OperatorManager;
+
+    constructor() {
+        this.assignability = new DefaultTypeAssignability(this);
+        this.equality = new DefaultTypeEquality(this);
+        this.conversion = new DefaultTypeConversion(this);
+        this.subtype = new DefaultSubType(this);
+        this.inference = new DefaultTypeInferenceCollector(this);
+        this.caching = new DefaultTypeRelationshipCaching(this);
+        this.operators = new DefaultOperatorManager(this);
+    }
 
     // manage kinds
     registerKind(kind: Kind): void {
@@ -34,15 +54,6 @@ export class Typir {
     getKind(type: string): Kind | undefined {
         return this.kinds.get(type)!;
     }
-
-    // features
-    assignability: TypeAssignability = new DefaultTypeAssignability(this);
-    equality: TypeEquality = new DefaultTypeEquality(this);
-    conversion: TypeConversion = new DefaultTypeConversion(this);
-    subtype: SubType = new DefaultSubType(this);
-    inference: TypeInferenceCollector = new DefaultTypeInferenceCollector(this);
-    caching: TypeRelationshipCaching = new DefaultTypeRelationshipCaching(this);
-    operators: OperatorManager = new DefaultOperatorManager(this);
 }
 
 /** Open design questions TODO

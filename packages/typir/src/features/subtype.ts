@@ -14,11 +14,9 @@ export interface SubType {
 
 export class DefaultSubType implements SubType {
     protected readonly typir: Typir;
-    protected readonly cache: TypeRelationshipCaching;
 
     constructor(typir: Typir) {
         this.typir = typir;
-        this.cache = this.typir.caching;
     }
 
     isSubType(superType: Type, subType: Type): boolean {
@@ -26,11 +24,12 @@ export class DefaultSubType implements SubType {
             // sub-types need to have the same kind
             return false;
         }
+        const cache: TypeRelationshipCaching = this.typir.caching;
 
-        const link = this.cache.getRelationship(subType, superType, SUB_TYPE, true);
+        const link = cache.getRelationship(subType, superType, SUB_TYPE, true);
 
         const save = (value: RelationshipKind): void => {
-            this.cache.setRelationship(subType, superType, SUB_TYPE, false, value);
+            cache.setRelationship(subType, superType, SUB_TYPE, false, value);
         };
 
         // skip recursive checking

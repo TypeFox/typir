@@ -58,3 +58,9 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
     }
     return true;
 }
+
+export function assertTrue(condition: boolean, msg?: string) {
+    if (!condition) {
+        throw new Error(msg);
+    }
+}

@@ -4,10 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import * as assert from 'assert';
 import { Typir } from '../typir.js';
 import { Kind, isKind } from './kind.js';
-import { compareTypes } from '../utils.js';
+import { assertTrue, compareTypes } from '../utils.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 
@@ -21,13 +20,14 @@ export const FixedParameterKindName = 'FixedParameterKind';
  * Suitable for kinds like Collection<T>, List<T>, Array<T>, Map<K, V>, ..., i.e. types with a fixed number of arbitrary parameter types
  */
 export class FixedParameterKind implements Kind {
-    readonly $name: 'FixedParameterKind';
+    readonly $name: `FixedParameterKind-${string}`;
     readonly typir: Typir;
     readonly baseName: string;
     readonly options: FixedParameterKindOptions;
     readonly parameterNames: string[];
 
     constructor(typir: Typir, baseName: string, options: FixedParameterKindOptions, ...parameterNames: string[]) {
+        this.$name = `FixedParameterKind-${baseName}`;
         this.typir = typir;
         this.typir.registerKind(this);
         this.baseName = baseName;
@@ -35,7 +35,7 @@ export class FixedParameterKind implements Kind {
         this.parameterNames = parameterNames;
 
         // check input
-        assert(this.parameterNames.length >= 1);
+        assertTrue(this.parameterNames.length >= 1);
     }
 
     // the order of parameters matters!
@@ -45,7 +45,7 @@ export class FixedParameterKind implements Kind {
         this.typir.graph.addNode(typeWithParameters);
 
         // add the given types to the required fixed parameters
-        assert(this.parameterNames.length === parameterTypes.length);
+        assertTrue(this.parameterNames.length === parameterTypes.length);
         for (let index = 0; index < this.parameterNames.length; index++) {
             const edge = new TypeEdge(typeWithParameters, parameterTypes[index], FIXED_PARAMETER_TYPE);
             this.typir.graph.addEdge(edge);
@@ -81,7 +81,7 @@ export class FixedParameterKind implements Kind {
 
     getParameterTypes(fixedParameterType: Type): Type[] {
         const result = fixedParameterType.getOutgoingEdges(FIXED_PARAMETER_TYPE).map(edge => edge.to);
-        assert(result.length === this.parameterNames.length);
+        assertTrue(result.length === this.parameterNames.length);
         return result;
     }
 }
@@ -89,5 +89,5 @@ export class FixedParameterKind implements Kind {
 const FIXED_PARAMETER_TYPE = 'hasField';
 
 export function isFixedParametersKind(kind: unknown): kind is FixedParameterKind {
-    return isKind(kind) && kind.$name === FixedParameterKindName;
+    return isKind(kind) && kind.$name.startsWith('FixedParameterKind-');
 }

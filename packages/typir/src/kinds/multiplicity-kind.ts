@@ -26,6 +26,7 @@ export class MultiplicityKind implements Kind {
     readonly options: MultiplicityKindOptions;
 
     constructor(typir: Typir, options: MultiplicityKindOptions) {
+        this.$name = 'MultiplicityTypeKind';
         this.typir = typir;
         this.typir.registerKind(this);
         this.options = options;

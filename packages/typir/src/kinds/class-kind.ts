@@ -28,6 +28,7 @@ export class ClassKind implements Kind {
     readonly options: ClassKindOptions;
 
     constructor(typir: Typir, options: ClassKindOptions) {
+        this.$name = 'ClassKind';
         this.typir = typir;
         this.typir.registerKind(this);
         this.options = options;

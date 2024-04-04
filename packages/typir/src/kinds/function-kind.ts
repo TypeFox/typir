@@ -31,6 +31,7 @@ export class FunctionKind implements Kind {
     readonly options: FunctionKindOptions;
 
     constructor(typir: Typir, options?: Partial<FunctionKindOptions>) {
+        this.$name = 'FunctionKind';
         this.typir = typir;
         this.typir.registerKind(this);
         this.options = {

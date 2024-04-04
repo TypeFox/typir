@@ -8,8 +8,8 @@ import { TypeEdge } from './type-edge.js';
 import { Type } from './type-node.js';
 
 export class TypeGraph {
-    protected readonly nodes: Type[];
-    protected readonly edges: TypeEdge[];
+    protected readonly nodes: Type[] = [];
+    protected readonly edges: TypeEdge[] = [];
 
     addNode(type: Type): void {
         this.nodes.push(type);
