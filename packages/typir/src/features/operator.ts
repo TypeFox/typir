@@ -1,10 +1,14 @@
-/* eslint-disable header/header */
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
 
-import { Type } from '../graph/type-node';
-import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName } from '../kinds/function-kind';
-import { Typir } from '../typir';
-import { NameTypePair } from '../utils';
-import { InferConcreteType, createInferenceRule } from './inference';
+import { Type } from '../graph/type-node.js';
+import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName } from '../kinds/function-kind.js';
+import { Typir } from '../typir.js';
+import { NameTypePair } from '../utils.js';
+import { InferConcreteType, createInferenceRule } from './inference.js';
 
 // Operator as special Function? => no, operators are a "usability add-on"
 // Operator as service? => yes, for now

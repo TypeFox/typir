@@ -1,8 +1,13 @@
-// eslint-disable-next-line header/header
-import { InferConcreteType, createInferenceRule } from '../features/inference';
-import { Type } from '../graph/type-node';
-import { Typir } from '../typir';
-import { Kind, isKind } from './kind';
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
+import { InferConcreteType, createInferenceRule } from '../features/inference.js';
+import { Type } from '../graph/type-node.js';
+import { Typir } from '../typir.js';
+import { Kind, isKind } from './kind.js';
 
 export const PrimitiveKindName = 'PrimitiveKind';
 

@@ -1,13 +1,16 @@
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+******************************************************************************/
+
 /* eslint-disable @typescript-eslint/no-unused-vars */
-// eslint-disable-next-line header/header
-import { InferConcreteType, TypeInference, createInferenceRule } from './features/inference';
-import { Type } from './graph/type-node';
-import { ClassKind } from './kinds/class-kind';
-import { FixedParameterKind } from './kinds/fixed-parameters-kind';
-import { FUNCTION_MISSING_NAME, FunctionKind } from './kinds/function-kind';
-import { MultiplicityKind } from './kinds/multiplicity-kind';
-import { PrimitiveKind } from './kinds/primitive-kind';
-import { Typir } from './typir';
+import { ClassKind } from './kinds/class-kind.js';
+import { FixedParameterKind } from './kinds/fixed-parameters-kind.js';
+import { FUNCTION_MISSING_NAME, FunctionKind } from './kinds/function-kind.js';
+import { MultiplicityKind } from './kinds/multiplicity-kind.js';
+import { PrimitiveKind } from './kinds/primitive-kind.js';
+import { Typir } from './typir.js';
 
 /**
  * This file sketches, how to apply Typir in practise.
@@ -81,7 +84,7 @@ typir.inference.addInferenceRule({
         // TODO add example recursive type inference
         if (Array.isArray(domainElement)) {
             // eslint-disable-next-line dot-notation
-            return typir.inference.inferType(domainElement['element']); // typeListInt;
+            return typir.inference.inferType(domainElement[0]); // 'element'; typeListInt;
         }
         return typePerson;
     }

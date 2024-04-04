@@ -1,7 +1,12 @@
-/* eslint-disable header/header */
-import { TypeEdge } from '../graph/type-edge';
-import { Type } from '../graph/type-node';
-import { Typir } from '../typir';
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
+import { TypeEdge } from '../graph/type-edge.js';
+import { Type } from '../graph/type-node.js';
+import { Typir } from '../typir.js';
 
 export interface TypeRelationshipCaching {
     getRelationship(from: Type, to: Type, meaning: string, directed: boolean): RelationshipKind;

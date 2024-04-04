@@ -1,7 +1,12 @@
-/* eslint-disable header/header */
-import { Type } from '../graph/type-node';
-import { Typir } from '../typir';
-import { RelationshipKind, TypeRelationshipCaching } from './caching';
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
+import { Type } from '../graph/type-node.js';
+import { Typir } from '../typir.js';
+import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
 export interface TypeEquality {
     areTypesEqual(type1: Type, type2: Type): boolean;
@@ -27,9 +32,9 @@ export class DefaultTypeEquality implements TypeEquality {
 
         const link = this.cache.getRelationship(type1, type2, EQUAL_TYPE, false);
 
-        function save(value: RelationshipKind): void {
+        const save = (value: RelationshipKind): void => {
             this.cache.setRelationship(type1, type2, EQUAL_TYPE, false, value);
-        }
+        };
 
         // skip recursive checking
         if (link === 'PENDING') {

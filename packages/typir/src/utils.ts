@@ -1,5 +1,10 @@
-// eslint-disable-next-line header/header
-import { Type } from './graph/type-node';
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
+import { Type } from './graph/type-node.js';
 
 export type NameTypePair = {
     name: string;
@@ -11,7 +16,7 @@ export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[]
         return false;
     }
     for (let i = 0; i < left.length; i++) {
-        if (this.compareParameter(left[i], right[i], comparator) === false) {
+        if (compareNameTypePair(left[i], right[i], comparator) === false) {
             return false;
         }
     }

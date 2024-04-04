@@ -1,13 +1,18 @@
-/* eslint-disable header/header */
-import { DefaultTypeAssignability, TypeAssignability } from './features/assignability';
-import { DefaultTypeRelationshipCaching, TypeRelationshipCaching } from './features/caching';
-import { DefaultTypeConversion, TypeConversion } from './features/conversion';
-import { DefaultTypeEquality, TypeEquality } from './features/equality';
-import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './features/inference';
-import { DefaultOperatorManager, OperatorManager } from './features/operator';
-import { DefaultSubType, SubType } from './features/subtype';
-import { TypeGraph } from './graph/type-graph';
-import { Kind } from './kinds/kind';
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
+import { DefaultTypeAssignability, TypeAssignability } from './features/assignability.js';
+import { DefaultTypeRelationshipCaching, TypeRelationshipCaching } from './features/caching.js';
+import { DefaultTypeConversion, TypeConversion } from './features/conversion.js';
+import { DefaultTypeEquality, TypeEquality } from './features/equality.js';
+import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './features/inference.js';
+import { DefaultOperatorManager, OperatorManager } from './features/operator.js';
+import { DefaultSubType, SubType } from './features/subtype.js';
+import { TypeGraph } from './graph/type-graph.js';
+import { Kind } from './kinds/kind.js';
 
 export class Typir {
     graph: TypeGraph = new TypeGraph();

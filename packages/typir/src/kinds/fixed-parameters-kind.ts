@@ -1,10 +1,15 @@
-// eslint-disable-next-line header/header
-import assert from 'assert';
-import { Typir } from '../typir';
-import { Kind, isKind } from './kind';
-import { compareTypes } from '../utils';
-import { TypeEdge } from '../graph/type-edge';
-import { Type } from '../graph/type-node';
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
+import * as assert from 'assert';
+import { Typir } from '../typir.js';
+import { Kind, isKind } from './kind.js';
+import { compareTypes } from '../utils.js';
+import { TypeEdge } from '../graph/type-edge.js';
+import { Type } from '../graph/type-node.js';
 
 export interface FixedParameterKindOptions {
     relaxedChecking: boolean,

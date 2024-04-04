@@ -1,7 +1,12 @@
-/* eslint-disable header/header */
-import { Type } from '../graph/type-node';
-import { Typir } from '../typir';
-import { RelationshipKind, TypeRelationshipCaching } from './caching';
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
+import { Type } from '../graph/type-node.js';
+import { Typir } from '../typir.js';
+import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
 export interface SubType {
     isSubType(superType: Type, subType: Type): boolean;
@@ -24,9 +29,9 @@ export class DefaultSubType implements SubType {
 
         const link = this.cache.getRelationship(subType, superType, SUB_TYPE, true);
 
-        function save(value: RelationshipKind): void {
-            this.cache.setRelationship(subType, superType, SUB_TYPE, value);
-        }
+        const save = (value: RelationshipKind): void => {
+            this.cache.setRelationship(subType, superType, SUB_TYPE, false, value);
+        };
 
         // skip recursive checking
         if (link === 'PENDING') {
