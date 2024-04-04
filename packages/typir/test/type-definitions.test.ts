@@ -75,20 +75,20 @@ describe('Tests for Typir', () => {
         // typir.defineOperator({ name: '+', returnType: 'number', operandTypes: ['number', 'number'], inferenceRule: (node) => isBinaryExpression(node) && node.operator === '+', arguments: (node) => [node.left, node.right] });
 
         // the rules for type inference need to be specified by the user of Typir
-        typir.inference.addInferenceRule({
-            inferType: (domainElement: unknown) => {
-                if (typeof domainElement === 'number') {
-                    return typeInt;
-                }
-                // 'string' is handled already above!
-                // TODO add example recursive type inference
-                if (Array.isArray(domainElement)) {
-                    // eslint-disable-next-line dot-notation
-                    return typir.inference.inferType(domainElement[0]); // 'element'; typeListInt;
-                }
-                return typePerson;
-            }
-        });
+        // typir.inference.addInferenceRule({
+        //     inferType: (domainElement: unknown) => {
+        //         if (typeof domainElement === 'number') {
+        //             return typeInt;
+        //         }
+        //         // 'string' is handled already above!
+        //         // TODO add example recursive type inference
+        //         if (Array.isArray(domainElement)) {
+        //             // eslint-disable-next-line dot-notation
+        //             return typir.inference.inferType(domainElement[0]); // 'element'; typeListInt;
+        //         }
+        //         return typePerson;
+        //     }
+        // });
 
         // is assignable?
         expect(typir.assignability.isAssignable(typeInt, typeInt)).toBeTruthy();

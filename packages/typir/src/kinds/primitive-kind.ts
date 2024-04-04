@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { InferConcreteType, createInferenceRule } from '../features/inference.js';
+import { InferConcreteType, createInferenceRuleWithoutChildren } from '../features/inference.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { Kind, isKind } from './kind.js';
@@ -25,7 +25,7 @@ export class PrimitiveKind implements Kind {
         const primitiveType = new Type(this, primitiveName);
         this.typir.graph.addNode(primitiveType);
         if (inferenceRule) {
-            this.typir.inference.addInferenceRule(createInferenceRule(inferenceRule, primitiveType));
+            this.typir.inference.addInferenceRule(createInferenceRuleWithoutChildren(inferenceRule, primitiveType));
         }
         return primitiveType;
     }

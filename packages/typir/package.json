@@ -8,6 +8,12 @@
     "url": "https://www.typefox.io"
   },
   "license": "MIT",
+  "exports": {
+    ".": {
+      "import": "./lib/index.js",
+      "types": "./lib/index.d.ts"
+    }
+  },
   "type": "module",
   "engines": {
     "node": ">= 18.0.0"
