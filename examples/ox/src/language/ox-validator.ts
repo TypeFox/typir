@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import type { ValidationAcceptor, ValidationChecks } from 'langium';
-import type { BooleanExpression, Expression, OxAstType, VariableDeclaration } from './generated/ast.js';
+import type { Expression, OxAstType, VariableDeclaration } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
 import { createTypir } from './ox-type-checking.js';
 
@@ -17,7 +17,6 @@ export function registerValidationChecks(services: OxServices) {
     const validator = services.validation.OxValidator;
     const checks: ValidationChecks<OxAstType> = {
         VariableDeclaration: validator.checkVoidAsVarDeclType,
-        BooleanExpression: validator.checkLiteralBoolean,
         Expression: validator.checkExpressionTypes
     };
     registry.register(checks, validator);
@@ -36,20 +35,6 @@ export class OxValidator {
         }
     }
 
-    checkLiteralBoolean(node: BooleanExpression, accept: ValidationAcceptor) {
-        const typir = createTypir();
-        const type = typir.inference.inferType(node);
-        if (type) {
-            if (type.name !== 'boolean') {
-                accept('error', `No boolean type, but ${type.name}`, { node });
-            } else {
-                // accept('warning', `Found ${type.name} type!`, { node });
-            }
-        } else {
-            accept('error', 'Missing type inference', { node });
-        }
-    }
-
     checkExpressionTypes(node: Expression, accept: ValidationAcceptor) {
         const typir = createTypir();
         const type = typir.inference.inferType(node);
@@ -57,14 +42,14 @@ export class OxValidator {
             // if (type.name !== 'boolean') {
             //     accept('error', `No boolean type, but ${type.name}`, { node });
             // } else {
-            accept('warning', `Found ${type.name} type!`, { node });
+            //      accept('warning', `Found ${type.name} type!`, { node });
             // }
         } else {
-            accept('error', 'Missing type inference', { node });
+            accept('error', `Missing type inference for '${node.$type}'`, { node });
         }
     }
 }
 
 // todo: validate types of function parameters and function call arguments
 // todo: implement typechecker
-// todo: veryfy return type and return expression
+// todo: verify return type and return expression

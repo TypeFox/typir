@@ -82,7 +82,6 @@ export class DefaultOperatorManager implements OperatorManager {
         );
         // register a dedicated inference rule for this operator
         if (inferenceRule) {
-            // this.typir.inference.addInferenceRule(createInferenceRuleWithoutChildren(inferenceRule, newOperatorType));
             const typirr: Typir = this.typir;
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
@@ -100,12 +99,14 @@ export class DefaultOperatorManager implements OperatorManager {
                     assertTrue(inputParameter.length === childrenTypes.length);
                     for (let index = 0; index < inputParameter.length; index++) {
                         const actual = childrenTypes[index];
-                        const expected = inputParameter[index]; // TODO was ist mit optionalen/fehlenden Parametern usw.?
-                        if (!actual || !expected || typirr.equality.areTypesEqual(actual, expected.type) === false) {
+                        const expected = inputParameter[index].type; // TODO was ist mit optionalen/fehlenden Parametern usw.?
+                        if (!actual || !expected || typirr.equality.areTypesEqual(actual, expected) === false) {
                             return undefined;
                         }
                     }
-                    return newOperatorType; // TODO diesen Wert cachen?
+                    // all operands have the required types => return the return type of the operator/function
+                    return functionKind!.getOutput(newOperatorType)?.type;
+                    // TODO what to do, when the Signature type of the operator is required, e.g. for a reference to the operator/function itself ??
                 },
             });
         }
