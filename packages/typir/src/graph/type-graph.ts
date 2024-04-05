@@ -8,18 +8,24 @@ import { TypeEdge } from './type-edge.js';
 import { Type } from './type-node.js';
 
 export class TypeGraph {
-    protected readonly nodes: Type[] = [];
+    protected readonly nodes: Map<string, Type> = new Map(); // type name => Type
     protected readonly edges: TypeEdge[] = [];
 
     addNode(type: Type): void {
-        this.nodes.push(type);
+        const key = type.name;
+        if (this.nodes.has(key)) {
+            if (this.nodes.get(key) === type) {
+                // this type is already registered => that is OK
+            } else {
+                throw new Error(`Names of types must be unique: ${key}`);
+            }
+        } else {
+            this.nodes.set(key, type);
+        }
     }
 
     removeNode(type: Type): void {
-        const index = this.nodes.indexOf(type);
-        if (index >= 0) {
-            this.nodes.splice(index, 1);
-        }
+        this.nodes.delete(type.name);
     }
 
     addEdge(edge: TypeEdge): void {

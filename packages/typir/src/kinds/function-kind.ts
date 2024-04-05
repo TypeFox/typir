@@ -49,7 +49,9 @@ export class FunctionKind implements Kind {
 
         // create the function type
         this.enforceName(functionName, this.options.enforceFunctionName);
-        const functionType = new Type(this, functionName);
+        const uniqueTypeName = this.printFunctionType(functionName, inputParameter, outputParameter);
+        const functionType = new Type(this, uniqueTypeName);
+        functionType.properties.set(SIMPLE_NAME, functionName);
         this.typir.graph.addNode(functionType);
 
         // output parameter
@@ -73,15 +75,20 @@ export class FunctionKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
-        const inputs = this.getInputs(type).map(input => this.printNameType(input)).join(', ');
-        const outputType = this.getOutput(type)?.type.getUserRepresentation();
-        if (this.hasName(type.name)) {
-            const output = outputType ? `: ${outputType}` : '';
-            return `${type.name}(${inputs})${output}`;
+        return this.printFunctionType(this.getSimpleFunctionName(type), this.getInputs(type), this.getOutput(type));
+    }
+
+    protected printFunctionType(simpleFunctionName: string, inputs: NameTypePair[], output: NameTypePair | undefined): string {
+        const inputsString = inputs.map(input => this.printNameType(input)).join(', ');
+        const outputString = output?.type.getUserRepresentation();
+        if (this.hasName(simpleFunctionName)) {
+            const outputValue = outputString ? `: ${outputString}` : '';
+            return `${simpleFunctionName}(${inputsString})${outputValue}`;
         } else {
-            return `(${inputs}) => ${outputType ?? '()'}`;
+            return `(${inputsString}) => ${outputString ?? '()'}`;
         }
     }
+
     protected printNameType(pair: NameTypePair): string {
         if (this.hasName(pair.name)) {
             return `${pair.name}: ${pair.type.getUserRepresentation()}`;
@@ -136,6 +143,14 @@ export class FunctionKind implements Kind {
         return false;
     }
 
+    getSimpleFunctionName(functionType: Type): string {
+        const name = functionType.properties.get(SIMPLE_NAME);
+        if (typeof name === 'string') {
+            return name;
+        }
+        throw new Error();
+    }
+
     getOutput(functionType: Type): NameTypePair | undefined {
         const outs = functionType.getOutgoingEdges(OUTPUT_PARAMETER);
         if (outs.length <= 0) {
@@ -161,6 +176,7 @@ const OUTPUT_PARAMETER = 'isOutput';
 const INPUT_PARAMETER = 'isInput';
 const PARAMETER_NAME = 'parameterName';
 const PARAMETER_ORDER = 'parameterOrder';
+const SIMPLE_NAME = 'simpleFunctionName';
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
     return isKind(kind) && kind.$name === FunctionKindName;

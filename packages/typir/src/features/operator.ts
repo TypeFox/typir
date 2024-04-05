@@ -80,7 +80,6 @@ export class DefaultOperatorManager implements OperatorManager {
     }
 
     protected handleTypeVariants(typeVariants: Types, typeCreator: (singleType: Type) => Type): Types {
-        // TODO unique type names?!
         const allTypes = toArray(typeVariants);
         assertTrue(allTypes.length >= 1);
         const result: Type[] = [];

@@ -10,12 +10,14 @@ import { TypeEdge } from './type-edge.js';
 /**
  * Design decisions:
  * - features of types are realized/determined by their kinds
+ * - Names of types must be unique!
  */
 export class Type {
     readonly kind: Kind;
     name: string;
     protected readonly edgesIncoming: Map<string, TypeEdge[]> = new Map();
     protected readonly edgesOutgoing: Map<string, TypeEdge[]> = new Map();
+    readonly properties: Map<string, unknown> = new Map(); // store arbitrary data at the type
 
     constructor(kind: Kind, name: string) {
         this.kind = kind;

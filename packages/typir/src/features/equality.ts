@@ -24,6 +24,9 @@ export class DefaultTypeEquality implements TypeEquality {
         if (type1 === type2) {
             return true;
         }
+        if (type1.name === type2.name) {
+            return true;
+        }
         if (type1.kind !== type2.kind) {
             // equal types must have the same kind
             return false;

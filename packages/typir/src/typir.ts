@@ -58,6 +58,5 @@ export class Typir {
 
 /** Open design questions TODO
  * - use graphology for the TypeGraph?
- * - Must the name of types be unique?
  * - Where should inference rules be stored? only in the central service? in types? in kinds?
  */
