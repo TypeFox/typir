@@ -7,13 +7,13 @@
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { NameTypePair, compareNameTypesMap } from '../utils.js';
+import { NameTypePair, TypeComparisonResult, TypeComparisonStrategy, TypeConflict, compareForConflict, compareNameTypesMap, createTypeComparisonStrategy } from '../utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface ClassKindOptions {
     structuralTyping: boolean,
     maximumNumberOfSuperClasses: number, // values < 0 indicate an arbitrary number of super classes
-    subtypeFieldChecking: 'EQUAL_TYPE' | 'ASSIGNABLE_TYPE' | 'SUB_TYPE',
+    subtypeFieldChecking: TypeComparisonStrategy,
 }
 
 export const ClassKindName = 'ClassKind';
@@ -86,43 +86,51 @@ export class ClassKind implements Kind {
         return `${type.name} { ${fields.join(', ')} }`;
     }
 
-    isSubType(superType: Type, subType: Type): boolean {
+    isSubType(superType: Type, subType: Type): TypeComparisonResult {
         if (isClassKind(superType.kind) && isClassKind(subType.kind)) {
+            const conflicts: TypeConflict[] = [];
             if (this.options.structuralTyping) {
                 // for structural typing, the sub type needs to have all fields of the super type with assignable types (including fields of all super classes):
                 const subFields = this.getFields(subType, true);
                 for (const [superFieldName, superFieldType] of this.getFields(superType, true)) {
-                    const subFieldType = subFields.get(superFieldName);
-                    if (subFieldType && (
-                        (this.options.subtypeFieldChecking === 'ASSIGNABLE_TYPE' && this.typir.assignability.isAssignable(subFieldType, superFieldType)) ||
-                        (this.options.subtypeFieldChecking === 'EQUAL_TYPE' && this.typir.equality.areTypesEqual(subFieldType, superFieldType)) ||
-                        (this.options.subtypeFieldChecking === 'SUB_TYPE' && this.typir.subtype.isSubType(superFieldType, subFieldType))
-                    )) {
-                        continue; // this field is fine
+                    if (subFields.has(superFieldName)) {
+                        // field is both in super and sub
+                        const subFieldType = subFields.get(superFieldName)!;
+                        const compareStrategy = createTypeComparisonStrategy(this.options.subtypeFieldChecking, this.typir);
+                        conflicts.push(...compareStrategy(subFieldType, superFieldType));
+                    } else {
+                        // missing sub field
+                        conflicts.push({
+                            expected: superFieldType,
+                            actual: undefined,
+                            location: superFieldName
+                        });
                     }
-                    return false;
                 }
-                return true;
+                // Note that it is not necessary to check, whether the sub class has additional fields than the super type!
             } else {
                 // for nominal typing (super classes don't matter):
-                return superType.name === subType.name;
+                conflicts.push(...compareForConflict(superType.name, subType.name, 'name'));
             }
+            return conflicts;
         }
-        return false;
+        throw new Error();
     }
 
-    areTypesEqual(type1: Type, type2: Type): boolean {
+    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
         if (isClassKind(type1.kind) && isClassKind(type2.kind)) {
+            const conflicts: TypeConflict[] = [];
             if (this.options.structuralTyping) {
                 // for structural typing:
-                return compareNameTypesMap(this.getFields(type1, true), this.getFields(type2, true),
-                    (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));
+                conflicts.push(...compareNameTypesMap(this.getFields(type1, true), this.getFields(type2, true),
+                    (t1, t2) => this.typir.equality.areTypesEqual(t1, t2)));
             } else {
                 // for nominal typing:
-                return type1.name === type2.name;
+                conflicts.push(...compareForConflict(type1.name, type2.name, 'name'));
             }
+            return conflicts;
         }
-        return false;
+        throw new Error();
     }
 
     getDeclaredSuperClasses(classType: Type): Type[] {

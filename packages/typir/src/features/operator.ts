@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type } from '../graph/type-node.js';
-import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName } from '../kinds/function-kind.js';
+import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName, isFunctionKind } from '../kinds/function-kind.js';
 import { Typir } from '../typir.js';
 import { NameTypePair, Types, assertTrue, toArray } from '../utils.js';
 import { InferConcreteType } from './inference.js';
@@ -47,6 +47,8 @@ export interface OperatorManager {
 /**
  * This implementation realizes operators as functions and creates types of kind 'function'.
  * If Typir does not use the function kind so far, it will be automatically added.
+ * The same operator (i.e. same operator name, e.g. "+" or "and") with different types will be realized as different function types,
+ * e.g. there are two funktions for "+" for numbers and for strings.
  */
 export class DefaultOperatorManager implements OperatorManager {
     protected readonly typir: Typir;
@@ -93,10 +95,8 @@ export class DefaultOperatorManager implements OperatorManager {
         // define/register the wanted operator as "special" function
 
         // ensure, that Typir uses the predefined 'function' kind
-        let functionKind: FunctionKind | undefined = this.typir.getKind(FunctionKindName) as FunctionKind;
-        if (!functionKind) {
-            functionKind = new FunctionKind(this.typir);
-        }
+        const kind = this.typir.getKind(FunctionKindName);
+        const functionKind = isFunctionKind(kind) ? kind : new FunctionKind(this.typir);
 
         // create the operator as type of kind 'function'
         const newOperatorType = functionKind.createFunctionType(name,
@@ -109,17 +109,18 @@ export class DefaultOperatorManager implements OperatorManager {
             const typirr: Typir = this.typir;
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
-                    return inferenceRule(domainElement) ? true : false;
-                },
-                getElementsToInferBefore(domainElement) {
-                    return toArray(childrenWithSameType ? childrenWithSameType(domainElement) : []);
+                    return inferenceRule(domainElement)
+                        ? (childrenWithSameType // are there children, which have to match as well?
+                            ? toArray(childrenWithSameType(domainElement)) // yes => resolve the types of the children and continue to step 2
+                            : newOperatorType) // no => type is already found
+                        : false; // does not match at all
                 },
                 inferType(domainElement, childrenTypes) {
                     assertTrue(inputParameter.length === childrenTypes.length);
                     for (let index = 0; index < inputParameter.length; index++) {
                         const actual = childrenTypes[index];
                         const expected = inputParameter[index].type; // TODO was ist mit optionalen/fehlenden Parametern usw.?
-                        if (!actual || !expected || typirr.equality.areTypesEqual(actual, expected) === false) {
+                        if (!actual || !expected || typirr.equality.areTypesEqual(actual, expected).length >= 1) {
                             return undefined;
                         }
                     }

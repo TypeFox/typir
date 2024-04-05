@@ -6,9 +6,10 @@
 
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { TypeComparisonResult } from '../utils.js';
 
 export interface TypeAssignability {
-    isAssignable(source: Type, target: Type): boolean; // target := source;
+    isAssignable(source: Type, target: Type): TypeComparisonResult; // target := source;
 }
 
 export class DefaultTypeAssignability implements TypeAssignability {
@@ -18,17 +19,13 @@ export class DefaultTypeAssignability implements TypeAssignability {
         this.typir = typir;
     }
 
-    isAssignable(source: Type, target: Type): boolean {
+    isAssignable(source: Type, target: Type): TypeComparisonResult {
         // conversion possible?
         if (this.typir.conversion.isConvertibleTo(source, target, 'IMPLICIT')) {
-            return true;
+            return [];
         }
 
         // allow the types kind to determine about sub-type relationships
-        if (this.typir.subtype.isSubType(target, source)) {
-            return true;
-        }
-
-        return false;
+        return this.typir.subtype.isSubType(target, source);
     }
 }

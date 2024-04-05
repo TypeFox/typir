@@ -22,8 +22,8 @@ describe('Tests for Typir', () => {
         const primitiveKind = new PrimitiveKind(typir);
         const multiplicityKind = new MultiplicityKind(typir, { symbolForUnlimited: '*' });
         const classKind = new ClassKind(typir, { structuralTyping: true, maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' });
-        const listKind = new FixedParameterKind(typir, 'List', { relaxedChecking: false }, 'entry');
-        const mapKind = new FixedParameterKind(typir, 'Map', { relaxedChecking: false }, 'key', 'value');
+        const listKind = new FixedParameterKind(typir, 'List', { subtypeParameterChecking: 'EQUAL_TYPE' }, 'entry');
+        const mapKind = new FixedParameterKind(typir, 'Map', { subtypeParameterChecking: 'EQUAL_TYPE' }, 'key', 'value');
         const functionKind = new FunctionKind(typir);
         // TODO how to bundle such definitions for reuse ("presets")?
 
@@ -45,6 +45,7 @@ describe('Tests for Typir', () => {
 
         // create some more types
         const typeListInt = listKind.createFixedParameterType(typeInt);
+        const typeListString = listKind.createFixedParameterType(typeString);
         const typeMapStringPerson = mapKind.createFixedParameterType(typeString, typePerson);
         const typeFunctionStringLength = functionKind.createFunctionType('length',
             { name: FUNCTION_MISSING_NAME, type: typeInt },
@@ -91,9 +92,17 @@ describe('Tests for Typir', () => {
         // });
 
         // is assignable?
-        expect(typir.assignability.isAssignable(typeInt, typeInt)).toBeTruthy();
-        expect(typir.assignability.isAssignable(typeInt, typeString)).toBeTruthy();
-        expect(typir.assignability.isAssignable(typeString, typeInt)).toBeFalsy();
+        // primitives
+        expect(typir.assignability.isAssignable(typeInt, typeInt)).toHaveLength(0);
+        expect(typir.assignability.isAssignable(typeInt, typeString)).toHaveLength(0);
+        expect(typir.assignability.isAssignable(typeString, typeInt)).toHaveLength(1);
+        // List, Map
+        expect(typir.assignability.isAssignable(typeListInt, typeMapStringPerson)).toHaveLength(1);
+        expect(typir.assignability.isAssignable(typeListInt, typeListString)).toHaveLength(1);
+        expect(typir.assignability.isAssignable(typeListInt, typeListInt)).toHaveLength(0);
+        // classes
+        expect(typir.assignability.isAssignable(typeStudent, typePerson)).toHaveLength(0);
+        expect(typir.assignability.isAssignable(typePerson, typeStudent)).toHaveLength(1);
         // TODO extend API for validation with Langium, generate nice error messages
     });
 });

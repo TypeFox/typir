@@ -6,11 +6,11 @@
 
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { assertUnreachable } from '../utils.js';
+import { TypeComparisonResult, assertUnreachable, createConflict } from '../utils.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
 export interface TypeEquality {
-    areTypesEqual(type1: Type, type2: Type): boolean;
+    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult;
 }
 
 export class DefaultTypeEquality implements TypeEquality {
@@ -20,16 +20,16 @@ export class DefaultTypeEquality implements TypeEquality {
         this.typir = typir;
     }
 
-    areTypesEqual(type1: Type, type2: Type): boolean {
+    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
         if (type1 === type2) {
-            return true;
+            return [];
         }
         if (type1.name === type2.name) {
-            return true;
+            return [];
         }
-        if (type1.kind !== type2.kind) {
+        if (type1.kind.$name !== type2.kind.$name) {
             // equal types must have the same kind
-            return false;
+            return [createConflict(type1.kind.$name, type2.kind.$name, 'kind')];
         }
 
         const cache: TypeRelationshipCaching = this.typir.caching;
@@ -41,15 +41,15 @@ export class DefaultTypeEquality implements TypeEquality {
 
         // skip recursive checking
         if (link === 'PENDING') {
-            return true; // is 'true' the correct result here? 'true' will be stored in the type graph ...
+            return []; // is 'true' the correct result here? 'true' will be stored in the type graph ...
         }
 
         // the result is already known
         if (link === 'LINK_EXISTS') {
-            return true;
+            return [];
         }
         if (link === 'NO_LINK') {
-            return false;
+            return [createConflict(type1, type2, 'cached => details are missing')]; // TODO
         }
 
         // do the expensive calculation now

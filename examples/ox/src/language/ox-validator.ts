@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import type { AstNode, ValidationAcceptor, ValidationChecks } from 'langium';
-import type { Expression, OxAstType, VariableDeclaration } from './generated/ast.js';
+import type { AssignmentStatement, Expression, OxAstType, VariableDeclaration } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
 import { createTypir } from './ox-type-checking.js';
 
@@ -16,11 +16,15 @@ export function registerValidationChecks(services: OxServices) {
     const registry = services.validation.ValidationRegistry;
     const validator = services.validation.OxValidator;
     const checks: ValidationChecks<OxAstType> = {
-        VariableDeclaration: validator.checkVoidAsVarDeclType,
-        Expression: validator.checkExpressionTypes,
-        IfStatement: validator.checkCondition,
-        WhileStatement: validator.checkCondition,
-        ForStatement: validator.checkCondition
+        VariableDeclaration: [
+            validator.checkVoidAsVarDeclType,
+            validator.checkAssignVariableDeclaration
+        ],
+        Expression: validator.checkExpressionHasType,
+        IfStatement: validator.checkConditionExpressionIsBoolean,
+        WhileStatement: validator.checkConditionExpressionIsBoolean,
+        ForStatement: validator.checkConditionExpressionIsBoolean,
+        AssignmentStatement: validator.checkAssignStatement
     };
     registry.register(checks, validator);
 }
@@ -38,7 +42,7 @@ export class OxValidator {
         }
     }
 
-    checkExpressionTypes(node: Expression, accept: ValidationAcceptor) {
+    checkExpressionHasType(node: Expression, accept: ValidationAcceptor) {
         const typir = createTypir();
         const type = typir.inference.inferType(node);
         if (type) {
@@ -52,7 +56,7 @@ export class OxValidator {
         }
     }
 
-    checkCondition(node: AstNode & { condition?: Expression }, accept: ValidationAcceptor) {
+    checkConditionExpressionIsBoolean(node: AstNode & { condition?: Expression }, accept: ValidationAcceptor) {
         if (node.condition) {
             const typir = createTypir();
             const type = typir.inference.inferType(node.condition);
@@ -63,8 +67,28 @@ export class OxValidator {
             }
         }
     }
-}
 
-// todo: validate types of function parameters and function call arguments
-// todo: implement typechecker
-// todo: verify return type and return expression
+    checkAssignVariableDeclaration(node: VariableDeclaration, accept: ValidationAcceptor) {
+        this.checkAssignment(node, node.value, accept);
+    }
+
+    checkAssignStatement(node: AssignmentStatement, accept: ValidationAcceptor) {
+        this.checkAssignment(node.varRef.ref, node.value, accept);
+    }
+
+    protected checkAssignment(variable: VariableDeclaration | undefined, value: Expression | undefined, accept: ValidationAcceptor) {
+        if (!variable || !value) {
+            return;
+        }
+        const typir = createTypir();
+        const variableType = typir.inference.inferType(variable);
+        const valueType = typir.inference.inferType(value);
+        if (variableType && valueType) {
+            const assignable = typir.assignability.isAssignable(valueType, variableType);
+            if (assignable.length >= 1) {
+                // TODO bessere Fehlermeldungen !!
+                accept('error', `This expression of type '${valueType.name}' is not assignable to '${variableType.name}': TODO`, { node: value });
+            }
+        }
+    }
+}

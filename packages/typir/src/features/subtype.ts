@@ -6,11 +6,11 @@
 
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { assertUnreachable } from '../utils.js';
+import { TypeComparisonResult, assertUnreachable, createConflict } from '../utils.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
 export interface SubType {
-    isSubType(superType: Type, subType: Type): boolean;
+    isSubType(superType: Type, subType: Type): TypeComparisonResult;
 }
 
 export class DefaultSubType implements SubType {
@@ -20,10 +20,10 @@ export class DefaultSubType implements SubType {
         this.typir = typir;
     }
 
-    isSubType(superType: Type, subType: Type): boolean {
+    isSubType(superType: Type, subType: Type): TypeComparisonResult {
         if (superType.kind.$name !== subType.kind.$name) {
             // sub-types need to have the same kind
-            return false;
+            return [createConflict(superType.kind.$name, subType.kind.$name, 'kind')];
         }
         const cache: TypeRelationshipCaching = this.typir.caching;
 
@@ -35,15 +35,15 @@ export class DefaultSubType implements SubType {
 
         // skip recursive checking
         if (link === 'PENDING') {
-            return true; // is 'true' the correct result here? 'true' will be stored in the type graph ...
+            return []; // is 'true' the correct result here? 'true' will be stored in the type graph ...
         }
 
         // the result is already known
         if (link === 'LINK_EXISTS') {
-            return true;
+            return [];
         }
         if (link === 'NO_LINK') {
-            return false;
+            return [];
         }
 
         // do the expensive calculation now

@@ -7,6 +7,7 @@
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { TypeComparisonResult, TypeConflict, compareForConflict } from '../utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface MultiplicityKindOptions {
@@ -86,13 +87,15 @@ export class MultiplicityKind implements Kind {
         return this.printType(this.getConstrainedType(type), this.getLowerBound(type), this.getUpperBound(type));
     }
 
-    isSubType(superType: Type, subType: Type): boolean {
+    isSubType(superType: Type, subType: Type): TypeComparisonResult {
         if (isMultiplicityKind(superType.kind) && isMultiplicityKind(subType.kind)) {
-            return this.isBoundGreaterEquals(this.getLowerBound(superType), this.getLowerBound(subType)) &&
-                this.isBoundGreaterEquals(this.getUpperBound(superType), this.getUpperBound(subType)) &&
-                this.typir.subtype.isSubType(this.getConstrainedType(superType), this.getConstrainedType(subType));
+            const conflicts: TypeConflict[] = [];
+            conflicts.push(...compareForConflict(this.getLowerBound(superType), this.getLowerBound(subType), 'lower bound', this.isBoundGreaterEquals));
+            conflicts.push(...compareForConflict(this.getUpperBound(superType), this.getUpperBound(subType), 'upper bound', this.isBoundGreaterEquals));
+            conflicts.push(...this.typir.subtype.isSubType(this.getConstrainedType(superType), this.getConstrainedType(subType)));
+            return conflicts;
         }
-        return false;
+        throw new Error();
     }
 
     protected isBoundGreaterEquals(leftBound: number, rightBound: number): boolean {
@@ -105,13 +108,15 @@ export class MultiplicityKind implements Kind {
         return leftBound >= rightBound;
     }
 
-    areTypesEqual(type1: Type, type2: Type): boolean {
+    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
         if (isMultiplicityKind(type1.kind) && isMultiplicityKind(type2.kind)) {
-            return this.getLowerBound(type1) === this.getLowerBound(type2) &&
-                this.getUpperBound(type1) === this.getUpperBound(type2) &&
-                this.typir.equality.areTypesEqual(this.getConstrainedType(type1), this.getConstrainedType(type2));
+            const conflicts: TypeConflict[] = [];
+            conflicts.push(...compareForConflict(this.getLowerBound(type1), this.getLowerBound(type2), 'lower bound'));
+            conflicts.push(...compareForConflict(this.getUpperBound(type1), this.getUpperBound(type2), 'upper bound'));
+            conflicts.push(...this.typir.equality.areTypesEqual(this.getConstrainedType(type1), this.getConstrainedType(type2)));
+            return conflicts;
         }
-        return false;
+        throw new Error();
     }
 
     getConstrainedType(typeWithMultiplicity: Type): Type {

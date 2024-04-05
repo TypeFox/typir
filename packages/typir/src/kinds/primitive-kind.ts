@@ -7,6 +7,7 @@
 import { InferConcreteType, createInferenceRuleWithoutChildren } from '../features/inference.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { TypeComparisonResult, TypeConflict, compareForConflict } from '../utils.js';
 import { Kind, isKind } from './kind.js';
 
 export const PrimitiveKindName = 'PrimitiveKind';
@@ -34,12 +35,17 @@ export class PrimitiveKind implements Kind {
         return type.name;
     }
 
-    isSubType(superType: Type, subType: Type): boolean {
+    isSubType(superType: Type, subType: Type): TypeComparisonResult {
         return this.areTypesEqual(superType, subType);
     }
 
-    areTypesEqual(type1: Type, type2: Type): boolean {
-        return isPrimitiveKind(type1.kind) && isPrimitiveKind(type2.kind) && type1.name === type2.name;
+    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
+        if (isPrimitiveKind(type1.kind) && isPrimitiveKind(type2.kind)) {
+            const conflicts: TypeConflict[] = [];
+            conflicts.push(...compareForConflict(type1.name, type2.name, 'primitive name'));
+            return conflicts;
+        }
+        throw new Error();
     }
 }
 

@@ -14,14 +14,28 @@ const oxServices = createOxServices(EmptyFileSystem).Ox;
 
 describe('Explicitly test type checking for OX', () => {
 
-    test('verify extra properties in some actions', async () => {
-        const oxText = `
-        var myResult: boolean = true and false and true;
-        `.trim();
+    test('multiple nested and', async () => {
+        validate('var myResult: boolean = true and false and true;', 0);
+    });
 
-        const document = await parseDocument(oxServices, oxText);
-        const diagnostics: Diagnostic[] = await oxServices.validation.DocumentValidator.validateDocument(document);
-        expect(diagnostics, diagnostics.map(d => d.message).join('\n')).toHaveLength(0);
+    test('number assignments', async () => {
+        validate('var myResult: number = 2;', 0);
+        validate('var myResult: number = 2 * 3;', 0);
+        validate('var myResult: number = 2 < 3;', 1);
+        validate('var myResult: number = true;', 1);
+    });
+
+    test('boolean assignments', async () => {
+        validate('var myResult: boolean = true;', 0);
+        validate('var myResult: boolean = 2;', 1);
+        validate('var myResult: boolean = 2 * 3;', 1);
+        validate('var myResult: boolean = 2 < 3;', 0);
     });
 
 });
+
+async function validate(ox: string, errors: number) {
+    const document = await parseDocument(oxServices, ox.trim());
+    const diagnostics: Diagnostic[] = await oxServices.validation.DocumentValidator.validateDocument(document);
+    expect(diagnostics, diagnostics.map(d => d.message).join('\n')).toHaveLength(errors);
+}

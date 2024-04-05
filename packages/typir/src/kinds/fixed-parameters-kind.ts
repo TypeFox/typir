@@ -4,14 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Typir } from '../typir.js';
-import { Kind, isKind } from './kind.js';
-import { assertTrue, compareTypes } from '../utils.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
+import { Typir } from '../typir.js';
+import { TypeComparisonResult, TypeComparisonStrategy, TypeConflict, assertTrue, compareTypes, createTypeComparisonStrategy } from '../utils.js';
+import { Kind, isKind } from './kind.js';
 
 export interface FixedParameterKindOptions {
-    relaxedChecking: boolean,
+    subtypeParameterChecking: TypeComparisonStrategy,
 }
 
 export const FixedParameterKindName = 'FixedParameterKind';
@@ -41,7 +41,7 @@ export class FixedParameterKind implements Kind {
     // the order of parameters matters!
     createFixedParameterType(...parameterTypes: Type[]): Type {
         // create the class type
-        const typeWithParameters = new Type(this, this.baseName);
+        const typeWithParameters = new Type(this, this.printSignature(this.baseName, parameterTypes)); // use the signature for a unique name
         this.typir.graph.addNode(typeWithParameters);
 
         // add the given types to the required fixed parameters
@@ -55,28 +55,31 @@ export class FixedParameterKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
-        return `${this.baseName}<${this.getParameterTypes(type).map(p => p.getUserRepresentation()).join(', ')}>`;
+        return this.printSignature(this.baseName, this.getParameterTypes(type));
+    }
+    protected printSignature(baseName: string, parameterTypes: Type[]): string {
+        return `${baseName}<${parameterTypes.map(p => p.getUserRepresentation()).join(', ')}>`;
     }
 
-    isSubType(superType: Type, subType: Type): boolean {
+    isSubType(superType: Type, subType: Type): TypeComparisonResult {
+        // same name, e.g. both need to be Map, Set, Array, ...
         if (isFixedParametersKind(superType.kind) && isFixedParametersKind(subType.kind) && superType.kind.baseName === subType.kind.baseName) {
-            if (this.options.relaxedChecking) {
-                // more relaxed checking of the parameter types
-                return compareTypes(this.getParameterTypes(superType), this.getParameterTypes(subType),
-                    (superr, sub) => this.typir.assignability.isAssignable(sub, superr));
-            } else {
-                // strict checking of the parameter types
-                return compareTypes(superType.kind.getParameterTypes(superType), subType.kind.getParameterTypes(subType),
-                    (superr, sub) => this.typir.equality.areTypesEqual(sub, superr));
-            }
+            const conflicts: TypeConflict[] = [];
+            // all parameter types must match
+            const compareStrategy = createTypeComparisonStrategy(this.options.subtypeParameterChecking, this.typir);
+            conflicts.push(...compareTypes(superType.kind.getParameterTypes(superType), subType.kind.getParameterTypes(subType), compareStrategy));
+            return conflicts;
         }
-        return false;
+        throw new Error();
     }
 
-    areTypesEqual(type1: Type, type2: Type): boolean {
-        return isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind)
-            && type1.kind.baseName === type2.kind.baseName
-            && compareTypes(this.getParameterTypes(type1), this.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));
+    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
+        if (isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind) && type1.kind.baseName === type2.kind.baseName) {
+            const conflicts: TypeConflict[] = [];
+            conflicts.push(...compareTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2)));
+            return conflicts;
+        }
+        throw new Error();
     }
 
     getParameterTypes(fixedParameterType: Type): Type[] {

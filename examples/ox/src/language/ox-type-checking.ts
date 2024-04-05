@@ -6,7 +6,7 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { PrimitiveKind, Type, Typir } from 'typir';
-import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, VariableDeclaration, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isParameter, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
+import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, VariableDeclaration, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 import { assertUnreachable } from 'langium';
 
 export function createTypir(): Typir {
@@ -99,9 +99,20 @@ export function createTypir(): Typir {
             return false;
         },
     });
+    typir.inference.addInferenceRule({
+        isRuleApplicable(domainElement) {
+            if (isTypeReference(domainElement)) {
+                return mapType(domainElement);
+            }
+            if (isVariableDeclaration(domainElement)) {
+                return mapType(domainElement.type);
+            }
+            return false;
+        },
+    });
 
-    // TODO validation
-    // TODO error message
+    // TODO validation: überhaupt Type ableitbar VS passt der abgeleitete Type zur Umgebung?
+    // TODO error message: konfigurierbare Message
 
     return typir;
 }

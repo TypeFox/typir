@@ -14,6 +14,16 @@ import { DefaultSubType, SubType } from './features/subtype.js';
 import { TypeGraph } from './graph/type-graph.js';
 import { Kind } from './kinds/kind.js';
 
+/**
+ * Design decisions for Typir
+ * - no NameProvider for the name of types, since the name depends on the type of the kind => change the implementation of the kind
+ */
+
+/** Open design questions TODO
+ * - use graphology for the TypeGraph?
+ * - Where should inference rules be stored? only in the central service? in types? in kinds?
+ */
+
 export class Typir {
     // store types and kinds
     graph: TypeGraph = new TypeGraph();
@@ -55,8 +65,3 @@ export class Typir {
         return this.kinds.get(type)!;
     }
 }
-
-/** Open design questions TODO
- * - use graphology for the TypeGraph?
- * - Where should inference rules be stored? only in the central service? in types? in kinds?
- */

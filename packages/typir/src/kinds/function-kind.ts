@@ -7,7 +7,7 @@
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { NameTypePair, compareNameTypePair, compareNameTypePairs } from '../utils.js';
+import { NameTypePair, TypeComparisonResult, TypeConflict, compareNameTypePair, compareNameTypePairs } from '../utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface FunctionKindOptions {
@@ -24,6 +24,7 @@ export const FunctionKindName = 'FunctionKind';
  * possible Extensions:
  * - multiple output parameters
  * - create variants of this, e.g. functions, procedures, lambdas
+ * - structural vs nominal typing? function overloading?
  */
 export class FunctionKind implements Kind {
     readonly $name: 'FunctionKind';
@@ -106,41 +107,32 @@ export class FunctionKind implements Kind {
         return name !== undefined && name !== FUNCTION_MISSING_NAME;
     }
 
-    isSubType(superType: Type, subType: Type): boolean {
+    isSubType(superType: Type, subType: Type): TypeComparisonResult {
         if (isFunctionKind(superType) && isFunctionKind(subType)) {
+            const conflicts: TypeConflict[] = [];
             // output: target parameter must be assignable to source parameter
-            if (compareNameTypePair(this.getOutput(superType), this.getOutput(subType),
-                (s, t) => this.typir.assignability.isAssignable(t, s)) === false) {
-                return false;
-            }
-
+            conflicts.push(...compareNameTypePair(this.getOutput(superType), this.getOutput(subType),
+                (s, t) => this.typir.assignability.isAssignable(t, s)));
             // input: source parameters must be assignable to target parameters
-            if (compareNameTypePairs(this.getInputs(superType), this.getInputs(subType),
-                (s, t) => this.typir.assignability.isAssignable(s, t)) === false) {
-                return false;
-            }
-
-            // match of signatures!
-            return true;
+            conflicts.push(...compareNameTypePairs(this.getInputs(superType), this.getInputs(subType),
+                (s, t) => this.typir.assignability.isAssignable(s, t)));
+            return conflicts;
         }
-        return false;
+        throw new Error();
     }
 
-    areTypesEqual(type1: Type, type2: Type): boolean {
+    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
         if (isFunctionKind(type1) && isFunctionKind(type2)) {
+            const conflicts: TypeConflict[] = [];
             // same output?
-            if (compareNameTypePair(this.getOutput(type1), this.getOutput(type2),
-                (s, t) => this.typir.equality.areTypesEqual(s, t)) === false) {
-                return false;
-            }
+            conflicts.push(...compareNameTypePair(this.getOutput(type1), this.getOutput(type2),
+                (s, t) => this.typir.equality.areTypesEqual(s, t)));
             // same input?
-            if (compareNameTypePairs(this.getInputs(type1), this.getInputs(type2),
-                (s, t) => this.typir.equality.areTypesEqual(s, t)) === false) {
-                return false;
-            }
-            return true; // yes!
+            conflicts.push(...compareNameTypePairs(this.getInputs(type1), this.getInputs(type2),
+                (s, t) => this.typir.equality.areTypesEqual(s, t)));
+            return conflicts;
         }
-        return false;
+        throw new Error();
     }
 
     getSimpleFunctionName(functionType: Type): string {

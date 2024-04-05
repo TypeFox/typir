@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Kind } from '../kinds/kind.js';
+import { Kind, isKind } from '../kinds/kind.js';
 import { TypeEdge } from './type-edge.js';
 
 /**
@@ -82,4 +82,8 @@ export class Type {
     getOutgoingEdges(key: string): TypeEdge[] {
         return this.edgesOutgoing.get(key) ?? [];
     }
+}
+
+export function isType(type: unknown): type is Type {
+    return typeof type === 'object' && type !== null && typeof (type as Type).name === 'string' && isKind((type as Type).kind);
 }
