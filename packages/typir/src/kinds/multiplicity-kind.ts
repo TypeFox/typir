@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeConflict, compareForConflict } from '../utils/utils-type-comparison.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonResult, TypeConflict, compareForConflict } from '../utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface MultiplicityKindOptions {
@@ -87,7 +87,7 @@ export class MultiplicityKind implements Kind {
         return this.printType(this.getConstrainedType(type), this.getLowerBound(type), this.getUpperBound(type));
     }
 
-    isSubType(superType: Type, subType: Type): TypeComparisonResult {
+    isSubType(superType: Type, subType: Type): TypeConflict[] {
         if (isMultiplicityKind(superType.kind) && isMultiplicityKind(subType.kind)) {
             const conflicts: TypeConflict[] = [];
             conflicts.push(...compareForConflict(this.getLowerBound(superType), this.getLowerBound(subType), 'lower bound', this.isBoundGreaterEquals));
@@ -108,7 +108,7 @@ export class MultiplicityKind implements Kind {
         return leftBound >= rightBound;
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
+    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
         if (isMultiplicityKind(type1.kind) && isMultiplicityKind(type2.kind)) {
             const conflicts: TypeConflict[] = [];
             conflicts.push(...compareForConflict(this.getLowerBound(type1), this.getLowerBound(type2), 'lower bound'));

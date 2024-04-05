@@ -7,7 +7,7 @@
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { toArray } from '../utils.js';
+import { toArray } from '../utils/utils.js';
 
 export type ConversionMode =
     'IMPLICIT' | // coercion

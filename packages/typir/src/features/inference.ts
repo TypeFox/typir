@@ -6,7 +6,7 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { assertUnreachable } from '../utils.js';
+import { assertUnreachable } from '../utils/utils.js';
 
 export interface TypeInferenceRule {
     /**

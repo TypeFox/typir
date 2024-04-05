@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeConflict } from '../utils/utils-type-comparison.js';
 import { Type } from '../graph/type-node.js';
-import { TypeComparisonResult } from '../utils.js';
 
 /**
  * Typir provides a default set of Kinds, e.g. primitive types and class types.
@@ -17,8 +17,8 @@ export interface Kind {
     getUserRepresentation(type: Type): string;
 
     // assumption: both types habe the same kind and this kind owns the called function
-    isSubType(superType: Type, subType: Type): TypeComparisonResult;
-    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult;
+    isSubType(superType: Type, subType: Type): TypeConflict[];
+    areTypesEqual(type1: Type, type2: Type): TypeConflict[];
 }
 
 export function isKind(kind: unknown): kind is Kind {

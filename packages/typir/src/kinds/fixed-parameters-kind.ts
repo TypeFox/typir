@@ -4,10 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeComparisonStrategy, TypeConflict, compareTypes, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonResult, TypeComparisonStrategy, TypeConflict, assertTrue, compareTypes, createTypeComparisonStrategy } from '../utils.js';
+import { assertTrue } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface FixedParameterKindOptions {
@@ -61,7 +62,7 @@ export class FixedParameterKind implements Kind {
         return `${baseName}<${parameterTypes.map(p => p.getUserRepresentation()).join(', ')}>`;
     }
 
-    isSubType(superType: Type, subType: Type): TypeComparisonResult {
+    isSubType(superType: Type, subType: Type): TypeConflict[] {
         // same name, e.g. both need to be Map, Set, Array, ...
         if (isFixedParametersKind(superType.kind) && isFixedParametersKind(subType.kind) && superType.kind.baseName === subType.kind.baseName) {
             const conflicts: TypeConflict[] = [];
@@ -73,7 +74,7 @@ export class FixedParameterKind implements Kind {
         throw new Error();
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
+    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
         if (isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind) && type1.kind.baseName === type2.kind.baseName) {
             const conflicts: TypeConflict[] = [];
             conflicts.push(...compareTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2)));

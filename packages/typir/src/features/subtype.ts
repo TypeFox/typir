@@ -4,13 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { assertUnreachable } from 'langium';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonResult, assertUnreachable, createConflict } from '../utils.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
+import { TypeConflict, createConflict } from '../utils/utils-type-comparison.js';
 
 export interface SubType {
-    isSubType(superType: Type, subType: Type): TypeComparisonResult;
+    isSubType(superType: Type, subType: Type): TypeConflict[];
 }
 
 export class DefaultSubType implements SubType {
@@ -20,7 +21,7 @@ export class DefaultSubType implements SubType {
         this.typir = typir;
     }
 
-    isSubType(superType: Type, subType: Type): TypeComparisonResult {
+    isSubType(superType: Type, subType: Type): TypeConflict[] {
         if (superType.kind.$name !== subType.kind.$name) {
             // sub-types need to have the same kind
             return [createConflict(superType.kind.$name, subType.kind.$name, 'kind')];

@@ -4,10 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeComparisonStrategy, TypeConflict, createTypeComparisonStrategy, compareForConflict, compareNameTypesMap } from '../utils/utils-type-comparison.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { NameTypePair, TypeComparisonResult, TypeComparisonStrategy, TypeConflict, compareForConflict, compareNameTypesMap, createTypeComparisonStrategy } from '../utils.js';
+import { NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface ClassKindOptions {
@@ -86,7 +87,7 @@ export class ClassKind implements Kind {
         return `${type.name} { ${fields.join(', ')} }`;
     }
 
-    isSubType(superType: Type, subType: Type): TypeComparisonResult {
+    isSubType(superType: Type, subType: Type): TypeConflict[] {
         if (isClassKind(superType.kind) && isClassKind(subType.kind)) {
             const conflicts: TypeConflict[] = [];
             if (this.options.structuralTyping) {
@@ -117,7 +118,7 @@ export class ClassKind implements Kind {
         throw new Error();
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
+    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
         if (isClassKind(type1.kind) && isClassKind(type2.kind)) {
             const conflicts: TypeConflict[] = [];
             if (this.options.structuralTyping) {

@@ -5,7 +5,6 @@
  ******************************************************************************/
 
 export * from './typir.js';
-export * from './utils.js';
 export * from './features/assignability.js';
 export * from './features/caching.js';
 export * from './features/conversion.js';
@@ -22,3 +21,5 @@ export * from './kinds/function-kind.js';
 export * from './kinds/kind.js';
 export * from './kinds/multiplicity-kind.js';
 export * from './kinds/primitive-kind.js';
+export * from './utils/utils.js';
+export * from './utils/utils-type-comparison.js';

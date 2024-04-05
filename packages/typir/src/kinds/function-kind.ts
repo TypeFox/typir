@@ -4,10 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeConflict, compareNameTypePair, compareNameTypePairs } from '../utils/utils-type-comparison.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { NameTypePair, TypeComparisonResult, TypeConflict, compareNameTypePair, compareNameTypePairs } from '../utils.js';
+import { NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface FunctionKindOptions {
@@ -107,7 +108,7 @@ export class FunctionKind implements Kind {
         return name !== undefined && name !== FUNCTION_MISSING_NAME;
     }
 
-    isSubType(superType: Type, subType: Type): TypeComparisonResult {
+    isSubType(superType: Type, subType: Type): TypeConflict[] {
         if (isFunctionKind(superType) && isFunctionKind(subType)) {
             const conflicts: TypeConflict[] = [];
             // output: target parameter must be assignable to source parameter
@@ -121,7 +122,7 @@ export class FunctionKind implements Kind {
         throw new Error();
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
+    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
         if (isFunctionKind(type1) && isFunctionKind(type2)) {
             const conflicts: TypeConflict[] = [];
             // same output?

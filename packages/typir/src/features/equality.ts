@@ -4,13 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { assertUnreachable } from 'langium';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonResult, assertUnreachable, createConflict } from '../utils.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
+import { TypeConflict, createConflict } from '../utils/utils-type-comparison.js';
 
 export interface TypeEquality {
-    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult;
+    areTypesEqual(type1: Type, type2: Type): TypeConflict[];
 }
 
 export class DefaultTypeEquality implements TypeEquality {
@@ -20,7 +21,7 @@ export class DefaultTypeEquality implements TypeEquality {
         this.typir = typir;
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
+    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
         if (type1 === type2) {
             return [];
         }

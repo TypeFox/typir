@@ -64,7 +64,8 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
 
     /** Override this function to store more or less relationships. */
     protected storeKind(value: RelationshipKind | undefined): boolean {
-        return value === 'PENDING' || value === 'LINK_EXISTS';
+        // return value === 'PENDING' || value === 'LINK_EXISTS';
+        return value === 'PENDING';
     }
 
     protected getEdge(from: Type, to: Type, meaning: string): TypeEdge | undefined {

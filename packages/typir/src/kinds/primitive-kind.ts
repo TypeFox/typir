@@ -5,9 +5,9 @@
  ******************************************************************************/
 
 import { InferConcreteType, createInferenceRuleWithoutChildren } from '../features/inference.js';
+import { TypeConflict, compareForConflict } from '../utils/utils-type-comparison.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonResult, TypeConflict, compareForConflict } from '../utils.js';
 import { Kind, isKind } from './kind.js';
 
 export const PrimitiveKindName = 'PrimitiveKind';
@@ -35,11 +35,11 @@ export class PrimitiveKind implements Kind {
         return type.name;
     }
 
-    isSubType(superType: Type, subType: Type): TypeComparisonResult {
+    isSubType(superType: Type, subType: Type): TypeConflict[] {
         return this.areTypesEqual(superType, subType);
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeComparisonResult {
+    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
         if (isPrimitiveKind(type1.kind) && isPrimitiveKind(type2.kind)) {
             const conflicts: TypeConflict[] = [];
             conflicts.push(...compareForConflict(type1.name, type2.name, 'primitive name'));
