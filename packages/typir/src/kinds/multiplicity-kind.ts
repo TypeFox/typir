@@ -90,8 +90,8 @@ export class MultiplicityKind implements Kind {
     isSubType(superType: Type, subType: Type): TypeConflict[] {
         if (isMultiplicityKind(superType.kind) && isMultiplicityKind(subType.kind)) {
             const conflicts: TypeConflict[] = [];
-            conflicts.push(...compareForConflict(this.getLowerBound(superType), this.getLowerBound(subType), 'lower bound', this.isBoundGreaterEquals));
-            conflicts.push(...compareForConflict(this.getUpperBound(superType), this.getUpperBound(subType), 'upper bound', this.isBoundGreaterEquals));
+            conflicts.push(...compareForConflict(this.getLowerBound(superType), this.getLowerBound(subType), 'lower bound', 'SUB_TYPE', this.isBoundGreaterEquals));
+            conflicts.push(...compareForConflict(this.getUpperBound(superType), this.getUpperBound(subType), 'upper bound', 'SUB_TYPE', this.isBoundGreaterEquals));
             conflicts.push(...this.typir.subtype.isSubType(this.getConstrainedType(superType), this.getConstrainedType(subType)));
             return conflicts;
         }
@@ -111,8 +111,8 @@ export class MultiplicityKind implements Kind {
     areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
         if (isMultiplicityKind(type1.kind) && isMultiplicityKind(type2.kind)) {
             const conflicts: TypeConflict[] = [];
-            conflicts.push(...compareForConflict(this.getLowerBound(type1), this.getLowerBound(type2), 'lower bound'));
-            conflicts.push(...compareForConflict(this.getUpperBound(type1), this.getUpperBound(type2), 'upper bound'));
+            conflicts.push(...compareForConflict(this.getLowerBound(type1), this.getLowerBound(type2), 'lower bound', 'EQUAL_TYPE'));
+            conflicts.push(...compareForConflict(this.getUpperBound(type1), this.getUpperBound(type2), 'upper bound', 'EQUAL_TYPE'));
             conflicts.push(...this.typir.equality.areTypesEqual(this.getConstrainedType(type1), this.getConstrainedType(type2)));
             return conflicts;
         }

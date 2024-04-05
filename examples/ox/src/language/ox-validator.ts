@@ -84,10 +84,9 @@ export class OxValidator {
         const variableType = typir.inference.inferType(variable);
         const valueType = typir.inference.inferType(value);
         if (variableType && valueType) {
-            const assignable = typir.assignability.isAssignable(valueType, variableType);
-            if (assignable.length >= 1) {
-                // TODO bessere Fehlermeldungen !!
-                accept('error', `This expression of type '${valueType.name}' is not assignable to '${variableType.name}': TODO`, { node: value });
+            const assignConflicts = typir.assignability.isAssignable(valueType, variableType);
+            if (assignConflicts.length >= 1) {
+                accept('error', `This expression of type '${valueType.name}' is not assignable to '${variableType.name}':\n${typir.conflictPrinter.printTypeConflicts(assignConflicts)}`, { node: value });
             }
         }
     }

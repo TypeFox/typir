@@ -10,6 +10,7 @@ import { DefaultTypeConversion, TypeConversion } from './features/conversion.js'
 import { DefaultTypeEquality, TypeEquality } from './features/equality.js';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './features/inference.js';
 import { DefaultOperatorManager, OperatorManager } from './features/operator.js';
+import { DefaultTypeConflictPrinter, TypeConflictPrinter } from './features/printing.js';
 import { DefaultSubType, SubType } from './features/subtype.js';
 import { TypeGraph } from './graph/type-graph.js';
 import { Kind } from './kinds/kind.js';
@@ -37,6 +38,7 @@ export class Typir {
     inference: TypeInferenceCollector;
     caching: TypeRelationshipCaching;
     operators: OperatorManager;
+    conflictPrinter: TypeConflictPrinter;
 
     constructor() {
         this.assignability = new DefaultTypeAssignability(this);
@@ -46,6 +48,7 @@ export class Typir {
         this.inference = new DefaultTypeInferenceCollector(this);
         this.caching = new DefaultTypeRelationshipCaching(this);
         this.operators = new DefaultOperatorManager(this);
+        this.conflictPrinter = new DefaultTypeConflictPrinter(this);
     }
 
     // manage kinds

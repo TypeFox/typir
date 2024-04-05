@@ -113,10 +113,10 @@ export class FunctionKind implements Kind {
             const conflicts: TypeConflict[] = [];
             // output: target parameter must be assignable to source parameter
             conflicts.push(...compareNameTypePair(this.getOutput(superType), this.getOutput(subType),
-                (s, t) => this.typir.assignability.isAssignable(t, s)));
+                (s, t) => this.typir.assignability.isAssignable(t, s), 'ASSIGNABLE_TYPE'));
             // input: source parameters must be assignable to target parameters
             conflicts.push(...compareNameTypePairs(this.getInputs(superType), this.getInputs(subType),
-                (s, t) => this.typir.assignability.isAssignable(s, t)));
+                (s, t) => this.typir.assignability.isAssignable(s, t), 'ASSIGNABLE_TYPE'));
             return conflicts;
         }
         throw new Error();
@@ -127,10 +127,10 @@ export class FunctionKind implements Kind {
             const conflicts: TypeConflict[] = [];
             // same output?
             conflicts.push(...compareNameTypePair(this.getOutput(type1), this.getOutput(type2),
-                (s, t) => this.typir.equality.areTypesEqual(s, t)));
+                (s, t) => this.typir.equality.areTypesEqual(s, t), 'EQUAL_TYPE'));
             // same input?
             conflicts.push(...compareNameTypePairs(this.getInputs(type1), this.getInputs(type2),
-                (s, t) => this.typir.equality.areTypesEqual(s, t)));
+                (s, t) => this.typir.equality.areTypesEqual(s, t), 'EQUAL_TYPE'));
             return conflicts;
         }
         throw new Error();

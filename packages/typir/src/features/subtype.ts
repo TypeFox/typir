@@ -24,7 +24,7 @@ export class DefaultSubType implements SubType {
     isSubType(superType: Type, subType: Type): TypeConflict[] {
         if (superType.kind.$name !== subType.kind.$name) {
             // sub-types need to have the same kind
-            return [createConflict(superType.kind.$name, subType.kind.$name, 'kind')];
+            return [createConflict(superType.kind.$name, subType.kind.$name, 'kind', 'SUB_TYPE')];
         }
         const cache: TypeRelationshipCaching = this.typir.caching;
 

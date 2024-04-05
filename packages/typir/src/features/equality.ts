@@ -30,7 +30,7 @@ export class DefaultTypeEquality implements TypeEquality {
         }
         if (type1.kind.$name !== type2.kind.$name) {
             // equal types must have the same kind
-            return [createConflict(type1.kind.$name, type2.kind.$name, 'kind')];
+            return [createConflict(type1.kind.$name, type2.kind.$name, 'kind', 'EQUAL_TYPE')];
         }
 
         const cache: TypeRelationshipCaching = this.typir.caching;
@@ -50,7 +50,7 @@ export class DefaultTypeEquality implements TypeEquality {
             return [];
         }
         if (link === 'NO_LINK') {
-            return [createConflict(type1, type2, 'cached => details are missing')]; // TODO
+            return [createConflict(type1, type2, 'cached => details are missing', 'EQUAL_TYPE')]; // TODO
         }
 
         // do the expensive calculation now

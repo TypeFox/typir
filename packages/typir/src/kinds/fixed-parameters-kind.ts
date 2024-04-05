@@ -68,7 +68,7 @@ export class FixedParameterKind implements Kind {
             const conflicts: TypeConflict[] = [];
             // all parameter types must match
             const compareStrategy = createTypeComparisonStrategy(this.options.subtypeParameterChecking, this.typir);
-            conflicts.push(...compareTypes(superType.kind.getParameterTypes(superType), subType.kind.getParameterTypes(subType), compareStrategy));
+            conflicts.push(...compareTypes(superType.kind.getParameterTypes(superType), subType.kind.getParameterTypes(subType), compareStrategy, 'SUB_TYPE'));
             return conflicts;
         }
         throw new Error();
@@ -77,7 +77,7 @@ export class FixedParameterKind implements Kind {
     areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
         if (isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind) && type1.kind.baseName === type2.kind.baseName) {
             const conflicts: TypeConflict[] = [];
-            conflicts.push(...compareTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2)));
+            conflicts.push(...compareTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2), 'EQUAL_TYPE'));
             return conflicts;
         }
         throw new Error();

@@ -42,7 +42,7 @@ export class PrimitiveKind implements Kind {
     areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
         if (isPrimitiveKind(type1.kind) && isPrimitiveKind(type2.kind)) {
             const conflicts: TypeConflict[] = [];
-            conflicts.push(...compareForConflict(type1.name, type2.name, 'primitive name'));
+            conflicts.push(...compareForConflict(type1.name, type2.name, 'primitive name', 'EQUAL_TYPE'));
             return conflicts;
         }
         throw new Error();

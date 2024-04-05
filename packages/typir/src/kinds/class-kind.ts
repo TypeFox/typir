@@ -104,14 +104,15 @@ export class ClassKind implements Kind {
                         conflicts.push({
                             expected: superFieldType,
                             actual: undefined,
-                            location: superFieldName
+                            location: superFieldName,
+                            action: 'SUB_TYPE'
                         });
                     }
                 }
                 // Note that it is not necessary to check, whether the sub class has additional fields than the super type!
             } else {
                 // for nominal typing (super classes don't matter):
-                conflicts.push(...compareForConflict(superType.name, subType.name, 'name'));
+                conflicts.push(...compareForConflict(superType.name, subType.name, 'name', 'SUB_TYPE'));
             }
             return conflicts;
         }
@@ -124,10 +125,10 @@ export class ClassKind implements Kind {
             if (this.options.structuralTyping) {
                 // for structural typing:
                 conflicts.push(...compareNameTypesMap(this.getFields(type1, true), this.getFields(type2, true),
-                    (t1, t2) => this.typir.equality.areTypesEqual(t1, t2)));
+                    (t1, t2) => this.typir.equality.areTypesEqual(t1, t2), 'EQUAL_TYPE'));
             } else {
                 // for nominal typing:
-                conflicts.push(...compareForConflict(type1.name, type2.name, 'name'));
+                conflicts.push(...compareForConflict(type1.name, type2.name, 'name', 'EQUAL_TYPE'));
             }
             return conflicts;
         }

@@ -102,7 +102,10 @@ describe('Tests for Typir', () => {
         expect(typir.assignability.isAssignable(typeListInt, typeListInt)).toHaveLength(0);
         // classes
         expect(typir.assignability.isAssignable(typeStudent, typePerson)).toHaveLength(0);
-        expect(typir.assignability.isAssignable(typePerson, typeStudent)).toHaveLength(1);
+        const assignConflicts = typir.assignability.isAssignable(typePerson, typeStudent);
+        expect(assignConflicts).toHaveLength(1);
+        const msg = typir.conflictPrinter.printTypeConflicts(assignConflicts);
+        console.log(msg); // TODO ist noch recht merkwürdig ... !
         // TODO extend API for validation with Langium, generate nice error messages
     });
 });

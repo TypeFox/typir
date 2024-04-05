@@ -11,6 +11,7 @@ export * from './features/conversion.js';
 export * from './features/equality.js';
 export * from './features/inference.js';
 export * from './features/operator.js';
+export * from './features/printing.js';
 export * from './features/subtype.js';
 export * from './graph/type-edge.js';
 export * from './graph/type-graph.js';

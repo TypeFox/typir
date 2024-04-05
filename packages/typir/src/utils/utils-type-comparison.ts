@@ -5,13 +5,15 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { NameTypePair, Type } from '../index.js';
+import { NameTypePair } from '../utils/utils.js';
+import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 
 export type TypeComparisonStrategy =
     'EQUAL_TYPE' | // the most strict checking
     'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
     'SUB_TYPE'; // more relaxed checking
+
 export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, typir: Typir): (t1: Type, t2: Type) => TypeConflict[] {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
@@ -35,42 +37,46 @@ export interface TypeConflict {
     expected: Type | string | undefined; // first, left
     actual: Type | string | undefined; // second, right
     location: string;
-    innerConflicts?: TypeConflict[];
+    action: TypeComparisonStrategy;
+    subConflicts?: TypeConflict[];
 }
 
-export function compareForConflict<T>(expected: T, actual: T, location: string,
+export function compareForConflict<T>(expected: T, actual: T, location: string, action: TypeComparisonStrategy,
     comparator: (e: T, a: T) => boolean = (e, a) => e === a): TypeConflict[] {
     const conflicts: TypeConflict[] = [];
     if (comparator(expected, actual) === false) {
         conflicts.push({
             expected: `${expected}`,
             actual: `${actual}`,
-            location
+            location,
+            action
         });
     }
     return conflicts;
 }
 
-export function createConflict(expected: Type | string, actual: Type | string, location: string): TypeConflict {
+export function createConflict(expected: Type | string, actual: Type | string, location: string, action: TypeComparisonStrategy): TypeConflict {
     return {
         expected: expected,
         actual: actual,
-        location
+        location,
+        action
     };
 }
 
-export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[], comparator: (l: Type, r: Type) => TypeConflict[]): TypeConflict[] {
+export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[], comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
     const conflicts: TypeConflict[] = [];
     // compare first common indices
     for (let i = 0; i < left.length; i++) {
-        conflicts.push(...compareNameTypePair(left[i], right[i], comparator));
+        conflicts.push(...compareNameTypePair(left[i], right[i], comparator, action));
     }
     // missing in the left
     for (let i = left.length; i < right.length; i++) {
         conflicts.push({
             expected: undefined,
             actual: right[i].type,
-            location: `left-${i}-${right[i].name}`
+            location: `left-${i}-${right[i].name}`,
+            action
         });
     }
     // missing in the right
@@ -78,13 +84,14 @@ export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[]
         conflicts.push({
             expected: left[i].type,
             actual: undefined,
-            location: `right-${i}-${left[i].name}`
+            location: `right-${i}-${left[i].name}`,
+            action
         });
     }
     return conflicts;
 }
 
-export function compareNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, comparator: (l: Type, r: Type) => TypeConflict[]): TypeConflict[] {
+export function compareNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
     const conflicts: TypeConflict[] = [];
     if ((left === undefined) && (right === undefined)) {
         // everything is fine
@@ -94,13 +101,15 @@ export function compareNameTypePair(left: NameTypePair | undefined, right: NameT
         conflicts.push({
             expected: undefined,
             actual: right.type,
-            location: right.name
+            location: right.name,
+            action
         });
     } else if ((left !== undefined) && (right === undefined)) {
         conflicts.push({
             expected: left.type,
             actual: undefined,
-            location: left.name
+            location: left.name,
+            action
         });
     } else {
         throw new Error();
@@ -108,7 +117,7 @@ export function compareNameTypePair(left: NameTypePair | undefined, right: NameT
     return conflicts;
 }
 
-export function compareTypes(left: Type[], right: Type[], comparator: (l: Type, r: Type) => TypeConflict[]): TypeConflict[] {
+export function compareTypes(left: Type[], right: Type[], comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
     const conflicts: TypeConflict[] = [];
     // compare first common indices
     for (let i = 0; i < Math.min(left.length, right.length); i++) {
@@ -119,7 +128,8 @@ export function compareTypes(left: Type[], right: Type[], comparator: (l: Type, 
         conflicts.push({
             expected: undefined,
             actual: right[i],
-            location: `left-${i}`
+            location: `left-${i}`,
+            action
         });
     }
     // missing in the right
@@ -127,13 +137,14 @@ export function compareTypes(left: Type[], right: Type[], comparator: (l: Type, 
         conflicts.push({
             expected: left[i],
             actual: undefined,
-            location: `right-${i}`
+            location: `right-${i}`,
+            action
         });
     }
     return conflicts;
 }
 
-export function compareNameTypesMap(sourceFields: Map<string, Type>, targetFields: Map<string, Type>, comparator: (l: Type, r: Type) => TypeConflict[]): TypeConflict[] {
+export function compareNameTypesMap(sourceFields: Map<string, Type>, targetFields: Map<string, Type>, comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
     const targetCopy = new Map(targetFields);
     const conflicts: TypeConflict[] = [];
     for (const entry of sourceFields.entries()) {
@@ -150,7 +161,8 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
                     expected: sourceType,
                     actual: targetType,
                     location: name,
-                    innerConflicts: comparisonResult
+                    subConflicts: comparisonResult,
+                    action
                 });
             } else {
                 // same type
@@ -160,7 +172,8 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
             conflicts.push({
                 expected: sourceType,
                 actual: undefined,
-                location: name
+                location: name,
+                action
             });
         }
     }
@@ -169,7 +182,8 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
         conflicts.push({
             expected: undefined,
             actual: entry[1],
-            location: entry[0]
+            location: entry[0],
+            action
         });
     }
     return conflicts;

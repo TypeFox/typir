@@ -112,7 +112,6 @@ export function createTypir(): Typir {
     });
 
     // TODO validation: überhaupt Type ableitbar VS passt der abgeleitete Type zur Umgebung?
-    // TODO error message: konfigurierbare Message
 
     return typir;
 }
