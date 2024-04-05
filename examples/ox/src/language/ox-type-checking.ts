@@ -7,6 +7,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { PrimitiveKind, Type, Typir } from 'typir';
 import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, VariableDeclaration, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isParameter, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
+import { assertUnreachable } from 'langium';
 
 export function createTypir(): Typir {
     const typir = new Typir();
@@ -23,7 +24,7 @@ export function createTypir(): Typir {
             case 'number': return typeNumber;
             case 'boolean': return typeBool;
             case 'void': return typeVoid;
-            default: throw new Error();
+            default: assertUnreachable(typeRef.primitive);
         }
     }
 
@@ -40,6 +41,7 @@ export function createTypir(): Typir {
     const opDiv = operators.createBinaryOperator('/', typeNumber, typeNumber,
         (node) => isBinaryExpression(node) && node.operator === '/',
         (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
+    // TODO simplify this: with alternative function? with Langium binding?
 
     // binary operators: numbers => boolean
     const opLt = operators.createBinaryOperator('<', typeNumber, typeBool,
@@ -63,7 +65,13 @@ export function createTypir(): Typir {
         (node) => isBinaryExpression(node) && node.operator === 'or',
         (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
 
-    // TODO: ==, != for boolean and numbers!
+    // ==, != for boolean and numbers!
+    const opEq = operators.createBinaryOperator('==', [typeNumber, typeBool], typeBool,
+        (node) => isBinaryExpression(node) && node.operator === '==',
+        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
+    const opNeq = operators.createBinaryOperator('!=', [typeNumber, typeBool], typeBool,
+        (node) => isBinaryExpression(node) && node.operator === '!=',
+        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
 
     // unary operators
     const opNot = operators.createUnaryOperator('!', typeBool,

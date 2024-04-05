@@ -7,6 +7,7 @@
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { toArray } from '../utils.js';
 
 export type ConversionMode =
     'IMPLICIT' | // coercion
@@ -26,8 +27,8 @@ export class DefaultTypeConversion implements TypeConversion {
     }
 
     markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionMode): void {
-        const allFrom = Array.isArray(from) ? from : [from];
-        const allTo = Array.isArray(to) ? to : [to];
+        const allFrom = toArray(from);
+        const allTo = toArray(to);
         for (const f of allFrom) {
             for (const t of allTo) {
                 this.markAsConvertibleSingle(f, t, mode);

@@ -6,9 +6,16 @@
 
 import { Type } from './graph/type-node.js';
 
+export type Types = Type | Type[];
+
 export type NameTypePair = {
     name: string;
     type: Type;
+}
+
+export type NameTypesPair = {
+    name: string;
+    type: Types;
 }
 
 export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[], comparator: (l: Type, r: Type) => boolean): boolean {
@@ -63,4 +70,18 @@ export function assertTrue(condition: boolean, msg?: string) {
     if (!condition) {
         throw new Error(msg);
     }
+}
+
+export function toArray<T>(value: undefined | T | T[]): T[] {
+    if (!value) {
+        return [];
+    }
+    if (Array.isArray(value)) {
+        return value;
+    }
+    return [value];
+}
+
+export function assertUnreachable(_: never): never {
+    throw new Error('Error! The input value was not handled.');
 }

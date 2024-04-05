@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import type { ValidationAcceptor, ValidationChecks } from 'langium';
+import type { AstNode, ValidationAcceptor, ValidationChecks } from 'langium';
 import type { Expression, OxAstType, VariableDeclaration } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
 import { createTypir } from './ox-type-checking.js';
@@ -17,7 +17,10 @@ export function registerValidationChecks(services: OxServices) {
     const validator = services.validation.OxValidator;
     const checks: ValidationChecks<OxAstType> = {
         VariableDeclaration: validator.checkVoidAsVarDeclType,
-        Expression: validator.checkExpressionTypes
+        Expression: validator.checkExpressionTypes,
+        IfStatement: validator.checkCondition,
+        WhileStatement: validator.checkCondition,
+        ForStatement: validator.checkCondition
     };
     registry.register(checks, validator);
 }
@@ -45,7 +48,19 @@ export class OxValidator {
             //      accept('warning', `Found ${type.name} type!`, { node });
             // }
         } else {
-            accept('error', `Missing type inference for '${node.$type}'`, { node });
+            accept('error', `It was not possible to infer the type for '${node.$type}'.`, { node });
+        }
+    }
+
+    checkCondition(node: AstNode & { condition?: Expression }, accept: ValidationAcceptor) {
+        if (node.condition) {
+            const typir = createTypir();
+            const type = typir.inference.inferType(node.condition);
+            if (type) {
+                if (type.name !== 'boolean') {
+                    accept('error', `Conditions need to be evaluated to 'boolean', but '${type.name}' is actually used here.`, { node, property: 'condition' });
+                }
+            }
         }
     }
 }

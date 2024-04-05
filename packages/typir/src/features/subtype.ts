@@ -6,6 +6,7 @@
 
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { assertUnreachable } from '../utils.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
 export interface SubType {
@@ -57,7 +58,7 @@ export class DefaultSubType implements SubType {
             save(result ? 'LINK_EXISTS' : 'NO_LINK');
             return result;
         }
-        throw new Error();
+        assertUnreachable(link);
     }
 }
 

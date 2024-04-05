@@ -6,6 +6,7 @@
 
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { assertUnreachable } from '../utils.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
 export interface TypeEquality {
@@ -14,11 +15,9 @@ export interface TypeEquality {
 
 export class DefaultTypeEquality implements TypeEquality {
     protected readonly typir: Typir;
-    protected readonly cache: TypeRelationshipCaching;
 
     constructor(typir: Typir) {
         this.typir = typir;
-        this.cache = this.typir.caching;
     }
 
     areTypesEqual(type1: Type, type2: Type): boolean {
@@ -30,10 +29,11 @@ export class DefaultTypeEquality implements TypeEquality {
             return false;
         }
 
-        const link = this.cache.getRelationship(type1, type2, EQUAL_TYPE, false);
+        const cache: TypeRelationshipCaching = this.typir.caching;
+        const link = cache.getRelationship(type1, type2, EQUAL_TYPE, false);
 
         const save = (value: RelationshipKind): void => {
-            this.cache.setRelationship(type1, type2, EQUAL_TYPE, false, value);
+            cache.setRelationship(type1, type2, EQUAL_TYPE, false, value);
         };
 
         // skip recursive checking
@@ -61,7 +61,7 @@ export class DefaultTypeEquality implements TypeEquality {
             save(result ? 'LINK_EXISTS' : 'NO_LINK');
             return result;
         }
-        throw new Error();
+        assertUnreachable(link);
     }
 }
 
