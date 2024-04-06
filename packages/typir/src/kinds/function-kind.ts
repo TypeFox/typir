@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeConflict, compareNameTypePair, compareNameTypePairs } from '../utils/utils-type-comparison.js';
+import { TypeConflict, compareForConflict, compareNameTypePair, compareNameTypePairs } from '../utils/utils-type-comparison.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
@@ -12,6 +12,7 @@ import { NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface FunctionKindOptions {
+    // these three options controls structural vs nominal typing somehow ...
     enforceFunctionName: boolean,
     enforceInputParameterNames: boolean,
     enforceOutputParameterName: boolean,
@@ -25,7 +26,8 @@ export const FunctionKindName = 'FunctionKind';
  * possible Extensions:
  * - multiple output parameters
  * - create variants of this, e.g. functions, procedures, lambdas
- * - structural vs nominal typing? function overloading?
+ * - (structural vs nominal typing? somehow realized by the three options above ...)
+ * - function overloading?
  */
 export class FunctionKind implements Kind {
     readonly $name: 'FunctionKind';
@@ -37,9 +39,11 @@ export class FunctionKind implements Kind {
         this.typir = typir;
         this.typir.registerKind(this);
         this.options = {
+            // the default values:
             enforceFunctionName: false,
             enforceInputParameterNames: false,
             enforceOutputParameterName: false,
+            // the actually overriden values:
             ...options
         };
     }
@@ -109,28 +113,32 @@ export class FunctionKind implements Kind {
     }
 
     isSubType(superType: Type, subType: Type): TypeConflict[] {
-        if (isFunctionKind(superType) && isFunctionKind(subType)) {
+        if (isFunctionKind(superType.kind) && isFunctionKind(subType.kind)) {
             const conflicts: TypeConflict[] = [];
             // output: target parameter must be assignable to source parameter
-            conflicts.push(...compareNameTypePair(this.getOutput(superType), this.getOutput(subType),
-                (s, t) => this.typir.assignability.isAssignable(t, s), 'ASSIGNABLE_TYPE'));
+            conflicts.push(...compareNameTypePair(superType.kind.getOutput(superType), subType.kind.getOutput(subType),
+                this.options.enforceOutputParameterName, (s, t) => this.typir.assignability.isAssignable(t, s), 'ASSIGNABLE_TYPE'));
             // input: source parameters must be assignable to target parameters
-            conflicts.push(...compareNameTypePairs(this.getInputs(superType), this.getInputs(subType),
-                (s, t) => this.typir.assignability.isAssignable(s, t), 'ASSIGNABLE_TYPE'));
+            conflicts.push(...compareNameTypePairs(superType.kind.getInputs(superType), subType.kind.getInputs(subType),
+                this.options.enforceInputParameterNames, (s, t) => this.typir.assignability.isAssignable(s, t), 'ASSIGNABLE_TYPE'));
             return conflicts;
         }
         throw new Error();
     }
 
     areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
-        if (isFunctionKind(type1) && isFunctionKind(type2)) {
+        if (isFunctionKind(type1.kind) && isFunctionKind(type2.kind)) {
             const conflicts: TypeConflict[] = [];
+            // same name? TODO is this correct??
+            if (this.options.enforceFunctionName) {
+                conflicts.push(...compareForConflict(type1.kind.getSimpleFunctionName(type1), type2.kind.getSimpleFunctionName(type2), 'simple name', 'EQUAL_TYPE'));
+            }
             // same output?
-            conflicts.push(...compareNameTypePair(this.getOutput(type1), this.getOutput(type2),
-                (s, t) => this.typir.equality.areTypesEqual(s, t), 'EQUAL_TYPE'));
+            conflicts.push(...compareNameTypePair(type1.kind.getOutput(type1), type2.kind.getOutput(type2),
+                this.options.enforceOutputParameterName, (s, t) => this.typir.equality.areTypesEqual(s, t), 'EQUAL_TYPE'));
             // same input?
-            conflicts.push(...compareNameTypePairs(this.getInputs(type1), this.getInputs(type2),
-                (s, t) => this.typir.equality.areTypesEqual(s, t), 'EQUAL_TYPE'));
+            conflicts.push(...compareNameTypePairs(type2.kind.getInputs(type1), type2.kind.getInputs(type2),
+                this.options.enforceInputParameterNames, (s, t) => this.typir.equality.areTypesEqual(s, t), 'EQUAL_TYPE'));
             return conflicts;
         }
         throw new Error();

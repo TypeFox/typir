@@ -56,12 +56,23 @@ export class OxValidator {
         }
     }
 
+    /*
+     * TODO validation with Typir for Langium => Extra-Package "typir-langium" anlegen
+     * - überhaupt Type ableitbar?
+     * - passt der abgeleitete Type zur Umgebung?
+     * - hübsche Fehlermeldung
+     * - alles konfigurierbar machen
+     * - einfach in Validator einhängbar machen
+     * - Service, um Typir zentral im Hintergrund zu haben und zu cachen
+     * - Quick-fix for wrong type of variable declaration
+     */
+
     checkConditionExpressionIsBoolean(node: AstNode & { condition?: Expression }, accept: ValidationAcceptor) {
         if (node.condition) {
             const typir = createTypir();
             const type = typir.inference.inferType(node.condition);
             if (type) {
-                if (type.name !== 'boolean') {
+                if (type !== typir.graph.getType('boolean')) {
                     accept('error', `Conditions need to be evaluated to 'boolean', but '${type.name}' is actually used here.`, { node, property: 'condition' });
                 }
             }

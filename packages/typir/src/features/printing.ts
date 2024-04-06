@@ -7,7 +7,7 @@
 import { assertUnreachable } from 'langium';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonStrategy, TypeConflict } from '../utils/utils-type-comparison.js';
+import { TypeConflict } from '../utils/utils-type-comparison.js';
 
 export interface TypeConflictPrinter {
     printTypeConflict(conflict: TypeConflict): string;
@@ -26,14 +26,14 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
     }
 
     protected printTypeConflictLevel(conflict: TypeConflict, level: number): string {
-        if (conflict.expected === undefined && conflict.actual === undefined) {
-            throw new Error();
-        }
         // the current conflict
-        let result = this.printAction(conflict.action, conflict.location, this.printOneSide(conflict.expected), this.printOneSide(conflict.actual));
+        let result = this.printSingleConflict(conflict);
         // indentation
-        for (let i = 0; i < level; i++) {
-            result = `  ${result}`;
+        for (let i = 0; i < level - 1; i++) {
+            result = `     ${result}`; // 5 spaces
+        }
+        if (level >= 1) {
+            result = `|--> ${result}`; // 5 signs
         }
         // the sub-conflicts
         if (conflict.subConflicts && conflict.subConflicts.length >= 1) {
@@ -42,15 +42,37 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
         return result;
     }
 
-    protected printAction(action: TypeComparisonStrategy, location: string, expected: string, actual: string): string {
-        // TODO 'undefined' besser berücksichtigen!
+    protected printSingleConflict(conflict: TypeConflict): string {
+        const valueKind = toValueKind(conflict);
+        const action = conflict.action;
+        const location = conflict.location;
+        const expected = this.printOneSide(conflict.expected);
+        const actual = this.printOneSide(conflict.actual);
         switch (action) {
             case 'EQUAL_TYPE':
-                return `For equality, at '${location}', ${expected} on the one hand fits not to ${actual} on the other hand.`;
+                switch (valueKind) {
+                    case 'BOTH':            return `For equality, at ${location}', ${expected} on the one side fits not to ${actual} on the other side.`;
+                    case 'ONLY_EXPECTED':   return `For equality, at ${location}', ${expected} on the one side has no counterpart on the other side.`;
+                    case 'ONLY_ACTUAL':     return `For equality, at ${location}', on the one side there is no counterpart for ${actual} on the other side.`;
+                    case 'NONE': throw new Error();
+                    default: return assertUnreachable(valueKind);
+                }
             case 'ASSIGNABLE_TYPE':
-                return `At '${location}', ${expected} is not assignable to ${actual}.`;
+                switch (valueKind) {
+                    case 'BOTH':            return `At ${location}, ${expected} is not assignable to ${actual}.`;
+                    case 'ONLY_EXPECTED':   return `At ${location}, ${expected} cannot be assigned, since there is nothing to assign this to.`;
+                    case 'ONLY_ACTUAL':     return `At ${location}, for ${actual}, there is nothing to assign to it.`;
+                    case 'NONE': throw new Error();
+                    default: return assertUnreachable(valueKind);
+                }
             case 'SUB_TYPE':
-                return `At '${location}', ${expected} is no super type for ${actual} as sub type.`;
+                switch (valueKind) {
+                    case 'BOTH':            return `For ${location}, ${expected} is no super type for ${actual}.`;
+                    case 'ONLY_EXPECTED':   return `For ${location}, ${expected} as super type has no counterpart for the sub type.`;
+                    case 'ONLY_ACTUAL':     return `For ${location}, ${actual} as sub type has no counterpart for the super type.`;
+                    case 'NONE': throw new Error();
+                    default: return assertUnreachable(valueKind);
+                }
             default:
                 assertUnreachable(action);
         }
@@ -75,4 +97,26 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
     protected printTypeConflictsLevel(conflicts: TypeConflict[], level: number): string {
         return conflicts.map(c => this.printTypeConflictLevel(c, level)).join('\n');
     }
+}
+
+/* Utilities */
+
+type ValueKinds = 'BOTH' | 'ONLY_EXPECTED' | 'ONLY_ACTUAL' | 'NONE';
+
+function toValueKind(conflict: TypeConflict): ValueKinds {
+    const expected = conflict.expected;
+    const actual = conflict.actual;
+    if (expected !== undefined && actual !== undefined) {
+        return 'BOTH';
+    }
+    if (expected !== undefined && actual === undefined) {
+        return 'ONLY_EXPECTED';
+    }
+    if (expected === undefined && actual !== undefined) {
+        return 'ONLY_ACTUAL';
+    }
+    if (expected === undefined && actual === undefined) {
+        return 'NONE';
+    }
+    throw new Error();
 }

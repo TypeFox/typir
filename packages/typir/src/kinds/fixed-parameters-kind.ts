@@ -27,12 +27,17 @@ export class FixedParameterKind implements Kind {
     readonly options: FixedParameterKindOptions;
     readonly parameterNames: string[];
 
-    constructor(typir: Typir, baseName: string, options: FixedParameterKindOptions, ...parameterNames: string[]) {
+    constructor(typir: Typir, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
         this.$name = `FixedParameterKind-${baseName}`;
         this.typir = typir;
         this.typir.registerKind(this);
         this.baseName = baseName;
-        this.options = options;
+        this.options = {
+            // the default values:
+            subtypeParameterChecking: 'EQUAL_TYPE',
+            // the actually overriden values:
+            ...options
+        };
         this.parameterNames = parameterNames;
 
         // check input

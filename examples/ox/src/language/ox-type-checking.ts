@@ -10,6 +10,7 @@ import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, VariableD
 import { assertUnreachable } from 'langium';
 
 export function createTypir(): Typir {
+    // set up Typir and reuse some predefined things
     const typir = new Typir();
     const primitiveKind = new PrimitiveKind(typir);
     const operators = typir.operators;
@@ -19,6 +20,7 @@ export function createTypir(): Typir {
     const typeNumber = primitiveKind.createPrimitiveType('number', (node) => isNumberExpression(node));
     const typeVoid = primitiveKind.createPrimitiveType('void'); // TODO own kind for 'void'?
 
+    // utility function to map language types to Typir types
     function mapType(typeRef: TypeReference): Type {
         switch (typeRef.primitive) {
             case 'number': return typeNumber;
@@ -65,7 +67,7 @@ export function createTypir(): Typir {
         (node) => isBinaryExpression(node) && node.operator === 'or',
         (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
 
-    // ==, != for boolean and numbers!
+    // ==, != for booleans and numbers
     const opEq = operators.createBinaryOperator('==', [typeNumber, typeBool], typeBool,
         (node) => isBinaryExpression(node) && node.operator === '==',
         (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
@@ -81,7 +83,8 @@ export function createTypir(): Typir {
         (node) => isUnaryExpression(node) && node.operator === '-',
         (node) => (node as UnaryExpression).value);
 
-    // inference rule for member calls
+    // additional inference rules ...
+    // ... for member calls
     typir.inference.addInferenceRule({
         isRuleApplicable(domainElement) {
             if (isMemberCall(domainElement)) {
@@ -99,6 +102,7 @@ export function createTypir(): Typir {
             return false;
         },
     });
+    // ... for declared variables
     typir.inference.addInferenceRule({
         isRuleApplicable(domainElement) {
             if (isTypeReference(domainElement)) {
@@ -110,8 +114,6 @@ export function createTypir(): Typir {
             return false;
         },
     });
-
-    // TODO validation: überhaupt Type ableitbar VS passt der abgeleitete Type zur Umgebung?
 
     return typir;
 }

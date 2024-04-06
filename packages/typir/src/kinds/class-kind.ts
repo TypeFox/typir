@@ -13,7 +13,8 @@ import { Kind, isKind } from './kind.js';
 
 export interface ClassKindOptions {
     structuralTyping: boolean,
-    maximumNumberOfSuperClasses: number, // values < 0 indicate an arbitrary number of super classes
+    /** Values < 0 indicate an arbitrary number of super classes. */
+    maximumNumberOfSuperClasses: number,
     subtypeFieldChecking: TypeComparisonStrategy,
 }
 
@@ -28,11 +29,18 @@ export class ClassKind implements Kind {
     readonly typir: Typir;
     readonly options: ClassKindOptions;
 
-    constructor(typir: Typir, options: ClassKindOptions) {
+    constructor(typir: Typir, options?: Partial<ClassKindOptions>) {
         this.$name = 'ClassKind';
         this.typir = typir;
         this.typir.registerKind(this);
-        this.options = options;
+        this.options = {
+            // the default values:
+            structuralTyping: false,
+            maximumNumberOfSuperClasses: 1,
+            subtypeFieldChecking: 'EQUAL_TYPE',
+            // the actually overriden values:
+            ...options
+        };
     }
 
     createClassType(className: string, superClasses: Type[], ...fields: NameTypePair[]): Type {
@@ -80,11 +88,16 @@ export class ClassKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
+        // fields
         const fields: string[] = [];
         for (const field of this.getFields(type, false).entries()) {
             fields.push(`${field[0]}: ${field[1].name}`);
         }
-        return `${type.name} { ${fields.join(', ')} }`;
+        // super classes
+        const superClasses = this.getDeclaredSuperClasses(type);
+        const extendedClasses = superClasses.length <= 0 ? '' : ` extends ${superClasses.map(c => c.name).join(', ')}`;
+        // whole representation
+        return `${type.name} { ${fields.join(', ')} }${extendedClasses}`;
     }
 
     isSubType(superType: Type, subType: Type): TypeConflict[] {
@@ -92,20 +105,31 @@ export class ClassKind implements Kind {
             const conflicts: TypeConflict[] = [];
             if (this.options.structuralTyping) {
                 // for structural typing, the sub type needs to have all fields of the super type with assignable types (including fields of all super classes):
-                const subFields = this.getFields(subType, true);
-                for (const [superFieldName, superFieldType] of this.getFields(superType, true)) {
+                const subFields = subType.kind.getFields(subType, true);
+                for (const [superFieldName, superFieldType] of superType.kind.getFields(superType, true)) {
                     if (subFields.has(superFieldName)) {
                         // field is both in super and sub
                         const subFieldType = subFields.get(superFieldName)!;
                         const compareStrategy = createTypeComparisonStrategy(this.options.subtypeFieldChecking, this.typir);
-                        conflicts.push(...compareStrategy(subFieldType, superFieldType));
+                        const subConflicts = compareStrategy(subFieldType, superFieldType);
+                        if (subConflicts.length >= 1) {
+                            conflicts.push({
+                                expected: superType,
+                                actual: subType,
+                                location: `property '${superFieldName}'`,
+                                action: 'SUB_TYPE',
+                                subConflicts,
+                            });
+                        } else {
+                            // everything is fine
+                        }
                     } else {
                         // missing sub field
                         conflicts.push({
                             expected: superFieldType,
                             actual: undefined,
-                            location: superFieldName,
-                            action: 'SUB_TYPE'
+                            location: `property '${superFieldName}'`,
+                            action: 'SUB_TYPE',
                         });
                     }
                 }
@@ -124,7 +148,7 @@ export class ClassKind implements Kind {
             const conflicts: TypeConflict[] = [];
             if (this.options.structuralTyping) {
                 // for structural typing:
-                conflicts.push(...compareNameTypesMap(this.getFields(type1, true), this.getFields(type2, true),
+                conflicts.push(...compareNameTypesMap(type1.kind.getFields(type1, true), type2.kind.getFields(type2, true),
                     (t1, t2) => this.typir.equality.areTypesEqual(t1, t2), 'EQUAL_TYPE'));
             } else {
                 // for nominal typing:

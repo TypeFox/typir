@@ -25,7 +25,7 @@ export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, t
         case 'SUB_TYPE':
             return typir.subtype.isSubType
                 .bind(typir.subtype);
-            // .bind is required to have the correct value for 'this' inside the referenced function/method!
+            // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
             // see https://stackoverflow.com/questions/20279484/how-to-access-the-correct-this-inside-a-callback
         default:
             assertUnreachable(strategy);
@@ -49,7 +49,7 @@ export function compareForConflict<T>(expected: T, actual: T, location: string, 
             expected: `${expected}`,
             actual: `${actual}`,
             location,
-            action
+            action,
         });
     }
     return conflicts;
@@ -60,56 +60,82 @@ export function createConflict(expected: Type | string, actual: Type | string, l
         expected: expected,
         actual: actual,
         location,
-        action
+        action,
     };
 }
 
-export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[], comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
+export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[], compareNames: boolean, comparatorTypes: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
     const conflicts: TypeConflict[] = [];
     // compare first common indices
     for (let i = 0; i < left.length; i++) {
-        conflicts.push(...compareNameTypePair(left[i], right[i], comparator, action));
+        const subConflicts = compareNameTypePair(left[i], right[i], compareNames, comparatorTypes, action);
+        if (subConflicts.length >= 1) {
+            conflicts.push({
+                expected: left[i].type,
+                actual: right[i].type,
+                location: `index ${i} with name '${left[i].name}'`,
+                action,
+                subConflicts,
+            });
+        } else {
+            // everything is fine
+        }
     }
-    // missing in the left
+    // existing in right, but missing in left
     for (let i = left.length; i < right.length; i++) {
         conflicts.push({
             expected: undefined,
             actual: right[i].type,
-            location: `left-${i}-${right[i].name}`,
-            action
+            location: `index ${i} with name '${right[i].name}'`,
+            action,
         });
     }
-    // missing in the right
+    // existing in left, but missing in right
     for (let i = right.length; i < left.length; i++) {
         conflicts.push({
             expected: left[i].type,
             actual: undefined,
-            location: `right-${i}-${left[i].name}`,
-            action
+            location: `index ${i} with name '${left[i].name}'`,
+            action,
         });
     }
     return conflicts;
 }
 
-export function compareNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
+export function compareNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, compareNames: boolean, comparatorTypes: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
     const conflicts: TypeConflict[] = [];
     if ((left === undefined) && (right === undefined)) {
         // everything is fine
     } else if ((left !== undefined) && (right !== undefined)) {
-        conflicts.push(...comparator(left.type, right.type));
+        const subConflicts = [];
+        if (compareNames) {
+            compareForConflict(left.name, right.name, 'name', action);
+        }
+        subConflicts.push(...comparatorTypes(left.type, right.type));
+        if (subConflicts.length >= 1) {
+            conflicts.push({
+                expected: left.type,
+                actual: right.type,
+                location: `type for '${left.name}'`,
+                action,
+                subConflicts,
+            });
+        } else {
+            // everything is fine
+        }
     } else if ((left === undefined) && (right !== undefined)) {
         conflicts.push({
             expected: undefined,
             actual: right.type,
-            location: right.name,
-            action
+            location: `type for '${right.name}'`,
+            action,
         });
     } else if ((left !== undefined) && (right === undefined)) {
         conflicts.push({
             expected: left.type,
             actual: undefined,
-            location: left.name,
-            action
+            location: `type for '${left.name}'`,
+            action,
         });
     } else {
         throw new Error();
@@ -121,15 +147,26 @@ export function compareTypes(left: Type[], right: Type[], comparator: (l: Type, 
     const conflicts: TypeConflict[] = [];
     // compare first common indices
     for (let i = 0; i < Math.min(left.length, right.length); i++) {
-        conflicts.push(...comparator(left[i], right[i]));
+        const subConflicts = comparator(left[i], right[i]);
+        if (subConflicts.length >= 1) {
+            conflicts.push({
+                expected: left[i],
+                actual: right[i],
+                location: `index ${i}`,
+                action,
+                subConflicts,
+            });
+        } else {
+            // everything is fine
+        }
     }
     // missing in the left
     for (let i = left.length; i < right.length; i++) {
         conflicts.push({
             expected: undefined,
             actual: right[i],
-            location: `left-${i}`,
-            action
+            location: `index ${i}`,
+            action,
         });
     }
     // missing in the right
@@ -137,8 +174,8 @@ export function compareTypes(left: Type[], right: Type[], comparator: (l: Type, 
         conflicts.push({
             expected: left[i],
             actual: undefined,
-            location: `right-${i}`,
-            action
+            location: `index ${i}`,
+            action,
         });
     }
     return conflicts;
@@ -160,9 +197,9 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
                 conflicts.push({
                     expected: sourceType,
                     actual: targetType,
-                    location: name,
+                    location: `property '${name}'`,
+                    action,
                     subConflicts: comparisonResult,
-                    action
                 });
             } else {
                 // same type
@@ -172,8 +209,8 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
             conflicts.push({
                 expected: sourceType,
                 actual: undefined,
-                location: name,
-                action
+                location: `property '${name}'`,
+                action,
             });
         }
     }
@@ -182,8 +219,8 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
         conflicts.push({
             expected: undefined,
             actual: entry[1],
-            location: entry[0],
-            action
+            location: `property '${entry[0]}'`,
+            action,
         });
     }
     return conflicts;

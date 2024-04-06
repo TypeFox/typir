@@ -22,10 +22,6 @@ export class DefaultSubType implements SubType {
     }
 
     isSubType(superType: Type, subType: Type): TypeConflict[] {
-        if (superType.kind.$name !== subType.kind.$name) {
-            // sub-types need to have the same kind
-            return [createConflict(superType.kind.$name, subType.kind.$name, 'kind', 'SUB_TYPE')];
-        }
         const cache: TypeRelationshipCaching = this.typir.caching;
 
         const link = cache.getRelationship(subType, superType, SUB_TYPE, true);
@@ -44,7 +40,7 @@ export class DefaultSubType implements SubType {
             return [];
         }
         if (link === 'NO_LINK') {
-            return [];
+            return this.createSubTypeConflict(superType, subType, []); // TODO cache previous subConflicts?! how to store additional properties? that is not supported by the caching service!
         }
 
         // do the expensive calculation now
@@ -53,13 +49,41 @@ export class DefaultSubType implements SubType {
             save('PENDING');
 
             // do the real logic
-            const result = superType.kind.isSubType(superType, subType);
+            const result = this.calculateSubType(superType, subType);
 
             // this allows to cache results (and to re-set the PENDING state)
             save(result ? 'LINK_EXISTS' : 'NO_LINK');
             return result;
         }
         assertUnreachable(link);
+    }
+
+    protected calculateSubType(superType: Type, subType: Type): TypeConflict[] {
+        const conflicts: TypeConflict[] = [];
+        if (superType.kind.$name !== subType.kind.$name) {
+            // sub-types need to have the same kind: this is the precondition
+            conflicts.push(createConflict(superType.kind.$name, subType.kind.$name, 'kind', 'SUB_TYPE'));
+        } else {
+            // compare the types: delegated to the kind
+            conflicts.push(...superType.kind.isSubType(superType, subType));
+        }
+
+        // create the result
+        if (conflicts.length >= 1) {
+            return this.createSubTypeConflict(superType, subType, conflicts);
+        } else {
+            return conflicts;
+        }
+    }
+
+    protected createSubTypeConflict(superType: Type, subType: Type, subConflicts: TypeConflict[]): TypeConflict[] {
+        return [{
+            expected: superType,
+            actual: subType,
+            location: 'the sub-type relationship',
+            action: 'SUB_TYPE',
+            subConflicts,
+        }];
     }
 }
 

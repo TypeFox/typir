@@ -28,6 +28,13 @@ export class TypeGraph {
         this.nodes.delete(type.name);
     }
 
+    getNode(name: string): Type | undefined {
+        return this.nodes.get(name);
+    }
+    getType(name: string): Type | undefined {
+        return this.getNode(name);
+    }
+
     addEdge(edge: TypeEdge): void {
         this.edges.push(edge);
 
