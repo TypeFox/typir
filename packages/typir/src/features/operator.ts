@@ -47,8 +47,9 @@ export interface OperatorManager {
 /**
  * This implementation realizes operators as functions and creates types of kind 'function'.
  * If Typir does not use the function kind so far, it will be automatically added.
- * The same operator (i.e. same operator name, e.g. "+" or "and") with different types will be realized as different function types,
+ * The same operator (i.e. same operator name, e.g. "+" or "and") with different types for its operands will be realized as different function types,
  * e.g. there are two funktions for "+" for numbers and for strings.
+ * All operands are mandatory.
  */
 export class DefaultOperatorManager implements OperatorManager {
     protected readonly typir: Typir;
@@ -119,8 +120,9 @@ export class DefaultOperatorManager implements OperatorManager {
                     assertTrue(inputParameter.length === childrenTypes.length);
                     for (let index = 0; index < inputParameter.length; index++) {
                         const actual = childrenTypes[index];
-                        const expected = inputParameter[index].type; // TODO was ist mit optionalen/fehlenden Parametern usw.?
+                        const expected = inputParameter[index].type;
                         if (!actual || !expected || typirr.equality.areTypesEqual(actual, expected).length >= 1) {
+                            // missing actual types leed to a mismatch!
                             return undefined;
                         }
                     }

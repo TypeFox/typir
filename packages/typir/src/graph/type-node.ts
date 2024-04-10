@@ -82,6 +82,13 @@ export class Type {
     getOutgoingEdges(key: string): TypeEdge[] {
         return this.edgesOutgoing.get(key) ?? [];
     }
+
+    getAllIncomingEdges(): TypeEdge[] {
+        return Array.from(this.edgesIncoming.values()).flat();
+    }
+    getAllOutgoingEdges(): TypeEdge[] {
+        return Array.from(this.edgesOutgoing.values()).flat();
+    }
 }
 
 export function isType(type: unknown): type is Type {

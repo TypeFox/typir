@@ -5,14 +5,17 @@
 ******************************************************************************/
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { PrimitiveKind, Type, Typir } from 'typir';
-import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, VariableDeclaration, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
-import { assertUnreachable } from 'langium';
+import { AstNode, AstUtils, assertUnreachable } from 'langium';
+import { FUNCTION_MISSING_NAME, FunctionKind, NameTypePair, PrimitiveKind, Type, Typir, assertTrue, isFunctionKind } from 'typir';
+import { BinaryExpression, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isOxProgram, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 
-export function createTypir(): Typir {
+export function createTypir(nodeEntry: AstNode): Typir {
+    const nodeRoot = AstUtils.getContainerOfType(nodeEntry, isOxProgram)!;
+
     // set up Typir and reuse some predefined things
     const typir = new Typir();
     const primitiveKind = new PrimitiveKind(typir);
+    const functionKind = new FunctionKind(typir);
     const operators = typir.operators;
 
     // types
@@ -30,10 +33,12 @@ export function createTypir(): Typir {
         }
     }
 
+    // const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // TODO diese Signatur irgendwie nutzen, ggfs. nur bei/für Langium?
+
     // binary operators: numbers => number
     const opAdd = operators.createBinaryOperator('+', typeNumber, typeNumber,
-        (node) => isBinaryExpression(node) && node.operator === '+',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
+        (node) => isBinaryExpression(node) && node.operator === '+', // TODO: operator name as additional argument? for defining multiple operators together?
+        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]); // TODO combine both by having only one function with two different return properties?
     const opSub = operators.createBinaryOperator('-', typeNumber, typeNumber,
         (node) => isBinaryExpression(node) && node.operator === '-',
         (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
@@ -83,6 +88,27 @@ export function createTypir(): Typir {
         (node) => isUnaryExpression(node) && node.operator === '-',
         (node) => (node as UnaryExpression).value);
 
+    // TODO FunctionDeclaration: ist das überhaupt nötig? muss bei jeder Änderung des Dokuments aktualisiert werden! damit function calls type checken der Arguments?
+    AstUtils.streamAllContents(nodeRoot).forEach(node => {
+        if (isFunctionDeclaration(node)) {
+            const functionName = node.name;
+            // define function type
+            const typeFunction = functionKind.createFunctionType(functionName,
+                { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
+                ...node.parameters.map(p => { return { name: p.name, type: mapType(p.type) }; })
+            );
+            // ... and register a corresponding inference rule for it
+            typir.inference.addInferenceRule({
+                isRuleApplicable(domainElement) {
+                    if (isFunctionDeclaration(domainElement) && domainElement.name === functionName) {
+                        return typeFunction;
+                    }
+                    return false;
+                },
+            });
+        }
+    });
+
     // additional inference rules ...
     // ... for member calls
     typir.inference.addInferenceRule({
@@ -94,12 +120,36 @@ export function createTypir(): Typir {
                 } else if (isParameter(ref)) {
                     return mapType(ref.type);
                 } else if (isFunctionDeclaration(ref)) {
-                    return mapType(ref.returnType);
+                    return [...domainElement.arguments]; // inferring works only, if the actual arguments have to expected types!
+                    // return mapType(ref.returnType); // this returns the expected types, but ignores the actual types
+                    // TODO check assigning values to parameters VS inferring the type of the function itself => intermixed?? (Vorsicht mit überladenen Funktionen!)
                 } else {
                     throw new Error();
                 }
             }
             return false;
+        },
+        // TODO inference rule in functionKind unterstützen, dadurch auch Operators vereinfachen!
+        inferType(domainElement, childrenTypes) {
+            if (isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref)) {
+                // check the types of the arguments for the current function call!
+                const functionDeclaration = domainElement.element.ref;
+                if (functionDeclaration.parameters.length !== childrenTypes.length) {
+                    return undefined;
+                }
+                for (let index = 0; index < functionDeclaration.parameters.length; index++) {
+                    const actualType = childrenTypes[index];
+                    const expectedType = mapType(functionDeclaration.parameters[index].type);
+                    if (!actualType || !expectedType || typir.equality.areTypesEqual(actualType, expectedType).length >= 1) {
+                        // missing actual types leed to a mismatch!
+                        return undefined;
+                    }
+                }
+                // all operands have the required types => return the return type of the function
+                return mapType(functionDeclaration.returnType); // dies ist nur eine Abkürzung!
+                // return functionKind!.getOutput(newOperatorType)?.type; // TODO dies ist eigentlich schöner und muss auch irgendwie funktionieren
+            }
+            throw new Error('this case should not happen');
         },
     });
     // ... for declared variables

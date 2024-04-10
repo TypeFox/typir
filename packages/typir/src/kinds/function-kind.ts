@@ -28,6 +28,7 @@ export const FunctionKindName = 'FunctionKind';
  * - create variants of this, e.g. functions, procedures, lambdas
  * - (structural vs nominal typing? somehow realized by the three options above ...)
  * - function overloading?
+ * - optional parameters
  */
 export class FunctionKind implements Kind {
     readonly $name: 'FunctionKind';

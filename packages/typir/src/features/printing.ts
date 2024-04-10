@@ -51,9 +51,9 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
         switch (action) {
             case 'EQUAL_TYPE':
                 switch (valueKind) {
-                    case 'BOTH':            return `For equality, at ${location}', ${expected} on the one side fits not to ${actual} on the other side.`;
-                    case 'ONLY_EXPECTED':   return `For equality, at ${location}', ${expected} on the one side has no counterpart on the other side.`;
-                    case 'ONLY_ACTUAL':     return `For equality, at ${location}', on the one side there is no counterpart for ${actual} on the other side.`;
+                    case 'BOTH':            return `For equality, at ${location}, ${expected} on the one side fits not to ${actual} on the other side.`;
+                    case 'ONLY_EXPECTED':   return `For equality, at ${location}, ${expected} on the one side has no counterpart on the other side.`;
+                    case 'ONLY_ACTUAL':     return `For equality, at ${location}, on the one side there is no counterpart for ${actual} on the other side.`;
                     case 'NONE': throw new Error();
                     default: return assertUnreachable(valueKind);
                 }

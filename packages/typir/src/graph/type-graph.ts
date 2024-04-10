@@ -25,6 +25,10 @@ export class TypeGraph {
     }
 
     removeNode(type: Type): void {
+        // remove all edges which are connected to the type to remove
+        type.getAllIncomingEdges().forEach(e => this.removeEdge(e));
+        type.getAllOutgoingEdges().forEach(e => this.removeEdge(e));
+        // remove the type itself
         this.nodes.delete(type.name);
     }
 

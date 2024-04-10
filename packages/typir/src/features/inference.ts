@@ -81,7 +81,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                         // inference is not applicable (probably due to a mismatch of the children's types) => check the next rule
                     }
                 } else {
-                    throw new Error('missing implementation for "inferType" in this inference rule');
+                    throw new Error('missing implementation for "inferType(...)" in this inference rule');
                 }
             } else {
                 assertUnreachable(firstCheck);

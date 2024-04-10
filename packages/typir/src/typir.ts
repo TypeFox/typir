@@ -23,6 +23,8 @@ import { Kind } from './kinds/kind.js';
 /** Open design questions TODO
  * - use graphology for the TypeGraph?
  * - Where should inference rules be stored? only in the central service? in types? in kinds?
+ * - how to produce nice error messages for failing type inference? missing type combination for operators?!
+ * - Type is generic VS there are specific types like FunctionType (extends Type)?? functionType.kind.getOutput(functionKind) + isFunctionKind() feels bad! vs functionType.getOutput() + isFunctionType()
  */
 
 export class Typir {
