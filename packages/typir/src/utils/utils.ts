@@ -7,6 +7,7 @@
 import { Type } from '../graph/type-node.js';
 
 export type Types = Type | Type[];
+export type Names = string | string[];
 
 export type NameTypePair = {
     name: string;

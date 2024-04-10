@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { InferConcreteType, createInferenceRuleWithoutChildren } from '../features/inference.js';
-import { TypeConflict, compareForConflict } from '../utils/utils-type-comparison.js';
+import { InferConcreteType } from '../features/inference.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { TypeConflict, compareForConflict } from '../utils/utils-type-comparison.js';
 import { Kind, isKind } from './kind.js';
 
 export const PrimitiveKindName = 'PrimitiveKind';
@@ -26,7 +26,11 @@ export class PrimitiveKind implements Kind {
         const primitiveType = new Type(this, primitiveName);
         this.typir.graph.addNode(primitiveType);
         if (inferenceRule) {
-            this.typir.inference.addInferenceRule(createInferenceRuleWithoutChildren(inferenceRule, primitiveType));
+            this.typir.inference.addInferenceRule({
+                isRuleApplicable(domainElement) {
+                    return inferenceRule(domainElement, primitiveName) ? primitiveType : false;
+                },
+            });
         }
         return primitiveType;
     }

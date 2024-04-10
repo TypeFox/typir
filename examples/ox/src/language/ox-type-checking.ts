@@ -36,51 +36,29 @@ export function createTypir(nodeEntry: AstNode): Typir {
     // const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // TODO diese Signatur irgendwie nutzen, ggfs. nur bei/für Langium?
 
     // binary operators: numbers => number
-    const opAdd = operators.createBinaryOperator('+', typeNumber, typeNumber,
-        (node) => isBinaryExpression(node) && node.operator === '+', // TODO: operator name as additional argument? for defining multiple operators together?
+    const opAddSubMulDiv = operators.createBinaryOperator(['+', '-', '*', '/'], typeNumber, typeNumber,
+        (node, name) => isBinaryExpression(node) && node.operator === name,
         (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]); // TODO combine both by having only one function with two different return properties?
-    const opSub = operators.createBinaryOperator('-', typeNumber, typeNumber,
-        (node) => isBinaryExpression(node) && node.operator === '-',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
-    const opMul = operators.createBinaryOperator('*', typeNumber, typeNumber,
-        (node) => isBinaryExpression(node) && node.operator === '*',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
-    const opDiv = operators.createBinaryOperator('/', typeNumber, typeNumber,
-        (node) => isBinaryExpression(node) && node.operator === '/',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
-    // TODO simplify this: with alternative function? with Langium binding?
 
     // binary operators: numbers => boolean
-    const opLt = operators.createBinaryOperator('<', typeNumber, typeBool,
-        (node) => isBinaryExpression(node) && node.operator === '<',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
-    const opLeq = operators.createBinaryOperator('<=', typeNumber, typeBool,
-        (node) => isBinaryExpression(node) && node.operator === '<=',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
-    const opGt = operators.createBinaryOperator('>', typeNumber, typeBool,
-        (node) => isBinaryExpression(node) && node.operator === '>',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
-    const opGeq = operators.createBinaryOperator('>=', typeNumber, typeBool,
-        (node) => isBinaryExpression(node) && node.operator === '>=',
+    const opLtLeqGtGeq = operators.createBinaryOperator(['<', '<=', '>', '>='], typeNumber, typeBool,
+        (node, name) => isBinaryExpression(node) && node.operator === name,
         (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
 
     // binary operators: booleans => boolean
-    const opAnd = operators.createBinaryOperator('and', typeBool, typeBool,
-        (node) => isBinaryExpression(node) && node.operator === 'and',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
-    const opOr = operators.createBinaryOperator('or', typeBool, typeBool,
-        (node) => isBinaryExpression(node) && node.operator === 'or',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
+    const opAndOr = operators.createBinaryOperator(['and', 'or'], typeBool, typeBool,
+        (node, name) => isBinaryExpression(node) && node.operator === name,
+        (node, name) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
 
     // ==, != for booleans and numbers
-    const opEq = operators.createBinaryOperator('==', [typeNumber, typeBool], typeBool,
-        (node) => isBinaryExpression(node) && node.operator === '==',
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
-    const opNeq = operators.createBinaryOperator('!=', [typeNumber, typeBool], typeBool,
-        (node) => isBinaryExpression(node) && node.operator === '!=',
+    const opEqNeq = operators.createBinaryOperator(['==', '!='], [typeNumber, typeBool], typeBool,
+        (node, name) => isBinaryExpression(node) && node.operator === name,
         (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
 
     // unary operators
+    // const opNot = operators.createUnaryOperator<AstNode, UnaryExpression>('!', typeBool,
+    //     isUnaryExpression, // works! => use this as an additional parameter for the Langium binding!
+    //     (node) => node.value);
     const opNot = operators.createUnaryOperator('!', typeBool,
         (node) => isUnaryExpression(node) && node.operator === '!',
         (node) => (node as UnaryExpression).value);

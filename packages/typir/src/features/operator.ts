@@ -7,26 +7,32 @@
 import { Type } from '../graph/type-node.js';
 import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName, isFunctionKind } from '../kinds/function-kind.js';
 import { Typir } from '../typir.js';
-import { NameTypePair, Types, assertTrue, toArray } from '../utils/utils.js';
+import { NameTypePair, Names, Types, assertTrue, toArray } from '../utils/utils.js';
 import { InferConcreteType } from './inference.js';
 
+export type DeriveOperand = (domainElement: unknown, operatorName: string) => unknown;
+export type DeriveOperands = (domainElement: unknown, operatorName: string) => unknown[];
+
 export interface OperatorManager {
-    createUnaryOperator(name: string, operandTypes: Types,
+    // createUnaryOperator<T = unknown, D extends T = T>(name: string, operandTypes: Types,
+    //      inferenceRule?: (domainElement: T) => domainElement is D, // does not work as expected
+    //      childWithSameType?: DeriveOperand): Types
+    createUnaryOperator(name: Names, operandTypes: Types,
         inferenceRule?: InferConcreteType,
-        childWithSameType?: (domainElement: unknown) => unknown): Types
-    createBinaryOperator(name: string, inputType: Types, outputType?: Type,
+        childWithSameType?: DeriveOperand): Types
+    createBinaryOperator(name: Names, inputType: Types, outputType?: Type,
         inferenceRule?: InferConcreteType,
-        childWithSameType?: (domainElement: unknown) => unknown[]): Types
-    createTernaryOperator(name: string, firstType: Type, secondAndThirdType: Types,
+        childWithSameType?: DeriveOperands): Types
+    createTernaryOperator(name: Names, firstType: Type, secondAndThirdType: Types,
         inferenceRule?: InferConcreteType,
-        childWithSameType?: (domainElement: unknown) => unknown[]): Types
+        childWithSameType?: DeriveOperands): Types
 
     /** This function allows to create operators with arbitrary input operands,
      * e.g. un/bin/ternary operators with asymetric operand types.
      */
     createGenericOperator(name: string, outputType: Type,
         inferenceRule?: InferConcreteType | undefined,
-        childrenWithSameType?: (domainElement: unknown) => (unknown | unknown[]),
+        childrenWithSameType?: DeriveOperand | DeriveOperands,
         ...inputParameter: NameTypePair[]): Type;
 }
 
@@ -47,8 +53,13 @@ export interface OperatorManager {
 /**
  * This implementation realizes operators as functions and creates types of kind 'function'.
  * If Typir does not use the function kind so far, it will be automatically added.
+ *
  * The same operator (i.e. same operator name, e.g. "+" or "and") with different types for its operands will be realized as different function types,
- * e.g. there are two funktions for "+" for numbers and for strings.
+ * e.g. there are two functions for "+" for numbers and for strings.
+ *
+ * When specifying multiple names, for each name one operator is created with the given type (variant)s.
+ * This allows to define multiple operators with the same signature (input and output types), but different names at once.
+ *
  * All operands are mandatory.
  */
 export class DefaultOperatorManager implements OperatorManager {
@@ -58,41 +69,45 @@ export class DefaultOperatorManager implements OperatorManager {
         this.typir = typir;
     }
 
-    createUnaryOperator(name: string, operandTypes: Types, inferenceRule?: InferConcreteType | undefined, childWithSameType?: (domainElement: unknown) => unknown): Types {
-        return this.handleTypeVariants(operandTypes, (singleType) => this.createGenericOperator(
-            name, singleType, inferenceRule,
-            childWithSameType,
+    // createUnaryOperator<T = unknown, D extends T = T>(name: string, operandTypes: Types, inferenceRule?: ((domainElement: T) => domainElement is D) | undefined, domainElementsForInputValues?: (domainElement: D) => unknown): Types {
+    createUnaryOperator(name: Names, operandTypes: Types, inferenceRule?: InferConcreteType, domainElementsForInputValues?: DeriveOperand): Types {
+        return this.handleOperatorVariants(name, operandTypes, (singleName, singleType) => this.createGenericOperator(
+            singleName, singleType, inferenceRule,
+            domainElementsForInputValues,
             { name: 'operand', type: singleType }));
     }
 
-    createBinaryOperator(name: string, inputType: Types, outputType?: Type, inferenceRule?: InferConcreteType, childWithSameType?: (domainElement: unknown) => unknown[]): Types {
-        return this.handleTypeVariants(inputType, (singleType) => this.createGenericOperator(
-            name, outputType ?? singleType, inferenceRule,
-            childWithSameType,
+    createBinaryOperator(name: Names, inputType: Types, outputType?: Type, inferenceRule?: InferConcreteType, domainElementsForInputValues?: DeriveOperands): Types {
+        return this.handleOperatorVariants(name, inputType, (singleName, singleType) => this.createGenericOperator(
+            singleName, outputType ?? singleType, inferenceRule,
+            domainElementsForInputValues,
             { name: 'left', type: singleType},
             { name: 'right', type: singleType}));
     }
 
-    createTernaryOperator(name: string, firstType: Type, secondAndThirdType: Types, inferenceRule?: InferConcreteType | undefined, childWithSameType?: (domainElement: unknown) => unknown[]): Types {
-        return this.handleTypeVariants(secondAndThirdType, (singleType) => this.createGenericOperator(
-            name, singleType, inferenceRule,
-            childWithSameType,
+    createTernaryOperator(name: Names, firstType: Type, secondAndThirdType: Types, inferenceRule?: InferConcreteType, domainElementsForInputValues?: DeriveOperands): Types {
+        return this.handleOperatorVariants(name, secondAndThirdType, (singleName, singleType) => this.createGenericOperator(
+            singleName, singleType, inferenceRule,
+            domainElementsForInputValues,
             { name: 'first', type: firstType},
             { name: 'second', type: singleType},
             { name: 'third', type: singleType}));
     }
 
-    protected handleTypeVariants(typeVariants: Types, typeCreator: (singleType: Type) => Type): Types {
+    protected handleOperatorVariants(nameVariants: Names, typeVariants: Types, typeCreator: (singleName: string, singleType: Type) => Type): Types {
+        const allNames = toArray(nameVariants);
         const allTypes = toArray(typeVariants);
         assertTrue(allTypes.length >= 1);
         const result: Type[] = [];
-        for (const singleType of allTypes) {
-            result.push(typeCreator(singleType));
+        for (const singleName of allNames) {
+            for (const singleType of allTypes) {
+                result.push(typeCreator(singleName, singleType));
+            }
         }
         return result.length === 1 ? result[0] : result;
     }
 
-    createGenericOperator(name: string, outputType: Type, inferenceRule?: InferConcreteType | undefined, childrenWithSameType?: (domainElement: unknown) => (unknown | unknown[]), ...inputParameter: NameTypePair[]): Type {
+    createGenericOperator(name: string, outputType: Type, inferenceRule?: InferConcreteType, domainElementsForInputValues?: (DeriveOperand | DeriveOperands), ...inputParameter: NameTypePair[]): Type {
         // define/register the wanted operator as "special" function
 
         // ensure, that Typir uses the predefined 'function' kind
@@ -110,9 +125,9 @@ export class DefaultOperatorManager implements OperatorManager {
             const typirr: Typir = this.typir;
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
-                    return inferenceRule(domainElement)
-                        ? (childrenWithSameType // are there children, which have to match as well?
-                            ? toArray(childrenWithSameType(domainElement)) // yes => resolve the types of the children and continue to step 2
+                    return inferenceRule(domainElement, name)
+                        ? (domainElementsForInputValues // are there children, which have to match as well?
+                            ? toArray(domainElementsForInputValues(domainElement, name)) // yes => resolve the types of the children and continue to step 2
                             : newOperatorType) // no => type is already found
                         : false; // does not match at all
                 },

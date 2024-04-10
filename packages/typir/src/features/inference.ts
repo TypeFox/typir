@@ -8,6 +8,10 @@ import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { assertUnreachable } from '../utils/utils.js';
 
+/**
+ * Represents a single rule for inference,
+ * i.e. only a single type (or no type at all) can be inferred for a given domain element.
+ */
 export interface TypeInferenceRule {
     /**
      * 1st step is to check, whether this inference rule is applicable to the given domain element.
@@ -37,15 +41,12 @@ export interface TypeInferenceRule {
 /** Represents the signature to determine whether a domain element has a particular type.
  * This type/signature is a utility to formulate inference rules for dedicated semantic types.
  */
-export type InferConcreteType = (domainElement: unknown) => boolean;
-export function createInferenceRuleWithoutChildren(rule: InferConcreteType, concreteType: Type): TypeInferenceRule {
-    return {
-        isRuleApplicable(domainElement) {
-            return rule(domainElement) ? concreteType : false;
-        }
-    };
-}
+export type InferConcreteType = (domainElement: unknown, typeName: string) => boolean;
 
+/**
+ * Collects an arbitrary number of inference rules
+ * and allows to infer a type for a given domain element.
+ */
 export interface TypeInferenceCollector {
     inferType(domainElement: unknown): Type | undefined
     addInferenceRule(rule: TypeInferenceRule): void;
