@@ -6,7 +6,7 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { AstNode, AstUtils, assertUnreachable } from 'langium';
-import { FUNCTION_MISSING_NAME, FunctionKind, NameTypePair, PrimitiveKind, Type, Typir, assertTrue, isFunctionKind } from 'typir';
+import { FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
 import { BinaryExpression, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isOxProgram, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 
 export function createTypir(nodeEntry: AstNode): Typir {
@@ -32,8 +32,6 @@ export function createTypir(nodeEntry: AstNode): Typir {
             default: assertUnreachable(typeRef.primitive);
         }
     }
-
-    // const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // TODO diese Signatur irgendwie nutzen, ggfs. nur bei/für Langium?
 
     // binary operators: numbers => number
     const opAddSubMulDiv = operators.createBinaryOperator(['+', '-', '*', '/'], typeNumber, typeNumber,
@@ -66,78 +64,40 @@ export function createTypir(nodeEntry: AstNode): Typir {
         (node) => isUnaryExpression(node) && node.operator === '-',
         (node) => (node as UnaryExpression).value);
 
-    // TODO FunctionDeclaration: ist das überhaupt nötig? muss bei jeder Änderung des Dokuments aktualisiert werden! damit function calls type checken der Arguments?
+    // function types of FunctionDeclarations: they have to be updated after each change of the Langium document!
     AstUtils.streamAllContents(nodeRoot).forEach(node => {
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
-            const typeFunction = functionKind.createFunctionType(functionName,
+            const typeFunction = functionKind.createFunctionType(
+                functionName,
                 { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
-                ...node.parameters.map(p => { return { name: p.name, type: mapType(p.type) }; })
+                node.parameters.map(p => { return { name: p.name, type: mapType(p.type) }; }),
+                // inference rule for function declarations:
+                (domainElement) => isFunctionDeclaration(domainElement) && domainElement.name === functionName, // TODO what about overloaded functions?
+                // inference rule for funtion calls: inferring works only, if the actual arguments have the expected types!
+                (domainElement) => isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) ? [...domainElement.arguments] : false
             );
-            // ... and register a corresponding inference rule for it
-            typir.inference.addInferenceRule({
-                isRuleApplicable(domainElement) {
-                    if (isFunctionDeclaration(domainElement) && domainElement.name === functionName) {
-                        return typeFunction;
-                    }
-                    return false;
-                },
-            });
         }
     });
 
-    // additional inference rules ...
-    // ... for member calls
+    // additional inference rule for member calls
     typir.inference.addInferenceRule({
         isRuleApplicable(domainElement) {
             if (isMemberCall(domainElement)) {
                 const ref = domainElement.element.ref;
                 if (isVariableDeclaration(ref)) {
+                    // use variables inside expressions!
                     return mapType(ref.type);
                 } else if (isParameter(ref)) {
+                    // required to use parameters inside expressions
                     return mapType(ref.type);
                 } else if (isFunctionDeclaration(ref)) {
-                    return [...domainElement.arguments]; // inferring works only, if the actual arguments have to expected types!
-                    // return mapType(ref.returnType); // this returns the expected types, but ignores the actual types
-                    // TODO check assigning values to parameters VS inferring the type of the function itself => intermixed?? (Vorsicht mit überladenen Funktionen!)
+                    // there is already an inference rule for function calls (see above for FunctionDeclaration)!
+                    return false;
                 } else {
                     throw new Error();
                 }
-            }
-            return false;
-        },
-        // TODO inference rule in functionKind unterstützen, dadurch auch Operators vereinfachen!
-        inferType(domainElement, childrenTypes) {
-            if (isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref)) {
-                // check the types of the arguments for the current function call!
-                const functionDeclaration = domainElement.element.ref;
-                if (functionDeclaration.parameters.length !== childrenTypes.length) {
-                    return undefined;
-                }
-                for (let index = 0; index < functionDeclaration.parameters.length; index++) {
-                    const actualType = childrenTypes[index];
-                    const expectedType = mapType(functionDeclaration.parameters[index].type);
-                    if (!actualType || !expectedType || typir.equality.areTypesEqual(actualType, expectedType).length >= 1) {
-                        // missing actual types leed to a mismatch!
-                        return undefined;
-                    }
-                }
-                // all operands have the required types => return the return type of the function
-                return mapType(functionDeclaration.returnType); // dies ist nur eine Abkürzung!
-                // return functionKind!.getOutput(newOperatorType)?.type; // TODO dies ist eigentlich schöner und muss auch irgendwie funktionieren
-            }
-            throw new Error('this case should not happen');
-        },
-    });
-    // ... for declared variables
-    typir.inference.addInferenceRule({
-        isRuleApplicable(domainElement) {
-            if (isTypeReference(domainElement)) {
-                return mapType(domainElement);
-            }
-            if (isVariableDeclaration(domainElement)) {
-                return mapType(domainElement.type);
             }
             return false;
         },

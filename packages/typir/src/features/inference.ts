@@ -38,11 +38,6 @@ export interface TypeInferenceRule {
     inferType?(domainElement: unknown, childrenTypes: Array<Type | undefined>): Type | undefined
 }
 
-/** Represents the signature to determine whether a domain element has a particular type.
- * This type/signature is a utility to formulate inference rules for dedicated semantic types.
- */
-export type InferConcreteType = (domainElement: unknown, typeName: string) => boolean;
-
 /**
  * Collects an arbitrary number of inference rules
  * and allows to infer a type for a given domain element.

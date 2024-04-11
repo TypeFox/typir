@@ -82,6 +82,7 @@ export class OxValidator {
      * - possible Quick-fixes ...
      *     - for wrong type of variable declaration
      *     - to add missing explicit type conversion
+     * - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // diese Signatur irgendwie nutzen, ggfs. nur bei/für Langium?
      */
 
     checkConditionExpressionIsBoolean(node: AstNode & { condition?: Expression }, accept: ValidationAcceptor) {

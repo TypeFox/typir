@@ -4,12 +4,16 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeConflict, compareForConflict, compareNameTypePair, compareNameTypePairs } from '../utils/utils-type-comparison.js';
+import { assertUnreachable } from 'langium';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { TypeConflict, compareForConflict, compareNameTypePair, compareNameTypePairs } from '../utils/utils-type-comparison.js';
 import { NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
+
+export type InferFunctionCall = (domainElement: unknown) => boolean | unknown[];
+export type InferFunctionType = (domainElement: unknown) => boolean;
 
 export interface FunctionKindOptions {
     // these three options controls structural vs nominal typing somehow ...
@@ -51,7 +55,12 @@ export class FunctionKind implements Kind {
 
     createFunctionType(functionName: string,
         outputParameter: NameTypePair | undefined,
-        ...inputParameter: NameTypePair[]): Type {
+        inputParameter: NameTypePair[],
+        // inference rules:
+        inferenceRuleForDeclaration?: InferFunctionType, // for function declarations => returns the funtion type (the whole signature including all names)
+        inferenceRuleForCalls?: InferFunctionCall, // for function calls => returns the return type of the function
+        // TODO for function references (like the declaration, but without any names!)
+    ): Type {
         // the order of parameters is important!
 
         // create the function type
@@ -77,6 +86,52 @@ export class FunctionKind implements Kind {
             edge.properties.set(PARAMETER_ORDER, index);
             this.typir.graph.addEdge(edge);
         });
+
+        // register inference rules for the new function
+        if (inferenceRuleForDeclaration) {
+            this.typir.inference.addInferenceRule({
+                isRuleApplicable(domainElement) {
+                    if (inferenceRuleForDeclaration(domainElement)) {
+                        return functionType;
+                    } else {
+                        return false;
+                    }
+                },
+            });
+        }
+        if (inferenceRuleForCalls) {
+            const typirr: Typir = this.typir;
+            this.typir.inference.addInferenceRule({
+                isRuleApplicable(domainElement) {
+                    const result = inferenceRuleForCalls(domainElement);
+                    if (result === true) {
+                        return functionType;
+                    } else if (result === false) {
+                        return false;
+                    } else if (Array.isArray(result)) {
+                        return result;
+                    } else {
+                        assertUnreachable(result);
+                    }
+                },
+                inferType(domainElement, childrenTypes) {
+                    if (inputParameter.length !== childrenTypes.length) {
+                        return undefined;
+                    }
+                    // all operands need to have the required types
+                    for (let index = 0; index < inputParameter.length; index++) {
+                        const actual = childrenTypes[index];
+                        const expected = inputParameter[index].type;
+                        if (!actual || !expected || typirr.equality.areTypesEqual(actual, expected).length >= 1) {
+                            // missing actual types result in a mismatch!
+                            return undefined;
+                        }
+                    }
+                    // matching => return the return type of the function for the case of a function call!
+                    return outputParameter?.type; // Note, that 'undefined' is returned, when the current function has no output type/parameter at all!
+                },
+            });
+        }
 
         return functionType;
     }

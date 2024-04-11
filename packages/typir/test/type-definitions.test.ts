@@ -49,7 +49,7 @@ describe('Tests for Typir', () => {
         const typeMapStringPerson = mapKind.createFixedParameterType(typeString, typePerson);
         const typeFunctionStringLength = functionKind.createFunctionType('length',
             { name: FUNCTION_MISSING_NAME, type: typeInt },
-            { name: 'value', type: typeString });
+            [{ name: 'value', type: typeString }]);
 
         // binary operators on Integers
         const opAdd = typir.operators.createBinaryOperator('+', typeInt);
