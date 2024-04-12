@@ -7,7 +7,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { AstNode, AstUtils, assertUnreachable } from 'langium';
 import { FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
-import { BinaryExpression, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isOxProgram, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
+import { TypeReference, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isOxProgram, isParameter, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 
 export function createTypir(nodeEntry: AstNode): Typir {
     const nodeRoot = AstUtils.getContainerOfType(nodeEntry, isOxProgram)!;
@@ -35,45 +35,38 @@ export function createTypir(nodeEntry: AstNode): Typir {
 
     // binary operators: numbers => number
     const opAddSubMulDiv = operators.createBinaryOperator(['+', '-', '*', '/'], typeNumber, typeNumber,
-        (node, name) => isBinaryExpression(node) && node.operator === name,
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]); // TODO combine both by having only one function with two different return properties?
+        (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
 
     // binary operators: numbers => boolean
     const opLtLeqGtGeq = operators.createBinaryOperator(['<', '<=', '>', '>='], typeNumber, typeBool,
-        (node, name) => isBinaryExpression(node) && node.operator === name,
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
+        (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
 
     // binary operators: booleans => boolean
     const opAndOr = operators.createBinaryOperator(['and', 'or'], typeBool, typeBool,
-        (node, name) => isBinaryExpression(node) && node.operator === name,
-        (node, name) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
+        (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
 
     // ==, != for booleans and numbers
     const opEqNeq = operators.createBinaryOperator(['==', '!='], [typeNumber, typeBool], typeBool,
-        (node, name) => isBinaryExpression(node) && node.operator === name,
-        (node) => [(node as BinaryExpression).left, (node as BinaryExpression).right]);
+        (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
 
     // unary operators
-    // const opNot = operators.createUnaryOperator<AstNode, UnaryExpression>('!', typeBool,
-    //     isUnaryExpression, // works! => use this as an additional parameter for the Langium binding!
-    //     (node) => node.value);
     const opNot = operators.createUnaryOperator('!', typeBool,
-        (node) => isUnaryExpression(node) && node.operator === '!',
-        (node) => (node as UnaryExpression).value);
+        (node) => isUnaryExpression(node) && node.operator === '!' ? node.value : false);
     const opNegative = operators.createUnaryOperator('-', typeNumber,
-        (node) => isUnaryExpression(node) && node.operator === '-',
-        (node) => (node as UnaryExpression).value);
+        (node) => isUnaryExpression(node) && node.operator === '-' ? node.value : false);
 
-    // function types of FunctionDeclarations: they have to be updated after each change of the Langium document!
+    // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
     AstUtils.streamAllContents(nodeRoot).forEach(node => {
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
             const typeFunction = functionKind.createFunctionType(
                 functionName,
+                // return type:
                 { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
+                // input types:
                 node.parameters.map(p => { return { name: p.name, type: mapType(p.type) }; }),
-                // inference rule for function declarations:
+                // inference rule for function declaration:
                 (domainElement) => isFunctionDeclaration(domainElement) && domainElement.name === functionName, // TODO what about overloaded functions?
                 // inference rule for funtion calls: inferring works only, if the actual arguments have the expected types!
                 (domainElement) => isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) ? [...domainElement.arguments] : false
@@ -81,7 +74,7 @@ export function createTypir(nodeEntry: AstNode): Typir {
         }
     });
 
-    // additional inference rule for member calls
+    // additional inference rules for member calls
     typir.inference.addInferenceRule({
         isRuleApplicable(domainElement) {
             if (isMemberCall(domainElement)) {
@@ -90,13 +83,15 @@ export function createTypir(nodeEntry: AstNode): Typir {
                     // use variables inside expressions!
                     return mapType(ref.type);
                 } else if (isParameter(ref)) {
-                    // required to use parameters inside expressions
+                    // use parameters inside expressions
                     return mapType(ref.type);
                 } else if (isFunctionDeclaration(ref)) {
                     // there is already an inference rule for function calls (see above for FunctionDeclaration)!
                     return false;
+                } else if (ref === undefined) {
+                    return false;
                 } else {
-                    throw new Error();
+                    assertUnreachable(ref);
                 }
             }
             return false;

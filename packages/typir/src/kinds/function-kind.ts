@@ -27,7 +27,7 @@ export const FunctionKindName = 'FunctionKind';
 /**
  * Represents signatures of executable code.
  *
- * possible Extensions:
+ * TODO possible Extensions:
  * - multiple output parameters
  * - create variants of this, e.g. functions, procedures, lambdas
  * - (structural vs nominal typing? somehow realized by the three options above ...)
@@ -105,10 +105,13 @@ export class FunctionKind implements Kind {
                 isRuleApplicable(domainElement) {
                     const result = inferenceRuleForCalls(domainElement);
                     if (result === true) {
+                        // the function type is already identifed, no need to check values for parameters
                         return functionType;
                     } else if (result === false) {
+                        // does not match at all
                         return false;
                     } else if (Array.isArray(result)) {
+                        // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
                         return result;
                     } else {
                         assertUnreachable(result);
