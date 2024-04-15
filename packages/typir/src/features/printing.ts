@@ -8,10 +8,13 @@ import { assertUnreachable } from 'langium';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypeConflict } from '../utils/utils-type-comparison.js';
+import { InferenceProblem } from './inference.js';
 
 export interface TypeConflictPrinter {
     printTypeConflict(conflict: TypeConflict): string;
     printTypeConflicts(conflicts: TypeConflict[]): string;
+    printInferenceProblems(problems: InferenceProblem[]): string;
+    printInferenceProblem(problem: InferenceProblem): string;
 }
 
 export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
@@ -29,15 +32,21 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
         // the current conflict
         let result = this.printSingleConflict(conflict);
         // indentation
+        result = this.printIndentation(result, level);
+        // the sub-conflicts
+        if (conflict.subConflicts && conflict.subConflicts.length >= 1) {
+            result = result + '\n' + this.printTypeConflictsLevel(conflict.subConflicts, level + 1);
+        }
+        return result;
+    }
+
+    protected printIndentation(result: string, level: number): string {
+        // TODO does not work
         for (let i = 0; i < level - 1; i++) {
             result = `     ${result}`; // 5 spaces
         }
         if (level >= 1) {
             result = `|--> ${result}`; // 5 signs
-        }
-        // the sub-conflicts
-        if (conflict.subConflicts && conflict.subConflicts.length >= 1) {
-            result = result + '\n' + this.printTypeConflictsLevel(conflict.subConflicts, level + 1);
         }
         return result;
     }
@@ -97,6 +106,37 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
     protected printTypeConflictsLevel(conflicts: TypeConflict[], level: number): string {
         return conflicts.map(c => this.printTypeConflictLevel(c, level)).join('\n');
     }
+
+    printInferenceProblem(problem: InferenceProblem): string {
+        return this.printInferenceProblemLevel(problem, 0);
+    }
+
+    protected printInferenceProblemLevel(p: InferenceProblem, level: number): string {
+        let result = this.printSingleInferenceProblem(p);
+        result = this.printIndentation(result, level);
+        if (p.inferenceConflicts && p.inferenceConflicts.length >= 1) {
+            result = result + '\n' + this.printTypeConflictsLevel(p.inferenceConflicts, level + 1);
+        }
+        if (p.subProblems && p.subProblems.length >= 1) {
+            result = result + '\n' + this.printInferenceProblemsLevel(p.subProblems, level + 1);
+        }
+        return result;
+    }
+
+    protected printSingleInferenceProblem(p: InferenceProblem): string {
+        const de = p.domainElement ? `While inferring ${p.domainElement}, at` : 'At';
+        const type = p.inferenceCandidate ? ` of type candidate '${p.inferenceCandidate.getUserRepresentation()}'` : '';
+        return `${de} ${p.location}${type}, some problems occurred.`;
+    }
+
+    printInferenceProblems(problems: InferenceProblem[]): string {
+        return this.printInferenceProblemsLevel(problems, 0);
+    }
+
+    protected printInferenceProblemsLevel(problems: InferenceProblem[], level: number): string {
+        return problems.map(p => this.printInferenceProblemLevel(p, level)).join('\n');
+    }
+
 }
 
 /* Utilities */

@@ -41,6 +41,8 @@ export function createTypir(nodeEntry: AstNode): Typir {
     const opLtLeqGtGeq = operators.createBinaryOperator(['<', '<=', '>', '>='], typeNumber, typeBool,
         (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
 
+    // TODO types of parameters are not required for inferring the type of these operators! (only for type checking of the values of the operands)
+
     // binary operators: booleans => boolean
     const opAndOr = operators.createBinaryOperator(['and', 'or'], typeBool, typeBool,
         (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
@@ -87,14 +89,14 @@ export function createTypir(nodeEntry: AstNode): Typir {
                     return mapType(ref.type);
                 } else if (isFunctionDeclaration(ref)) {
                     // there is already an inference rule for function calls (see above for FunctionDeclaration)!
-                    return false;
+                    return 'RULE_NOT_APPLICABLE';
                 } else if (ref === undefined) {
-                    return false;
+                    return 'RULE_NOT_APPLICABLE';
                 } else {
                     assertUnreachable(ref);
                 }
             }
-            return false;
+            return 'RULE_NOT_APPLICABLE';
         },
     });
 

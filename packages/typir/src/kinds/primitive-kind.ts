@@ -29,7 +29,7 @@ export class PrimitiveKind implements Kind {
         if (inferenceRule) {
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
-                    return inferenceRule(domainElement) ? primitiveType : false;
+                    return inferenceRule(domainElement) ? primitiveType : 'RULE_NOT_APPLICABLE';
                 },
             });
         }

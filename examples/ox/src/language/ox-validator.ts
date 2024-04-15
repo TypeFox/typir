@@ -8,7 +8,7 @@ import { AstUtils, type AstNode, type ValidationAcceptor, type ValidationChecks 
 import { isFunctionDeclaration, type AssignmentStatement, type Expression, type OxAstType, type ReturnStatement, type VariableDeclaration, FunctionDeclaration } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
 import { createTypir } from './ox-type-checking.js';
-import { isFunctionKind } from 'typir';
+import { isFunctionKind, isType } from 'typir';
 
 /**
  * Register custom validation checks.
@@ -48,10 +48,10 @@ export class OxValidator {
     checkExpressionHasType(node: Expression, accept: ValidationAcceptor) {
         const typir = createTypir(node);
         const type = typir.inference.inferType(node);
-        if (type) {
+        if (isType(type)) {
             // the expression has an (inferred) type => everything is fine
         } else {
-            accept('error', `It was not possible to infer the type for this expression '${node.$type}' (${node.$cstNode?.text}).`, { node });
+            accept('error', `It was not possible to infer the type for this expression '${node.$type}' (${node.$cstNode?.text}):\n${typir.conflictPrinter.printInferenceProblems(type)}`, { node });
         }
     }
 
@@ -60,7 +60,7 @@ export class OxValidator {
     checkFunctionDeclarationHasType(node: FunctionDeclaration, accept: ValidationAcceptor) {
         const typir = createTypir(node);
         const type = typir.inference.inferType(node);
-        if (type) {
+        if (isType(type)) {
             if (isFunctionKind(type.kind)) {
                 // the function has an (inferred) function type => everything is fine
             } else {
@@ -83,13 +83,14 @@ export class OxValidator {
      *     - for wrong type of variable declaration
      *     - to add missing explicit type conversion
      * - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // diese Signatur irgendwie nutzen, ggfs. nur bei/für Langium?
+     * - no validation of parents, when their children already have some problems/warnings
      */
 
     checkConditionExpressionIsBoolean(node: AstNode & { condition?: Expression }, accept: ValidationAcceptor) {
         if (node.condition) {
             const typir = createTypir(node);
             const type = typir.inference.inferType(node.condition);
-            if (type) {
+            if (isType(type)) {
                 if (type !== typir.graph.getType('boolean')) {
                     accept('error', `Conditions need to be evaluated to 'boolean', but '${type.name}' is actually used here.`, { node, property: 'condition' });
                 }
@@ -113,7 +114,7 @@ export class OxValidator {
                     const typir = createTypir(node);
                     const functionType = typir.inference.inferType(functionDeclaration);
                     const valueType = typir.inference.inferType(node.value);
-                    if (functionType && valueType) {
+                    if (isType(functionType) && isType(valueType)) {
                         if (isFunctionKind(functionType.kind)) {
                             const returnType = functionType.kind.getOutput(functionType)?.type;
                             if (returnType) {
@@ -155,7 +156,7 @@ export class OxValidator {
         const typir = createTypir(variable);
         const variableType = typir.inference.inferType(variable);
         const valueType = typir.inference.inferType(value);
-        if (variableType && valueType) {
+        if (isType(variableType) && isType(valueType)) {
             const assignConflicts = typir.assignability.isAssignable(valueType, variableType);
             if (assignConflicts.length >= 1) {
                 accept('error', `This expression of type '${valueType.name}' is not assignable to '${variableType.name}':\n${typir.conflictPrinter.printTypeConflicts(assignConflicts)}`, { node: value });

@@ -33,7 +33,7 @@ export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, t
 }
 
 export interface TypeConflict {
-    // 'undefined' means type or information is missing
+    // 'undefined' means type or information is missing, 'string' is for data which are no Types
     expected: Type | string | undefined; // first, left
     actual: Type | string | undefined; // second, right
     location: string;
@@ -143,36 +143,59 @@ export function compareNameTypePair(left: NameTypePair | undefined, right: NameT
     return conflicts;
 }
 
-export function compareTypes(left: Type[], right: Type[], comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
+export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
     const conflicts: TypeConflict[] = [];
     // compare first common indices
-    for (let i = 0; i < Math.min(left.length, right.length); i++) {
-        const subConflicts = comparator(left[i], right[i]);
-        if (subConflicts.length >= 1) {
+    for (let i = 0; i < Math.min(leftTypes.length, rightTypes.length); i++) {
+        const left = leftTypes[i];
+        const right = rightTypes[i];
+        if (left === undefined && right === undefined) {
+            // everything is fine
+        } else if (left !== undefined && right === undefined) {
+            // missing in the right
             conflicts.push({
-                expected: left[i],
-                actual: right[i],
+                expected: left,
+                actual: undefined,
                 location: `index ${i}`,
                 action,
-                subConflicts,
+            });
+        } else if (left === undefined && right !== undefined) {
+            // missing in the right
+            conflicts.push({
+                expected: undefined,
+                actual: right,
+                location: `index ${i}`,
+                action,
             });
         } else {
-            // everything is fine
+            // compare both existing types with each other
+            const subConflicts = comparator(left!, right!);
+            if (subConflicts.length >= 1) {
+                conflicts.push({
+                    expected: left,
+                    actual: right,
+                    location: `index ${i}`,
+                    action,
+                    subConflicts,
+                });
+            } else {
+                // everything is fine
+            }
         }
     }
     // missing in the left
-    for (let i = left.length; i < right.length; i++) {
+    for (let i = leftTypes.length; i < rightTypes.length; i++) {
         conflicts.push({
             expected: undefined,
-            actual: right[i],
+            actual: rightTypes[i],
             location: `index ${i}`,
             action,
         });
     }
     // missing in the right
-    for (let i = right.length; i < left.length; i++) {
+    for (let i = rightTypes.length; i < leftTypes.length; i++) {
         conflicts.push({
-            expected: left[i],
+            expected: leftTypes[i],
             actual: undefined,
             location: `index ${i}`,
             action,

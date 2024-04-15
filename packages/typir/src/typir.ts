@@ -28,6 +28,11 @@ import { Kind } from './kinds/kind.js';
  * - realize "unknown" as a generic "<T = unknown>" for whole Typir? for the Langium binding T would be AstNode!
  */
 
+/** TODO missing things
+ * - support dedicated inference rules for all kinds
+ * - improve error messages for failed type inference: find best match (?), ignore not matching types at all!
+ */
+
 export class Typir {
     // store types and kinds
     graph: TypeGraph = new TypeGraph();

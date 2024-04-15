@@ -8,7 +8,7 @@ import { assertUnreachable } from 'langium';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeConflict, compareForConflict, compareNameTypePair, compareNameTypePairs } from '../utils/utils-type-comparison.js';
+import { TypeConflict, compareForConflict, compareNameTypePair, compareNameTypePairs, compareTypes } from '../utils/utils-type-comparison.js';
 import { NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
@@ -94,7 +94,7 @@ export class FunctionKind implements Kind {
                     if (inferenceRuleForDeclaration(domainElement)) {
                         return functionType;
                     } else {
-                        return false;
+                        return 'RULE_NOT_APPLICABLE';
                     }
                 },
             });
@@ -103,13 +103,17 @@ export class FunctionKind implements Kind {
             const typirr: Typir = this.typir;
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
+                    if (outputParameter?.type === undefined) {
+                        // special case: the current function has no output type/parameter at all! => this function does not provide any type, when it is called
+                        return 'RULE_NOT_APPLICABLE';
+                    }
                     const result = inferenceRuleForCalls(domainElement);
                     if (result === true) {
                         // the function type is already identifed, no need to check values for parameters
-                        return functionType;
+                        return outputParameter.type; // this case occurs only, if the current function has an output type/parameter!
                     } else if (result === false) {
                         // does not match at all
-                        return false;
+                        return 'RULE_NOT_APPLICABLE';
                     } else if (Array.isArray(result)) {
                         // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
                         return result;
@@ -118,20 +122,23 @@ export class FunctionKind implements Kind {
                     }
                 },
                 inferType(domainElement, childrenTypes) {
-                    if (inputParameter.length !== childrenTypes.length) {
-                        return undefined;
+                    const inputTypes = inputParameter.map(p => p.type);
+                    // all operands need to be assignable(! not equal) to the required types
+                    const comparisonConflicts = compareTypes(childrenTypes, inputTypes,
+                        (t1, t2) => typirr.assignability.isAssignable(t1, t2), 'ASSIGNABLE_TYPE');
+                    if (comparisonConflicts.length >= 1) {
+                        // this function type does not match, due to assignability conflicts => return them as errors
+                        return [{
+                            domainElement,
+                            inferenceCandidate: functionType,
+                            location: 'input parameters',
+                            rule: this,
+                            inferenceConflicts: comparisonConflicts,
+                        }];
+                    } else {
+                        // matching => return the return type of the function for the case of a function call!
+                        return outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
                     }
-                    // all operands need to have the required types
-                    for (let index = 0; index < inputParameter.length; index++) {
-                        const actual = childrenTypes[index];
-                        const expected = inputParameter[index].type;
-                        if (!actual || !expected || typirr.equality.areTypesEqual(actual, expected).length >= 1) {
-                            // missing actual types result in a mismatch!
-                            return undefined;
-                        }
-                    }
-                    // matching => return the return type of the function for the case of a function call!
-                    return outputParameter?.type; // Note, that 'undefined' is returned, when the current function has no output type/parameter at all!
                 },
             });
         }
