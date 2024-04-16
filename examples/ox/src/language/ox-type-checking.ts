@@ -41,8 +41,6 @@ export function createTypir(nodeEntry: AstNode): Typir {
     const opLtLeqGtGeq = operators.createBinaryOperator(['<', '<=', '>', '>='], typeNumber, typeBool,
         (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
 
-    // TODO types of parameters are not required for inferring the type of these operators! (only for type checking of the values of the operands)
-
     // binary operators: booleans => boolean
     const opAndOr = operators.createBinaryOperator(['and', 'or'], typeBool, typeBool,
         (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
@@ -67,11 +65,12 @@ export function createTypir(nodeEntry: AstNode): Typir {
                 // return type:
                 { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
                 // input types:
-                node.parameters.map(p => { return { name: p.name, type: mapType(p.type) }; }),
+                node.parameters.map(p => ({ name: p.name, type: mapType(p.type) })),
                 // inference rule for function declaration:
                 (domainElement) => isFunctionDeclaration(domainElement) && domainElement.name === functionName, // TODO what about overloaded functions?
                 // inference rule for funtion calls: inferring works only, if the actual arguments have the expected types!
-                (domainElement) => isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) ? [...domainElement.arguments] : false
+                (domainElement) => isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName
+                    ? [...domainElement.arguments] : false
             );
         }
     });

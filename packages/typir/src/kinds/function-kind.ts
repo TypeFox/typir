@@ -12,9 +12,6 @@ import { TypeConflict, compareForConflict, compareNameTypePair, compareNameTypeP
 import { NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
-export type InferFunctionCall = (domainElement: unknown) => boolean | unknown[];
-export type InferFunctionType = (domainElement: unknown) => boolean;
-
 export interface FunctionKindOptions {
     // these three options controls structural vs nominal typing somehow ...
     enforceFunctionName: boolean,
@@ -57,8 +54,8 @@ export class FunctionKind implements Kind {
         outputParameter: NameTypePair | undefined,
         inputParameter: NameTypePair[],
         // inference rules:
-        inferenceRuleForDeclaration?: InferFunctionType, // for function declarations => returns the funtion type (the whole signature including all names)
-        inferenceRuleForCalls?: InferFunctionCall, // for function calls => returns the return type of the function
+        inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // for function declarations => returns the funtion type (the whole signature including all names)
+        inferenceRuleForCalls?: (domainElement: unknown) => boolean | unknown[], // for function calls => returns the return type of the function
         // TODO for function references (like the declaration, but without any names!)
     ): Type {
         // the order of parameters is important!
@@ -76,6 +73,11 @@ export class FunctionKind implements Kind {
             this.enforceName(outputParameter.name, this.options.enforceOutputParameterName);
             edge.properties.set(PARAMETER_NAME, outputParameter.name);
             this.typir.graph.addEdge(edge);
+        } else {
+            // no output parameter => no inference rule for calling this function
+            if (inferenceRuleForCalls) {
+                throw new Error(`A function '${functionName}' without output parameter cannot have an inferred type, when this function is called!`);
+            }
         }
 
         // input parameters

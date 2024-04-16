@@ -41,12 +41,12 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
     }
 
     protected printIndentation(result: string, level: number): string {
-        // TODO does not work
-        for (let i = 0; i < level - 1; i++) {
-            result = `     ${result}`; // 5 spaces
-        }
+        // Note, that VSCode skips long whitespace in the "Problems" view
         if (level >= 1) {
-            result = `|--> ${result}`; // 5 signs
+            result = `-> ${result}`;
+        }
+        for (let i = 2; i <= level; i++) {
+            result = `--${result}`;
         }
         return result;
     }

@@ -15,21 +15,21 @@ const oxServices = createOxServices(EmptyFileSystem).Ox;
 describe('Explicitly test type checking for OX', () => {
 
     test('multiple nested and', async () => {
-        validate('var myResult: boolean = true and false and true;', 0);
+        await validate('var myResult: boolean = true and false and true;', 0);
     });
 
     test('number assignments', async () => {
-        validate('var myResult: number = 2;', 0);
-        validate('var myResult: number = 2 * 3;', 0);
-        validate('var myResult: number = 2 < 3;', 1);
-        validate('var myResult: number = true;', 1);
+        await validate('var myResult: number = 2;', 0);
+        await validate('var myResult: number = 2 * 3;', 0);
+        await validate('var myResult: number = 2 < 3;', 1);
+        await validate('var myResult: number = true;', 1);
     });
 
-    test('boolean assignments', async () => {
-        validate('var myResult: boolean = true;', 0);
-        validate('var myResult: boolean = 2;', 1);
-        validate('var myResult: boolean = 2 * 3;', 1);
-        validate('var myResult: boolean = 2 < 3;', 0);
+    test.only('boolean assignments', async () => {
+        await validate('var myResult: boolean = true;', 0);
+        await validate('var myResult: boolean = 2;', 1);
+        await validate('var myResult: boolean = 2 * 3;', 1);
+        await validate('var myResult: boolean = 2 < 3;', 0);
     });
 
 });

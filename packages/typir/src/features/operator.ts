@@ -77,14 +77,16 @@ export class DefaultOperatorManager implements OperatorManager {
             { name: 'third', type: singleType}));
     }
 
-    protected handleOperatorVariants(nameVariants: Names, typeVariants: Types, typeCreator: (singleName: string, singleType: Type) => Type): Types {
+    // TODO types of parameters are not required for inferring the type of some of these operators! (they are required only for type checking of the values of the operands)
+
+    protected handleOperatorVariants(nameVariants: Names, inputTypeVariants: Types, operatorTypeCreator: (singleName: string, singleInputType: Type) => Type): Types {
         const allNames = toArray(nameVariants);
-        const allTypes = toArray(typeVariants);
+        const allTypes = toArray(inputTypeVariants);
         assertTrue(allTypes.length >= 1);
         const result: Type[] = [];
         for (const singleName of allNames) {
             for (const singleType of allTypes) {
-                result.push(typeCreator(singleName, singleType));
+                result.push(operatorTypeCreator(singleName, singleType));
             }
         }
         return result.length === 1 ? result[0] : result;
@@ -102,8 +104,15 @@ export class DefaultOperatorManager implements OperatorManager {
             { name: FUNCTION_MISSING_NAME, type: outputType },
             inputParameter,
             undefined, // operators have no declaration in the code => no inference rule for the operator declaration!
-            inferenceRule
-                ? ((domainElement: unknown) => toArray(inferenceRule(domainElement, name))) // but infer the operator when the operator is called!
+            inferenceRule // but infer the operator when the operator is called!
+                ? ((domainElement: unknown) => {
+                    const inferenceResult = inferenceRule(domainElement, name);
+                    if (typeof inferenceResult === 'boolean') {
+                        return inferenceResult; // true or false (directly, not within an array)
+                    } else {
+                        return toArray(inferenceResult); // the operands whose types need to be inferred first (in an array)
+                    }
+                })
                 : undefined
         );
 

@@ -30,7 +30,7 @@ import { Kind } from './kinds/kind.js';
 
 /** TODO missing things
  * - support dedicated inference rules for all kinds
- * - improve error messages for failed type inference: find best match (?), ignore not matching types at all!
+ * - improve error messages for failed type inference: find best match (?)
  */
 
 export class Typir {

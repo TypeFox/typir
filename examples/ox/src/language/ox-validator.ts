@@ -51,11 +51,11 @@ export class OxValidator {
         if (isType(type)) {
             // the expression has an (inferred) type => everything is fine
         } else {
-            accept('error', `It was not possible to infer the type for this expression '${node.$type}' (${node.$cstNode?.text}):\n${typir.conflictPrinter.printInferenceProblems(type)}`, { node });
+            // TODO do not check outer expressions, if their inner expressions already failed to infer a type!
+            const problems = typir.conflictPrinter.printInferenceProblems(type);
+            accept('error', `It was not possible to infer the type for this expression '${node.$type}' (${node.$cstNode?.text}):\n${problems}`, { node });
         }
     }
-
-    // TODO how to realise useful error messages for failing inferType()? operators + functions should provide a message, when the types of their operands do not match!
 
     checkFunctionDeclarationHasType(node: FunctionDeclaration, accept: ValidationAcceptor) {
         const typir = createTypir(node);

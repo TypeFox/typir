@@ -37,8 +37,6 @@ export interface TypeInferenceRule {
      */
     isRuleApplicable(domainElement: unknown): Type | unknown[] | 'RULE_NOT_APPLICABLE' | InferenceProblem[];
 
-    // TODO daraus Fehlermeldungen ableiten bzw. das nächst-beste Match finden??
-
     /**
      * 2nd step is to finally decide about the inferred type.
      * When the 1st step returned a list of elements to resolve their types,
@@ -89,7 +87,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
         }
         // handle recursion loops
         if (this.pendingGet(domainElement)) {
-            throw new Error(`There is a recursion loop for inferring the type from ${domainElement}!`);
+            throw new Error(`There is a recursion loop for inferring the type from ${domainElement}! Probably, there are multiple interfering inference rules.`);
         }
         this.pendingSet(domainElement);
 
