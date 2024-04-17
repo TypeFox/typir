@@ -38,24 +38,28 @@ export class MultiplicityKind implements Kind {
         };
     }
 
-    createMultiplicityForType(constrainedType: Type, lowerBound: number, upperBound: number): Type {
+    createMultiplicityForType(typeDetails: {
+        constrainedType: Type,
+        lowerBound: number,
+        upperBound: number
+    }): Type {
         // check input
-        if (!this.checkBounds(lowerBound, upperBound)) {
+        if (!this.checkBounds(typeDetails.lowerBound, typeDetails.upperBound)) {
             throw new Error();
         }
 
         // create the type with multiplicities
-        const name = this.printType(constrainedType, lowerBound, upperBound);
+        const name = this.printType(typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
         const newType = new Type(this, name);
         this.typir.graph.addNode(newType);
 
         // link it to the constrained type
-        const edge = new TypeEdge(newType, constrainedType, CONSTRAINED_TYPE);
+        const edge = new TypeEdge(newType, typeDetails.constrainedType, CONSTRAINED_TYPE);
         this.typir.graph.addEdge(edge);
 
         // set values (at the edge, not at the node!)
-        edge.properties.set(MULTIPLICITY_LOWER, lowerBound);
-        edge.properties.set(MULTIPLICITY_UPPER, upperBound);
+        edge.properties.set(MULTIPLICITY_LOWER, typeDetails.lowerBound);
+        edge.properties.set(MULTIPLICITY_UPPER, typeDetails.upperBound);
 
         return newType;
     }

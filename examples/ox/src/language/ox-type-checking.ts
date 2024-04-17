@@ -19,9 +19,9 @@ export function createTypir(nodeEntry: AstNode): Typir {
     const operators = typir.operators;
 
     // types
-    const typeBool = primitiveKind.createPrimitiveType('boolean', (node) => isBooleanExpression(node));
-    const typeNumber = primitiveKind.createPrimitiveType('number', (node) => isNumberExpression(node));
-    const typeVoid = primitiveKind.createPrimitiveType('void'); // TODO own kind for 'void'?
+    const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRule: (node) => isBooleanExpression(node)}); // typeBool is a specific type for OX, ...
+    const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRule: (node) => isNumberExpression(node)}); // but the primitive kind is provided/preset by Typir
+    const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void' });
 
     // utility function to map language types to Typir types
     function mapType(typeRef: TypeReference): Type {
@@ -34,44 +34,42 @@ export function createTypir(nodeEntry: AstNode): Typir {
     }
 
     // binary operators: numbers => number
-    const opAddSubMulDiv = operators.createBinaryOperator(['+', '-', '*', '/'], typeNumber, typeNumber,
-        (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
+    const opAddSubMulDiv = operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber,
+        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
 
     // binary operators: numbers => boolean
-    const opLtLeqGtGeq = operators.createBinaryOperator(['<', '<=', '>', '>='], typeNumber, typeBool,
-        (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
+    const opLtLeqGtGeq = operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool,
+        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
 
     // binary operators: booleans => boolean
-    const opAndOr = operators.createBinaryOperator(['and', 'or'], typeBool, typeBool,
-        (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
+    const opAndOr = operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool,
+        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
 
     // ==, != for booleans and numbers
-    const opEqNeq = operators.createBinaryOperator(['==', '!='], [typeNumber, typeBool], typeBool,
-        (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false);
+    const opEqNeq = operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool,
+        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
 
     // unary operators
-    const opNot = operators.createUnaryOperator('!', typeBool,
-        (node) => isUnaryExpression(node) && node.operator === '!' ? node.value : false);
-    const opNegative = operators.createUnaryOperator('-', typeNumber,
-        (node) => isUnaryExpression(node) && node.operator === '-' ? node.value : false);
+    const opNot = operators.createUnaryOperator({ name: '!', operandType: typeBool,
+        inferenceRule: (node) => isUnaryExpression(node) && node.operator === '!' ? node.value : false});
+    const opNegative = operators.createUnaryOperator({ name: '-', operandType: typeNumber,
+        inferenceRule: (node) => isUnaryExpression(node) && node.operator === '-' ? node.value : false});
 
     // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
     AstUtils.streamAllContents(nodeRoot).forEach(node => {
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
-            const typeFunction = functionKind.createFunctionType(
+            const typeFunction = functionKind.createFunctionType({
                 functionName,
-                // return type:
-                { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
-                // input types:
-                node.parameters.map(p => ({ name: p.name, type: mapType(p.type) })),
+                outputParameter: { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
+                inputParameters: node.parameters.map(p => ({ name: p.name, type: mapType(p.type) })),
                 // inference rule for function declaration:
-                (domainElement) => isFunctionDeclaration(domainElement) && domainElement.name === functionName, // TODO what about overloaded functions?
+                inferenceRuleForDeclaration: (domainElement) => isFunctionDeclaration(domainElement) && domainElement.name === functionName, // TODO what about overloaded functions?
                 // inference rule for funtion calls: inferring works only, if the actual arguments have the expected types!
-                (domainElement) => isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName
+                inferenceRuleForCalls: (domainElement) => isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName
                     ? [...domainElement.arguments] : false
-            );
+            });
         }
     });
 

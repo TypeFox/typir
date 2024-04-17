@@ -8,7 +8,7 @@ import { TypeComparisonStrategy, TypeConflict, createTypeComparisonStrategy, com
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { NameTypePair } from '../utils/utils.js';
+import { NameTypePair, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface ClassKindOptions {
@@ -43,14 +43,20 @@ export class ClassKind implements Kind {
         };
     }
 
-    createClassType(className: string, superClasses: Type[], ...fields: NameTypePair[]): Type {
+    createClassType(typeDetails: {
+        className: string,
+        superClasses?: Type | Type[],
+        fields: NameTypePair[]
+    }): Type {
+        const theSuperClasses = toArray(typeDetails.superClasses);
+
         // create the class type
-        const classType = new Type(this, className);
+        const classType = new Type(this, typeDetails.className);
         this.typir.graph.addNode(classType);
 
         // FIELDS
         // link it to all its "field types"
-        for (const fieldInfos of fields) {
+        for (const fieldInfos of typeDetails.fields) {
             // new edge between class and field with "semantics key"
             const edge = new TypeEdge(classType, fieldInfos.type, FIELD_TYPE);
             // store the name of the field within the edge
@@ -58,25 +64,25 @@ export class ClassKind implements Kind {
             this.typir.graph.addEdge(edge);
         }
         // check collisions of field names
-        if (this.getFields(classType, false).size !== fields.length) {
+        if (this.getFields(classType, false).size !== typeDetails.fields.length) {
             throw new Error('field names must be unique!');
         }
 
         // SUB-SUPER-CLASSES
         // check number of allowed super classes
         if (this.options.maximumNumberOfSuperClasses >= 0) {
-            if (this.options.maximumNumberOfSuperClasses < superClasses.length) {
+            if (this.options.maximumNumberOfSuperClasses < theSuperClasses.length) {
                 throw new Error(`Only ${this.options.maximumNumberOfSuperClasses} super-classes are allowed.`);
             }
         }
         // check cycles
-        for (const superClass of superClasses) {
+        for (const superClass of theSuperClasses) {
             if (this.getAllSuperClasses(superClass, true).has(classType)) {
                 throw new Error('Circle in super-sub-class-relationships are not allowed.');
             }
         }
         // link the new class to all its super classes
-        for (const superr of superClasses) {
+        for (const superr of theSuperClasses) {
             if (superr.kind.$name !== classType.kind.$name) {
                 throw new Error();
             }

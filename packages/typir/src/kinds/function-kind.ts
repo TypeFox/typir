@@ -50,38 +50,38 @@ export class FunctionKind implements Kind {
         };
     }
 
-    createFunctionType(functionName: string,
+    createFunctionType(typeDetails: {
+        functionName: string,
         outputParameter: NameTypePair | undefined,
-        inputParameter: NameTypePair[],
-        // inference rules:
+        inputParameters: NameTypePair[],
         inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // for function declarations => returns the funtion type (the whole signature including all names)
         inferenceRuleForCalls?: (domainElement: unknown) => boolean | unknown[], // for function calls => returns the return type of the function
         // TODO for function references (like the declaration, but without any names!)
-    ): Type {
+    }): Type {
         // the order of parameters is important!
 
         // create the function type
-        this.enforceName(functionName, this.options.enforceFunctionName);
-        const uniqueTypeName = this.printFunctionType(functionName, inputParameter, outputParameter);
+        this.enforceName(typeDetails.functionName, this.options.enforceFunctionName);
+        const uniqueTypeName = this.printFunctionType(typeDetails.functionName, typeDetails.inputParameters, typeDetails.outputParameter);
         const functionType = new Type(this, uniqueTypeName);
-        functionType.properties.set(SIMPLE_NAME, functionName);
+        functionType.properties.set(SIMPLE_NAME, typeDetails.functionName);
         this.typir.graph.addNode(functionType);
 
         // output parameter
-        if (outputParameter) {
-            const edge = new TypeEdge(functionType, outputParameter.type, OUTPUT_PARAMETER);
-            this.enforceName(outputParameter.name, this.options.enforceOutputParameterName);
-            edge.properties.set(PARAMETER_NAME, outputParameter.name);
+        if (typeDetails.outputParameter) {
+            const edge = new TypeEdge(functionType, typeDetails.outputParameter.type, OUTPUT_PARAMETER);
+            this.enforceName(typeDetails.outputParameter.name, this.options.enforceOutputParameterName);
+            edge.properties.set(PARAMETER_NAME, typeDetails.outputParameter.name);
             this.typir.graph.addEdge(edge);
         } else {
             // no output parameter => no inference rule for calling this function
-            if (inferenceRuleForCalls) {
-                throw new Error(`A function '${functionName}' without output parameter cannot have an inferred type, when this function is called!`);
+            if (typeDetails.inferenceRuleForCalls) {
+                throw new Error(`A function '${typeDetails.functionName}' without output parameter cannot have an inferred type, when this function is called!`);
             }
         }
 
         // input parameters
-        inputParameter.forEach((input, index) => {
+        typeDetails.inputParameters.forEach((input, index) => {
             const edge = new TypeEdge(functionType, input.type, INPUT_PARAMETER);
             this.enforceName(input.name, this.options.enforceInputParameterNames);
             edge.properties.set(PARAMETER_NAME, input.name);
@@ -90,10 +90,10 @@ export class FunctionKind implements Kind {
         });
 
         // register inference rules for the new function
-        if (inferenceRuleForDeclaration) {
+        if (typeDetails.inferenceRuleForDeclaration) {
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
-                    if (inferenceRuleForDeclaration(domainElement)) {
+                    if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
                         return functionType;
                     } else {
                         return 'RULE_NOT_APPLICABLE';
@@ -101,18 +101,18 @@ export class FunctionKind implements Kind {
                 },
             });
         }
-        if (inferenceRuleForCalls) {
+        if (typeDetails.inferenceRuleForCalls) {
             const typirr: Typir = this.typir;
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
-                    if (outputParameter?.type === undefined) {
+                    if (typeDetails.outputParameter?.type === undefined) {
                         // special case: the current function has no output type/parameter at all! => this function does not provide any type, when it is called
                         return 'RULE_NOT_APPLICABLE';
                     }
-                    const result = inferenceRuleForCalls(domainElement);
+                    const result = typeDetails.inferenceRuleForCalls!(domainElement);
                     if (result === true) {
                         // the function type is already identifed, no need to check values for parameters
-                        return outputParameter.type; // this case occurs only, if the current function has an output type/parameter!
+                        return typeDetails.outputParameter.type; // this case occurs only, if the current function has an output type/parameter!
                     } else if (result === false) {
                         // does not match at all
                         return 'RULE_NOT_APPLICABLE';
@@ -124,7 +124,7 @@ export class FunctionKind implements Kind {
                     }
                 },
                 inferType(domainElement, childrenTypes) {
-                    const inputTypes = inputParameter.map(p => p.type);
+                    const inputTypes = typeDetails.inputParameters.map(p => p.type);
                     // all operands need to be assignable(! not equal) to the required types
                     const comparisonConflicts = compareTypes(childrenTypes, inputTypes,
                         (t1, t2) => typirr.assignability.isAssignable(t1, t2), 'ASSIGNABLE_TYPE');
@@ -139,7 +139,7 @@ export class FunctionKind implements Kind {
                         }];
                     } else {
                         // matching => return the return type of the function for the case of a function call!
-                        return outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
+                        return typeDetails.outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
                     }
                 },
             });

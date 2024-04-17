@@ -28,43 +28,52 @@ describe('Tests for Typir', () => {
         // TODO how to bundle such definitions for reuse ("presets")?
 
         // create some primitive types
-        const typeInt = primitiveKind.createPrimitiveType('Integer');
-        const typeString = primitiveKind.createPrimitiveType('String',
-            domainElement => typeof domainElement === 'string'); // combine type definition with a dedicated inference rule for it
-        const typeBoolean = primitiveKind.createPrimitiveType('Boolean');
+        const typeInt = primitiveKind.createPrimitiveType({ primitiveName: 'Integer' });
+        const typeString = primitiveKind.createPrimitiveType({ primitiveName: 'String',
+            inferenceRule: domainElement => typeof domainElement === 'string'}); // combine type definition with a dedicated inference rule for it
+        const typeBoolean = primitiveKind.createPrimitiveType({ primitiveName: 'Boolean' });
 
         // create class type Person with 1 firstName and 1..2 lastNames and a age properties
-        const typeOneOrTwoStrings = multiplicityKind.createMultiplicityForType(typeString, 1, 2);
-        const typePerson = classKind.createClassType('Person', [],
-            { name: 'firstName', type: typeString },
-            { name: 'lastName', type: typeOneOrTwoStrings },
-            { name: 'age', type: typeInt });
+        const typeOneOrTwoStrings = multiplicityKind.createMultiplicityForType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
+        const typePerson = classKind.createClassType({
+            className: 'Person',
+            fields: [
+                { name: 'firstName', type: typeString },
+                { name: 'lastName', type: typeOneOrTwoStrings },
+                { name: 'age', type: typeInt }
+            ]});
         console.log(typePerson.getUserRepresentation());
-        const typeStudent = classKind.createClassType('Student', [typePerson], // a Student is a special Person
-            { name: 'studentNumber', type: typeInt });
+        const typeStudent = classKind.createClassType({
+            className: 'Student',
+            superClasses: typePerson, // a Student is a special Person
+            fields: [
+                { name: 'studentNumber', type: typeInt }
+            ]});
 
         // create some more types
-        const typeListInt = listKind.createFixedParameterType(typeInt);
-        const typeListString = listKind.createFixedParameterType(typeString);
-        const typeMapStringPerson = mapKind.createFixedParameterType(typeString, typePerson);
-        const typeFunctionStringLength = functionKind.createFunctionType('length',
-            { name: FUNCTION_MISSING_NAME, type: typeInt },
-            [{ name: 'value', type: typeString }]);
+        const typeListInt = listKind.createFixedParameterType({ parameterTypes: typeInt });
+        const typeListString = listKind.createFixedParameterType({ parameterTypes: typeString });
+        const typeMapStringPerson = mapKind.createFixedParameterType({ parameterTypes: [typeString, typePerson] });
+        const typeFunctionStringLength = functionKind.createFunctionType({
+            functionName: 'length',
+            outputParameter: { name: FUNCTION_MISSING_NAME, type: typeInt },
+            inputParameters: [{ name: 'value', type: typeString }]
+        });
 
         // binary operators on Integers
-        const opAdd = typir.operators.createBinaryOperator('+', typeInt);
-        const opMinus = typir.operators.createBinaryOperator('-', typeInt);
-        const opLess = typir.operators.createBinaryOperator('<', typeInt, typeBoolean);
-        const opEqualInt = typir.operators.createBinaryOperator('==', typeInt, typeBoolean,
-            domainElement => ('' + domainElement).includes('=='));
+        const opAdd = typir.operators.createBinaryOperator({ name: '+', inputType: typeInt });
+        const opMinus = typir.operators.createBinaryOperator({ name: '-', inputType: typeInt });
+        const opLess = typir.operators.createBinaryOperator({ name: '<', inputType: typeInt, outputType: typeBoolean });
+        const opEqualInt = typir.operators.createBinaryOperator({ name: '==', inputType: typeInt, outputType: typeBoolean,
+            inferenceRule: domainElement => ('' + domainElement).includes('==') });
         // binary operators on Booleans
-        const opEqualBool = typir.operators.createBinaryOperator('==', typeBoolean);
-        const opAnd = typir.operators.createBinaryOperator('&&', typeBoolean);
+        const opEqualBool = typir.operators.createBinaryOperator({ name: '==', inputType: typeBoolean});
+        const opAnd = typir.operators.createBinaryOperator({ name: '&&', inputType: typeBoolean});
         // unary operators
-        const opNotBool = typir.operators.createUnaryOperator('!', typeBoolean,
-            domainElement => ('' + domainElement).includes('NOT'));
+        const opNotBool = typir.operators.createUnaryOperator({ name: '!', operandType: typeBoolean,
+            inferenceRule: domainElement => ('' + domainElement).includes('NOT')});
         // ternary operator
-        const opTernaryIf = typir.operators.createTernaryOperator('if', typeBoolean, typeInt); // TODO support multiple/arbitrary types!
+        const opTernaryIf = typir.operators.createTernaryOperator({ name: 'if', firstType: typeBoolean, secondAndThirdType: typeInt}); // TODO support multiple/arbitrary types!
 
         // automated conversion from int to string
         // it is possible to define multiple sources and/or targets at the same time:

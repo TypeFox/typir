@@ -8,7 +8,7 @@ import { TypeComparisonStrategy, TypeConflict, compareTypes, createTypeCompariso
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { assertTrue } from '../utils/utils.js';
+import { assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface FixedParameterKindOptions {
@@ -45,15 +45,19 @@ export class FixedParameterKind implements Kind {
     }
 
     // the order of parameters matters!
-    createFixedParameterType(...parameterTypes: Type[]): Type {
+    createFixedParameterType(typeDetails: {
+        parameterTypes: Type | Type[]
+    }): Type {
+        const theParameterTypes = toArray(typeDetails.parameterTypes);
+
         // create the class type
-        const typeWithParameters = new Type(this, this.printSignature(this.baseName, parameterTypes)); // use the signature for a unique name
+        const typeWithParameters = new Type(this, this.printSignature(this.baseName, theParameterTypes)); // use the signature for a unique name
         this.typir.graph.addNode(typeWithParameters);
 
         // add the given types to the required fixed parameters
-        assertTrue(this.parameterNames.length === parameterTypes.length);
+        assertTrue(this.parameterNames.length === theParameterTypes.length);
         for (let index = 0; index < this.parameterNames.length; index++) {
-            const edge = new TypeEdge(typeWithParameters, parameterTypes[index], FIXED_PARAMETER_TYPE);
+            const edge = new TypeEdge(typeWithParameters, theParameterTypes[index], FIXED_PARAMETER_TYPE);
             this.typir.graph.addEdge(edge);
         }
 

@@ -23,13 +23,16 @@ export class PrimitiveKind implements Kind {
         this.typir.registerKind(this);
     }
 
-    createPrimitiveType(primitiveName: string, inferenceRule?: InferPrimitiveType): Type {
-        const primitiveType = new Type(this, primitiveName);
+    createPrimitiveType(typeDetails: {
+        primitiveName: string,
+        inferenceRule?: InferPrimitiveType
+    }): Type {
+        const primitiveType = new Type(this, typeDetails.primitiveName);
         this.typir.graph.addNode(primitiveType);
-        if (inferenceRule) {
+        if (typeDetails.inferenceRule) {
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
-                    return inferenceRule(domainElement) ? primitiveType : 'RULE_NOT_APPLICABLE';
+                    return typeDetails.inferenceRule!(domainElement) ? primitiveType : 'RULE_NOT_APPLICABLE';
                 },
             });
         }

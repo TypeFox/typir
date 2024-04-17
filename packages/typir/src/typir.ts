@@ -18,6 +18,7 @@ import { Kind } from './kinds/kind.js';
 /**
  * Design decisions for Typir
  * - no NameProvider for the name of types, since the name depends on the type of the kind => change the implementation of the kind
+ * - the type 'void' has a primitive kind (no dedicated kind for now)
  */
 
 /** Open design questions TODO
@@ -31,6 +32,7 @@ import { Kind } from './kinds/kind.js';
 /** TODO missing things
  * - support dedicated inference rules for all kinds
  * - improve error messages for failed type inference: find best match (?)
+ * - separate kinds for bottom and top types!
  */
 
 export class Typir {

@@ -13,19 +13,34 @@ export type InferOperatorUseSingleOperand = (domainElement: unknown, operatorNam
 export type InferOperatorUseMultipleOperands = (domainElement: unknown, operatorName: string) => boolean | unknown[];
 
 export interface OperatorManager {
-    createUnaryOperator(name: Names, operandType: Types,
-        inferenceRule?: InferOperatorUseSingleOperand): Types
-    createBinaryOperator(name: Names, inputType: Types, outputType?: Type,
-        inferenceRule?: InferOperatorUseMultipleOperands): Types
-    createTernaryOperator(name: Names, firstType: Type, secondAndThirdType: Types,
-        inferenceRule?: InferOperatorUseMultipleOperands): Types
+    createUnaryOperator(typeDetails: {
+        name: Names,
+        operandType: Types,
+        inferenceRule?: InferOperatorUseSingleOperand
+    }): Types
+    createBinaryOperator(typeDetails: {
+        name: Names,
+        inputType: Types,
+        /** If the output type is not specified, the input type is used for the output as well. */
+        outputType?: Type,
+        inferenceRule?: InferOperatorUseMultipleOperands
+    }): Types
+    createTernaryOperator(typeDetails: {
+        name: Names,
+        firstType: Type,
+        secondAndThirdType: Types,
+        inferenceRule?: InferOperatorUseMultipleOperands
+    }): Types
 
     /** This function allows to create operators with arbitrary input operands,
      * e.g. un/bin/ternary operators with asymetric operand types.
      */
-    createGenericOperator(name: string, outputType: Type,
+    createGenericOperator(typeDetails: {
+        name: string,
+        outputType: Type,
         inferenceRule?: InferOperatorUseMultipleOperands,
-        ...inputParameter: NameTypePair[]): Type;
+        inputParameter: NameTypePair[]
+    }): Type;
 }
 
 /**
@@ -53,28 +68,40 @@ export class DefaultOperatorManager implements OperatorManager {
         this.typir = typir;
     }
 
-    createUnaryOperator(name: Names, operandType: Types, inferenceRule?: InferOperatorUseSingleOperand): Types {
-        return this.handleOperatorVariants(name, operandType, (singleName, singleType) => this.createGenericOperator(
-            singleName, singleType,
-            inferenceRule,
-            { name: 'operand', type: singleType }));
+    createUnaryOperator(typeDetails: { name: Names, operandType: Types, inferenceRule?: InferOperatorUseSingleOperand }): Types {
+        return this.handleOperatorVariants(typeDetails.name, typeDetails.operandType, (singleName, singleType) => this.createGenericOperator({
+            name: singleName,
+            outputType: singleType,
+            inferenceRule: typeDetails.inferenceRule,
+            inputParameter: [
+                { name: 'operand', type: singleType }
+            ]
+        }));
     }
 
-    createBinaryOperator(name: Names, inputType: Types, outputType?: Type, inferenceRule?: InferOperatorUseMultipleOperands): Types {
-        return this.handleOperatorVariants(name, inputType, (singleName, singleType) => this.createGenericOperator(
-            singleName, outputType ?? singleType,
-            inferenceRule,
-            { name: 'left', type: singleType},
-            { name: 'right', type: singleType}));
+    createBinaryOperator(typeDetails: { name: Names, inputType: Types, outputType?: Type, inferenceRule?: InferOperatorUseMultipleOperands }): Types {
+        return this.handleOperatorVariants(typeDetails.name, typeDetails.inputType, (singleName, singleType) => this.createGenericOperator({
+            name: singleName,
+            outputType: typeDetails.outputType ?? singleType,
+            inferenceRule: typeDetails.inferenceRule,
+            inputParameter: [
+                { name: 'left', type: singleType},
+                { name: 'right', type: singleType}
+            ]
+        }));
     }
 
-    createTernaryOperator(name: Names, firstType: Type, secondAndThirdType: Types, inferenceRule?: InferOperatorUseMultipleOperands): Types {
-        return this.handleOperatorVariants(name, secondAndThirdType, (singleName, singleType) => this.createGenericOperator(
-            singleName, singleType,
-            inferenceRule,
-            { name: 'first', type: firstType},
-            { name: 'second', type: singleType},
-            { name: 'third', type: singleType}));
+    createTernaryOperator(typeDetails: { name: Names, firstType: Type, secondAndThirdType: Types, inferenceRule?: InferOperatorUseMultipleOperands }): Types {
+        return this.handleOperatorVariants(typeDetails.name, typeDetails.secondAndThirdType, (singleName, singleType) => this.createGenericOperator({
+            name: singleName,
+            outputType: singleType,
+            inferenceRule: typeDetails.inferenceRule,
+            inputParameter: [
+                { name: 'first', type: typeDetails.firstType},
+                { name: 'second', type: singleType},
+                { name: 'third', type: singleType}
+            ]
+        }));
     }
 
     // TODO types of parameters are not required for inferring the type of some of these operators! (they are required only for type checking of the values of the operands)
@@ -92,7 +119,7 @@ export class DefaultOperatorManager implements OperatorManager {
         return result.length === 1 ? result[0] : result;
     }
 
-    createGenericOperator(name: string, outputType: Type, inferenceRule?: (InferOperatorUseSingleOperand | InferOperatorUseMultipleOperands), ...inputParameter: NameTypePair[]): Type {
+    createGenericOperator(typeDetails: { name: string, outputType: Type, inferenceRule?: (InferOperatorUseSingleOperand | InferOperatorUseMultipleOperands), inputParameter: NameTypePair[] }): Type {
         // define/register the wanted operator as "special" function
 
         // ensure, that Typir uses the predefined 'function' kind
@@ -100,13 +127,14 @@ export class DefaultOperatorManager implements OperatorManager {
         const functionKind = isFunctionKind(kind) ? kind : new FunctionKind(this.typir);
 
         // create the operator as type of kind 'function'
-        const newOperatorType = functionKind.createFunctionType(name,
-            { name: FUNCTION_MISSING_NAME, type: outputType },
-            inputParameter,
-            undefined, // operators have no declaration in the code => no inference rule for the operator declaration!
-            inferenceRule // but infer the operator when the operator is called!
+        const newOperatorType = functionKind.createFunctionType({
+            functionName: typeDetails.name,
+            outputParameter: { name: FUNCTION_MISSING_NAME, type: typeDetails.outputType },
+            inputParameters: typeDetails.inputParameter,
+            inferenceRuleForDeclaration: undefined, // operators have no declaration in the code => no inference rule for the operator declaration!
+            inferenceRuleForCalls: typeDetails.inferenceRule // but infer the operator when the operator is called!
                 ? ((domainElement: unknown) => {
-                    const inferenceResult = inferenceRule(domainElement, name);
+                    const inferenceResult = typeDetails.inferenceRule!(domainElement, typeDetails.name);
                     if (typeof inferenceResult === 'boolean') {
                         return inferenceResult; // true or false (directly, not within an array)
                     } else {
@@ -114,7 +142,7 @@ export class DefaultOperatorManager implements OperatorManager {
                     }
                 })
                 : undefined
-        );
+        });
 
         return newOperatorType;
     }
