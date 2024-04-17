@@ -6,11 +6,12 @@
 
 import { assertUnreachable } from 'langium';
 import { TypeEdge } from '../graph/type-edge.js';
-import { Type } from '../graph/type-node.js';
+import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypeConflict, compareForConflict, compareNameTypePair, compareNameTypePairs, compareTypes } from '../utils/utils-type-comparison.js';
 import { NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
+import { ValidationProblem } from '../features/validation.js';
 
 export interface FunctionKindOptions {
     // these three options controls structural vs nominal typing somehow ...
@@ -52,14 +53,13 @@ export class FunctionKind implements Kind {
 
     createFunctionType(typeDetails: {
         functionName: string,
+        /** The order of parameters is important! */
         outputParameter: NameTypePair | undefined,
         inputParameters: NameTypePair[],
         inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // for function declarations => returns the funtion type (the whole signature including all names)
         inferenceRuleForCalls?: (domainElement: unknown) => boolean | unknown[], // for function calls => returns the return type of the function
         // TODO for function references (like the declaration, but without any names!)
     }): Type {
-        // the order of parameters is important!
-
         // create the function type
         this.enforceName(typeDetails.functionName, this.options.enforceFunctionName);
         const uniqueTypeName = this.printFunctionType(typeDetails.functionName, typeDetails.inputParameters, typeDetails.outputParameter);
@@ -89,7 +89,7 @@ export class FunctionKind implements Kind {
             this.typir.graph.addEdge(edge);
         });
 
-        // register inference rules for the new function
+        // register inference rule for the declaration of the new function
         if (typeDetails.inferenceRuleForDeclaration) {
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
@@ -101,9 +101,11 @@ export class FunctionKind implements Kind {
                 },
             });
         }
+
+        // register inference rule for calls of the new function
         if (typeDetails.inferenceRuleForCalls) {
             const typirr: Typir = this.typir;
-            this.typir.inference.addInferenceRule({
+            typirr.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
                     if (typeDetails.outputParameter?.type === undefined) {
                         // special case: the current function has no output type/parameter at all! => this function does not provide any type, when it is called
@@ -123,6 +125,8 @@ export class FunctionKind implements Kind {
                         assertUnreachable(result);
                     }
                 },
+                // TODO one inference rule for each function type VS only one inference rule for the function kind ?! overloaded function( name)s! dynamically at runtime
+                // TODO flag for overload / checking parameter types ?! operators use already overloaded functions!
                 inferType(domainElement, childrenTypes) {
                     const inputTypes = typeDetails.inputParameters.map(p => p.type);
                     // all operands need to be assignable(! not equal) to the required types
@@ -130,6 +134,7 @@ export class FunctionKind implements Kind {
                         (t1, t2) => typirr.assignability.isAssignable(t1, t2), 'ASSIGNABLE_TYPE');
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
+                        // return []; // TODO since we have an explicit validation for that?!
                         return [{
                             domainElement,
                             inferenceCandidate: functionType,
@@ -141,6 +146,62 @@ export class FunctionKind implements Kind {
                         // matching => return the return type of the function for the case of a function call!
                         return typeDetails.outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
                     }
+                },
+            });
+        }
+
+        // create a validation for the values of the input parameters for a function call
+        if (typeDetails.inferenceRuleForCalls) {
+            const typirr: Typir = this.typir;
+            typirr.validation.addValidationRule({
+                validate(domainElement) {
+                    const parameters = typeDetails.inferenceRuleForCalls!(domainElement);
+                    if (Array.isArray(parameters)) {
+                        // check, that the given number of parameters is the same as the expected number of input parameters
+                        if (parameters.length !== typeDetails.inputParameters.length) {
+                            return [{
+                                domainElement,
+                                severity: 'error',
+                                message: 'The number of given parameter values does not match the expected number of input parameters.',
+                                subProblems: [{
+                                    expected: `${typeDetails.inputParameters.length}`,
+                                    actual: `${parameters.length}`,
+                                    location: 'number of input parameter values',
+                                    action: 'EQUAL_TYPE',
+                                }]
+                            }];
+                        }
+                        // there are parameter values to check their types
+                        const inferredParameterTypes = parameters.map(p => typirr.inference.inferType(p));
+                        const parameterMismatches: ValidationProblem[] = [];
+                        for (let i = 0; i < parameters.length; i++) {
+                            const inferredType = inferredParameterTypes[i];
+                            if (isType(inferredType)) {
+                                const parameterComparison = typirr.assignability.isAssignable(inferredType, typeDetails.inputParameters[i].type);
+                                if (parameterComparison.length >= 1) {
+                                    // the value is not assignable to the type of the input parameter
+                                    parameterMismatches.push({
+                                        domainElement,
+                                        severity: 'error',
+                                        message: `The parameter '${typeDetails.inputParameters[i].name}' at index ${i} got a value with a wrong type.`,
+                                        subProblems: parameterComparison,
+                                    });
+                                } else {
+                                    // this parameter value is fine
+                                }
+                            } else {
+                                // the type of the value for the input parameter is no inferrable
+                                parameterMismatches.push({
+                                    domainElement,
+                                    severity: 'error',
+                                    message: `The parameter '${typeDetails.inputParameters[i].name}' at index ${i} has no inferred type.`,
+                                    subProblems: inferredType,
+                                });
+                            }
+                        }
+                        return parameterMismatches;
+                    }
+                    return [];
                 },
             });
         }

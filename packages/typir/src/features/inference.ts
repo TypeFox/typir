@@ -18,6 +18,7 @@ export interface InferenceProblem {
     subProblems?: InferenceProblem[];
 }
 export function isInferenceProblem(problem: unknown): problem is InferenceProblem {
+    // TODO this is not unique, compare it with TypeConflict!
     return typeof problem === 'object' && problem !== null && typeof (problem as InferenceProblem).location === 'string';
 }
 

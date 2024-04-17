@@ -12,6 +12,7 @@ import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './feature
 import { DefaultOperatorManager, OperatorManager } from './features/operator.js';
 import { DefaultTypeConflictPrinter, TypeConflictPrinter } from './features/printing.js';
 import { DefaultSubType, SubType } from './features/subtype.js';
+import { DefaultValidationCollector, ValidationCollector } from './features/validation.js';
 import { TypeGraph } from './graph/type-graph.js';
 import { Kind } from './kinds/kind.js';
 
@@ -49,6 +50,7 @@ export class Typir {
     caching: TypeRelationshipCaching;
     operators: OperatorManager;
     conflictPrinter: TypeConflictPrinter;
+    validation: ValidationCollector;
 
     constructor() {
         this.assignability = new DefaultTypeAssignability(this);
@@ -59,6 +61,7 @@ export class Typir {
         this.caching = new DefaultTypeRelationshipCaching(this);
         this.operators = new DefaultOperatorManager(this);
         this.conflictPrinter = new DefaultTypeConflictPrinter(this);
+        this.validation = new DefaultValidationCollector(this);
     }
 
     // manage kinds

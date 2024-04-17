@@ -9,6 +9,7 @@ import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypeConflict } from '../utils/utils-type-comparison.js';
 import { InferenceProblem } from './inference.js';
+import { toArray } from '../utils/utils.js';
 
 export interface TypeConflictPrinter {
     printTypeConflict(conflict: TypeConflict): string;
@@ -46,7 +47,7 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
             result = `-> ${result}`;
         }
         for (let i = 2; i <= level; i++) {
-            result = `--${result}`;
+            result = `-${result}`;
         }
         return result;
     }
@@ -114,11 +115,13 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
     protected printInferenceProblemLevel(p: InferenceProblem, level: number): string {
         let result = this.printSingleInferenceProblem(p);
         result = this.printIndentation(result, level);
-        if (p.inferenceConflicts && p.inferenceConflicts.length >= 1) {
-            result = result + '\n' + this.printTypeConflictsLevel(p.inferenceConflicts, level + 1);
+        const inferenceConflicts = toArray(p.inferenceConflicts);
+        if (inferenceConflicts.length >= 1) {
+            result = result + '\n' + this.printTypeConflictsLevel(inferenceConflicts, level + 1);
         }
-        if (p.subProblems && p.subProblems.length >= 1) {
-            result = result + '\n' + this.printInferenceProblemsLevel(p.subProblems, level + 1);
+        const subProblems = toArray(p.subProblems);
+        if (subProblems.length >= 1) {
+            result = result + '\n' + this.printInferenceProblemsLevel(subProblems, level + 1);
         }
         return result;
     }

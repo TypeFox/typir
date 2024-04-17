@@ -40,6 +40,9 @@ export interface TypeConflict {
     action: TypeComparisonStrategy;
     subConflicts?: TypeConflict[];
 }
+export function isTypeConflict(problem: unknown): problem is TypeConflict {
+    return typeof problem === 'object' && problem !== null && typeof (problem as TypeConflict).action === 'string';
+}
 
 export function compareForConflict<T>(expected: T, actual: T, location: string, action: TypeComparisonStrategy,
     comparator: (e: T, a: T) => boolean = (e, a) => e === a): TypeConflict[] {

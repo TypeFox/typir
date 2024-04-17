@@ -4,11 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstUtils, type AstNode, type ValidationAcceptor, type ValidationChecks } from 'langium';
-import { isFunctionDeclaration, type AssignmentStatement, type Expression, type OxAstType, type ReturnStatement, type VariableDeclaration, FunctionDeclaration } from './generated/ast.js';
+import { AstUtils, assertUnreachable, type AstNode, type ValidationAcceptor, type ValidationChecks } from 'langium';
+import { isFunctionKind, isInferenceProblem, isType, isTypeConflict, toArray } from 'typir';
+import { OxProgram, isFunctionDeclaration, type AssignmentStatement, type Expression, type OxAstType, type ReturnStatement, type VariableDeclaration } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
 import { createTypir } from './ox-type-checking.js';
-import { isFunctionKind, isType } from 'typir';
 
 /**
  * Register custom validation checks.
@@ -21,13 +21,12 @@ export function registerValidationChecks(services: OxServices) {
             validator.checkVoidAsVarDeclType,
             validator.checkAssignedTypeForVariableDeclaration
         ],
-        Expression: validator.checkExpressionHasType,
         IfStatement: validator.checkConditionExpressionIsBoolean,
         WhileStatement: validator.checkConditionExpressionIsBoolean,
         ForStatement: validator.checkConditionExpressionIsBoolean,
         AssignmentStatement: validator.checkAssignedTypeForStatement,
         ReturnStatement: validator.checkReturnTypeIsCorrect,
-        FunctionDeclaration: validator.checkFunctionDeclarationHasType
+        OxProgram: validator.checkTypesProblems
     };
     registry.register(checks, validator);
 }
@@ -36,6 +35,7 @@ export function registerValidationChecks(services: OxServices) {
  * Implementation of custom validations.
  */
 export class OxValidator {
+
     checkVoidAsVarDeclType(varDecl: VariableDeclaration, accept: ValidationAcceptor) {
         if (varDecl.type.primitive === 'void') {
             accept('error', "Variable can't be declared with a type 'void'.", {
@@ -45,30 +45,26 @@ export class OxValidator {
         }
     }
 
-    checkExpressionHasType(node: Expression, accept: ValidationAcceptor) {
+    checkTypesProblems(node: OxProgram, accept: ValidationAcceptor) {
+        // executes all checks, which are directly derived from the current Typir configuration,
+        // i.e. arguments fit to parameters for function calls (including operands for operators)
         const typir = createTypir(node);
-        const type = typir.inference.inferType(node);
-        if (isType(type)) {
-            // the expression has an (inferred) type => everything is fine
-        } else {
-            // TODO do not check outer expressions, if their inner expressions already failed to infer a type!
-            const problems = typir.conflictPrinter.printInferenceProblems(type);
-            accept('error', `It was not possible to infer the type for this expression '${node.$type}' (${node.$cstNode?.text}):\n${problems}`, { node });
-        }
-    }
-
-    checkFunctionDeclarationHasType(node: FunctionDeclaration, accept: ValidationAcceptor) {
-        const typir = createTypir(node);
-        const type = typir.inference.inferType(node);
-        if (isType(type)) {
-            if (isFunctionKind(type.kind)) {
-                // the function has an (inferred) function type => everything is fine
-            } else {
-                accept('error', `The inferred type '${type.getUserRepresentation()}' of this function '${node.name}' is no function type but of kind '${type.kind.$name}'.`, { node });
+        AstUtils.streamAllContents(node).forEach(node => {
+            const typeProblems = typir.validation.validate(node);
+            for (const problem of typeProblems) {
+                // print sub-problems
+                const subProblems = toArray(problem.subProblems).map(p => {
+                    if (isTypeConflict(p)) {
+                        return typir.conflictPrinter.printTypeConflict(p);
+                    } else if (isInferenceProblem(p)) {
+                        return typir.conflictPrinter.printInferenceProblem(p);
+                    } else {
+                        assertUnreachable(p);
+                    }
+                }).join('\n');
+                accept(problem.severity, `There is a type problem with '${node.$cstNode?.text}': ${problem.message}\n${subProblems}`.trim(), { node });
             }
-        } else {
-            accept('error', `It was not possible to infer the type for this function '${node.name}'.`, { node });
-        }
+        });
     }
 
     /*
