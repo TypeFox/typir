@@ -134,14 +134,14 @@ export class FunctionKind implements Kind {
                         (t1, t2) => typirr.assignability.isAssignable(t1, t2));
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
-                        // return []; // TODO since we have an explicit validation for that?!
-                        return [{
+                        return {
                             domainElement,
                             inferenceCandidate: functionType,
                             location: 'input parameters',
                             rule: this,
                             subProblems: comparisonConflicts,
-                        }];
+                        };
+                        // We have a dedicated validation for this case (see below), but a resulting error might be ignored by the user => return the problem during type-inference again
                     } else {
                         // matching => return the return type of the function for the case of a function call!
                         return typeDetails.outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
