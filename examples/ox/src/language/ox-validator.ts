@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstUtils, assertUnreachable, type AstNode, type ValidationAcceptor, type ValidationChecks } from 'langium';
-import { isFunctionKind, isInferenceProblem, isType, isTypeConflict, toArray } from 'typir';
+import { AstUtils, type AstNode, type ValidationAcceptor, type ValidationChecks } from 'langium';
+import { isFunctionKind, isType } from 'typir';
 import { OxProgram, isFunctionDeclaration, type AssignmentStatement, type Expression, type OxAstType, type ReturnStatement, type VariableDeclaration } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
 import { createTypir } from './ox-type-checking.js';
@@ -53,16 +53,8 @@ export class OxValidator {
             const typeProblems = typir.validation.validate(node);
             for (const problem of typeProblems) {
                 // print sub-problems
-                const subProblems = toArray(problem.subProblems).map(p => {
-                    if (isTypeConflict(p)) {
-                        return typir.conflictPrinter.printTypeConflict(p);
-                    } else if (isInferenceProblem(p)) {
-                        return typir.conflictPrinter.printInferenceProblem(p);
-                    } else {
-                        assertUnreachable(p);
-                    }
-                }).join('\n');
-                accept(problem.severity, `There is a type problem with '${node.$cstNode?.text}': ${problem.message}\n${subProblems}`.trim(), { node });
+                const message = typir.printer.printValidationProblem(problem);
+                accept(problem.severity, message, { node });
             }
         });
     }
@@ -115,10 +107,10 @@ export class OxValidator {
                             const returnType = functionType.kind.getOutput(functionType)?.type;
                             if (returnType) {
                                 const assignConflicts = typir.assignability.isAssignable(valueType, returnType);
-                                if (assignConflicts.length >= 1) {
-                                    accept('error', `This expression of type '${valueType.name}' is not assignable to '${returnType.name}' as the return type of the function '${functionDeclaration.name}':\n${typir.conflictPrinter.printTypeConflicts(assignConflicts)}`, { node, property: 'value' });
-                                } else {
+                                if (assignConflicts === true) {
                                     // everything is fine!
+                                } else {
+                                    accept('error', `The expression '${node.value.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}':\n${typir.printer.printAssignabilityProblem(assignConflicts)}`, { node, property: 'value' });
                                 }
                             } else {
                                 throw new Error('The function type must have a return type!');
@@ -154,8 +146,10 @@ export class OxValidator {
         const valueType = typir.inference.inferType(value);
         if (isType(variableType) && isType(valueType)) {
             const assignConflicts = typir.assignability.isAssignable(valueType, variableType);
-            if (assignConflicts.length >= 1) {
-                accept('error', `This expression of type '${valueType.name}' is not assignable to '${variableType.name}':\n${typir.conflictPrinter.printTypeConflicts(assignConflicts)}`, { node: value });
+            if (assignConflicts === true) {
+                // everything is fine
+            } else {
+                accept('error', `The expression '${value.$cstNode?.text}' is not assignable to '${variable.name}':\n${typir.printer.printAssignabilityProblem(assignConflicts)}`, { node: value });
             }
         }
     }

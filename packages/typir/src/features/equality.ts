@@ -5,13 +5,22 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { Type } from '../graph/type-node.js';
+import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { TypirProblem, compareValueForConflict } from '../utils/utils-type-comparison.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
-import { TypeConflict, createConflict } from '../utils/utils-type-comparison.js';
+
+export interface TypeEqualityProblem {
+    type1: Type;
+    type2: Type;
+    subProblems: TypirProblem[]; // might be empty
+}
+export function isTypeEqualityProblem(problem: unknown): problem is TypeEqualityProblem {
+    return typeof problem === 'object' && problem !== null && isType((problem as TypeEqualityProblem).type1) && isType((problem as TypeEqualityProblem).type2);
+}
 
 export interface TypeEquality {
-    areTypesEqual(type1: Type, type2: Type): TypeConflict[];
+    areTypesEqual(type1: Type, type2: Type): true | TypeEqualityProblem;
 }
 
 export class DefaultTypeEquality implements TypeEquality {
@@ -21,7 +30,7 @@ export class DefaultTypeEquality implements TypeEquality {
         this.typir = typir;
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
+    areTypesEqual(type1: Type, type2: Type): true | TypeEqualityProblem {
         const cache: TypeRelationshipCaching = this.typir.caching;
         const link = cache.getRelationship(type1, type2, EQUAL_TYPE, false);
 
@@ -31,15 +40,20 @@ export class DefaultTypeEquality implements TypeEquality {
 
         // skip recursive checking
         if (link === 'PENDING') {
-            return []; // is 'true' the correct result here? 'true' will be stored in the type graph ...
+            return true; // is 'true' the correct result here? 'true' will be stored in the type graph ...
         }
 
         // the result is already known
         if (link === 'LINK_EXISTS') {
-            return [];
+            return true;
         }
         if (link === 'NO_LINK') {
-            return this.createEqualityConflict(type1, type2, []); // TODO cache previous subConflicts?!
+            // TODO cache previous subConflicts?!
+            return {
+                type1,
+                type2,
+                subProblems: []
+            };
         }
 
         // do the expensive calculation now
@@ -57,39 +71,35 @@ export class DefaultTypeEquality implements TypeEquality {
         assertUnreachable(link);
     }
 
-    protected calculateEquality(type1: Type, type2: Type): TypeConflict[] {
+    protected calculateEquality(type1: Type, type2: Type): true | TypeEqualityProblem {
         if (type1 === type2) {
-            return [];
+            return true;
         }
-        if (type1.name === type2.name) {
-            return [];
+        if (type1.name === type2.name) { // this works, since names are unique!
+            return true;
         }
 
-        const conflicts: TypeConflict[] = [];
-        if (type1.kind.$name !== type2.kind.$name) {
+        const kindComparisonResult = compareValueForConflict(type1.kind.$name, type2.kind.$name, 'kind');
+        if (kindComparisonResult.length >= 1) {
             // equal types must have the same kind
-            conflicts.push(createConflict(type1.kind.$name, type2.kind.$name, 'kind', 'EQUAL_TYPE'));
+            return {
+                type1,
+                type2,
+                subProblems: kindComparisonResult
+            };
         } else {
             // compare the types: delegated to the kind
-            conflicts.push(...type1.kind.areTypesEqual(type1, type2));
+            const kindResult = type1.kind.areTypesEqual(type1, type2);
+            if (kindResult.length >= 1) {
+                return {
+                    type1,
+                    type2,
+                    subProblems: kindResult
+                };
+            } else {
+                return true;
+            }
         }
-
-        // create the result
-        if (conflicts.length >= 1) {
-            return this.createEqualityConflict(type1, type2, conflicts);
-        } else {
-            return conflicts;
-        }
-    }
-
-    protected createEqualityConflict(type1: Type, type2: Type, subConflicts: TypeConflict[]): TypeConflict[] {
-        return [{
-            expected: type1,
-            actual: type2,
-            location: 'the equality relationship',
-            action: 'EQUAL_TYPE',
-            subConflicts,
-        }];
     }
 }
 

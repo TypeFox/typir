@@ -5,16 +5,21 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { NameTypePair } from '../utils/utils.js';
+import { AssignabilityProblem } from '../features/assignability.js';
+import { TypeEqualityProblem } from '../features/equality.js';
+import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { NameTypePair } from '../utils/utils.js';
+import { InferenceProblem } from '../features/inference.js';
+import { ValidationProblem } from '../features/validation.js';
 
 export type TypeComparisonStrategy =
     'EQUAL_TYPE' | // the most strict checking
     'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
     'SUB_TYPE'; // more relaxed checking
 
-export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, typir: Typir): (t1: Type, t2: Type) => TypeConflict[] {
+export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, typir: Typir): (t1: Type, t2: Type) => true | TypirProblem {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
             return typir.assignability.isAssignable
@@ -32,53 +37,53 @@ export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, t
     }
 }
 
-export interface TypeConflict {
-    // 'undefined' means type or information is missing, 'string' is for data which are no Types
-    expected: Type | string | undefined; // first, left
-    actual: Type | string | undefined; // second, right
-    location: string;
-    action: TypeComparisonStrategy;
-    subConflicts?: TypeConflict[];
-}
-export function isTypeConflict(problem: unknown): problem is TypeConflict {
-    return typeof problem === 'object' && problem !== null && typeof (problem as TypeConflict).action === 'string';
-}
+export type TypirProblem = ValueConflict | IndexedTypeConflict | AssignabilityProblem | SubTypeProblem | TypeEqualityProblem | InferenceProblem | ValidationProblem;
 
-export function compareForConflict<T>(expected: T, actual: T, location: string, action: TypeComparisonStrategy,
-    comparator: (e: T, a: T) => boolean = (e, a) => e === a): TypeConflict[] {
-    const conflicts: TypeConflict[] = [];
-    if (comparator(expected, actual) === false) {
+export interface ValueConflict {
+    // 'undefined' means value is missing, 'string' is the string representation of the value
+    firstValue: string | undefined;
+    secondValue: string | undefined;
+    location: string;
+}
+export function isValueConflict(problem: unknown): problem is ValueConflict {
+    return typeof problem === 'object' && problem !== null
+        && ((typeof (problem as ValueConflict).firstValue === 'string') || (typeof (problem as ValueConflict).secondValue === 'string'));
+}
+export function compareValueForConflict<T>(first: T, second: T, location: string,
+    comparator: (e: T, a: T) => boolean = (e, a) => e === a): ValueConflict[] {
+    const conflicts: ValueConflict[] = [];
+    if (comparator(first, second) === false) {
         conflicts.push({
-            expected: `${expected}`,
-            actual: `${actual}`,
-            location,
-            action,
+            firstValue: `${first}`,
+            secondValue: `${second}`,
+            location
         });
     }
     return conflicts;
 }
 
-export function createConflict(expected: Type | string, actual: Type | string, location: string, action: TypeComparisonStrategy): TypeConflict {
-    return {
-        expected: expected,
-        actual: actual,
-        location,
-        action,
-    };
+export interface IndexedTypeConflict {
+    // 'undefined' means type or information is missing, 'string' is for data which are no Types
+    expected: Type | undefined; // first, left
+    actual: Type | undefined; // second, right
+    index: number | string;
+    subProblems: TypirProblem[];
+}
+export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeConflict {
+    return typeof problem === 'object' && problem !== null && ['string', 'number'].includes(typeof (problem as IndexedTypeConflict).index);
 }
 
-export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[], compareNames: boolean, comparatorTypes: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
-    const conflicts: TypeConflict[] = [];
+export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[], compareNames: boolean, comparatorTypes: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+    const conflicts: IndexedTypeConflict[] = [];
     // compare first common indices
     for (let i = 0; i < left.length; i++) {
-        const subConflicts = compareNameTypePair(left[i], right[i], compareNames, comparatorTypes, action);
-        if (subConflicts.length >= 1) {
+        const subProblems = compareNameTypePair(left[i], right[i], compareNames, comparatorTypes);
+        if (subProblems.length >= 1) {
             conflicts.push({
                 expected: left[i].type,
                 actual: right[i].type,
-                location: `index ${i} with name '${left[i].name}'`,
-                action,
-                subConflicts,
+                index: `${i}-${left[i].name}`,
+                subProblems
             });
         } else {
             // everything is fine
@@ -89,8 +94,8 @@ export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[]
         conflicts.push({
             expected: undefined,
             actual: right[i].type,
-            location: `index ${i} with name '${right[i].name}'`,
-            action,
+            index: `${i}-${right[i].name}`,
+            subProblems: []
         });
     }
     // existing in left, but missing in right
@@ -98,30 +103,32 @@ export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[]
         conflicts.push({
             expected: left[i].type,
             actual: undefined,
-            location: `index ${i} with name '${left[i].name}'`,
-            action,
+            index: `${i}-${left[i].name}`,
+            subProblems: []
         });
     }
     return conflicts;
 }
 
-export function compareNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, compareNames: boolean, comparatorTypes: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
-    const conflicts: TypeConflict[] = [];
+export function compareNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, compareNames: boolean, comparatorTypes: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+    const conflicts: IndexedTypeConflict[] = [];
     if ((left === undefined) && (right === undefined)) {
         // everything is fine
     } else if ((left !== undefined) && (right !== undefined)) {
-        const subConflicts = [];
+        const subProblems: TypirProblem[] = [];
         if (compareNames) {
-            compareForConflict(left.name, right.name, 'name', action);
+            subProblems.push(...compareValueForConflict(left.name, right.name, 'name'));
         }
-        subConflicts.push(...comparatorTypes(left.type, right.type));
-        if (subConflicts.length >= 1) {
+        const typeComparison = comparatorTypes(left.type, right.type);
+        if (typeComparison !== true) {
+            subProblems.push(typeComparison);
+        }
+        if (subProblems.length >= 1) {
             conflicts.push({
                 expected: left.type,
                 actual: right.type,
-                location: `type for '${left.name}'`,
-                action,
-                subConflicts,
+                index: left.name,
+                subProblems
             });
         } else {
             // everything is fine
@@ -130,15 +137,15 @@ export function compareNameTypePair(left: NameTypePair | undefined, right: NameT
         conflicts.push({
             expected: undefined,
             actual: right.type,
-            location: `type for '${right.name}'`,
-            action,
+            index: right.name,
+            subProblems: []
         });
     } else if ((left !== undefined) && (right === undefined)) {
         conflicts.push({
             expected: left.type,
             actual: undefined,
-            location: `type for '${left.name}'`,
-            action,
+            index: left.name,
+            subProblems: []
         });
     } else {
         throw new Error();
@@ -146,8 +153,8 @@ export function compareNameTypePair(left: NameTypePair | undefined, right: NameT
     return conflicts;
 }
 
-export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
-    const conflicts: TypeConflict[] = [];
+export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, comparator: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+    const conflicts: IndexedTypeConflict[] = [];
     // compare first common indices
     for (let i = 0; i < Math.min(leftTypes.length, rightTypes.length); i++) {
         const left = leftTypes[i];
@@ -159,31 +166,32 @@ export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Arr
             conflicts.push({
                 expected: left,
                 actual: undefined,
-                location: `index ${i}`,
-                action,
+                index: i,
+                subProblems: []
             });
         } else if (left === undefined && right !== undefined) {
             // missing in the right
             conflicts.push({
                 expected: undefined,
                 actual: right,
-                location: `index ${i}`,
-                action,
+                index: i,
+                subProblems: []
             });
-        } else {
+        } else if (left !== undefined && right !== undefined) {
             // compare both existing types with each other
-            const subConflicts = comparator(left!, right!);
-            if (subConflicts.length >= 1) {
+            const subProblem = comparator(left!, right!);
+            if (subProblem !== true) {
                 conflicts.push({
                     expected: left,
                     actual: right,
-                    location: `index ${i}`,
-                    action,
-                    subConflicts,
+                    index: i,
+                    subProblems: [subProblem]
                 });
             } else {
                 // everything is fine
             }
+        } else {
+            throw new Error();
         }
     }
     // missing in the left
@@ -191,8 +199,8 @@ export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Arr
         conflicts.push({
             expected: undefined,
             actual: rightTypes[i],
-            location: `index ${i}`,
-            action,
+            index: i,
+            subProblems: []
         });
     }
     // missing in the right
@@ -200,16 +208,16 @@ export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Arr
         conflicts.push({
             expected: leftTypes[i],
             actual: undefined,
-            location: `index ${i}`,
-            action,
+            index: i,
+            subProblems: []
         });
     }
     return conflicts;
 }
 
-export function compareNameTypesMap(sourceFields: Map<string, Type>, targetFields: Map<string, Type>, comparator: (l: Type, r: Type) => TypeConflict[], action: TypeComparisonStrategy): TypeConflict[] {
+export function compareNameTypesMap(sourceFields: Map<string, Type>, targetFields: Map<string, Type>, comparator: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const targetCopy = new Map(targetFields);
-    const conflicts: TypeConflict[] = [];
+    const conflicts: IndexedTypeConflict[] = [];
     for (const entry of sourceFields.entries()) {
         const sourceType = entry[1];
         const name = entry[0];
@@ -218,14 +226,13 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
             const targetType = targetCopy.get(name)!;
             targetCopy.delete(name);
             const comparisonResult = comparator(sourceType, targetType);
-            if (comparisonResult.length >= 1) {
+            if (comparisonResult !== true) {
                 // different types
                 conflicts.push({
                     expected: sourceType,
                     actual: targetType,
-                    location: `property '${name}'`,
-                    action,
-                    subConflicts: comparisonResult,
+                    index: name,
+                    subProblems: [comparisonResult]
                 });
             } else {
                 // same type
@@ -235,8 +242,8 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
             conflicts.push({
                 expected: sourceType,
                 actual: undefined,
-                location: `property '${name}'`,
-                action,
+                index: name,
+                subProblems: []
             });
         }
     }
@@ -245,8 +252,8 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
         conflicts.push({
             expected: undefined,
             actual: entry[1],
-            location: `property '${entry[0]}'`,
-            action,
+            index: entry[0],
+            subProblems: []
         });
     }
     return conflicts;

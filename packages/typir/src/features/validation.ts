@@ -5,15 +5,17 @@
  ******************************************************************************/
 
 import { Typir } from '../typir.js';
-import { TypeConflict } from '../utils/utils-type-comparison.js';
-import { InferenceProblem } from './inference.js';
+import { TypirProblem } from '../utils/utils-type-comparison.js';
 
 export interface ValidationProblem {
     domainElement: unknown;
     // TODO add fields for property, index, ... (similar to Langium)
     severity: 'error' | 'warning' | 'info' | 'hint';
     message: string;
-    subProblems?: Array<TypeConflict | InferenceProblem>;
+    subProblems?: TypirProblem[];
+}
+export function isValidationProblem(problem: unknown): problem is ValidationProblem {
+    return typeof problem === 'object' && problem !== null && typeof (problem as ValidationProblem).severity === 'string' && (problem as ValidationProblem).message !== undefined;
 }
 
 export interface ValidationRule {

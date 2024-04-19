@@ -5,13 +5,23 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { Type } from '../graph/type-node.js';
+import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { TypirProblem, compareValueForConflict } from '../utils/utils-type-comparison.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
-import { TypeConflict, createConflict } from '../utils/utils-type-comparison.js';
+
+export interface SubTypeProblem {
+    // 'undefined' means type or information is missing, 'string' is for data which are no Types
+    superType: Type;
+    subType: Type;
+    subProblems: TypirProblem[]; // might be empty
+}
+export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
+    return typeof problem === 'object' && problem !== null && isType((problem as SubTypeProblem).superType) && isType((problem as SubTypeProblem).subType);
+}
 
 export interface SubType {
-    isSubType(superType: Type, subType: Type): TypeConflict[];
+    isSubType(superType: Type, subType: Type): true | SubTypeProblem;
 }
 
 export class DefaultSubType implements SubType {
@@ -21,7 +31,7 @@ export class DefaultSubType implements SubType {
         this.typir = typir;
     }
 
-    isSubType(superType: Type, subType: Type): TypeConflict[] {
+    isSubType(superType: Type, subType: Type): true | SubTypeProblem {
         const cache: TypeRelationshipCaching = this.typir.caching;
 
         const link = cache.getRelationship(subType, superType, SUB_TYPE, true);
@@ -32,15 +42,20 @@ export class DefaultSubType implements SubType {
 
         // skip recursive checking
         if (link === 'PENDING') {
-            return []; // is 'true' the correct result here? 'true' will be stored in the type graph ...
+            return true; // is 'true' the correct result here? 'true' will be stored in the type graph ...
         }
 
         // the result is already known
         if (link === 'LINK_EXISTS') {
-            return [];
+            return true;
         }
         if (link === 'NO_LINK') {
-            return this.createSubTypeConflict(superType, subType, []); // TODO cache previous subConflicts?! how to store additional properties? that is not supported by the caching service!
+            // TODO cache previous subConflicts?! how to store additional properties? that is not supported by the caching service!
+            return {
+                superType,
+                subType,
+                subProblems: [],
+            };
         }
 
         // do the expensive calculation now
@@ -58,32 +73,28 @@ export class DefaultSubType implements SubType {
         assertUnreachable(link);
     }
 
-    protected calculateSubType(superType: Type, subType: Type): TypeConflict[] {
-        const conflicts: TypeConflict[] = [];
-        if (superType.kind.$name !== subType.kind.$name) {
+    protected calculateSubType(superType: Type, subType: Type): true | SubTypeProblem {
+        const kindComparisonResult = compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind');
+        if (kindComparisonResult.length >= 1) {
             // sub-types need to have the same kind: this is the precondition
-            conflicts.push(createConflict(superType.kind.$name, subType.kind.$name, 'kind', 'SUB_TYPE'));
+            return {
+                superType,
+                subType,
+                subProblems: kindComparisonResult,
+            };
         } else {
             // compare the types: delegated to the kind
-            conflicts.push(...superType.kind.isSubType(superType, subType));
+            const kindResult = superType.kind.isSubType(superType, subType);
+            if (kindResult.length >= 1) {
+                return {
+                    superType,
+                    subType,
+                    subProblems: kindResult,
+                };
+            } else {
+                return true;
+            }
         }
-
-        // create the result
-        if (conflicts.length >= 1) {
-            return this.createSubTypeConflict(superType, subType, conflicts);
-        } else {
-            return conflicts;
-        }
-    }
-
-    protected createSubTypeConflict(superType: Type, subType: Type, subConflicts: TypeConflict[]): TypeConflict[] {
-        return [{
-            expected: superType,
-            actual: subType,
-            location: 'the sub-type relationship',
-            action: 'SUB_TYPE',
-            subConflicts,
-        }];
     }
 }
 

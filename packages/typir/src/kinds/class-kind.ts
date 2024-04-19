@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeComparisonStrategy, TypeConflict, createTypeComparisonStrategy, compareForConflict, compareNameTypesMap } from '../utils/utils-type-comparison.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { IndexedTypeConflict, TypeComparisonStrategy, TypirProblem, compareNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
 import { NameTypePair, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
@@ -106,25 +106,24 @@ export class ClassKind implements Kind {
         return `${type.name} { ${fields.join(', ')} }${extendedClasses}`;
     }
 
-    isSubType(superType: Type, subType: Type): TypeConflict[] {
+    isSubType(superType: Type, subType: Type): TypirProblem[] {
         if (isClassKind(superType.kind) && isClassKind(subType.kind)) {
-            const conflicts: TypeConflict[] = [];
             if (this.options.structuralTyping) {
                 // for structural typing, the sub type needs to have all fields of the super type with assignable types (including fields of all super classes):
+                const conflicts: IndexedTypeConflict[] = [];
                 const subFields = subType.kind.getFields(subType, true);
                 for (const [superFieldName, superFieldType] of superType.kind.getFields(superType, true)) {
                     if (subFields.has(superFieldName)) {
                         // field is both in super and sub
                         const subFieldType = subFields.get(superFieldName)!;
                         const compareStrategy = createTypeComparisonStrategy(this.options.subtypeFieldChecking, this.typir);
-                        const subConflicts = compareStrategy(subFieldType, superFieldType);
-                        if (subConflicts.length >= 1) {
+                        const subTypeComparison = compareStrategy(subFieldType, superFieldType);
+                        if (subTypeComparison !== true) {
                             conflicts.push({
                                 expected: superType,
                                 actual: subType,
-                                location: `property '${superFieldName}'`,
-                                action: 'SUB_TYPE',
-                                subConflicts,
+                                index: superFieldName,
+                                subProblems: [subTypeComparison],
                             });
                         } else {
                             // everything is fine
@@ -134,33 +133,31 @@ export class ClassKind implements Kind {
                         conflicts.push({
                             expected: superFieldType,
                             actual: undefined,
-                            location: `property '${superFieldName}'`,
-                            action: 'SUB_TYPE',
+                            index: superFieldName,
+                            subProblems: []
                         });
                     }
                 }
                 // Note that it is not necessary to check, whether the sub class has additional fields than the super type!
+                return conflicts;
             } else {
                 // for nominal typing (super classes don't matter):
-                conflicts.push(...compareForConflict(superType.name, subType.name, 'name', 'SUB_TYPE'));
+                return compareValueForConflict(superType.name, subType.name, 'name');
             }
-            return conflicts;
         }
         throw new Error();
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
+    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
         if (isClassKind(type1.kind) && isClassKind(type2.kind)) {
-            const conflicts: TypeConflict[] = [];
             if (this.options.structuralTyping) {
                 // for structural typing:
-                conflicts.push(...compareNameTypesMap(type1.kind.getFields(type1, true), type2.kind.getFields(type2, true),
-                    (t1, t2) => this.typir.equality.areTypesEqual(t1, t2), 'EQUAL_TYPE'));
+                return compareNameTypesMap(type1.kind.getFields(type1, true), type2.kind.getFields(type2, true),
+                    (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));
             } else {
                 // for nominal typing:
-                conflicts.push(...compareForConflict(type1.name, type2.name, 'name', 'EQUAL_TYPE'));
+                return compareValueForConflict(type1.name, type2.name, 'name');
             }
-            return conflicts;
         }
         throw new Error();
     }

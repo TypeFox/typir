@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { AstNode, AstUtils, assertUnreachable } from 'langium';
 import { FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
 import { TypeReference, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isOxProgram, isParameter, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
@@ -19,8 +18,10 @@ export function createTypir(nodeEntry: AstNode): Typir {
     const operators = typir.operators;
 
     // types
-    const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRule: (node) => isBooleanExpression(node)}); // typeBool is a specific type for OX, ...
-    const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRule: (node) => isNumberExpression(node)}); // but the primitive kind is provided/preset by Typir
+    // typeBool is a specific type for OX, ...
+    const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRule: (node) => isBooleanExpression(node)});
+    // but the primitive kind is provided/preset by Typir
+    const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRule: (node) => isNumberExpression(node)});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void' });
 
     // utility function to map language types to Typir types
@@ -34,25 +35,25 @@ export function createTypir(nodeEntry: AstNode): Typir {
     }
 
     // binary operators: numbers => number
-    const opAddSubMulDiv = operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber,
+    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber,
         inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
 
     // binary operators: numbers => boolean
-    const opLtLeqGtGeq = operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool,
+    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool,
         inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
 
     // binary operators: booleans => boolean
-    const opAndOr = operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool,
+    operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool,
         inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
 
     // ==, != for booleans and numbers
-    const opEqNeq = operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool,
+    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool,
         inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
 
     // unary operators
-    const opNot = operators.createUnaryOperator({ name: '!', operandType: typeBool,
+    operators.createUnaryOperator({ name: '!', operandType: typeBool,
         inferenceRule: (node) => isUnaryExpression(node) && node.operator === '!' ? node.value : false});
-    const opNegative = operators.createUnaryOperator({ name: '-', operandType: typeNumber,
+    operators.createUnaryOperator({ name: '-', operandType: typeNumber,
         inferenceRule: (node) => isUnaryExpression(node) && node.operator === '-' ? node.value : false});
 
     // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
@@ -60,15 +61,17 @@ export function createTypir(nodeEntry: AstNode): Typir {
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
-            const typeFunction = functionKind.createFunctionType({
+            functionKind.createFunctionType({
                 functionName,
                 outputParameter: { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
                 inputParameters: node.parameters.map(p => ({ name: p.name, type: mapType(p.type) })),
                 // inference rule for function declaration:
                 inferenceRuleForDeclaration: (domainElement) => isFunctionDeclaration(domainElement) && domainElement.name === functionName, // TODO what about overloaded functions?
                 // inference rule for funtion calls: inferring works only, if the actual arguments have the expected types!
-                inferenceRuleForCalls: (domainElement) => isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName
-                    ? [...domainElement.arguments] : false
+                inferenceRuleForCalls: (domainElement) =>
+                    isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName
+                        ? [...domainElement.arguments]
+                        : false
             });
         }
     });

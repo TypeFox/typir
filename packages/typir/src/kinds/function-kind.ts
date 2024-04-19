@@ -5,13 +5,13 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
+import { ValidationProblem } from '../features/validation.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeConflict, compareForConflict, compareNameTypePair, compareNameTypePairs, compareTypes } from '../utils/utils-type-comparison.js';
+import { TypirProblem, compareNameTypePair, compareNameTypePairs, compareTypes, compareValueForConflict } from '../utils/utils-type-comparison.js';
 import { NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
-import { ValidationProblem } from '../features/validation.js';
 
 export interface FunctionKindOptions {
     // these three options controls structural vs nominal typing somehow ...
@@ -131,7 +131,7 @@ export class FunctionKind implements Kind {
                     const inputTypes = typeDetails.inputParameters.map(p => p.type);
                     // all operands need to be assignable(! not equal) to the required types
                     const comparisonConflicts = compareTypes(childrenTypes, inputTypes,
-                        (t1, t2) => typirr.assignability.isAssignable(t1, t2), 'ASSIGNABLE_TYPE');
+                        (t1, t2) => typirr.assignability.isAssignable(t1, t2));
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
                         // return []; // TODO since we have an explicit validation for that?!
@@ -140,7 +140,7 @@ export class FunctionKind implements Kind {
                             inferenceCandidate: functionType,
                             location: 'input parameters',
                             rule: this,
-                            inferenceConflicts: comparisonConflicts,
+                            subProblems: comparisonConflicts,
                         }];
                     } else {
                         // matching => return the return type of the function for the case of a function call!
@@ -158,17 +158,13 @@ export class FunctionKind implements Kind {
                     const parameters = typeDetails.inferenceRuleForCalls!(domainElement);
                     if (Array.isArray(parameters)) {
                         // check, that the given number of parameters is the same as the expected number of input parameters
-                        if (parameters.length !== typeDetails.inputParameters.length) {
+                        const parameterLength = compareValueForConflict(typeDetails.inputParameters.length, parameters.length, 'number of input parameter values');
+                        if (parameterLength.length >= 1) {
                             return [{
                                 domainElement,
                                 severity: 'error',
                                 message: 'The number of given parameter values does not match the expected number of input parameters.',
-                                subProblems: [{
-                                    expected: `${typeDetails.inputParameters.length}`,
-                                    actual: `${parameters.length}`,
-                                    location: 'number of input parameter values',
-                                    action: 'EQUAL_TYPE',
-                                }]
+                                subProblems: parameterLength
                             }];
                         }
                         // there are parameter values to check their types
@@ -178,13 +174,13 @@ export class FunctionKind implements Kind {
                             const inferredType = inferredParameterTypes[i];
                             if (isType(inferredType)) {
                                 const parameterComparison = typirr.assignability.isAssignable(inferredType, typeDetails.inputParameters[i].type);
-                                if (parameterComparison.length >= 1) {
+                                if (parameterComparison !== true) {
                                     // the value is not assignable to the type of the input parameter
                                     parameterMismatches.push({
                                         domainElement,
                                         severity: 'error',
                                         message: `The parameter '${typeDetails.inputParameters[i].name}' at index ${i} got a value with a wrong type.`,
-                                        subProblems: parameterComparison,
+                                        subProblems: [parameterComparison],
                                     });
                                 } else {
                                     // this parameter value is fine
@@ -241,33 +237,33 @@ export class FunctionKind implements Kind {
         return name !== undefined && name !== FUNCTION_MISSING_NAME;
     }
 
-    isSubType(superType: Type, subType: Type): TypeConflict[] {
+    isSubType(superType: Type, subType: Type): TypirProblem[] {
         if (isFunctionKind(superType.kind) && isFunctionKind(subType.kind)) {
-            const conflicts: TypeConflict[] = [];
+            const conflicts: TypirProblem[] = [];
             // output: target parameter must be assignable to source parameter
             conflicts.push(...compareNameTypePair(superType.kind.getOutput(superType), subType.kind.getOutput(subType),
-                this.options.enforceOutputParameterName, (s, t) => this.typir.assignability.isAssignable(t, s), 'ASSIGNABLE_TYPE'));
+                this.options.enforceOutputParameterName, (s, t) => this.typir.assignability.isAssignable(t, s)));
             // input: source parameters must be assignable to target parameters
             conflicts.push(...compareNameTypePairs(superType.kind.getInputs(superType), subType.kind.getInputs(subType),
-                this.options.enforceInputParameterNames, (s, t) => this.typir.assignability.isAssignable(s, t), 'ASSIGNABLE_TYPE'));
+                this.options.enforceInputParameterNames, (s, t) => this.typir.assignability.isAssignable(s, t)));
             return conflicts;
         }
         throw new Error();
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
+    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
         if (isFunctionKind(type1.kind) && isFunctionKind(type2.kind)) {
-            const conflicts: TypeConflict[] = [];
+            const conflicts: TypirProblem[] = [];
             // same name? TODO is this correct??
             if (this.options.enforceFunctionName) {
-                conflicts.push(...compareForConflict(type1.kind.getSimpleFunctionName(type1), type2.kind.getSimpleFunctionName(type2), 'simple name', 'EQUAL_TYPE'));
+                conflicts.push(...compareValueForConflict(type1.kind.getSimpleFunctionName(type1), type2.kind.getSimpleFunctionName(type2), 'simple name'));
             }
             // same output?
             conflicts.push(...compareNameTypePair(type1.kind.getOutput(type1), type2.kind.getOutput(type2),
-                this.options.enforceOutputParameterName, (s, t) => this.typir.equality.areTypesEqual(s, t), 'EQUAL_TYPE'));
+                this.options.enforceOutputParameterName, (s, t) => this.typir.equality.areTypesEqual(s, t)));
             // same input?
             conflicts.push(...compareNameTypePairs(type2.kind.getInputs(type1), type2.kind.getInputs(type2),
-                this.options.enforceInputParameterNames, (s, t) => this.typir.equality.areTypesEqual(s, t), 'EQUAL_TYPE'));
+                this.options.enforceInputParameterNames, (s, t) => this.typir.equality.areTypesEqual(s, t)));
             return conflicts;
         }
         throw new Error();

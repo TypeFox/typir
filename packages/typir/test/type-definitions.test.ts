@@ -12,6 +12,7 @@ import { FUNCTION_MISSING_NAME, FunctionKind } from '../src/kinds/function-kind.
 import { MultiplicityKind } from '../src/kinds/multiplicity-kind.js';
 import { PrimitiveKind } from '../src/kinds/primitive-kind.js';
 import { Typir } from '../src/typir.js';
+import { AssignabilityProblem, isAssignabilityProblem } from '../src/index.js';
 
 describe('Tests for Typir', () => {
     test('Define some types', async () => {
@@ -83,18 +84,18 @@ describe('Tests for Typir', () => {
 
         // is assignable?
         // primitives
-        expect(typir.assignability.isAssignable(typeInt, typeInt)).toHaveLength(0);
-        expect(typir.assignability.isAssignable(typeInt, typeString)).toHaveLength(0);
-        expect(typir.assignability.isAssignable(typeString, typeInt)).toHaveLength(1);
+        expect(typir.assignability.isAssignable(typeInt, typeInt)).toBe(true);
+        expect(typir.assignability.isAssignable(typeInt, typeString)).toBe(true);
+        expect(typir.assignability.isAssignable(typeString, typeInt)).not.toBe(true);
         // List, Map
-        expect(typir.assignability.isAssignable(typeListInt, typeMapStringPerson)).toHaveLength(1);
-        expect(typir.assignability.isAssignable(typeListInt, typeListString)).toHaveLength(1);
-        expect(typir.assignability.isAssignable(typeListInt, typeListInt)).toHaveLength(0);
+        expect(typir.assignability.isAssignable(typeListInt, typeMapStringPerson)).not.toBe(true);
+        expect(typir.assignability.isAssignable(typeListInt, typeListString)).not.toBe(true);
+        expect(typir.assignability.isAssignable(typeListInt, typeListInt)).toBe(true);
         // classes
-        expect(typir.assignability.isAssignable(typeStudent, typePerson)).toHaveLength(0);
+        expect(typir.assignability.isAssignable(typeStudent, typePerson)).toBe(true);
         const assignConflicts = typir.assignability.isAssignable(typePerson, typeStudent);
-        expect(assignConflicts).toHaveLength(1);
-        const msg = typir.conflictPrinter.printTypeConflicts(assignConflicts);
+        expect(assignConflicts).not.toBe(true);
+        const msg = typir.printer.printAssignabilityProblem(assignConflicts as AssignabilityProblem);
         console.log(msg);
         // TODO extend API for validation with Langium, generate nice error messages
     });

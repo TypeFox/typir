@@ -6,7 +6,7 @@
 
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeConflict, compareForConflict } from '../utils/utils-type-comparison.js';
+import { TypirProblem, compareValueForConflict as compareValuesForConflict } from '../utils/utils-type-comparison.js';
 import { Kind, isKind } from './kind.js';
 
 export type InferPrimitiveType = (domainElement: unknown) => boolean;
@@ -43,15 +43,13 @@ export class PrimitiveKind implements Kind {
         return type.name;
     }
 
-    isSubType(superType: Type, subType: Type): TypeConflict[] {
+    isSubType(superType: Type, subType: Type): TypirProblem[] {
         return this.areTypesEqual(superType, subType);
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
+    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
         if (isPrimitiveKind(type1.kind) && isPrimitiveKind(type2.kind)) {
-            const conflicts: TypeConflict[] = [];
-            conflicts.push(...compareForConflict(type1.name, type2.name, 'primitive name', 'EQUAL_TYPE'));
-            return conflicts;
+            return compareValuesForConflict(type1.name, type2.name, 'name');
         }
         throw new Error();
     }

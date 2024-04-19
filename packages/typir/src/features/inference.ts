@@ -6,20 +6,18 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeConflict } from '../utils/utils-type-comparison.js';
+import { TypirProblem } from '../utils/utils-type-comparison.js';
 import { assertUnreachable } from '../utils/utils.js';
 
 export interface InferenceProblem {
-    domainElement?: unknown;
+    domainElement: unknown;
     inferenceCandidate?: Type;
     location: string;
     rule?: TypeInferenceRule; // for debugging only, since rules have no names (so far)
-    inferenceConflicts?: TypeConflict[]; // might be missing or empty
-    subProblems?: InferenceProblem[];
+    subProblems: TypirProblem[]; // might be missing or empty
 }
 export function isInferenceProblem(problem: unknown): problem is InferenceProblem {
-    // TODO this is not unique, compare it with TypeConflict!
-    return typeof problem === 'object' && problem !== null && typeof (problem as InferenceProblem).location === 'string';
+    return typeof problem === 'object' && problem !== null && typeof (problem as InferenceProblem).location === 'string' && (problem as InferenceProblem).domainElement !== undefined;
 }
 
 /**
@@ -36,7 +34,7 @@ export interface TypeInferenceRule {
      * or a list of domain elements, whose types need to be inferred, before this rule is able to decide, whether it is applicable.
      * Only in the last case, the other function will be called, otherwise, it is skipped (that is the reason, why it is optional).
      */
-    isRuleApplicable(domainElement: unknown): Type | unknown[] | 'RULE_NOT_APPLICABLE' | InferenceProblem[];
+    isRuleApplicable(domainElement: unknown): Type | unknown[] | 'RULE_NOT_APPLICABLE' | InferenceProblem[]; // TODO only a single InferenceProblem?
 
     /**
      * 2nd step is to finally decide about the inferred type.

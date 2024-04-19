@@ -10,7 +10,7 @@ import { DefaultTypeConversion, TypeConversion } from './features/conversion.js'
 import { DefaultTypeEquality, TypeEquality } from './features/equality.js';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './features/inference.js';
 import { DefaultOperatorManager, OperatorManager } from './features/operator.js';
-import { DefaultTypeConflictPrinter, TypeConflictPrinter } from './features/printing.js';
+import { DefaultTypeConflictPrinter, ProblemPrinter } from './features/printing.js';
 import { DefaultSubType, SubType } from './features/subtype.js';
 import { DefaultValidationCollector, ValidationCollector } from './features/validation.js';
 import { TypeGraph } from './graph/type-graph.js';
@@ -49,7 +49,7 @@ export class Typir {
     inference: TypeInferenceCollector;
     caching: TypeRelationshipCaching;
     operators: OperatorManager;
-    conflictPrinter: TypeConflictPrinter;
+    printer: ProblemPrinter;
     validation: ValidationCollector;
 
     constructor() {
@@ -60,7 +60,7 @@ export class Typir {
         this.inference = new DefaultTypeInferenceCollector(this);
         this.caching = new DefaultTypeRelationshipCaching(this);
         this.operators = new DefaultOperatorManager(this);
-        this.conflictPrinter = new DefaultTypeConflictPrinter(this);
+        this.printer = new DefaultTypeConflictPrinter(this);
         this.validation = new DefaultValidationCollector(this);
     }
 

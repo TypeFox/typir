@@ -5,40 +5,156 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { Type, isType } from '../graph/type-node.js';
+import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeConflict } from '../utils/utils-type-comparison.js';
-import { InferenceProblem } from './inference.js';
+import { IndexedTypeConflict, TypirProblem, ValueConflict, isIndexedTypeConflict, isValueConflict } from '../utils/utils-type-comparison.js';
 import { toArray } from '../utils/utils.js';
+import { AssignabilityProblem, isAssignabilityProblem } from './assignability.js';
+import { TypeEqualityProblem, isTypeEqualityProblem } from './equality.js';
+import { InferenceProblem, isInferenceProblem } from './inference.js';
+import { SubTypeProblem, isSubTypeProblem } from './subtype.js';
+import { ValidationProblem, isValidationProblem } from './validation.js';
 
-export interface TypeConflictPrinter {
-    printTypeConflict(conflict: TypeConflict): string;
-    printTypeConflicts(conflicts: TypeConflict[]): string;
-    printInferenceProblems(problems: InferenceProblem[]): string;
+export interface ProblemPrinter {
+    printValueConflict(problem: ValueConflict): string;
+    printIndexedTypeConflict(problem: IndexedTypeConflict): string;
+    printAssignabilityProblem(problem: AssignabilityProblem): string;
+    printSubTypeProblem(problem: SubTypeProblem): string;
+    printTypeEqualityProblem(problem: TypeEqualityProblem): string;
     printInferenceProblem(problem: InferenceProblem): string;
+    printValidationProblem(problem: ValidationProblem): string
+
+    printTypirProblem(problem: TypirProblem): string;
+    printTypirProblems(problems: TypirProblem[]): string;
 }
 
-export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
+export class DefaultTypeConflictPrinter implements ProblemPrinter {
     protected readonly typir: Typir;
 
     constructor(typir: Typir) {
         this.typir = typir;
     }
 
-    printTypeConflict(conflict: TypeConflict): string {
-        return this.printTypeConflictLevel(conflict, 0);
+    printValueConflict(problem: ValueConflict, level: number = 0): string {
+        let result = `At ${problem.location}, `;
+        const left = problem.firstValue;
+        const right = problem.secondValue;
+        if (left !== undefined && right !== undefined) {
+            result = result + `${left} and ${right} do not match.`;
+        } else if (left !== undefined && right === undefined) {
+            result = result + `${left} on the left has no opposite value on the right to match.`;
+        } else if (left === undefined && right !== undefined) {
+            result = result + `there is no value on the left to match with ${right} on the right.`;
+        } else {
+            throw new Error();
+        }
+        result = this.printIndentation(result, level);
+        return result;
     }
 
-    protected printTypeConflictLevel(conflict: TypeConflict, level: number): string {
-        // the current conflict
-        let result = this.printSingleConflict(conflict);
-        // indentation
-        result = this.printIndentation(result, level);
-        // the sub-conflicts
-        if (conflict.subConflicts && conflict.subConflicts.length >= 1) {
-            result = result + '\n' + this.printTypeConflictsLevel(conflict.subConflicts, level + 1);
+    printIndexedTypeConflict(problem: IndexedTypeConflict, level: number = 0): string {
+        const left = problem.expected;
+        const right = problem.actual;
+        let result = '';
+        if (typeof problem.index === 'number') {
+            result = result + `At index ${problem.index}, `;
+        } else {
+            result = result + `For property '${problem.index}', `;
         }
+        if (left !== undefined && right !== undefined) {
+            result = result + `${this.printType(left)} and ${this.printType(right)} do not match.`;
+        } else if (left !== undefined && right === undefined) {
+            result = result + `${this.printType(left)} on the left has no opposite type on the right to match with.`;
+        } else if (left === undefined && right !== undefined) {
+            result = result + `there is no type on the left to match with ${this.printType(right)} on the right.`;
+        } else {
+            throw new Error();
+        }
+        result = this.printIndentation(result, level);
+        result = this.printSubProblems(result, problem.subProblems, level);
         return result;
+    }
+
+    printAssignabilityProblem(problem: AssignabilityProblem, level: number = 0): string {
+        let result = `${this.printType(problem.source, true)} is not assignable to ${this.printType(problem.target)}.`;
+        result = this.printIndentation(result, level);
+        result = this.printSubProblems(result, problem.subProblems, level);
+        return result;
+    }
+
+    printSubTypeProblem(problem: SubTypeProblem, level: number = 0): string {
+        let result = `${this.printType(problem.superType, true)} is no super-type of ${this.printType(problem.subType)}.`;
+        result = this.printIndentation(result, level);
+        result = this.printSubProblems(result, problem.subProblems, level);
+        return result;
+    }
+
+    printTypeEqualityProblem(problem: TypeEqualityProblem, level: number = 0): string {
+        let result = `${this.printType(problem.type1, true)} and ${this.printType(problem.type2)} are not equal.`;
+        result = this.printIndentation(result, level);
+        result = this.printSubProblems(result, problem.subProblems, level);
+        return result;
+    }
+
+    printInferenceProblem(problem: InferenceProblem, level: number = 0): string {
+        let result = `While inferring the type for ${this.printDomainElement(problem.domainElement)}, at ${problem.location}`;
+        if (problem.inferenceCandidate) {
+            result = result + ` of ${this.printType(problem.inferenceCandidate)} as candidate to infer`;
+        }
+        result = result + ', some problems occurred.';
+        // Since Rules have no name (yet), it is not possible to print problem.rule here.
+        result = this.printIndentation(result, level);
+        result = this.printSubProblems(result, problem.subProblems, level);
+        return result;
+    }
+
+    printValidationProblem(problem: ValidationProblem, level: number = 0): string {
+        let result = `While validating ${this.printDomainElement(problem.domainElement)}, this ${problem.severity} is found: ${problem.message}`;
+        result = this.printIndentation(result, level);
+        result = this.printSubProblems(result, problem.subProblems, level);
+        return result;
+    }
+
+    printTypirProblem(problem: TypirProblem, level: number = 0): string {
+        if (isValueConflict(problem)) {
+            return this.printValueConflict(problem, level);
+        } else if (isIndexedTypeConflict(problem)) {
+            return this.printIndexedTypeConflict(problem, level);
+        } else if (isAssignabilityProblem(problem)) {
+            return this.printAssignabilityProblem(problem, level);
+        } else if (isSubTypeProblem(problem)) {
+            return this.printSubTypeProblem(problem, level);
+        } else if (isTypeEqualityProblem(problem)) {
+            return this.printTypeEqualityProblem(problem, level);
+        } else if (isInferenceProblem(problem)) {
+            return this.printInferenceProblem(problem, level);
+        } else if (isValidationProblem(problem)) {
+            return this.printValidationProblem(problem, level);
+        } else {
+            assertUnreachable(problem);
+        }
+    }
+
+    printTypirProblems(problems: TypirProblem[], level: number = 0): string {
+        return problems.map(p => this.printTypirProblem(p, level)).join('\n');
+    }
+
+    protected printDomainElement(domainElement: unknown, sentenceBegin: boolean = false): string {
+        // TODO this could be improved
+        return `${sentenceBegin ? 'T' : 't'}he domain element '${domainElement}'`;
+    }
+
+    protected printType(type: Type, sentenceBegin: boolean = false): string {
+        return `${sentenceBegin ? 'T' : 't'}he type '${type.getUserRepresentation()}'`;
+    }
+
+    protected printSubProblems(result: string, subProblems: undefined | TypirProblem[], level: number = 0): string {
+        const problems = toArray(subProblems);
+        if (problems.length >= 1) {
+            return result + '\n' + this.printTypirProblems(problems, level + 1);
+        } else {
+            return result;
+        }
     }
 
     protected printIndentation(result: string, level: number): string {
@@ -51,115 +167,4 @@ export class DefaultTypeConflictPrinter implements TypeConflictPrinter {
         }
         return result;
     }
-
-    protected printSingleConflict(conflict: TypeConflict): string {
-        const valueKind = toValueKind(conflict);
-        const action = conflict.action;
-        const location = conflict.location;
-        const expected = this.printOneSide(conflict.expected);
-        const actual = this.printOneSide(conflict.actual);
-        switch (action) {
-            case 'EQUAL_TYPE':
-                switch (valueKind) {
-                    case 'BOTH':            return `For equality, at ${location}, ${expected} on the one side fits not to ${actual} on the other side.`;
-                    case 'ONLY_EXPECTED':   return `For equality, at ${location}, ${expected} on the one side has no counterpart on the other side.`;
-                    case 'ONLY_ACTUAL':     return `For equality, at ${location}, on the one side there is no counterpart for ${actual} on the other side.`;
-                    case 'NONE': throw new Error();
-                    default: return assertUnreachable(valueKind);
-                }
-            case 'ASSIGNABLE_TYPE':
-                switch (valueKind) {
-                    case 'BOTH':            return `At ${location}, ${expected} is not assignable to ${actual}.`;
-                    case 'ONLY_EXPECTED':   return `At ${location}, ${expected} cannot be assigned, since there is nothing to assign this to.`;
-                    case 'ONLY_ACTUAL':     return `At ${location}, for ${actual}, there is nothing to assign to it.`;
-                    case 'NONE': throw new Error();
-                    default: return assertUnreachable(valueKind);
-                }
-            case 'SUB_TYPE':
-                switch (valueKind) {
-                    case 'BOTH':            return `For ${location}, ${expected} is no super type for ${actual}.`;
-                    case 'ONLY_EXPECTED':   return `For ${location}, ${expected} as super type has no counterpart for the sub type.`;
-                    case 'ONLY_ACTUAL':     return `For ${location}, ${actual} as sub type has no counterpart for the super type.`;
-                    case 'NONE': throw new Error();
-                    default: return assertUnreachable(valueKind);
-                }
-            default:
-                assertUnreachable(action);
-        }
-    }
-
-    protected printOneSide(type: Type | string | undefined): string {
-        if (type === undefined) {
-            return 'a missing type';
-        } else if (isType(type)) {
-            return `the type '${type.getUserRepresentation()}'`;
-        } else if (typeof type === 'string') {
-            return `${type}`;
-        } else {
-            assertUnreachable(type);
-        }
-    }
-
-    printTypeConflicts(conflicts: TypeConflict[]): string {
-        return this.printTypeConflictsLevel(conflicts, 0);
-    }
-
-    protected printTypeConflictsLevel(conflicts: TypeConflict[], level: number): string {
-        return conflicts.map(c => this.printTypeConflictLevel(c, level)).join('\n');
-    }
-
-    printInferenceProblem(problem: InferenceProblem): string {
-        return this.printInferenceProblemLevel(problem, 0);
-    }
-
-    protected printInferenceProblemLevel(p: InferenceProblem, level: number): string {
-        let result = this.printSingleInferenceProblem(p);
-        result = this.printIndentation(result, level);
-        const inferenceConflicts = toArray(p.inferenceConflicts);
-        if (inferenceConflicts.length >= 1) {
-            result = result + '\n' + this.printTypeConflictsLevel(inferenceConflicts, level + 1);
-        }
-        const subProblems = toArray(p.subProblems);
-        if (subProblems.length >= 1) {
-            result = result + '\n' + this.printInferenceProblemsLevel(subProblems, level + 1);
-        }
-        return result;
-    }
-
-    protected printSingleInferenceProblem(p: InferenceProblem): string {
-        const de = p.domainElement ? `While inferring ${p.domainElement}, at` : 'At';
-        const type = p.inferenceCandidate ? ` of type candidate '${p.inferenceCandidate.getUserRepresentation()}'` : '';
-        return `${de} ${p.location}${type}, some problems occurred.`;
-    }
-
-    printInferenceProblems(problems: InferenceProblem[]): string {
-        return this.printInferenceProblemsLevel(problems, 0);
-    }
-
-    protected printInferenceProblemsLevel(problems: InferenceProblem[], level: number): string {
-        return problems.map(p => this.printInferenceProblemLevel(p, level)).join('\n');
-    }
-
-}
-
-/* Utilities */
-
-type ValueKinds = 'BOTH' | 'ONLY_EXPECTED' | 'ONLY_ACTUAL' | 'NONE';
-
-function toValueKind(conflict: TypeConflict): ValueKinds {
-    const expected = conflict.expected;
-    const actual = conflict.actual;
-    if (expected !== undefined && actual !== undefined) {
-        return 'BOTH';
-    }
-    if (expected !== undefined && actual === undefined) {
-        return 'ONLY_EXPECTED';
-    }
-    if (expected === undefined && actual !== undefined) {
-        return 'ONLY_ACTUAL';
-    }
-    if (expected === undefined && actual === undefined) {
-        return 'NONE';
-    }
-    throw new Error();
 }

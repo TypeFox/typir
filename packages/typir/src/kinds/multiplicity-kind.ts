@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeConflict, compareForConflict } from '../utils/utils-type-comparison.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { TypirProblem, compareValueForConflict as compareValuesForConflict } from '../utils/utils-type-comparison.js';
 import { Kind, isKind } from './kind.js';
 
 export interface MultiplicityKindOptions {
@@ -100,24 +100,16 @@ export class MultiplicityKind implements Kind {
         throw new Error();
     }
 
-    isSubType(superType: Type, subType: Type): TypeConflict[] {
+    isSubType(superType: Type, subType: Type): TypirProblem[] {
         if (isMultiplicityKind(superType.kind) && isMultiplicityKind(subType.kind)) {
-            const conflicts: TypeConflict[] = [];
+            const conflicts: TypirProblem[] = [];
             // compare the multiplicities
-            conflicts.push(...compareForConflict(superType.kind.getLowerBound(superType), subType.kind.getLowerBound(subType), 'lower bound', 'SUB_TYPE', this.isBoundGreaterEquals));
-            conflicts.push(...compareForConflict(superType.kind.getUpperBound(superType), subType.kind.getUpperBound(subType), 'upper bound', 'SUB_TYPE', this.isBoundGreaterEquals));
+            conflicts.push(...compareValuesForConflict(superType.kind.getLowerBound(superType), subType.kind.getLowerBound(subType), 'lower bound', this.isBoundGreaterEquals));
+            conflicts.push(...compareValuesForConflict(superType.kind.getUpperBound(superType), subType.kind.getUpperBound(subType), 'upper bound', this.isBoundGreaterEquals));
             // compare the constrained type
-            const superTypeconstrained = superType.kind.getConstrainedType(superType);
-            const subTypeconstrained = subType.kind.getConstrainedType(subType);
-            const subConflicts = this.typir.subtype.isSubType(superTypeconstrained, subTypeconstrained);
-            if (subConflicts.length >= 1) {
-                conflicts.push({
-                    expected: superTypeconstrained,
-                    actual: subTypeconstrained,
-                    location: 'constrained type',
-                    action: 'SUB_TYPE',
-                    subConflicts,
-                });
+            const constrainedTypeConflict = this.typir.subtype.isSubType(superType.kind.getConstrainedType(superType), subType.kind.getConstrainedType(subType));
+            if (constrainedTypeConflict !== true) {
+                conflicts.push(constrainedTypeConflict);
             }
             return conflicts;
         }
@@ -134,24 +126,16 @@ export class MultiplicityKind implements Kind {
         return leftBound >= rightBound;
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypeConflict[] {
+    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
         if (isMultiplicityKind(type1.kind) && isMultiplicityKind(type2.kind)) {
-            const conflicts: TypeConflict[] = [];
+            const conflicts: TypirProblem[] = [];
             // compare the multiplicities
-            conflicts.push(...compareForConflict(this.getLowerBound(type1), this.getLowerBound(type2), 'lower bound', 'EQUAL_TYPE'));
-            conflicts.push(...compareForConflict(this.getUpperBound(type1), this.getUpperBound(type2), 'upper bound', 'EQUAL_TYPE'));
+            conflicts.push(...compareValuesForConflict(this.getLowerBound(type1), this.getLowerBound(type2), 'lower bound'));
+            conflicts.push(...compareValuesForConflict(this.getUpperBound(type1), this.getUpperBound(type2), 'upper bound'));
             // compare the constrained type
-            const type1Constrained = type1.kind.getConstrainedType(type1);
-            const type2Constrained = type2.kind.getConstrainedType(type2);
-            const subConflicts = this.typir.equality.areTypesEqual(type1Constrained, type2Constrained);
-            if (subConflicts.length >= 1) {
-                conflicts.push({
-                    expected: type1Constrained,
-                    actual: type2Constrained,
-                    location: 'constrained type',
-                    action: 'EQUAL_TYPE',
-                    subConflicts,
-                });
+            const constrainedTypeConflict = this.typir.equality.areTypesEqual(type1.kind.getConstrainedType(type1), type2.kind.getConstrainedType(type2));
+            if (constrainedTypeConflict !== true) {
+                conflicts.push(constrainedTypeConflict);
             }
             return conflicts;
         }
