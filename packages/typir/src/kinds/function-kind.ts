@@ -104,9 +104,8 @@ export class FunctionKind implements Kind {
 
         // register inference rule for calls of the new function
         if (typeDetails.inferenceRuleForCalls) {
-            const typirr: Typir = this.typir;
-            typirr.inference.addInferenceRule({
-                isRuleApplicable(domainElement) {
+            this.typir.inference.addInferenceRule({
+                isRuleApplicable(domainElement, _typir) {
                     if (typeDetails.outputParameter?.type === undefined) {
                         // special case: the current function has no output type/parameter at all! => this function does not provide any type, when it is called
                         return 'RULE_NOT_APPLICABLE';
@@ -125,13 +124,11 @@ export class FunctionKind implements Kind {
                         assertUnreachable(result);
                     }
                 },
-                // TODO one inference rule for each function type VS only one inference rule for the function kind ?! overloaded function( name)s! dynamically at runtime
-                // TODO flag for overload / checking parameter types ?! operators use already overloaded functions!
-                inferType(domainElement, childrenTypes) {
+                inferType(domainElement, childrenTypes, typir) {
                     const inputTypes = typeDetails.inputParameters.map(p => p.type);
                     // all operands need to be assignable(! not equal) to the required types
                     const comparisonConflicts = compareTypes(childrenTypes, inputTypes,
-                        (t1, t2) => typirr.assignability.isAssignable(t1, t2));
+                        (t1, t2) => typir.assignability.isAssignable(t1, t2));
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
                         return {
@@ -150,11 +147,16 @@ export class FunctionKind implements Kind {
             });
         }
 
+        // TODO one inference rule for each function type VS only one inference rule for the function kind ?! overloaded function( name)s! dynamically at runtime
+        // TODO flag for overload / checking parameter types => no, that is bad usability ?! operators use already overloaded functions!
+        // overloaded functions are specific for the function kind => solve it inside the FunctionKind!
+        // independent inference rules are OK, but for validation, it must be a single validation for each function name (with all type variants)
+        // search in all Types VS remember them in a Map; add VS remove function type
+
         // create a validation for the values of the input parameters for a function call
         if (typeDetails.inferenceRuleForCalls) {
-            const typirr: Typir = this.typir;
-            typirr.validation.addValidationRule({
-                validate(domainElement) {
+            this.typir.validation.addValidationRules(
+                (domainElement, typir) => {
                     const parameters = typeDetails.inferenceRuleForCalls!(domainElement);
                     if (Array.isArray(parameters)) {
                         // check, that the given number of parameters is the same as the expected number of input parameters
@@ -168,12 +170,12 @@ export class FunctionKind implements Kind {
                             }];
                         }
                         // there are parameter values to check their types
-                        const inferredParameterTypes = parameters.map(p => typirr.inference.inferType(p));
+                        const inferredParameterTypes = parameters.map(p => typir.inference.inferType(p));
                         const parameterMismatches: ValidationProblem[] = [];
                         for (let i = 0; i < parameters.length; i++) {
                             const inferredType = inferredParameterTypes[i];
                             if (isType(inferredType)) {
-                                const parameterComparison = typirr.assignability.isAssignable(inferredType, typeDetails.inputParameters[i].type);
+                                const parameterComparison = typir.assignability.isAssignable(inferredType, typeDetails.inputParameters[i].type);
                                 if (parameterComparison !== true) {
                                     // the value is not assignable to the type of the input parameter
                                     parameterMismatches.push({
@@ -198,8 +200,8 @@ export class FunctionKind implements Kind {
                         return parameterMismatches;
                     }
                     return [];
-                },
-            });
+                }
+            );
         }
 
         return functionType;

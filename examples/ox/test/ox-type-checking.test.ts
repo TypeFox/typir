@@ -25,11 +25,36 @@ describe('Explicitly test type checking for OX', () => {
         await validate('var myResult: number = true;', 1);
     });
 
-    test.only('boolean assignments', async () => {
+    test('boolean assignments', async () => {
         await validate('var myResult: boolean = true;', 0);
         await validate('var myResult: boolean = 2;', 1);
         await validate('var myResult: boolean = 2 * 3;', 1);
         await validate('var myResult: boolean = 2 < 3;', 0);
+    });
+
+    test('statement assignments', async () => {
+        await validate('var myResult: boolean; myResult = true;', 0);
+        await validate('var myResult: boolean; myResult = 2;', 1);
+        await validate('var myResult: boolean; myResult = 2 * 3;', 1);
+        await validate('var myResult: boolean; myResult = 2 < 3;', 0);
+    });
+
+    test('boolean in conditions', async () => {
+        await validate('if ( true ) {}', 0);
+        await validate('if ( 3 ) {}', 1);
+    });
+
+    test('variable declarations', async () => {
+        await validate('var myVar : boolean;', 0);
+        await validate('var myVar : number;', 0);
+        await validate('var myVar : void;', 1);
+    });
+
+    test('function: return value and return type', async () => {
+        await validate('fun myFunction() : boolean { return true; }', 0);
+        await validate('fun myFunction() : boolean { return 2; }', 1);
+        await validate('fun myFunction() : number { return 2; }', 0);
+        await validate('fun myFunction() : number { return true; }', 1);
     });
 
 });

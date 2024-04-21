@@ -28,13 +28,14 @@ export interface TypeInferenceRule {
     /**
      * 1st step is to check, whether this inference rule is applicable to the given domain element.
      * @param domainElement the element whose type shall be inferred
+     * @param typir the current Typir instance
      * @returns the identified type (if it is already possible to determine the type)
      * or 'RULE_NOT_APPLICABLE' to indicate, that the current inference rule is not applicable for the given domain element at all,
      * or an inference problem,
      * or a list of domain elements, whose types need to be inferred, before this rule is able to decide, whether it is applicable.
      * Only in the last case, the other function will be called, otherwise, it is skipped (that is the reason, why it is optional).
      */
-    isRuleApplicable(domainElement: unknown): Type | unknown[] | 'RULE_NOT_APPLICABLE' | InferenceProblem;
+    isRuleApplicable(domainElement: unknown, typir: Typir): Type | unknown[] | 'RULE_NOT_APPLICABLE' | InferenceProblem;
 
     /**
      * 2nd step is to finally decide about the inferred type.
@@ -44,9 +45,10 @@ export interface TypeInferenceRule {
      * Disadvantage of this step is, that already checked TS types of domainElement cannot be reused.
      * @param domainElement the element whose type shall be inferred
      * @param childrenTypes the types which are inferred from the elements of the 1st step (in the same order!)
+     * @param typir the current Typir instance
      * @returns the finally inferred type or a problem, why this inference rule is finally not applicable
      */
-    inferType?(domainElement: unknown, childrenTypes: Array<Type | undefined>): Type | InferenceProblem
+    inferType?(domainElement: unknown, childrenTypes: Array<Type | undefined>, typir: Typir): Type | InferenceProblem
 }
 
 /**
@@ -93,7 +95,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
         // otherwise, check all rules
         const collectedInferenceProblems: InferenceProblem[] = [];
         for (const rule of this.inferenceRules) {
-            const firstCheck = rule.isRuleApplicable(domainElement);
+            const firstCheck = rule.isRuleApplicable(domainElement, this.typir);
             if (firstCheck === 'RULE_NOT_APPLICABLE') {
                 // this rule is not applicable at all => check the next rule
             } else if (isType(firstCheck)) {
@@ -131,7 +133,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                         });
                     } else {
                         // the types of all children are successfully inferred
-                        const finalInferenceResult = rule.inferType(domainElement, childTypes as Type[]);
+                        const finalInferenceResult = rule.inferType(domainElement, childTypes as Type[], this.typir);
                         if (isType(finalInferenceResult)) {
                             // type is inferred!
                             this.cacheSet(domainElement, finalInferenceResult);

@@ -6,7 +6,8 @@
 
 import { AstNode, AstUtils, assertUnreachable } from 'langium';
 import { FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
-import { TypeReference, isBinaryExpression, isBooleanExpression, isFunctionDeclaration, isMemberCall, isNumberExpression, isOxProgram, isParameter, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
+import { ensureNodeHasNotType, ensureNodeIsAssignable } from '../../../../packages/typir/lib/features/validation.js';
+import { TypeReference, isAssignmentStatement, isBinaryExpression, isBooleanExpression, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberExpression, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export function createTypir(nodeEntry: AstNode): Typir {
     const nodeRoot = AstUtils.getContainerOfType(nodeEntry, isOxProgram)!;
@@ -18,9 +19,9 @@ export function createTypir(nodeEntry: AstNode): Typir {
     const operators = typir.operators;
 
     // types
-    // typeBool is a specific type for OX, ...
+    // typeBool, typeNumber and typeVoid are specific types for OX, ...
     const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRule: (node) => isBooleanExpression(node)});
-    // but the primitive kind is provided/preset by Typir
+    // ... but their primitive kind is provided/preset by Typir
     const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRule: (node) => isNumberExpression(node)});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void' });
 
@@ -76,9 +77,10 @@ export function createTypir(nodeEntry: AstNode): Typir {
         }
     });
 
-    // additional inference rules for member calls
+    // additional inference rules for ...
     typir.inference.addInferenceRule({
         isRuleApplicable(domainElement) {
+            // ... member calls
             if (isMemberCall(domainElement)) {
                 const ref = domainElement.element.ref;
                 if (isVariableDeclaration(ref)) {
@@ -96,9 +98,43 @@ export function createTypir(nodeEntry: AstNode): Typir {
                     assertUnreachable(ref);
                 }
             }
+            // ... variable declarations
+            if (isVariableDeclaration(domainElement)) {
+                return mapType(domainElement.type);
+            }
+            // ... language types
+            if (isTypeReference(domainElement)) {
+                return mapType(domainElement);
+            }
             return 'RULE_NOT_APPLICABLE';
         },
     });
+
+    // some explicit validations for typing issues with Typir (replaces corresponding functions in the OxValidator!)
+    typir.validation.addValidationRules(
+        (node: unknown, typir: Typir) => {
+            if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
+                return ensureNodeIsAssignable(node.condition, typeBool, typir, "Conditions need to be evaluated to 'boolean'.", 'condition');
+            }
+            if (isVariableDeclaration(node)) {
+                return [
+                    ...ensureNodeHasNotType(node, typeVoid, typir, "Variable can't be declared with a type 'void'.", 'type'),
+                    ...ensureNodeIsAssignable(node.value, node, typir, `The expression '${node.value?.$cstNode?.text}' is not assignable to '${node.name}'`, 'value')
+                ];
+            }
+            if (isAssignmentStatement(node) && node.varRef.ref) {
+                return ensureNodeIsAssignable(node.value, node.varRef.ref, typir, `The expression '${node.value.$cstNode?.text}' is not assignable to '${node.varRef.ref.name}'`, 'value');
+            }
+            if (isReturnStatement(node)) {
+                const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
+                if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
+                    // the return value must fit to the return type of the function
+                    return ensureNodeIsAssignable(node.value, functionDeclaration.returnType, typir, `The expression '${node.value.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'`, 'value');
+                }
+            }
+            return [];
+        }
+    );
 
     return typir;
 }
