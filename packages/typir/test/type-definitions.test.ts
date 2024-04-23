@@ -26,7 +26,6 @@ describe('Tests for Typir', () => {
         const listKind = new FixedParameterKind(typir, 'List', { subtypeParameterChecking: 'EQUAL_TYPE' }, 'entry');
         const mapKind = new FixedParameterKind(typir, 'Map', { subtypeParameterChecking: 'EQUAL_TYPE' }, 'key', 'value');
         const functionKind = new FunctionKind(typir);
-        // TODO how to bundle such definitions for reuse ("presets")?
 
         // create some primitive types
         const typeInt = primitiveKind.createPrimitiveType({ primitiveName: 'Integer' });
@@ -97,6 +96,5 @@ describe('Tests for Typir', () => {
         expect(assignConflicts).not.toBe(true);
         const msg = typir.printer.printAssignabilityProblem(assignConflicts as AssignabilityProblem);
         console.log(msg);
-        // TODO extend API for validation with Langium, generate nice error messages
     });
 });

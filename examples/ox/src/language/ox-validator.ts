@@ -33,7 +33,7 @@ export class OxValidator {
         const typir = createTypir(node);
         AstUtils.streamAllContents(node).forEach(node => {
             // print all found problems for each AST node
-            const typeProblems = typir.validation.validate(node);
+            const typeProblems = typir.validation.collector.validate(node);
             for (const problem of typeProblems) {
                 const message = typir.printer.printValidationProblem(problem);
                 accept(problem.severity, message, { node, property: problem.domainProperty, index: problem.domainIndex });
@@ -43,16 +43,16 @@ export class OxValidator {
 
     /*
      * TODO validation with Typir for Langium
-     * - Extra-Package "typir-langium" anlegen
-     * - überhaupt Type ableitbar? Type vs undefined
-     * - passt der abgeleitete Type zur Umgebung? => "type checking" (expected: unknown|Type, actual: unknown|Type)
-     * - hübsche und konfigurierbare Fehlermeldung produzieren
-     * - einfach in Validator einhängbar machen
-     * - Service, um Typir zentral im Hintergrund zu haben und zu cachen; interne Caches von Typir selbst müssen aber ggfs. geleert werden, wenn ein Dokument sich geändert hat!
+     * - create additional package "typir-langium"
+     * - Is it possible to infer a type at all? Type vs undefined
+     * - Does the inferred type fit to the environment? => "type checking" (expected: unknown|Type, actual: unknown|Type)
+     * - produce a nice and configurable error message
+     * - make it easy to integrate it into the Langium validator
+     * - provide service to cache Typir in the background; but ensure, that internal caches of Typir need to be cleared, if a document was changed
      * - possible Quick-fixes ...
      *     - for wrong type of variable declaration
      *     - to add missing explicit type conversion
-     * - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // diese Signatur irgendwie nutzen, ggfs. nur bei/für Langium?
+     * - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // use this signature for Langium?
      * - no validation of parents, when their children already have some problems/warnings
      */
 

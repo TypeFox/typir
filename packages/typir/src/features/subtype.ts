@@ -32,45 +32,49 @@ export class DefaultSubType implements SubType {
     }
 
     isSubType(superType: Type, subType: Type): true | SubTypeProblem {
-        const cache: TypeRelationshipCaching = this.typir.caching;
+        const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
 
-        const link = cache.getRelationship(subType, superType, SUB_TYPE, true);
+        const linkData = cache.getRelationship(subType, superType, SUB_TYPE, true);
+        const linkRelationship = linkData.relationship;
 
-        const save = (value: RelationshipKind): void => {
-            cache.setRelationship(subType, superType, SUB_TYPE, false, value);
+        const save = (relationship: RelationshipKind, error: SubTypeProblem | undefined): void => {
+            cache.setRelationship(subType, superType, SUB_TYPE, false, relationship, error);
         };
 
         // skip recursive checking
-        if (link === 'PENDING') {
+        if (linkRelationship === 'PENDING') {
             return true; // is 'true' the correct result here? 'true' will be stored in the type graph ...
         }
 
         // the result is already known
-        if (link === 'LINK_EXISTS') {
+        if (linkRelationship === 'LINK_EXISTS') {
             return true;
         }
-        if (link === 'NO_LINK') {
-            // TODO cache previous subConflicts?! how to store additional properties? that is not supported by the caching service!
+        if (linkRelationship === 'NO_LINK') {
             return {
                 superType,
                 subType,
-                subProblems: [],
+                subProblems: isSubTypeProblem(linkData.additionalData) ? [linkData.additionalData] : [],
             };
         }
 
         // do the expensive calculation now
-        if (link === 'UNKNOWN') {
+        if (linkRelationship === 'UNKNOWN') {
             // mark the current relationship as PENDING to detect and resolve cycling checks
-            save('PENDING');
+            save('PENDING', undefined);
 
             // do the real logic
             const result = this.calculateSubType(superType, subType);
 
             // this allows to cache results (and to re-set the PENDING state)
-            save(result ? 'LINK_EXISTS' : 'NO_LINK');
+            if (result === true) {
+                save('LINK_EXISTS', undefined);
+            } else {
+                save('NO_LINK', result);
+            }
             return result;
         }
-        assertUnreachable(link);
+        assertUnreachable(linkRelationship);
     }
 
     protected calculateSubType(superType: Type, subType: Type): true | SubTypeProblem {

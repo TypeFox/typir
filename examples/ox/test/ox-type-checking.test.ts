@@ -15,6 +15,7 @@ const oxServices = createOxServices(EmptyFileSystem).Ox;
 describe('Explicitly test type checking for OX', () => {
 
     test('multiple nested and', async () => {
+        await validate('var myResult: boolean = true and false;', 0);
         await validate('var myResult: boolean = true and false and true;', 0);
     });
 
@@ -55,6 +56,11 @@ describe('Explicitly test type checking for OX', () => {
         await validate('fun myFunction() : boolean { return 2; }', 1);
         await validate('fun myFunction() : number { return 2; }', 0);
         await validate('fun myFunction() : number { return true; }', 1);
+    });
+
+    test('use overloaded operators', async () => {
+        await validate('var myVar : boolean = true == false;', 0);
+        await validate('var myVar : boolean = 2 == 3;', 0);
     });
 
 });

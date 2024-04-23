@@ -5,14 +5,14 @@
  ******************************************************************************/
 
 import { DefaultTypeAssignability, TypeAssignability } from './features/assignability.js';
-import { DefaultTypeRelationshipCaching, TypeRelationshipCaching } from './features/caching.js';
+import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './features/caching.js';
 import { DefaultTypeConversion, TypeConversion } from './features/conversion.js';
 import { DefaultTypeEquality, TypeEquality } from './features/equality.js';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './features/inference.js';
 import { DefaultOperatorManager, OperatorManager } from './features/operator.js';
 import { DefaultTypeConflictPrinter, ProblemPrinter } from './features/printing.js';
 import { DefaultSubType, SubType } from './features/subtype.js';
-import { DefaultValidationCollector, ValidationCollector } from './features/validation.js';
+import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './features/validation.js';
 import { TypeGraph } from './graph/type-graph.js';
 import { Kind } from './kinds/kind.js';
 
@@ -28,6 +28,8 @@ import { Kind } from './kinds/kind.js';
  * - how to produce nice error messages for failing type inference? missing type combination for operators?!
  * - Type is generic VS there are specific types like FunctionType (extends Type)?? functionType.kind.getOutput(functionKind) + isFunctionKind() feels bad! vs functionType.getOutput() + isFunctionType()
  * - realize "unknown" as a generic "<T = unknown>" for whole Typir? for the Langium binding T would be AstNode!
+ * - Is it easy to use two different Typir instances within the same application?
+ * - How to bundle Typir configurations for reuse ("presets")?
  */
 
 /** TODO missing things
@@ -47,21 +49,33 @@ export class Typir {
     conversion: TypeConversion;
     subtype: SubType;
     inference: TypeInferenceCollector;
-    caching: TypeRelationshipCaching;
+    caching: {
+        typeRelationships: TypeRelationshipCaching;
+        domainElementInference: DomainElementInferenceCaching;
+    };
     operators: OperatorManager;
     printer: ProblemPrinter;
-    validation: ValidationCollector;
+    validation: {
+        collector: ValidationCollector;
+        constraints: ValidationConstraints;
+    };
 
     constructor() {
         this.assignability = new DefaultTypeAssignability(this);
         this.equality = new DefaultTypeEquality(this);
         this.conversion = new DefaultTypeConversion(this);
         this.subtype = new DefaultSubType(this);
+        this.caching = {
+            typeRelationships: new DefaultTypeRelationshipCaching(this),
+            domainElementInference: new DefaultDomainElementInferenceCaching(this), // cached inference results, intended to be used by multiple inferring instances, other services should use the central inference service nevertheless
+        };
         this.inference = new DefaultTypeInferenceCollector(this);
-        this.caching = new DefaultTypeRelationshipCaching(this);
         this.operators = new DefaultOperatorManager(this);
         this.printer = new DefaultTypeConflictPrinter(this);
-        this.validation = new DefaultValidationCollector(this);
+        this.validation = {
+            collector: new DefaultValidationCollector(this),
+            constraints: new DefaultValidationConstraints(this),
+        };
     }
 
     // manage kinds
@@ -77,6 +91,7 @@ export class Typir {
             this.kinds.set(key, kind);
         }
     }
+
     getKind(type: string): Kind | undefined {
         return this.kinds.get(type)!;
     }

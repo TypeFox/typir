@@ -140,7 +140,6 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     }
 
     protected printDomainElement(domainElement: unknown, sentenceBegin: boolean = false): string {
-        // TODO this could be improved
         return `${sentenceBegin ? 'T' : 't'}he domain element '${domainElement}'`;
     }
 

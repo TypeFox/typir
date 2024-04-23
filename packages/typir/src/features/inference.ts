@@ -51,6 +51,42 @@ export interface TypeInferenceRule {
     inferType?(domainElement: unknown, childrenTypes: Array<Type | undefined>, typir: Typir): Type | InferenceProblem
 }
 
+export class CompositeTypeInferenceRule implements TypeInferenceRule {
+    readonly subRules: TypeInferenceRule[] = [];
+    // TODO unify this stuff
+
+    isRuleApplicable(domainElement: unknown, typir: Typir): Type | InferenceProblem | unknown[] | 'RULE_NOT_APPLICABLE' {
+        class FunctionInference extends DefaultTypeInferenceCollector {
+            override pendingGet(_domainElement: unknown): boolean {
+                return false;
+            }
+        }
+        const infer = new FunctionInference(typir);
+        this.subRules.forEach(r => infer.addInferenceRule(r));
+        const result = infer.inferType(domainElement);
+        if (isType(result)) {
+            return result;
+        } else {
+            if (result.length <= 0) {
+                return 'RULE_NOT_APPLICABLE';
+            } else if (result.length === 1) {
+                return result[0];
+            } else {
+                return <InferenceProblem>{
+                    domainElement,
+                    location: 'sub-rules for inference',
+                    rule: this,
+                    subProblems: result,
+                };
+            }
+        }
+    }
+
+    inferType?(_domainElement: unknown, _childrenTypes: Array<Type | undefined>, _typir: Typir): Type | InferenceProblem {
+        throw new Error('Method not implemented.');
+    }
+}
+
 /**
  * Collects an arbitrary number of inference rules
  * and allows to infer a type for a given domain element.
@@ -72,8 +108,7 @@ export interface TypeInferenceCollector {
 }
 
 export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
-    readonly inferenceRules: TypeInferenceRule[] = [];
-    protected cache: Map<unknown, Type | undefined> = new Map(); // TODO reset cache for updated Langium documents!
+    protected readonly inferenceRules: TypeInferenceRule[] = [];
     protected readonly typir: Typir;
 
     constructor(typir: Typir) {
@@ -110,7 +145,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                 if (rule.inferType) {
                     // resolve the requested child types
                     const childElements = firstCheck;
-                    const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.inferType(child));
+                    const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.typir.inference.inferType(child));
                     // check, whether inferring the children resulted in some other inference problems
                     const childTypeProblems: InferenceProblem[] = [];
                     for (let i = 0; i < childTypes.length; i++) {
@@ -158,30 +193,23 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
         this.inferenceRules.push(rule);
     }
 
+    /* By default, the central cache of Typir is used. */
+
     protected cacheSet(domainElement: unknown, type: Type): void {
-        this.pendingClear(domainElement);
-        this.cache.set(domainElement, type);
+        this.typir.caching.domainElementInference.cacheSet(domainElement, type);
     }
 
     protected cacheGet(domainElement: unknown): Type | undefined {
-        if (this.pendingGet(domainElement)) {
-            return undefined;
-        } else {
-            return this.cache.get(domainElement);
-        }
+        return this.typir.caching.domainElementInference.cacheGet(domainElement);
     }
 
     protected pendingSet(domainElement: unknown): void {
-        this.cache.set(domainElement, undefined);
+        this.typir.caching.domainElementInference.pendingSet(domainElement);
     }
     protected pendingClear(domainElement: unknown): void {
-        if (this.cache.get(domainElement) !== undefined) {
-            // do nothing
-        } else {
-            this.cache.delete(domainElement);
-        }
+        this.typir.caching.domainElementInference.pendingClear(domainElement);
     }
     protected pendingGet(domainElement: unknown): boolean {
-        return this.cache.has(domainElement) && this.cache.get(domainElement) === undefined;
+        return this.typir.caching.domainElementInference.pendingGet(domainElement);
     }
 }

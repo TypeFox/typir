@@ -31,7 +31,7 @@
         "no-eval": "error",                               // eval is considered unsafe
         "no-inner-declarations": "off",                   // we need to have 'namespace' functions when using TS 'export ='
         "no-labels": "error",                             // GOTO is only used in BASIC ;)
-        "no-multiple-empty-lines": ["error", {"max": 1}], // two or more empty lines need to be fused to one
+        "no-multiple-empty-lines": ["error", {"max": 3}], // two or more empty lines need to be fused to one
         "no-new-wrappers": "error",                       // there is no reason to wrap primitve values
         "no-throw-literal": "error",                      // only throw Error but no objects {}
         "no-trailing-spaces": "error",                    // trim end of lines

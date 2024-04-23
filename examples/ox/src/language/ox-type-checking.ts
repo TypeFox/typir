@@ -4,13 +4,12 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, assertUnreachable } from 'langium';
-import { FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
-import { ensureNodeHasNotType, ensureNodeIsAssignable } from '../../../../packages/typir/lib/features/validation.js';
+import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
+import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
 import { TypeReference, isAssignmentStatement, isBinaryExpression, isBooleanExpression, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberExpression, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
-export function createTypir(nodeEntry: AstNode): Typir {
-    const nodeRoot = AstUtils.getContainerOfType(nodeEntry, isOxProgram)!;
+export function createTypir(domainNodeEntry: AstNode): Typir {
+    const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isOxProgram)!;
 
     // set up Typir and reuse some predefined things
     const typir = new Typir();
@@ -58,7 +57,7 @@ export function createTypir(nodeEntry: AstNode): Typir {
         inferenceRule: (node) => isUnaryExpression(node) && node.operator === '-' ? node.value : false});
 
     // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
-    AstUtils.streamAllContents(nodeRoot).forEach(node => {
+    AstUtils.streamAllContents(domainNodeRoot).forEach(node => {
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
@@ -67,7 +66,7 @@ export function createTypir(nodeEntry: AstNode): Typir {
                 outputParameter: { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
                 inputParameters: node.parameters.map(p => ({ name: p.name, type: mapType(p.type) })),
                 // inference rule for function declaration:
-                inferenceRuleForDeclaration: (domainElement) => isFunctionDeclaration(domainElement) && domainElement.name === functionName, // TODO what about overloaded functions?
+                inferenceRuleForDeclaration: (domainElement) => isFunctionDeclaration(domainElement) && domainElement.name === functionName, // TODO what about overloaded functions? check/infer types of parameters (with(out) their names)?
                 // inference rule for funtion calls: inferring works only, if the actual arguments have the expected types!
                 inferenceRuleForCalls: (domainElement) =>
                     isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName
@@ -111,30 +110,41 @@ export function createTypir(nodeEntry: AstNode): Typir {
     });
 
     // some explicit validations for typing issues with Typir (replaces corresponding functions in the OxValidator!)
-    typir.validation.addValidationRules(
+    typir.validation.collector.addValidationRules(
         (node: unknown, typir: Typir) => {
             if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
-                return ensureNodeIsAssignable(node.condition, typeBool, typir, "Conditions need to be evaluated to 'boolean'.", 'condition');
+                return typir.validation.constraints.ensureNodeIsAssignable(node.condition, typeBool, "Conditions need to be evaluated to 'boolean'.", 'condition');
             }
             if (isVariableDeclaration(node)) {
                 return [
-                    ...ensureNodeHasNotType(node, typeVoid, typir, "Variable can't be declared with a type 'void'.", 'type'),
-                    ...ensureNodeIsAssignable(node.value, node, typir, `The expression '${node.value?.$cstNode?.text}' is not assignable to '${node.name}'`, 'value')
+                    ...typir.validation.constraints.ensureNodeHasNotType(node, typeVoid, "Variable can't be declared with a type 'void'.", 'type'),
+                    ...typir.validation.constraints.ensureNodeIsAssignable(node.value, node, `The expression '${node.value?.$cstNode?.text}' is not assignable to '${node.name}'`, 'value')
                 ];
             }
             if (isAssignmentStatement(node) && node.varRef.ref) {
-                return ensureNodeIsAssignable(node.value, node.varRef.ref, typir, `The expression '${node.value.$cstNode?.text}' is not assignable to '${node.varRef.ref.name}'`, 'value');
+                return typir.validation.constraints.ensureNodeIsAssignable(node.value, node.varRef.ref, `The expression '${node.value.$cstNode?.text}' is not assignable to '${node.varRef.ref.name}'`, 'value');
             }
             if (isReturnStatement(node)) {
                 const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
                 if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function
-                    return ensureNodeIsAssignable(node.value, functionDeclaration.returnType, typir, `The expression '${node.value.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'`, 'value');
+                    return typir.validation.constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType, `The expression '${node.value.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'`, 'value');
                 }
             }
             return [];
         }
     );
+
+    // override some default behaviour
+    class OxPrinter extends DefaultTypeConflictPrinter {
+        protected override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
+            if (isAstNode(domainElement)) {
+                return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
+            }
+            return super.printDomainElement(domainElement, sentenceBegin);
+        }
+    }
+    typir.printer = new OxPrinter(typir);
 
     return typir;
 }

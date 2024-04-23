@@ -22,50 +22,65 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
 
 export type ValidationRule = (domainElement: unknown, typir: Typir) => ValidationProblem[];
 
-// TODO Should these helper functions be put into the Validation service (or another service) in order to be configurable?
+export interface ValidationConstraints {
+    ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown, message: string, domainProperty?: string): ValidationProblem[];
+    ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown, message: string, domainProperty?: string): ValidationProblem[];
 
-export function ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown, typir: Typir, message: string, domainProperty?: string): ValidationProblem[] {
-    return ensureNodeType(sourceNode, notExpected, 'EQUAL_TYPE', true, typir, message, domainProperty);
+    ensureNodeComparedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeComparisonStrategy, negated: boolean, message: string, domainProperty?: string): ValidationProblem[];
 }
-export function ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown, typir: Typir, message: string, domainProperty?: string): ValidationProblem[] {
-    return ensureNodeType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, typir, message, domainProperty);
-}
-export function ensureNodeType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeComparisonStrategy, negated: boolean, typir: Typir, message: string, domainProperty?: string): ValidationProblem[] {
-    if (domainNode !== undefined && expected !== undefined) {
-        const actualType = isType(domainNode) ? domainNode : typir.inference.inferType(domainNode);
-        const expectedType = isType(expected) ? expected : typir.inference.inferType(expected);
-        if (isType(actualType) && isType(expectedType)) {
-            const comparisonResult = createTypeComparisonStrategy(strategy, typir)(actualType, expectedType);
-            if (comparisonResult !== true) {
-                if (negated) {
-                    // everything is fine
+
+export class DefaultValidationConstraints implements ValidationConstraints {
+    protected readonly typir: Typir;
+
+    constructor(typir: Typir) {
+        this.typir = typir;
+    }
+
+    ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown, message: string, domainProperty?: string): ValidationProblem[] {
+        return this.ensureNodeComparedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, message, domainProperty);
+    }
+
+    ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown, message: string, domainProperty?: string): ValidationProblem[] {
+        return this.ensureNodeComparedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, message, domainProperty);
+    }
+
+    ensureNodeComparedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeComparisonStrategy, negated: boolean, message: string, domainProperty?: string): ValidationProblem[] {
+        if (domainNode !== undefined && expected !== undefined) {
+            const actualType = isType(domainNode) ? domainNode : this.typir.inference.inferType(domainNode);
+            const expectedType = isType(expected) ? expected : this.typir.inference.inferType(expected);
+            if (isType(actualType) && isType(expectedType)) {
+                const comparisonResult = createTypeComparisonStrategy(strategy, this.typir)(actualType, expectedType);
+                if (comparisonResult !== true) {
+                    if (negated) {
+                        // everything is fine
+                    } else {
+                        return [{
+                            domainElement: domainNode,
+                            domainProperty,
+                            severity: 'error',
+                            message,
+                            subProblems: [comparisonResult]
+                        }];
+                    }
                 } else {
-                    return [{
-                        domainElement: domainNode,
-                        domainProperty,
-                        severity: 'error',
-                        message,
-                        subProblems: [comparisonResult]
-                    }];
+                    if (negated) {
+                        return [{
+                            domainElement: domainNode,
+                            domainProperty,
+                            severity: 'error',
+                            message,
+                            subProblems: [] // no sub-problems are available!
+                        }];
+                    } else {
+                        // everything is fine
+                    }
                 }
             } else {
-                if (negated) {
-                    return [{
-                        domainElement: domainNode,
-                        domainProperty,
-                        severity: 'error',
-                        message,
-                        subProblems: [] // no sub-problems are available!
-                    }];
-                } else {
-                    // everything is fine
-                }
+                // ignore inference problems
             }
-        } else {
-            // ignore inference problems
         }
+        return [];
     }
-    return [];
 }
 
 export interface ValidationCollector {

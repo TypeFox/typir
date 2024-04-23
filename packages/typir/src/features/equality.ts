@@ -31,44 +31,48 @@ export class DefaultTypeEquality implements TypeEquality {
     }
 
     areTypesEqual(type1: Type, type2: Type): true | TypeEqualityProblem {
-        const cache: TypeRelationshipCaching = this.typir.caching;
-        const link = cache.getRelationship(type1, type2, EQUAL_TYPE, false);
+        const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
+        const linkData = cache.getRelationship(type1, type2, EQUAL_TYPE, false);
+        const linkRelationship = linkData.relationship;
 
-        const save = (value: RelationshipKind): void => {
-            cache.setRelationship(type1, type2, EQUAL_TYPE, false, value);
+        const save = (relationship: RelationshipKind, error: TypeEqualityProblem | undefined): void => {
+            cache.setRelationship(type1, type2, EQUAL_TYPE, false, relationship, error);
         };
 
         // skip recursive checking
-        if (link === 'PENDING') {
+        if (linkRelationship === 'PENDING') {
             return true; // is 'true' the correct result here? 'true' will be stored in the type graph ...
         }
 
         // the result is already known
-        if (link === 'LINK_EXISTS') {
+        if (linkRelationship === 'LINK_EXISTS') {
             return true;
         }
-        if (link === 'NO_LINK') {
-            // TODO cache previous subConflicts?!
+        if (linkRelationship === 'NO_LINK') {
             return {
                 type1,
                 type2,
-                subProblems: []
+                subProblems: isTypeEqualityProblem(linkData.additionalData) ? [linkData.additionalData] : [],
             };
         }
 
         // do the expensive calculation now
-        if (link === 'UNKNOWN') {
+        if (linkRelationship === 'UNKNOWN') {
             // mark the current relationship as PENDING to detect and resolve cycling checks
-            save('PENDING');
+            save('PENDING', undefined);
 
             // do the real logic
             const result = this.calculateEquality(type1, type2);
 
             // this allows to cache results (and to re-set the PENDING state)
-            save(result ? 'LINK_EXISTS' : 'NO_LINK');
+            if (result === true) {
+                save('LINK_EXISTS', undefined);
+            } else {
+                save('NO_LINK', result);
+            }
             return result;
         }
-        assertUnreachable(link);
+        assertUnreachable(linkRelationship);
     }
 
     protected calculateEquality(type1: Type, type2: Type): true | TypeEqualityProblem {

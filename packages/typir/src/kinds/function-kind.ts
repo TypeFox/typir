@@ -5,7 +5,8 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { ValidationProblem } from '../features/validation.js';
+import { CompositeTypeInferenceRule } from '../features/inference.js';
+import { DefaultValidationCollector, ValidationCollector, ValidationProblem } from '../features/validation.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
@@ -22,6 +23,36 @@ export interface FunctionKindOptions {
 
 export const FunctionKindName = 'FunctionKind';
 
+interface OverloadedFunctionDetails {
+    overloadedFunctions: SingleFunctionDetails[];
+    inference: CompositeTypeInferenceRule;
+}
+
+interface SingleFunctionDetails {
+    functionType: Type;
+    inferenceRuleForCalls?: (domainElement: unknown) => boolean | unknown[];
+}
+
+/**
+ * Architecture of Inference rules:
+ * - flag for overload / checking parameter types => no, that is bad usability, e.g. operators use already overloaded functions!
+ * - overloaded functions are specific for the function kind => solve it inside the FunctionKind!
+ *
+ * How many inference rules?
+ * - One inference rule for each function type does not work,
+ * - Checking multiple functions within the same rule (e.g. only one inference rule for the function kind) does not work,
+ *   since multiple sets of parameters must be returned for overloaded functions!
+ * - multiple IR collectors: how to apply all the other rules?!
+ *
+ * How many validation rules?
+ * - independent inference rules are OK, but for validation, it must be a single validation for each function name (with all type variants),
+ *   since it is enough that at least one of the function variants match! (but checking that is not possible with multiple independent rules)
+ *
+ * How to know the available (overloaded) functions?
+ * - search in all Types VS remember them in a Map; add VS remove function type
+ */
+
+
 /**
  * Represents signatures of executable code.
  *
@@ -29,13 +60,18 @@ export const FunctionKindName = 'FunctionKind';
  * - multiple output parameters
  * - create variants of this, e.g. functions, procedures, lambdas
  * - (structural vs nominal typing? somehow realized by the three options above ...)
- * - function overloading?
  * - optional parameters
  */
 export class FunctionKind implements Kind {
     readonly $name: 'FunctionKind';
     readonly typir: Typir;
     readonly options: FunctionKindOptions;
+    /** TODO Limitations
+     * - Works only, if function types are defined using the createFunctionType(...) function below!
+     * - How to remove function types later? How to observe this case/event? How to remove their inference rules and validations?
+     * - Improve the type graph with fast access to all types of a dedicated kind?
+     */
+    protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
 
     constructor(typir: Typir, options?: Partial<FunctionKindOptions>) {
         this.$name = 'FunctionKind';
@@ -49,6 +85,88 @@ export class FunctionKind implements Kind {
             // the actually overriden values:
             ...options
         };
+
+        // register stuff for overloaded functions
+        this.typir.validation.collector.addValidationRules(
+            (domainElement, _typir) => {
+                const result: ValidationProblem[] = [];
+                for (const overloadedFunctions of this.mapNameTypes.values()) {
+                    for (const singleFunction of overloadedFunctions.overloadedFunctions) {
+                        if (singleFunction.inferenceRuleForCalls === undefined) {
+                            continue;
+                        }
+                        const parameters = singleFunction.inferenceRuleForCalls(domainElement);
+                        if (parameters === true) {
+                            // true => complete match found => no hurt constraint here => no error to show
+                            // since this signature matches 100%, there is no need to check the other function signatures anymore!
+                            return [];
+                        } else if (parameters === false) {
+                            // false => does not match at all => no constraints apply here => no error to show here
+                        } else if (Array.isArray(parameters)) {
+                            // partely match:
+                            const expectedParameterTypes = this.getInputs(singleFunction.functionType);
+                            // check, that the given number of parameters is the same as the expected number of input parameters
+                            const currentProblems: ValidationProblem[] = [];
+                            // TODO use existing helper functions for that?
+                            const parameterLength = compareValueForConflict(expectedParameterTypes.length, parameters.length, 'number of input parameter values');
+                            if (parameterLength.length >= 1) {
+                                currentProblems.push({
+                                    domainElement,
+                                    severity: 'error',
+                                    message: 'The number of given parameter values does not match the expected number of input parameters.',
+                                    subProblems: parameterLength
+                                });
+                            } else {
+                                // there are parameter values to check their types
+                                const inferredParameterTypes = parameters.map(p => typir.inference.inferType(p));
+                                for (let i = 0; i < parameters.length; i++) {
+                                    const expectedType = expectedParameterTypes[i];
+                                    const inferredType = inferredParameterTypes[i];
+                                    if (isType(inferredType)) {
+                                        const parameterComparison = typir.assignability.isAssignable(inferredType, expectedType.type);
+                                        if (parameterComparison !== true) {
+                                            // the value is not assignable to the type of the input parameter
+                                            currentProblems.push({
+                                                domainElement: parameters[i],
+                                                severity: 'error',
+                                                message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
+                                                subProblems: [parameterComparison],
+                                            });
+                                        } else {
+                                            // this parameter value is fine
+                                        }
+                                    } else {
+                                        // the type of the value for the input parameter is no inferrable
+                                        currentProblems.push({
+                                            // Note that the node of the current parameter is chosen here, while the problem is a sub-problem of the whole function!
+                                            domainElement: parameters[i],
+                                            severity: 'error',
+                                            message: `The parameter '${expectedType.name}' at index ${i} has no inferred type.`,
+                                            subProblems: inferredType,
+                                        });
+                                    }
+                                }
+                            }
+                            // summarize all parameters of the current function
+                            if (currentProblems.length >= 1) {
+                                // some problems with parameters => this signature does not match
+                                result.push({
+                                    domainElement,
+                                    severity: 'error',
+                                    message: `The function '${singleFunction.functionType.getUserRepresentation()}' matches only partially.`,
+                                    subProblems: currentProblems,
+                                });
+                            } else {
+                                return []; // 100% match found! (same case as above)
+                            }
+                        } else {
+                            assertUnreachable(parameters);
+                        }
+                    }
+                }
+                return result;
+            }
+        );
     }
 
     createFunctionType(typeDetails: {
@@ -58,7 +176,7 @@ export class FunctionKind implements Kind {
         inputParameters: NameTypePair[],
         inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // for function declarations => returns the funtion type (the whole signature including all names)
         inferenceRuleForCalls?: (domainElement: unknown) => boolean | unknown[], // for function calls => returns the return type of the function
-        // TODO for function references (like the declaration, but without any names!)
+        // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
     }): Type {
         // create the function type
         this.enforceName(typeDetails.functionName, this.options.enforceFunctionName);
@@ -89,31 +207,36 @@ export class FunctionKind implements Kind {
             this.typir.graph.addEdge(edge);
         });
 
-        // register inference rule for the declaration of the new function
-        if (typeDetails.inferenceRuleForDeclaration) {
-            this.typir.inference.addInferenceRule({
-                isRuleApplicable(domainElement) {
-                    if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
-                        return functionType;
-                    } else {
-                        return 'RULE_NOT_APPLICABLE';
-                    }
-                },
-            });
+        // remember the new function for later in order to enable overloaded functions!
+        let overloaded = this.mapNameTypes.get(typeDetails.functionName);
+        if (overloaded) {
+            // do nothing
+        } else {
+            overloaded = {
+                overloadedFunctions: [],
+                inference: new CompositeTypeInferenceRule(),
+            };
+            this.mapNameTypes.set(typeDetails.functionName, overloaded);
+            this.typir.inference.addInferenceRule(overloaded.inference);
         }
+        overloaded.overloadedFunctions.push({
+            functionType,
+            inferenceRuleForCalls: typeDetails.inferenceRuleForCalls,
+        });
 
-        // register inference rule for calls of the new function
-        if (typeDetails.inferenceRuleForCalls) {
-            this.typir.inference.addInferenceRule({
+        if (typeDetails.inferenceRuleForCalls && typeDetails.outputParameter?.type) {
+            /** Preconditions:
+             * - there is a rule which specifies how to infer the current function type
+             * - the current function has an output type/parameter, otherwise, this function could not provide any type, when it is called!
+             */
+
+            // register inference rule for calls of the new function
+            overloaded.inference.subRules.push({
                 isRuleApplicable(domainElement, _typir) {
-                    if (typeDetails.outputParameter?.type === undefined) {
-                        // special case: the current function has no output type/parameter at all! => this function does not provide any type, when it is called
-                        return 'RULE_NOT_APPLICABLE';
-                    }
                     const result = typeDetails.inferenceRuleForCalls!(domainElement);
                     if (result === true) {
                         // the function type is already identifed, no need to check values for parameters
-                        return typeDetails.outputParameter.type; // this case occurs only, if the current function has an output type/parameter!
+                        return typeDetails.outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
                     } else if (result === false) {
                         // does not match at all
                         return 'RULE_NOT_APPLICABLE';
@@ -129,6 +252,7 @@ export class FunctionKind implements Kind {
                     // all operands need to be assignable(! not equal) to the required types
                     const comparisonConflicts = compareTypes(childrenTypes, inputTypes,
                         (t1, t2) => typir.assignability.isAssignable(t1, t2));
+                    // TODO depending on overloaded hier abkürzen!
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
                         return {
@@ -147,64 +271,25 @@ export class FunctionKind implements Kind {
             });
         }
 
-        // TODO one inference rule for each function type VS only one inference rule for the function kind ?! overloaded function( name)s! dynamically at runtime
-        // TODO flag for overload / checking parameter types => no, that is bad usability ?! operators use already overloaded functions!
-        // overloaded functions are specific for the function kind => solve it inside the FunctionKind!
-        // independent inference rules are OK, but for validation, it must be a single validation for each function name (with all type variants)
-        // search in all Types VS remember them in a Map; add VS remove function type
-
-        // create a validation for the values of the input parameters for a function call
-        if (typeDetails.inferenceRuleForCalls) {
-            this.typir.validation.addValidationRules(
-                (domainElement, typir) => {
-                    const parameters = typeDetails.inferenceRuleForCalls!(domainElement);
-                    if (Array.isArray(parameters)) {
-                        // check, that the given number of parameters is the same as the expected number of input parameters
-                        const parameterLength = compareValueForConflict(typeDetails.inputParameters.length, parameters.length, 'number of input parameter values');
-                        if (parameterLength.length >= 1) {
-                            return [{
-                                domainElement,
-                                severity: 'error',
-                                message: 'The number of given parameter values does not match the expected number of input parameters.',
-                                subProblems: parameterLength
-                            }];
-                        }
-                        // there are parameter values to check their types
-                        const inferredParameterTypes = parameters.map(p => typir.inference.inferType(p));
-                        const parameterMismatches: ValidationProblem[] = [];
-                        for (let i = 0; i < parameters.length; i++) {
-                            const inferredType = inferredParameterTypes[i];
-                            if (isType(inferredType)) {
-                                const parameterComparison = typir.assignability.isAssignable(inferredType, typeDetails.inputParameters[i].type);
-                                if (parameterComparison !== true) {
-                                    // the value is not assignable to the type of the input parameter
-                                    parameterMismatches.push({
-                                        domainElement,
-                                        severity: 'error',
-                                        message: `The parameter '${typeDetails.inputParameters[i].name}' at index ${i} got a value with a wrong type.`,
-                                        subProblems: [parameterComparison],
-                                    });
-                                } else {
-                                    // this parameter value is fine
-                                }
-                            } else {
-                                // the type of the value for the input parameter is no inferrable
-                                parameterMismatches.push({
-                                    domainElement,
-                                    severity: 'error',
-                                    message: `The parameter '${typeDetails.inputParameters[i].name}' at index ${i} has no inferred type.`,
-                                    subProblems: inferredType,
-                                });
-                            }
-                        }
-                        return parameterMismatches;
+        // register inference rule for the declaration of the new function
+        // TODO overloaded ?!
+        if (typeDetails.inferenceRuleForDeclaration) {
+            this.typir.inference.addInferenceRule({
+                isRuleApplicable(domainElement) {
+                    if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
+                        return functionType;
+                    } else {
+                        return 'RULE_NOT_APPLICABLE';
                     }
-                    return [];
-                }
-            );
+                },
+            });
         }
 
         return functionType;
+    }
+
+    protected createValidationServiceForFunctions(): ValidationCollector {
+        return new DefaultValidationCollector(this.typir);
     }
 
     getUserRepresentation(type: Type): string {
