@@ -68,7 +68,7 @@ export class FixedParameterKind implements Kind {
         return this.printSignature(this.baseName, this.getParameterTypes(type));
     }
     protected printSignature(baseName: string, parameterTypes: Type[]): string {
-        return `${baseName}<${parameterTypes.map(p => p.getUserRepresentation()).join(', ')}>`;
+        return `${baseName}<${parameterTypes.map(p => this.typir.printer.printType(p)).join(', ')}>`;
     }
 
     isSubType(superType: Type, subType: Type): TypirProblem[] {

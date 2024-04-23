@@ -66,8 +66,11 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 outputParameter: { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
                 inputParameters: node.parameters.map(p => ({ name: p.name, type: mapType(p.type) })),
                 // inference rule for function declaration:
-                inferenceRuleForDeclaration: (domainElement) => isFunctionDeclaration(domainElement) && domainElement.name === functionName, // TODO what about overloaded functions? check/infer types of parameters (with(out) their names)?
-                // inference rule for funtion calls: inferring works only, if the actual arguments have the expected types!
+                inferenceRuleForDeclaration: (domainElement) => domainElement === node, // only the current function declaration matches!
+                /** inference rule for funtion calls:
+                 * - inferring of overloaded functions works only, if the actual arguments have the expected types!
+                 * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
+                 * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
                 inferenceRuleForCalls: (domainElement) =>
                     isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName
                         ? [...domainElement.arguments]
@@ -135,7 +138,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         }
     );
 
-    // override some default behaviour
+    // override some default behaviour ...
+    // ... print the text of the corresponding CstNode
     class OxPrinter extends DefaultTypeConflictPrinter {
         protected override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
             if (isAstNode(domainElement)) {

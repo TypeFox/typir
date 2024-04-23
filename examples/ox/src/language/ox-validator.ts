@@ -46,7 +46,6 @@ export class OxValidator {
      * - create additional package "typir-langium"
      * - Is it possible to infer a type at all? Type vs undefined
      * - Does the inferred type fit to the environment? => "type checking" (expected: unknown|Type, actual: unknown|Type)
-     * - produce a nice and configurable error message
      * - make it easy to integrate it into the Langium validator
      * - provide service to cache Typir in the background; but ensure, that internal caches of Typir need to be cleared, if a document was changed
      * - possible Quick-fixes ...

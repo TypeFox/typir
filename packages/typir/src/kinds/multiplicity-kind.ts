@@ -77,7 +77,7 @@ export class MultiplicityKind implements Kind {
     }
 
     protected printType(constrainedType: Type, lowerBound: number, upperBound: number): string {
-        return `${constrainedType.getUserRepresentation()}${this.printRange(lowerBound, upperBound)}`;
+        return `${this.typir.printer.printType(constrainedType)}${this.printRange(lowerBound, upperBound)}`;
     }
     protected printRange(lowerBound: number, upperBound: number): string {
         if (lowerBound === upperBound || (lowerBound === 0 && upperBound === MULTIPLICITY_UNLIMITED)) {

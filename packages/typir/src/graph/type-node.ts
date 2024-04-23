@@ -24,7 +24,6 @@ export class Type {
         this.name = name;
     }
 
-    // TODO replace all direct calls of this function by the printing service!
     getUserRepresentation(): string {
         return this.kind.getUserRepresentation(this);
     }

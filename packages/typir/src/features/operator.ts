@@ -104,8 +104,6 @@ export class DefaultOperatorManager implements OperatorManager {
         }));
     }
 
-    // TODO types of parameters are not required for inferring the type of some of these operators! (they are required only for type checking of the values of the operands) => can be automatically decided by checking, whether there is function overloading!
-
     protected handleOperatorVariants(nameVariants: Names, inputTypeVariants: Types, operatorTypeCreator: (singleName: string, singleInputType: Type) => Type): Types {
         const allNames = toArray(nameVariants);
         const allTypes = toArray(inputTypeVariants);

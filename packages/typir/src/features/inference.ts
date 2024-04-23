@@ -51,18 +51,21 @@ export interface TypeInferenceRule {
     inferType?(domainElement: unknown, childrenTypes: Array<Type | undefined>, typir: Typir): Type | InferenceProblem
 }
 
+// this design still feels a bit strange ...
 export class CompositeTypeInferenceRule implements TypeInferenceRule {
     readonly subRules: TypeInferenceRule[] = [];
-    // TODO unify this stuff
 
     isRuleApplicable(domainElement: unknown, typir: Typir): Type | InferenceProblem | unknown[] | 'RULE_NOT_APPLICABLE' {
         class FunctionInference extends DefaultTypeInferenceCollector {
+            // do not check "pending" (again), since it is already checked by the "parent" DefaultTypeInferenceCollector!
             override pendingGet(_domainElement: unknown): boolean {
                 return false;
             }
         }
         const infer = new FunctionInference(typir);
         this.subRules.forEach(r => infer.addInferenceRule(r));
+
+        // do the type inference
         const result = infer.inferType(domainElement);
         if (isType(result)) {
             return result;
@@ -83,7 +86,7 @@ export class CompositeTypeInferenceRule implements TypeInferenceRule {
     }
 
     inferType?(_domainElement: unknown, _childrenTypes: Array<Type | undefined>, _typir: Typir): Type | InferenceProblem {
-        throw new Error('Method not implemented.');
+        throw new Error('This function will not be called.');
     }
 }
 

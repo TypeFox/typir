@@ -26,6 +26,9 @@ export interface ProblemPrinter {
 
     printTypirProblem(problem: TypirProblem): string;
     printTypirProblems(problems: TypirProblem[]): string;
+
+    printType(type: Type): string;
+    printType(type: Type, sentenceBegin: boolean): string;
 }
 
 export class DefaultTypeConflictPrinter implements ProblemPrinter {
@@ -143,7 +146,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         return `${sentenceBegin ? 'T' : 't'}he domain element '${domainElement}'`;
     }
 
-    protected printType(type: Type, sentenceBegin: boolean = false): string {
+    printType(type: Type, sentenceBegin: boolean = false): string {
         return `${sentenceBegin ? 'T' : 't'}he type '${type.getUserRepresentation()}'`;
     }
 

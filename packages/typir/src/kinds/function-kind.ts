@@ -39,14 +39,16 @@ interface SingleFunctionDetails {
  * - overloaded functions are specific for the function kind => solve it inside the FunctionKind!
  *
  * How many inference rules?
- * - One inference rule for each function type does not work,
- * - Checking multiple functions within the same rule (e.g. only one inference rule for the function kind) does not work,
- *   since multiple sets of parameters must be returned for overloaded functions!
+ * - One inference rule for each function type does not work, since TODO ??
+ * - Checking multiple functions within the same rule (e.g. only one inference rule for the function kind or one inference rule for each function name) does not work,
+ *   since multiple different sets of parameters must be returned for overloaded functions!
  * - multiple IR collectors: how to apply all the other rules?!
  *
  * How many validation rules?
- * - independent inference rules are OK, but for validation, it must be a single validation for each function name (with all type variants),
- *   since it is enough that at least one of the function variants match! (but checking that is not possible with multiple independent rules)
+ * - For validation, it is enough that at least one of the function variants match!
+ * - But checking that is not possible with multiple independent rules.
+ * - Therefore, it must be a single validation for each function name (with all type variants).
+ * - In order to simplify (de)registering validation rules, only one validation rule for all functions is used here (with an internal loop over all function names).
  *
  * How to know the available (overloaded) functions?
  * - search in all Types VS remember them in a Map; add VS remove function type
@@ -89,8 +91,10 @@ export class FunctionKind implements Kind {
         // register stuff for overloaded functions
         this.typir.validation.collector.addValidationRules(
             (domainElement, _typir) => {
-                const result: ValidationProblem[] = [];
-                for (const overloadedFunctions of this.mapNameTypes.values()) {
+                const resultAll: ValidationProblem[] = [];
+                for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
+                    const resultOverloaded: ValidationProblem[] = [];
+                    const isOverloaded = overloadedFunctions.overloadedFunctions.length >= 2;
                     for (const singleFunction of overloadedFunctions.overloadedFunctions) {
                         if (singleFunction.inferenceRuleForCalls === undefined) {
                             continue;
@@ -103,11 +107,11 @@ export class FunctionKind implements Kind {
                         } else if (parameters === false) {
                             // false => does not match at all => no constraints apply here => no error to show here
                         } else if (Array.isArray(parameters)) {
-                            // partely match:
+                            // partial match:
                             const expectedParameterTypes = this.getInputs(singleFunction.functionType);
                             // check, that the given number of parameters is the same as the expected number of input parameters
                             const currentProblems: ValidationProblem[] = [];
-                            // TODO use existing helper functions for that?
+                            // TODO use existing helper functions for that? that are no "ValidationProblem"s, but IndexedTypeConflicts, AssignabilityProblems?
                             const parameterLength = compareValueForConflict(expectedParameterTypes.length, parameters.length, 'number of input parameter values');
                             if (parameterLength.length >= 1) {
                                 currentProblems.push({
@@ -150,10 +154,10 @@ export class FunctionKind implements Kind {
                             // summarize all parameters of the current function
                             if (currentProblems.length >= 1) {
                                 // some problems with parameters => this signature does not match
-                                result.push({
+                                resultOverloaded.push({
                                     domainElement,
                                     severity: 'error',
-                                    message: `The function '${singleFunction.functionType.getUserRepresentation()}' matches only partially.`,
+                                    message: `The given operands for the function '${this.typir.printer.printType(singleFunction.functionType)}' match the expected types only partially.`,
                                     subProblems: currentProblems,
                                 });
                             } else {
@@ -163,8 +167,20 @@ export class FunctionKind implements Kind {
                             assertUnreachable(parameters);
                         }
                     }
+                    if (resultOverloaded.length >= 1) {
+                        if (isOverloaded) {
+                            resultAll.push({
+                                domainElement,
+                                severity: 'error',
+                                message: `The given operands for the overloaded function '${overloadedName}' match the expected types only partially.`,
+                                subProblems: resultOverloaded,
+                            });
+                        } else {
+                            resultAll.push(...resultOverloaded);
+                        }
+                    }
                 }
-                return result;
+                return resultAll;
             }
         );
     }
@@ -208,7 +224,8 @@ export class FunctionKind implements Kind {
         });
 
         // remember the new function for later in order to enable overloaded functions!
-        let overloaded = this.mapNameTypes.get(typeDetails.functionName);
+        const mapNameTypes = this.mapNameTypes;
+        let overloaded = mapNameTypes.get(typeDetails.functionName);
         if (overloaded) {
             // do nothing
         } else {
@@ -216,7 +233,7 @@ export class FunctionKind implements Kind {
                 overloadedFunctions: [],
                 inference: new CompositeTypeInferenceRule(),
             };
-            this.mapNameTypes.set(typeDetails.functionName, overloaded);
+            mapNameTypes.set(typeDetails.functionName, overloaded);
             this.typir.inference.addInferenceRule(overloaded.inference);
         }
         overloaded.overloadedFunctions.push({
@@ -242,7 +259,14 @@ export class FunctionKind implements Kind {
                         return 'RULE_NOT_APPLICABLE';
                     } else if (Array.isArray(result)) {
                         // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-                        return result;
+                        const overloadInfos = mapNameTypes.get(typeDetails.functionName);
+                        if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
+                            // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
+                            return result;
+                        } else {
+                            // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
+                            return typeDetails.outputParameter!.type;
+                        }
                     } else {
                         assertUnreachable(result);
                     }
@@ -252,7 +276,6 @@ export class FunctionKind implements Kind {
                     // all operands need to be assignable(! not equal) to the required types
                     const comparisonConflicts = compareTypes(childrenTypes, inputTypes,
                         (t1, t2) => typir.assignability.isAssignable(t1, t2));
-                    // TODO depending on overloaded hier abkürzen!
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
                         return {
@@ -272,7 +295,7 @@ export class FunctionKind implements Kind {
         }
 
         // register inference rule for the declaration of the new function
-        // TODO overloaded ?!
+        // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
         if (typeDetails.inferenceRuleForDeclaration) {
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
@@ -298,7 +321,7 @@ export class FunctionKind implements Kind {
 
     protected printFunctionType(simpleFunctionName: string, inputs: NameTypePair[], output: NameTypePair | undefined): string {
         const inputsString = inputs.map(input => this.printNameType(input)).join(', ');
-        const outputString = output?.type.getUserRepresentation();
+        const outputString = output ? this.typir.printer.printType(output.type) : undefined;
         if (this.hasName(simpleFunctionName)) {
             const outputValue = outputString ? `: ${outputString}` : '';
             return `${simpleFunctionName}(${inputsString})${outputValue}`;
@@ -308,10 +331,11 @@ export class FunctionKind implements Kind {
     }
 
     protected printNameType(pair: NameTypePair): string {
+        const typeName = this.typir.printer.printType(pair.type);
         if (this.hasName(pair.name)) {
-            return `${pair.name}: ${pair.type.getUserRepresentation()}`;
+            return `${pair.name}: ${typeName}`;
         } else {
-            return pair.type.getUserRepresentation();
+            return typeName;
         }
     }
 
