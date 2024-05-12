@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
+import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorUseMultipleOperands, InferOperatorUseSingleOperand, PrimitiveKind, Type, Typir } from 'typir';
 import { TypeReference, isAssignmentStatement, isBinaryExpression, isBooleanExpression, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberExpression, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
@@ -34,27 +34,25 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         }
     }
 
+    // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar, but this is not possible in general
+    const binaryInferenceRule: InferOperatorUseMultipleOperands = (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false;
+    const unaryInferenceRule: InferOperatorUseSingleOperand = (node, name) => isUnaryExpression(node) && node.operator === name ? node.value : false;
+
     // binary operators: numbers => number
-    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber,
-        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
+    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber, inferenceRule: binaryInferenceRule});
 
     // binary operators: numbers => boolean
-    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool,
-        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
+    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule});
 
     // binary operators: booleans => boolean
-    operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool,
-        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
+    operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule});
 
     // ==, != for booleans and numbers
-    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool,
-        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
+    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule});
 
     // unary operators
-    operators.createUnaryOperator({ name: '!', operandType: typeBool,
-        inferenceRule: (node) => isUnaryExpression(node) && node.operator === '!' ? node.value : false});
-    operators.createUnaryOperator({ name: '-', operandType: typeNumber,
-        inferenceRule: (node) => isUnaryExpression(node) && node.operator === '-' ? node.value : false});
+    operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule});
+    operators.createUnaryOperator({ name: '-', operandType: typeNumber, inferenceRule: unaryInferenceRule});
 
     // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
     AstUtils.streamAllContents(domainNodeRoot).forEach(node => {
