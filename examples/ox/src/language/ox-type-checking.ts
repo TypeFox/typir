@@ -5,8 +5,8 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorUseMultipleOperands, InferOperatorUseSingleOperand, PrimitiveKind, Type, Typir } from 'typir';
-import { TypeReference, isAssignmentStatement, isBinaryExpression, isBooleanExpression, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberExpression, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
+import { BinaryExpression, TypeReference, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanExpression, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberExpression, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isOxProgram)!;
@@ -34,9 +34,17 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         }
     }
 
-    // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar, but this is not possible in general
-    const binaryInferenceRule: InferOperatorUseMultipleOperands = (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false;
-    const unaryInferenceRule: InferOperatorUseSingleOperand = (node, name) => isUnaryExpression(node) && node.operator === name ? node.value : false;
+    // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
+    const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
+        filter: isBinaryExpression,
+        matching: (node, name) => node.operator === name,
+        operands: (node, _name) => [node.left, node.right],
+    };
+    const unaryInferenceRule: InferOperatorWithSingleOperand<UnaryExpression> = {
+        filter: isUnaryExpression,
+        matching: (node, name) => node.operator === name,
+        operand: (node, _name) => node.value,
+    };
 
     // binary operators: numbers => number
     operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber, inferenceRule: binaryInferenceRule});
@@ -69,10 +77,11 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
                  * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
                  * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
-                inferenceRuleForCalls: (domainElement) =>
-                    isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName
-                        ? [...domainElement.arguments]
-                        : false
+                inferenceRuleForCalls: {
+                    filter: isMemberCall,
+                    matching: (domainElement) => isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName,
+                    inputArguments: (domainElement) => domainElement.arguments
+                }
             });
         }
     });

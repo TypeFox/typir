@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from 'langium';
 import { CompositeTypeInferenceRule } from '../features/inference.js';
 import { DefaultValidationCollector, ValidationCollector, ValidationProblem } from '../features/validation.js';
 import { TypeEdge } from '../graph/type-edge.js';
@@ -24,14 +23,22 @@ export interface FunctionKindOptions {
 export const FunctionKindName = 'FunctionKind';
 
 interface OverloadedFunctionDetails {
-    overloadedFunctions: SingleFunctionDetails[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    overloadedFunctions: Array<SingleFunctionDetails<any>>;
     inference: CompositeTypeInferenceRule;
 }
 
-interface SingleFunctionDetails {
+interface SingleFunctionDetails<T> {
     functionType: Type;
-    inferenceRuleForCalls?: (domainElement: unknown) => boolean | unknown[];
+    inferenceRuleForCalls?: InferFunctionCall<T>;
 }
+
+// (domainElement: unknown) => boolean | unknown[]
+export type InferFunctionCall<T = unknown> = {
+    filter: (domainElement: unknown) => domainElement is T;
+    matching: (domainElement: T) => boolean;
+    inputArguments: (domainElement: T) => unknown[];
+};
 
 /**
  * Architecture of Inference rules:
@@ -99,72 +106,78 @@ export class FunctionKind implements Kind {
                         if (singleFunction.inferenceRuleForCalls === undefined) {
                             continue;
                         }
-                        const parameters = singleFunction.inferenceRuleForCalls(domainElement);
-                        if (parameters === true) {
-                            // true => complete match found => no hurt constraint here => no error to show
-                            // since this signature matches 100%, there is no need to check the other function signatures anymore!
-                            return [];
-                        } else if (parameters === false) {
-                            // false => does not match at all => no constraints apply here => no error to show here
-                        } else if (Array.isArray(parameters)) {
-                            // partial match:
-                            const expectedParameterTypes = this.getInputs(singleFunction.functionType);
-                            // check, that the given number of parameters is the same as the expected number of input parameters
-                            const currentProblems: ValidationProblem[] = [];
-                            // TODO use existing helper functions for that? that are no "ValidationProblem"s, but IndexedTypeConflicts, AssignabilityProblems?
-                            const parameterLength = compareValueForConflict(expectedParameterTypes.length, parameters.length, 'number of input parameter values');
-                            if (parameterLength.length >= 1) {
-                                currentProblems.push({
-                                    domainElement,
-                                    severity: 'error',
-                                    message: 'The number of given parameter values does not match the expected number of input parameters.',
-                                    subProblems: parameterLength
-                                });
-                            } else {
-                                // there are parameter values to check their types
-                                const inferredParameterTypes = parameters.map(p => typir.inference.inferType(p));
-                                for (let i = 0; i < parameters.length; i++) {
-                                    const expectedType = expectedParameterTypes[i];
-                                    const inferredType = inferredParameterTypes[i];
-                                    if (isType(inferredType)) {
-                                        const parameterComparison = typir.assignability.isAssignable(inferredType, expectedType.type);
-                                        if (parameterComparison !== true) {
-                                            // the value is not assignable to the type of the input parameter
-                                            currentProblems.push({
-                                                domainElement: parameters[i],
-                                                severity: 'error',
-                                                message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
-                                                subProblems: [parameterComparison],
-                                            });
-                                        } else {
-                                            // this parameter value is fine
-                                        }
-                                    } else {
-                                        // the type of the value for the input parameter is no inferrable
+                        const filter = singleFunction.inferenceRuleForCalls.filter(domainElement);
+                        if (filter) {
+                            const matching = singleFunction.inferenceRuleForCalls.matching(domainElement);
+                            if (matching) {
+                                const inputArguments = singleFunction.inferenceRuleForCalls.inputArguments(domainElement);
+                                if (inputArguments && inputArguments.length >= 1) {
+                                    // partial match:
+                                    const expectedParameterTypes = this.getInputs(singleFunction.functionType);
+                                    // check, that the given number of parameters is the same as the expected number of input parameters
+                                    const currentProblems: ValidationProblem[] = [];
+                                    // TODO use existing helper functions for that? that are no "ValidationProblem"s, but IndexedTypeConflicts, AssignabilityProblems?
+                                    const parameterLength = compareValueForConflict(expectedParameterTypes.length, inputArguments.length, 'number of input parameter values');
+                                    if (parameterLength.length >= 1) {
                                         currentProblems.push({
-                                            // Note that the node of the current parameter is chosen here, while the problem is a sub-problem of the whole function!
-                                            domainElement: parameters[i],
+                                            domainElement,
                                             severity: 'error',
-                                            message: `The parameter '${expectedType.name}' at index ${i} has no inferred type.`,
-                                            subProblems: inferredType,
+                                            message: 'The number of given parameter values does not match the expected number of input parameters.',
+                                            subProblems: parameterLength
                                         });
+                                    } else {
+                                        // there are parameter values to check their types
+                                        const inferredParameterTypes = inputArguments.map(p => typir.inference.inferType(p));
+                                        for (let i = 0; i < inputArguments.length; i++) {
+                                            const expectedType = expectedParameterTypes[i];
+                                            const inferredType = inferredParameterTypes[i];
+                                            if (isType(inferredType)) {
+                                                const parameterComparison = typir.assignability.isAssignable(inferredType, expectedType.type);
+                                                if (parameterComparison !== true) {
+                                                    // the value is not assignable to the type of the input parameter
+                                                    currentProblems.push({
+                                                        domainElement: inputArguments[i],
+                                                        severity: 'error',
+                                                        message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
+                                                        subProblems: [parameterComparison],
+                                                    });
+                                                } else {
+                                                    // this parameter value is fine
+                                                }
+                                            } else {
+                                                // the type of the value for the input parameter is no inferrable
+                                                currentProblems.push({
+                                                    // Note that the node of the current parameter is chosen here, while the problem is a sub-problem of the whole function!
+                                                    domainElement: inputArguments[i],
+                                                    severity: 'error',
+                                                    message: `The parameter '${expectedType.name}' at index ${i} has no inferred type.`,
+                                                    subProblems: inferredType,
+                                                });
+                                            }
+                                        }
                                     }
+                                    // summarize all parameters of the current function
+                                    if (currentProblems.length >= 1) {
+                                        // some problems with parameters => this signature does not match
+                                        resultOverloaded.push({
+                                            domainElement,
+                                            severity: 'error',
+                                            message: `The given operands for the function '${this.typir.printer.printType(singleFunction.functionType)}' match the expected types only partially.`,
+                                            subProblems: currentProblems,
+                                        });
+                                    } else {
+                                        return []; // 100% match found! (same case as above)
+                                    }
+                                } else {
+                                    // complete match found => no hurt constraint here => no error to show
+                                    // since this signature matches 100%, there is no need to check the other function signatures anymore!
+                                    return [];
                                 }
-                            }
-                            // summarize all parameters of the current function
-                            if (currentProblems.length >= 1) {
-                                // some problems with parameters => this signature does not match
-                                resultOverloaded.push({
-                                    domainElement,
-                                    severity: 'error',
-                                    message: `The given operands for the function '${this.typir.printer.printType(singleFunction.functionType)}' match the expected types only partially.`,
-                                    subProblems: currentProblems,
-                                });
                             } else {
-                                return []; // 100% match found! (same case as above)
+                                // false => does slightly not match => no constraints apply here => no error to show here
                             }
                         } else {
-                            assertUnreachable(parameters);
+                            // false => does not match at all => no constraints apply here => no error to show here
                         }
                     }
                     if (resultOverloaded.length >= 1) {
@@ -185,13 +198,15 @@ export class FunctionKind implements Kind {
         );
     }
 
-    createFunctionType(typeDetails: {
+    createFunctionType<T>(typeDetails: {
         functionName: string,
         /** The order of parameters is important! */
         outputParameter: NameTypePair | undefined,
         inputParameters: NameTypePair[],
-        inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // for function declarations => returns the funtion type (the whole signature including all names)
-        inferenceRuleForCalls?: (domainElement: unknown) => boolean | unknown[], // for function calls => returns the return type of the function
+        /** for function declarations => returns the funtion type (the whole signature including all names) */
+        inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
+        /** for function calls => returns the return type of the function */
+        inferenceRuleForCalls?: InferFunctionCall<T>,
         // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
     }): Type {
         // create the function type
@@ -250,26 +265,33 @@ export class FunctionKind implements Kind {
             // register inference rule for calls of the new function
             overloaded.inference.subRules.push({
                 isRuleApplicable(domainElement, _typir) {
-                    const result = typeDetails.inferenceRuleForCalls!(domainElement);
-                    if (result === true) {
-                        // the function type is already identifed, no need to check values for parameters
-                        return typeDetails.outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
-                    } else if (result === false) {
-                        // does not match at all
-                        return 'RULE_NOT_APPLICABLE';
-                    } else if (Array.isArray(result)) {
-                        // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-                        const overloadInfos = mapNameTypes.get(typeDetails.functionName);
-                        if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
-                            // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
-                            return result;
+                    const result = typeDetails.inferenceRuleForCalls!.filter(domainElement);
+                    if (result) {
+                        const matching = typeDetails.inferenceRuleForCalls!.matching(domainElement);
+                        if (matching) {
+                            const inputArguments = typeDetails.inferenceRuleForCalls!.inputArguments(domainElement);
+                            if (inputArguments && inputArguments.length >= 1) {
+                                // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
+                                const overloadInfos = mapNameTypes.get(typeDetails.functionName);
+                                if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
+                                    // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
+                                    return inputArguments;
+                                } else {
+                                    // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
+                                    return typeDetails.outputParameter!.type;
+                                }
+                            } else {
+                                // there are no operands to check
+                                return typeDetails.outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
+                            }
                         } else {
-                            // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
-                            return typeDetails.outputParameter!.type;
+                            // the domain element is slightly different
                         }
                     } else {
-                        assertUnreachable(result);
+                        // the domain element has a completely different purpose
                     }
+                    // does not match at all
+                    return 'RULE_NOT_APPLICABLE';
                 },
                 inferType(domainElement, childrenTypes, typir) {
                     const inputTypes = typeDetails.inputParameters.map(p => p.type);
