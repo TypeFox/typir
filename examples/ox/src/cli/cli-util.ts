@@ -1,10 +1,17 @@
-import type { AstNode, LangiumDocument, LangiumServices } from 'langium';
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
+import type { AstNode, LangiumCoreServices, LangiumDocument } from 'langium';
 import chalk from 'chalk';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import { URI } from 'langium';
+import { LangiumServices } from 'langium/lsp';
 
-export async function extractDocument(fileName: string, services: LangiumServices): Promise<LangiumDocument> {
+export async function extractDocument(fileName: string, services: LangiumCoreServices): Promise<LangiumDocument> {
     const extensions = services.LanguageMetaData.fileExtensions;
     if (!extensions.includes(path.extname(fileName))) {
         console.error(chalk.yellow(`Please choose a file with one of these extensions: ${extensions}.`));
@@ -16,7 +23,7 @@ export async function extractDocument(fileName: string, services: LangiumService
         process.exit(1);
     }
 
-    const document = services.shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
+    const document = await services.shared.workspace.LangiumDocuments.getOrCreateDocument(URI.file(path.resolve(fileName)));
     await services.shared.workspace.DocumentBuilder.build([document], { validation: true });
 
     const validationErrors = (document.diagnostics ?? []).filter(e => e.severity === 1);

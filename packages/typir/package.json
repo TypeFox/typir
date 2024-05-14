@@ -1,0 +1,52 @@
+{
+  "name": "typir",
+  "version": "0.0.1",
+  "description": "General purpose type checking library",
+  "homepage": "https://typir.org",
+  "author": {
+    "name": "TypeFox",
+    "url": "https://www.typefox.io"
+  },
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "import": "./lib/index.js",
+      "types": "./lib/index.d.ts"
+    }
+  },
+  "type": "module",
+  "engines": {
+    "node": ">= 18.0.0"
+  },
+  "volta": {
+    "node": "18.17.1",
+    "npm": "9.6.7"
+  },
+  "keywords": [
+    "typesystem",
+    "typescript",
+    "Langium",
+    "language",
+    "dsl"
+  ],
+  "files": [
+    "lib",
+    "src",
+    "node.js",
+    "node.d.ts",
+    "test.js",
+    "test.d.ts"
+  ],
+  "scripts": {
+    "clean": "shx rm -rf lib out coverage",
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "lint": "eslint src test --ext .ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TypeFox/typir/",
+    "directory": "packages/typir"
+  },
+  "bugs": "https://github.com/TypeFox/typir//issues"
+}

@@ -1,0 +1,80 @@
+{
+    "name": "ox",
+    "version": "0.0.1",
+    "displayName": "Ox",
+    "description": "Please enter a brief description here",
+    "author": {
+        "name": "TypeFox",
+        "url": "https://www.typefox.io"
+    },
+    "license": "MIT",
+    "type": "module",
+    "engines": {
+        "vscode": "^1.67.0"
+    },
+    "volta": {
+        "node": "18.17.1",
+        "npm": "9.6.7"
+    },
+    "scripts": {
+        "clean": "shx rm -rf lib out coverage",
+        "build": "tsc -b tsconfig.json && node esbuild.mjs",
+        "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\"",
+        "build:clean": "npm run clean && npm run build",
+        "test": "vitest",
+        "test-ui": "vitest --ui",
+        "coverage": "vitest run --coverage",
+        "lint": "eslint src --ext ts",
+        "langium:generate": "langium generate",
+        "langium:watch": "langium generate --watch",
+        "vscode:prepublish": "npm run build && npm run lint"
+    },
+    "dependencies": {
+        "chalk": "~5.3.0",
+        "commander": "~11.0.0",
+        "langium": "~3.0.0",
+        "vscode-languageclient": "~9.0.1",
+        "vscode-languageserver": "~9.0.1",
+        "typir": "~0.0.1"
+    },
+    "devDependencies": {
+        "langium-cli": "~3.0.0"
+    },
+    "files": [
+        "bin",
+        "out",
+        "src",
+        "syntaxes",
+        "language-configuration.json"
+    ],
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "ox",
+                "aliases": [
+                    "Ox",
+                    "ox"
+                ],
+                "extensions": [".ox"],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "ox",
+                "scopeName": "source.ox",
+                "path": "./syntaxes/ox.tmLanguage.json"
+            }
+        ]
+    },
+    "activationEvents": [
+        "onLanguage:ox"
+    ],
+    "main": "./out/extension/main.cjs",
+    "bin": {
+        "ox-cli": "./bin/cli.js"
+    }
+}

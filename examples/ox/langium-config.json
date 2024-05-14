@@ -5,7 +5,7 @@
         "grammar": "src/language/ox.langium",
         "fileExtensions": [".ox"],
         "textMate": {
-            "out": "syntaxes/ox.tmLanguage.json"
+            "out": "./syntaxes/ox.tmLanguage.json"
         }
     }],
     "out": "src/language/generated"

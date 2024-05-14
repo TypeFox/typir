@@ -68,16 +68,17 @@ Primary infers Expression:
     MemberCall;
 
 MemberCall:
-    element=[NamedElement:ID] (
+    element=[NamedElement:ID]
+    (
 		explicitOperationCall?='('
 		(
 		    arguments+=Expression (',' arguments+=Expression)*
 		)?
-		')')?;
+		')'
+    )?;
 
 UnaryExpression:
-   operator=('!' | '-') value=Expression
-;
+   operator=('!' | '-') value=Expression;
 
 NumberExpression: value=NUMBER;
 BooleanExpression: value?='true' | 'false';

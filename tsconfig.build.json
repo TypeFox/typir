@@ -1,0 +1,9 @@
+{
+    "files": [],
+    "references": [
+        { "path": "packages/typir/tsconfig.src.json" },
+        { "path": "packages/typir/tsconfig.test.json" },
+        { "path": "examples/ox/tsconfig.src.json" },
+        { "path": "examples/ox/tsconfig.test.json" },
+    ]
+ }

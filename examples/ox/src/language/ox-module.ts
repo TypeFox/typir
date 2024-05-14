@@ -1,5 +1,11 @@
-import type { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, Module, PartialLangiumServices } from 'langium';
-import { createDefaultModule, createDefaultSharedModule, inject } from 'langium';
+/******************************************************************************
+ * Copyright 2024 TypeFox GmbH
+ * This program and the accompanying materials are made available under the
+ * terms of the MIT License, which is available in the project root.
+ ******************************************************************************/
+
+import { Module, inject } from 'langium';
+import { LangiumServices, PartialLangiumServices, DefaultSharedModuleContext, LangiumSharedServices, createDefaultSharedModule, createDefaultModule } from 'langium/lsp';
 import { OxGeneratedModule, OxGeneratedSharedModule } from './generated/module.js';
 import { OxValidator, registerValidationChecks } from './ox-validator.js';
 
