@@ -1,0 +1,15 @@
+{
+    "projectName": "Lox",
+    "languages": [{
+        "id": "lox",
+        "grammar": "src/lox.langium",
+        "fileExtensions": [".lox"],
+        "textMate": {
+            "out": "syntaxes/lox.tmLanguage.json"
+        },
+        "monarch": {
+            "out": "syntaxes/lox.monarch.ts"
+        }
+    }],
+    "out": "src/generated"
+}

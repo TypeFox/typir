@@ -1,0 +1,90 @@
+{
+    "name": "lox",
+    "displayName": "lox",
+    "private": true,
+    "version": "0.0.1",
+    "categories": [
+        "Programming Languages"
+    ],
+    "type": "module",
+    "engines": {
+        "vscode": "^1.67.0"
+    },
+    "volta": {
+        "node": "18.17.1",
+        "npm": "9.6.7"
+    },
+    "contributes": {
+        "languages": [
+            {
+                "id": "lox",
+                "aliases": [
+                    "Lox",
+                    "lox"
+                ],
+                "extensions": [
+                    ".lox"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "lox",
+                "scopeName": "source.lox",
+                "path": "./syntaxes/lox.tmLanguage.json"
+            }
+        ],
+        "notebooks": [
+            {
+                "type": "lox-notebook",
+                "displayName": "Lox Notebook",
+                "selector": [
+                    {
+                        "filenamePattern": "*.loxnb"
+                    }
+                ]
+            }
+        ]
+    },
+    "activationEvents": [
+        "onLanguage:lox"
+    ],
+    "files": [
+        "bin",
+        "out",
+        "src"
+    ],
+    "bin": {
+        "lox-cli": "./bin/cli"
+    },
+    "main": "./out/extension.js",
+    "scripts": {
+        "prepare": "npm run langium:generate && npm run build",
+        "vscode:prepublish": "npm run build && npm run lint",
+        "build": "tsc -b tsconfig.json",
+        "watch": "tsc -b tsconfig.json --watch",
+        "lint": "eslint src --ext ts",
+        "clean": "shx rm -rf out node_modules",
+        "langium:generate": "langium generate",
+        "langium:watch": "langium generate --watch"
+    },
+    "dependencies": {
+        "colors": "^1.4.0",
+        "commander": "^8.0.0",
+        "langium": "~3.0.0",
+        "vscode-languageclient": "~9.0.1",
+        "vscode-languageserver": "~9.0.1",
+        "typir": "~0.0.1",
+        "uuid": "^9.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "~16.18.41",
+        "@types/vscode": "~1.67.0",
+        "@types/uuid": "^9.0.0",
+        "@typescript-eslint/eslint-plugin": "^4.14.1",
+        "@typescript-eslint/parser": "^4.14.1",
+        "eslint": "^7.19.0",
+        "langium-cli": "~3.0.0"
+    }
+}
