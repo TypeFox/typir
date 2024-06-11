@@ -29,6 +29,9 @@ import { Kind } from './kinds/kind.js';
  * - realize "unknown" as a generic "<T = unknown>" for whole Typir? for the Langium binding T would be AstNode!
  * - Is it easy to use two different Typir instances side-by-side within the same application?
  * - How to bundle Typir configurations for reuse ("presets")?
+ * - How to handle cycles?
+ *     - Cycles at types: MyClass { myField?: MyClass, myFunction(operand: MyClass) }, MyClass<T extends MyClass<T>> to return typed sub-class instances
+ *     - Cycles at instances/objects: Parent used as Child?!
  */
 
 /** TODO missing things

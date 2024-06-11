@@ -9,27 +9,37 @@ import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName, isFunctionKind }
 import { Typir } from '../typir.js';
 import { NameTypePair, Names, Types, assertTrue, toArray } from '../utils/utils.js';
 
-export type InferOperatorUseSingleOperand = (domainElement: unknown, operatorName: string) => boolean | unknown;
-export type InferOperatorUseMultipleOperands = (domainElement: unknown, operatorName: string) => boolean | unknown[];
+// export type InferOperatorWithSingleOperand = (domainElement: unknown, operatorName: string) => boolean | unknown;
+export type InferOperatorWithSingleOperand<T = unknown> = {
+    filter: (domainElement: unknown, operatorName: string) => domainElement is T;
+    matching: (domainElement: T, operatorName: string) => boolean;
+    operand: (domainElement: T, operatorName: string) => unknown;
+};
+// export type InferOperatorWithMultipleOperands = (domainElement: unknown, operatorName: string) => boolean | unknown[];
+export type InferOperatorWithMultipleOperands<T = unknown> = {
+    filter: (domainElement: unknown, operatorName: string) => domainElement is T;
+    matching: (domainElement: T, operatorName: string) => boolean;
+    operands: (domainElement: T, operatorName: string) => unknown[];
+};
 
 export interface OperatorManager {
-    createUnaryOperator(typeDetails: {
+    createUnaryOperator<T>(typeDetails: {
         name: Names,
         operandType: Types,
-        inferenceRule?: InferOperatorUseSingleOperand
+        inferenceRule?: InferOperatorWithSingleOperand<T>
     }): Types
-    createBinaryOperator(typeDetails: {
+    createBinaryOperator<T>(typeDetails: {
         name: Names,
         inputType: Types,
         /** If the output type is not specified, the input type is used for the output as well. */
         outputType?: Type,
-        inferenceRule?: InferOperatorUseMultipleOperands
+        inferenceRule?: InferOperatorWithMultipleOperands<T>
     }): Types
-    createTernaryOperator(typeDetails: {
+    createTernaryOperator<T>(typeDetails: {
         name: Names,
         firstType: Type,
         secondAndThirdType: Types,
-        inferenceRule?: InferOperatorUseMultipleOperands
+        inferenceRule?: InferOperatorWithMultipleOperands<T>
     }): Types
 
     /** This function allows to create operators with arbitrary input operands,
@@ -38,7 +48,7 @@ export interface OperatorManager {
     createGenericOperator(typeDetails: {
         name: string,
         outputType: Type,
-        inferenceRule?: InferOperatorUseMultipleOperands,
+        inferenceRule?: InferOperatorWithMultipleOperands,
         inputParameter: NameTypePair[]
     }): Type;
 }
@@ -68,7 +78,7 @@ export class DefaultOperatorManager implements OperatorManager {
         this.typir = typir;
     }
 
-    createUnaryOperator(typeDetails: { name: Names, operandType: Types, inferenceRule?: InferOperatorUseSingleOperand }): Types {
+    createUnaryOperator<T>(typeDetails: { name: Names, operandType: Types, inferenceRule?: InferOperatorWithSingleOperand<T> }): Types {
         return this.handleOperatorVariants(typeDetails.name, typeDetails.operandType, (singleName, singleType) => this.createGenericOperator({
             name: singleName,
             outputType: singleType,
@@ -79,7 +89,7 @@ export class DefaultOperatorManager implements OperatorManager {
         }));
     }
 
-    createBinaryOperator(typeDetails: { name: Names, inputType: Types, outputType?: Type, inferenceRule?: InferOperatorUseMultipleOperands }): Types {
+    createBinaryOperator<T>(typeDetails: { name: Names, inputType: Types, outputType?: Type, inferenceRule?: InferOperatorWithMultipleOperands<T> }): Types {
         return this.handleOperatorVariants(typeDetails.name, typeDetails.inputType, (singleName, singleType) => this.createGenericOperator({
             name: singleName,
             outputType: typeDetails.outputType ?? singleType,
@@ -91,7 +101,7 @@ export class DefaultOperatorManager implements OperatorManager {
         }));
     }
 
-    createTernaryOperator(typeDetails: { name: Names, firstType: Type, secondAndThirdType: Types, inferenceRule?: InferOperatorUseMultipleOperands }): Types {
+    createTernaryOperator<T>(typeDetails: { name: Names, firstType: Type, secondAndThirdType: Types, inferenceRule?: InferOperatorWithMultipleOperands<T> }): Types {
         return this.handleOperatorVariants(typeDetails.name, typeDetails.secondAndThirdType, (singleName, singleType) => this.createGenericOperator({
             name: singleName,
             outputType: singleType,
@@ -117,7 +127,7 @@ export class DefaultOperatorManager implements OperatorManager {
         return result.length === 1 ? result[0] : result;
     }
 
-    createGenericOperator(typeDetails: { name: string, outputType: Type, inferenceRule?: (InferOperatorUseSingleOperand | InferOperatorUseMultipleOperands), inputParameter: NameTypePair[] }): Type {
+    createGenericOperator<T>(typeDetails: { name: string, outputType: Type, inferenceRule?: (InferOperatorWithSingleOperand<T> | InferOperatorWithMultipleOperands<T>), inputParameter: NameTypePair[] }): Type {
         // define/register the wanted operator as "special" function
 
         // ensure, that Typir uses the predefined 'function' kind
@@ -131,14 +141,13 @@ export class DefaultOperatorManager implements OperatorManager {
             inputParameters: typeDetails.inputParameter,
             inferenceRuleForDeclaration: undefined, // operators have no declaration in the code => no inference rule for the operator declaration!
             inferenceRuleForCalls: typeDetails.inferenceRule // but infer the operator when the operator is called!
-                ? ((domainElement: unknown) => {
-                    const inferenceResult = typeDetails.inferenceRule!(domainElement, typeDetails.name);
-                    if (typeof inferenceResult === 'boolean') {
-                        return inferenceResult; // true or false (directly, not within an array)
-                    } else {
-                        return toArray(inferenceResult); // the operands whose types need to be inferred first (in an array)
-                    }
-                })
+                ? {
+                    filter: (domainElement: unknown): domainElement is T => typeDetails.inferenceRule!.filter(domainElement, typeDetails.name),
+                    matching: (domainElement: T) => typeDetails.inferenceRule!.matching(domainElement, typeDetails.name),
+                    inputArguments: (domainElement: T) =>
+                        (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(domainElement, typeDetails.name)
+                        ?? (typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(domainElement, typeDetails.name),
+                }
                 : undefined
         });
 

@@ -65,13 +65,21 @@ describe('Tests for Typir', () => {
         const opMinus = typir.operators.createBinaryOperator({ name: '-', inputType: typeInt });
         const opLess = typir.operators.createBinaryOperator({ name: '<', inputType: typeInt, outputType: typeBoolean });
         const opEqualInt = typir.operators.createBinaryOperator({ name: '==', inputType: typeInt, outputType: typeBoolean,
-            inferenceRule: domainElement => ('' + domainElement).includes('==') });
+            inferenceRule: {
+                filter: (domainElement): domainElement is string => typeof domainElement === 'string',
+                matching: domainElement => domainElement.includes('=='),
+                operands: domainElement => []
+            }});
         // binary operators on Booleans
         const opEqualBool = typir.operators.createBinaryOperator({ name: '==', inputType: typeBoolean});
         const opAnd = typir.operators.createBinaryOperator({ name: '&&', inputType: typeBoolean});
         // unary operators
         const opNotBool = typir.operators.createUnaryOperator({ name: '!', operandType: typeBoolean,
-            inferenceRule: domainElement => ('' + domainElement).includes('NOT')});
+            inferenceRule: {
+                filter: (domainElement): domainElement is string => typeof domainElement === 'string',
+                matching: domainElement => domainElement.includes('NOT'),
+                operand: domainElement => []
+            }});
         // ternary operator
         const opTernaryIf = typir.operators.createTernaryOperator({ name: 'if', firstType: typeBoolean, secondAndThirdType: typeInt}); // TODO support multiple/arbitrary types!
 
