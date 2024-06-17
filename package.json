@@ -1,54 +1,55 @@
 {
-  "name": "typir-workspace",
-  "displayName": "typir",
-  "description": "Please enter a brief description here",
-  "version": "0.0.1",
-  "private": true,
-  "engineStrict": true,
-  "type": "module",
-  "engines": {
-    "node": ">= 18.0.0",
-    "npm": ">= 9.5.0"
-  },
-  "volta": {
-    "node": "18.17.1",
-    "npm": "9.6.7"
-  },
-  "scripts": {
-    "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo examples/*/*.tsbuildinfo",
-    "build": "tsc -b tsconfig.build.json && npm run build --workspace=typir --workspace=examples/ox",
-    "watch": "concurrently -n tsc,vscode,ox -c blue,yellow,green \"tsc -b tsconfig.build.json -w\" \"npm run watch --workspace=typir\" \"npm run watch --workspace=examples/ox\"",
-    "build:clean": "npm run clean && npm run build",
-    "lint": "npm run lint --workspaces",
-    "test": "vitest",
-    "test-ui": "vitest --ui",
-    "langium:generate": "npm run langium:generate --workspace=examples/ox",
-    "langium:watch": "npm run langium:watch --workspace=examples/ox",
-    "vscode:prepublish": "npm run build && npm run lint",
-    "reset:repo": "git clean -f -X -d"
-},
-  "dependencies": {
-    "langium": "~2.0.1",
-    "vscode-languageclient": "~8.1.0",
-    "chalk": "~5.3.0",
-    "commander": "~11.0.0"
-},
-"devDependencies": {
-    "@types/node": "~16.18.41",
-    "@types/vscode": "~1.67.0",
-    "@typescript-eslint/eslint-plugin": "~6.4.1",
-    "@typescript-eslint/parser": "~6.4.1",
-    "concurrently": "~8.2.1",
-    "esbuild": "~0.19.2",
-    "eslint": "~8.56.0",
-    "eslint-plugin-header": "^3.1.1",
-    "editorconfig": "~2.0.0",
-    "shx": "^0.3.4",
-    "typescript": "~5.1.6",
-    "vitest": "~0.28.5"
-},
-"workspaces": [
-    "packages/typir",
-    "examples/ox"
-]
+    "name": "typir-workspace",
+    "displayName": "typir",
+    "description": "Please enter a brief description here",
+    "version": "0.0.1",
+    "private": true,
+    "engineStrict": true,
+    "type": "module",
+    "engines": {
+        "node": ">= 18.0.0",
+        "npm": ">= 9.5.0"
+    },
+    "volta": {
+        "node": "18.17.1",
+        "npm": "9.6.7"
+    },
+    "scripts": {
+        "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo examples/*/*.tsbuildinfo",
+        "build": "tsc -b tsconfig.build.json && npm run build --workspace=typir --workspace=examples/ox --workspace=examples/lox",
+        "watch": "concurrently -n tsc,vscode,ox -c blue,yellow,green \"tsc -b tsconfig.build.json -w\" \"npm run watch --workspace=typir\" \"npm run watch --workspace=examples/ox\"",
+        "build:clean": "npm run clean && npm run build",
+        "lint": "npm run lint --workspaces",
+        "test": "vitest",
+        "test-ui": "vitest --ui",
+        "langium:generate": "npm run langium:generate --workspace=examples/ox",
+        "langium:watch": "npm run langium:watch --workspace=examples/ox",
+        "vscode:prepublish": "npm run build && npm run lint",
+        "reset:repo": "git clean -f -X -d"
+    },
+    "dependencies": {
+        "langium": "~2.0.1",
+        "vscode-languageclient": "~8.1.0",
+        "chalk": "~5.3.0",
+        "commander": "~11.0.0"
+    },
+    "devDependencies": {
+        "@types/node": "~16.18.41",
+        "@types/vscode": "~1.67.0",
+        "@typescript-eslint/eslint-plugin": "~6.4.1",
+        "@typescript-eslint/parser": "~6.4.1",
+        "concurrently": "~8.2.1",
+        "esbuild": "~0.19.2",
+        "eslint": "~8.56.0",
+        "eslint-plugin-header": "^3.1.1",
+        "editorconfig": "~2.0.0",
+        "shx": "^0.3.4",
+        "typescript": "~5.1.6",
+        "vitest": "~0.28.5"
+    },
+    "workspaces": [
+        "packages/typir",
+        "examples/ox",
+        "examples/lox"
+    ]
 }
