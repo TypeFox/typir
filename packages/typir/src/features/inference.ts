@@ -7,7 +7,6 @@
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem } from '../utils/utils-type-comparison.js';
-import { assertUnreachable } from '../utils/utils.js';
 
 export interface InferenceProblem {
     domainElement: unknown;
@@ -31,11 +30,12 @@ export interface TypeInferenceRule {
      * @param typir the current Typir instance
      * @returns the identified type (if it is already possible to determine the type)
      * or 'RULE_NOT_APPLICABLE' to indicate, that the current inference rule is not applicable for the given domain element at all,
+     * or a domain element whose type should be inferred instead,
      * or an inference problem,
      * or a list of domain elements, whose types need to be inferred, before this rule is able to decide, whether it is applicable.
      * Only in the last case, the other function will be called, otherwise, it is skipped (that is the reason, why it is optional).
      */
-    isRuleApplicable(domainElement: unknown, typir: Typir): Type | unknown[] | 'RULE_NOT_APPLICABLE' | InferenceProblem;
+    isRuleApplicable(domainElement: unknown, typir: Typir): Type | 'RULE_NOT_APPLICABLE' | unknown | InferenceProblem | unknown[];
 
     /**
      * 2nd step is to finally decide about the inferred type.
@@ -124,12 +124,27 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
         if (cached) {
             return cached;
         }
+
         // handle recursion loops
         if (this.pendingGet(domainElement)) {
             throw new Error(`There is a recursion loop for inferring the type from ${domainElement}! Probably, there are multiple interfering inference rules.`);
         }
         this.pendingSet(domainElement);
 
+        // do the actual type inference
+        const result = this.inferTypeLogic(domainElement);
+
+        // the calculation is done
+        this.pendingClear(domainElement);
+
+        // remember the calculated type in the cache
+        if (isType(result)) {
+            this.cacheSet(domainElement, result);
+        }
+        return result;
+    }
+
+    protected inferTypeLogic(domainElement: unknown): Type | InferenceProblem[] {
         // otherwise, check all rules
         const collectedInferenceProblems: InferenceProblem[] = [];
         for (const rule of this.inferenceRules) {
@@ -138,7 +153,6 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                 // this rule is not applicable at all => check the next rule
             } else if (isType(firstCheck)) {
                 // the result type is already found!
-                this.cacheSet(domainElement, firstCheck);
                 return firstCheck;
             } else if (isInferenceProblem(firstCheck)) {
                 // found some inference problems
@@ -174,7 +188,6 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                         const finalInferenceResult = rule.inferType(domainElement, childTypes as Type[], this.typir);
                         if (isType(finalInferenceResult)) {
                             // type is inferred!
-                            this.cacheSet(domainElement, finalInferenceResult);
                             return finalInferenceResult;
                         } else {
                             // inference is not applicable (probably due to a mismatch of the children's types) => check the next rule
@@ -185,10 +198,10 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                     throw new Error('missing implementation for "inferType(...)" in this inference rule');
                 }
             } else {
-                assertUnreachable(firstCheck);
+                // this domain element is used instead to infer its type, which is the type for the current domain element as well
+                return this.typir.inference.inferType(firstCheck);
             }
         }
-        this.pendingClear(domainElement);
         return collectedInferenceProblems;
     }
 
