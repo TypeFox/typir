@@ -47,23 +47,23 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     };
 
     // binary operators: numbers => number
-    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber, inferenceRule: binaryInferenceRule});
+    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber, inferenceRule: binaryInferenceRule });
 
     // binary operators: numbers => boolean
-    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule});
+    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // binary operators: booleans => boolean
-    operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule});
+    operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // ==, != for booleans and numbers
-    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule});
+    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // unary operators
-    operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule});
-    operators.createUnaryOperator({ name: '-', operandType: typeNumber, inferenceRule: unaryInferenceRule});
+    operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });
+    operators.createUnaryOperator({ name: '-', operandType: typeNumber, inferenceRule: unaryInferenceRule });
 
     // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
-    AstUtils.streamAllContents(domainNodeRoot).forEach(node => {
+    AstUtils.streamAllContents(domainNodeRoot).forEach((node: AstNode) => {
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type

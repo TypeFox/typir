@@ -5,8 +5,8 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
-import { TypeReference, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNumberExpression, isParameter, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, PrimitiveKind, Type, Typir } from 'typir';
+import { BinaryExpression, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNumberExpression, isParameter, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isLoxProgram)!;
@@ -47,30 +47,35 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         }
     }
 
+    const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
+        filter: isBinaryExpression,
+        matching: (node, name) => node.operator === name,
+        operands: (node, _name) => [node.left, node.right],
+    };
+    const unaryInferenceRule: InferOperatorWithSingleOperand<UnaryExpression> = {
+        filter: isUnaryExpression,
+        matching: (node, name) => node.operator === name,
+        operand: (node, _name) => node.value,
+    };
+
     // binary operators: numbers => number
-    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber,
-        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
+    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber, inferenceRule: binaryInferenceRule });
 
     // binary operators: numbers => boolean
-    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool,
-        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
+    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // binary operators: booleans => boolean
-    operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool,
-        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
+    operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // ==, != for booleans and numbers
-    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool,
-        inferenceRule: (node, name) => isBinaryExpression(node) && node.operator === name ? [node.left, node.right] : false});
+    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // unary operators
-    operators.createUnaryOperator({ name: '!', operandType: typeBool,
-        inferenceRule: (node) => isUnaryExpression(node) && node.operator === '!' ? node.value : false});
-    operators.createUnaryOperator({ name: '-', operandType: typeNumber,
-        inferenceRule: (node) => isUnaryExpression(node) && node.operator === '-' ? node.value : false});
+    operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });
+    operators.createUnaryOperator({ name: '-', operandType: typeNumber, inferenceRule: unaryInferenceRule });
 
     // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
-    AstUtils.streamAllContents(domainNodeRoot).forEach(node => {
+    AstUtils.streamAllContents(domainNodeRoot).forEach((node: AstNode) => {
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
@@ -84,10 +89,11 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
                  * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
                  * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
-                inferenceRuleForCalls: (domainElement) =>
-                    isMemberCall(domainElement) && isFunctionDeclaration(domainElement.element!.ref) && domainElement.element!.ref.name === functionName
-                        ? [...domainElement.arguments]
-                        : false
+                inferenceRuleForCalls: {
+                    filter: isMemberCall,
+                    matching: (domainElement) => isFunctionDeclaration(domainElement.element?.ref) && domainElement.element!.ref.name === functionName,
+                    inputArguments: (domainElement) => domainElement.arguments
+                },
             });
         }
     });
