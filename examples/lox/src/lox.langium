@@ -35,11 +35,10 @@ ReturnStatement: 'return' value=Expression?;
 
 ExpressionBlock: '{'
     elements+=LoxElement*
-'}';
+    '}';
 
 VariableDeclaration returns NamedElement:
-    {infer VariableDeclaration} 'var' name=ID (':' type=TypeReference)? (assignment?='=' value=Expression)?
-;
+    {infer VariableDeclaration} 'var' name=ID (':' type=TypeReference)? (assignment?='=' value=Expression)?;
 
 Expression:
     Assignment;
@@ -61,21 +60,28 @@ Comparison infers Expression:
 
 MemberCall infers Expression:
     Primary
-	({infer MemberCall.previous=current} 
+	(
+        {infer MemberCall.previous=current} 
         // Member call with function call
-        ("." element=[NamedElement:ID] (
-		explicitOperationCall?='('
-		(
-		    arguments+=Expression (',' arguments+=Expression)*
-		)?
-		')')? 
-        // Chained function call
-        | (
-		explicitOperationCall?='('
-		(
-		    arguments+=Expression (',' arguments+=Expression)*
-		)?
-		')'))
+        (
+            "." element=[NamedElement:ID]
+            (
+                explicitOperationCall?='('
+                (
+                    arguments+=Expression (',' arguments+=Expression)*
+                )?
+                ')'
+            )?
+            // Chained function call
+            |
+            (
+                explicitOperationCall?='('
+                (
+                    arguments+=Expression (',' arguments+=Expression)*
+                )?
+                ')'
+            )
+        )
     )*;
 
 Primary infers Expression:
@@ -87,6 +93,7 @@ Primary infers Expression:
     NilExpression |
     FeatureCall;
 
+// TODO "FeatureCall" is never used ?!
 FeatureCall infers Expression:
 	{infer MemberCall}
 	(element=[NamedElement:ID] | element=[NamedElement:'this'] | element=[NamedElement:'super'])
@@ -98,8 +105,7 @@ FeatureCall infers Expression:
 	')')?;
 
 UnaryExpression:
-   operator=('!' | '-' | '+') value=Expression
-;
+   operator=('!' | '-' | '+') value=Expression;
 
 NumberExpression: value=NUMBER;
 StringExpression: value=STRING;
@@ -113,7 +119,7 @@ Parameter: name=ID ':' type=TypeReference;
 
 Class: 'class' name=ID ('<' superClass=[Class:ID])? '{'
     members+=ClassMember*
-'}';
+    '}';
 
 ClassMember: MethodMember | FieldMember;
 
@@ -123,7 +129,8 @@ MethodMember:
 FieldMember:
     name=ID ':' type=TypeReference;
 
-TypeReference: reference=[Class:ID] 
+TypeReference:
+      reference=[Class:ID] 
     | primitive=("string" | "number" | "boolean" | "void") 
     | '(' ( parameters+=LambdaParameter (',' parameters+=LambdaParameter)*)? ')' '=>' returnType=TypeReference;
 
