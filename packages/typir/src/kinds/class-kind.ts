@@ -8,7 +8,7 @@ import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { IndexedTypeConflict, TypeComparisonStrategy, TypirProblem, compareNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
-import { NameTypePair, toArray } from '../utils/utils.js';
+import { NameTypePair, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface ClassKindOptions {
@@ -16,9 +16,17 @@ export interface ClassKindOptions {
     /** Values < 0 indicate an arbitrary number of super classes. */
     maximumNumberOfSuperClasses: number,
     subtypeFieldChecking: TypeComparisonStrategy,
+    /** Will be used only internally as prefix for the unique identifiers for class type names. */
+    identifierPrefix: string,
 }
 
 export const ClassKindName = 'ClassKind';
+
+export interface ClassTypeDetails {
+    className: string,
+    superClasses?: Type | Type[],
+    fields: NameTypePair[],
+}
 
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
@@ -38,20 +46,31 @@ export class ClassKind implements Kind {
             structuralTyping: false,
             maximumNumberOfSuperClasses: 1,
             subtypeFieldChecking: 'EQUAL_TYPE',
+            identifierPrefix: 'class',
             // the actually overriden values:
             ...options
         };
+        assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
 
-    createClassType(typeDetails: {
-        className: string,
-        superClasses?: Type | Type[],
-        fields: NameTypePair[]
-    }): Type {
+    getClassType(typeDetails: ClassTypeDetails | string): Type | undefined { // string for nominal typing
+        const key = this.printClassType(typeof typeDetails === 'string' ? { className: typeDetails, fields: []} : typeDetails);
+        return this.typir.graph.getType(key);
+    }
+
+    getOrCreateClassType(typeDetails: ClassTypeDetails): Type {
+        const result = this.getClassType(typeDetails);
+        if (result) {
+            return result;
+        }
+        return this.createClassType(typeDetails);
+    }
+
+    createClassType(typeDetails: ClassTypeDetails): Type {
         const theSuperClasses = toArray(typeDetails.superClasses);
 
         // create the class type
-        const classType = new Type(this, typeDetails.className);
+        const classType = new Type(this, this.printClassType(typeDetails));
         this.typir.graph.addNode(classType);
 
         // FIELDS
@@ -91,6 +110,24 @@ export class ClassKind implements Kind {
         }
 
         return classType;
+    }
+
+    protected printClassType(typeDetails: ClassTypeDetails): string {
+        const prefix = this.options.identifierPrefix;
+        if (this.options.structuralTyping) {
+            // fields
+            const fields: string[] = [];
+            for (const field of typeDetails.fields.entries()) {
+                fields.push(`${field[0]}:${field[1].name}`);
+            }
+            // super classes
+            const superClasses = toArray(typeDetails.superClasses);
+            const extendedClasses = superClasses.length <= 0 ? '' : `-extends-${superClasses.map(c => c.name).join(',')}`;
+            // whole representation
+            return `${prefix}-${typeDetails.className}{${fields.join(',')}}${extendedClasses}`;
+        } else {
+            return `${prefix}-${typeDetails.className}`;
+        }
     }
 
     getUserRepresentation(type: Type): string {

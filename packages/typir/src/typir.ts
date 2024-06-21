@@ -20,6 +20,7 @@ import { Kind } from './kinds/kind.js';
  * Design decisions for Typir
  * - no NameProvider for the name of types, since the name depends on the type of the kind => change the implementation of the kind
  * - the type 'void' has a primitive kind (no dedicated kind for now)
+ * - Once created/initialized, types are constant, e.g. no additional fields can be added to classes (but their types might be resolved a bit later).
  */
 
 /** Open design questions TODO
