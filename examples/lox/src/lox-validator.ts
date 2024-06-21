@@ -5,12 +5,13 @@
  ******************************************************************************/
 
 import { AstNode, AstUtils, ValidationAcceptor, ValidationChecks, ValidationRegistry } from 'langium';
-import { BinaryExpression, Class, ExpressionBlock, FunctionDeclaration, isReturnStatement, LoxAstType, MethodMember, TypeReference, UnaryExpression, VariableDeclaration } from './generated/ast.js';
+import { BinaryExpression, Class, ExpressionBlock, FunctionDeclaration, isReturnStatement, LoxAstType, LoxProgram, MethodMember, TypeReference, UnaryExpression, VariableDeclaration } from './generated/ast.js';
 import type { LoxServices } from './lox-module.js';
 import { isAssignable } from './type-system/assignment.js';
 import { isVoidType, TypeDescription, typeToString } from './type-system/descriptions.js';
 import { inferType } from './type-system/infer.js';
 import { isLegalOperation } from './type-system/operator.js';
+import { createTypir } from './type-system/lox-type-checking.js';
 
 /**
  * Registry for validation checks.
@@ -21,11 +22,8 @@ export class LoxValidationRegistry extends ValidationRegistry {
         const validator = services.validation.LoxValidator;
         const checks: ValidationChecks<LoxAstType> = {
             BinaryExpression: validator.checkBinaryOperationAllowed,
-            UnaryExpression: validator.checkUnaryOperationAllowed,
             VariableDeclaration: validator.checkVariableDeclaration,
-            MethodMember: validator.checkMethodReturnType,
-            Class: validator.checkClassDeclaration,
-            FunctionDeclaration: validator.checkFunctionReturnType
+            LoxProgram: validator.checkTypingProblemsWithTypir,
         };
         this.register(checks, validator);
     }
@@ -36,40 +34,18 @@ export class LoxValidationRegistry extends ValidationRegistry {
  */
 export class LoxValidator {
 
-    checkFunctionReturnType(func: FunctionDeclaration, accept: ValidationAcceptor): void {
-        this.checkFunctionReturnTypeInternal(func.body, func.returnType, accept);
-    }
-
-    checkMethodReturnType(method: MethodMember, accept: ValidationAcceptor): void {
-        this.checkFunctionReturnTypeInternal(method.body, method.returnType, accept);
-    }
-
-    // TODO: implement classes 
-    checkClassDeclaration(declaration: Class, accept: ValidationAcceptor): void {
-        accept('error', 'Classes are currently unsupported.', {
-            node: declaration,
-            property: 'name'
-        });
-    }
-
-    private checkFunctionReturnTypeInternal(body: ExpressionBlock, returnType: TypeReference, accept: ValidationAcceptor): void {
-        const map = this.getTypeCache();
-        const returnStatements = AstUtils.streamAllContents(body).filter(isReturnStatement).toArray();
-        const expectedType = inferType(returnType, map);
-        if (returnStatements.length === 0 && !isVoidType(expectedType)) {
-            accept('error', "A function whose declared type is not 'void' must return a value.", {
-                node: returnType
-            });
-            return;
-        }
-        for (const returnStatement of returnStatements) {
-            const returnValueType = inferType(returnStatement, map);
-            if (!isAssignable(returnValueType, expectedType)) {
-                accept('error', `Type '${typeToString(returnValueType)}' is not assignable to type '${typeToString(expectedType)}'.`, {
-                    node: returnStatement
-                });
+    checkTypingProblemsWithTypir(node: LoxProgram, accept: ValidationAcceptor) {
+        // executes all checks, which are directly derived from the current Typir configuration,
+        // i.e. arguments fit to parameters for function calls (including operands for operators)
+        const typir = createTypir(node);
+        AstUtils.streamAllContents(node).forEach(node => {
+            // print all found problems for each AST node
+            const typeProblems = typir.validation.collector.validate(node);
+            for (const problem of typeProblems) {
+                const message = typir.printer.printValidationProblem(problem);
+                accept(problem.severity, message, { node, property: problem.domainProperty, index: problem.domainIndex });
             }
-        }
+        });
     }
 
     checkVariableDeclaration(decl: VariableDeclaration, accept: ValidationAcceptor): void {
@@ -113,15 +89,6 @@ export class LoxValidator {
                     property: 'operator'
                 });
             }
-        }
-    }
-
-    checkUnaryOperationAllowed(unary: UnaryExpression, accept: ValidationAcceptor): void {
-        const item = inferType(unary.value, this.getTypeCache());
-        if (!isLegalOperation(unary.operator, item)) {
-            accept('error', `Cannot perform operation '${unary.operator}' on value of type '${typeToString(item)}'.`, {
-                node: unary
-            });
         }
     }
 

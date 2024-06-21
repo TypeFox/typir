@@ -5,8 +5,8 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, PrimitiveKind, Type, Typir } from 'typir';
-import { BinaryExpression, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNumberExpression, isParameter, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NameTypePair, PrimitiveKind, Type, Typir } from 'typir';
+import { BinaryExpression, FieldMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNumberExpression, isParameter, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isLoxProgram)!;
@@ -18,17 +18,32 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     const classKind = new ClassKind(typir);
     const operators = typir.operators;
 
-    // types
+    // primitive types
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
-    const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRule: (node) => isBooleanExpression(node)});
+    const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean',
+        inferenceRules: [
+            (node) => isBooleanExpression(node),
+            (node) => isTypeReference(node) && node.primitive === 'boolean'
+        ]});
     // ... but their primitive kind is provided/preset by Typir
-    const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRule: (node) => isNumberExpression(node)});
-    const typeString = primitiveKind.createPrimitiveType({ primitiveName: 'string', inferenceRule: node => isStringExpression(node) });
-    const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void' });
+    const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number',
+        inferenceRules: [
+            (node) => isNumberExpression(node),
+            (node) => isTypeReference(node) && node.primitive === 'number'
+        ]});
+    const typeString = primitiveKind.createPrimitiveType({ primitiveName: 'string',
+        inferenceRules: [
+            node => isStringExpression(node),
+            node => isTypeReference(node) && node.primitive === 'string'
+        ]});
+    const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void' }); // TODO 'nil' ??
 
     // utility function to map language types to Typir types
     function mapType(typeRef: TypeReference): Type {
-        if(typeRef.primitive) {
+        if (!typeRef) {
+            throw new Error();
+        }
+        if (typeRef.primitive) {
             switch (typeRef.primitive) {
                 case 'number': return typeNumber;
                 case 'string': return typeString;
@@ -36,17 +51,16 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 case 'void': return typeVoid;
                 default: assertUnreachable(typeRef.primitive);
             }
-        } else if(typeRef.reference && typeRef.reference.ref) {
-            const klass = typeRef.reference.ref;
-            return classKind.createClassType({ 
-                className: klass.name,
-                fields: undefined!
-            });
+        } else if (typeRef.reference && typeRef.reference.ref) {
+            // search for an existing class
+            return classKind.getClassType(typeRef.reference.ref.name)!;
         } else {
-            return functionKind.createFunctionType(undefined!)
+            // TODO fix this
+            return functionKind.createFunctionType(undefined!);
         }
     }
 
+    // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
     const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
         filter: isBinaryExpression,
         matching: (node, name) => node.operator === name,
@@ -60,6 +74,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
     // binary operators: numbers => number
     operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber, inferenceRule: binaryInferenceRule });
+    // TODO '+' for strings + numbers + mixed!
 
     // binary operators: numbers => boolean
     operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule });
@@ -68,14 +83,14 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // ==, != for booleans and numbers
-    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
+    operators.createBinaryOperator({ name: ['=', '==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // unary operators
     operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });
-    operators.createUnaryOperator({ name: '-', operandType: typeNumber, inferenceRule: unaryInferenceRule });
+    operators.createUnaryOperator({ name: ['-', '+'], operandType: typeNumber, inferenceRule: unaryInferenceRule });
 
-    // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
     AstUtils.streamAllContents(domainNodeRoot).forEach((node: AstNode) => {
+        // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
@@ -94,6 +109,28 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     matching: (domainElement) => isFunctionDeclaration(domainElement.element?.ref) && domainElement.element!.ref.name === functionName,
                     inputArguments: (domainElement) => domainElement.arguments
                 },
+            });
+        }
+
+        /**
+         * TODO Delayed:
+         * - (classType: Type) => Type(for output)
+         * - WANN werden sie aufgelöst? bei erster Verwendung?
+         * - WO wird das verwaltet? im Kind? im Type? im TypeGraph?
+         */
+
+        // class types (nominal typing):
+        if (isClass(node)) {
+            classKind.createClassType({
+                className: node.name,
+                superClasses: node.superClass?.ref ? classKind.getClassType(node.superClass.ref.name) : undefined, // TODO delayed
+                fields: node.members
+                    .filter(m => isFieldMember(m)).map(f => f as FieldMember) // only Fields, no Methods
+                    .map(f => <NameTypePair>{
+                        name: f.name,
+                        type: mapType(f.type), // TODO delayed
+                    })
+                // TODO methods in classes
             });
         }
     });
@@ -127,7 +164,14 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             }
             // ... variable declarations
             if (isVariableDeclaration(domainElement)) {
-                return mapType(domainElement.type!);
+                if (domainElement.type) {
+                    return mapType(domainElement.type);
+                } else if (domainElement.value) {
+                    // the type might be null; no type declared => do type inference of the assigned value instead!
+                    return domainElement.value;
+                } else {
+                    throw new Error('impossible')
+                }
             }
             // ... language types
             if (isTypeReference(domainElement)) {
@@ -154,7 +198,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             }
             if (isReturnStatement(node)) {
                 const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
-                if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
+                if (functionDeclaration && functionDeclaration.returnType.primitive && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function
                     return typir.validation.constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType, `The expression '${node.value.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'`, 'value');
                 }
