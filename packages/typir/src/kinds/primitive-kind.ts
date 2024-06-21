@@ -7,6 +7,7 @@
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem, compareValueForConflict as compareValuesForConflict } from '../utils/utils-type-comparison.js';
+import { toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export type InferPrimitiveType = (domainElement: unknown) => boolean;
@@ -25,14 +26,16 @@ export class PrimitiveKind implements Kind {
 
     createPrimitiveType(typeDetails: {
         primitiveName: string,
-        inferenceRule?: InferPrimitiveType
+        inferenceRules?: InferPrimitiveType | InferPrimitiveType[]
     }): Type {
+        // create the primitive type
         const primitiveType = new Type(this, typeDetails.primitiveName);
         this.typir.graph.addNode(primitiveType);
-        if (typeDetails.inferenceRule) {
+        // register all inference rules
+        for (const inferenceRule of toArray(typeDetails.inferenceRules)) {
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement) {
-                    return typeDetails.inferenceRule!(domainElement) ? primitiveType : 'RULE_NOT_APPLICABLE';
+                    return inferenceRule(domainElement) ? primitiveType : 'RULE_NOT_APPLICABLE';
                 },
             });
         }

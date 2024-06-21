@@ -30,7 +30,7 @@ describe('Tests for Typir', () => {
         // create some primitive types
         const typeInt = primitiveKind.createPrimitiveType({ primitiveName: 'Integer' });
         const typeString = primitiveKind.createPrimitiveType({ primitiveName: 'String',
-            inferenceRule: domainElement => typeof domainElement === 'string'}); // combine type definition with a dedicated inference rule for it
+            inferenceRules: domainElement => typeof domainElement === 'string'}); // combine type definition with a dedicated inference rule for it
         const typeBoolean = primitiveKind.createPrimitiveType({ primitiveName: 'Boolean' });
 
         // create class type Person with 1 firstName and 1..2 lastNames and a age properties
