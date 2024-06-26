@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { AstNode, AstUtils, ValidationAcceptor, ValidationChecks, ValidationRegistry } from 'langium';
-import { BinaryExpression, Class, ExpressionBlock, FunctionDeclaration, isReturnStatement, LoxAstType, MethodMember, TypeReference, UnaryExpression, VariableDeclaration } from './generated/ast.js';
+import { BinaryExpression, Class, ExpressionBlock, FunctionDeclaration, isLoxProgram, isReturnStatement, LoxAstType, MethodMember, TypeReference, UnaryExpression, VariableDeclaration } from './generated/ast.js';
 import type { LoxServices } from './lox-module.js';
 import { isAssignable } from './type-system/assignment.js';
 import { isVoidType, TypeDescription, typeToString } from './type-system/descriptions.js';
@@ -46,10 +46,12 @@ export class LoxValidator {
 
     // TODO: implement classes 
     checkClassDeclaration(declaration: Class, accept: ValidationAcceptor): void {
-        accept('error', 'Classes are currently unsupported.', {
-            node: declaration,
-            property: 'name'
-        });
+        if(isLoxProgram(declaration.$container)) {
+            accept('error', 'Non-global classes are currently unsupported.', {
+                node: declaration,
+                property: 'name'
+            });
+        }
     }
 
     private checkFunctionReturnTypeInternal(body: ExpressionBlock, returnType: TypeReference, accept: ValidationAcceptor): void {

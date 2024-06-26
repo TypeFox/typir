@@ -5,8 +5,15 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, PrimitiveKind, Type, Typir, assertTrue } from 'typir';
-import { BinaryExpression, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNumberExpression, isParameter, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, PrimitiveKind, Type, Typir, assertTrue } from 'typir';
+import { BinaryExpression, Class, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNumberExpression, isParameter, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { CompositeKind, NameWithType } from 'typir';
+
+type ClassChildren = {
+    superClass?: Type;
+    fields: NameWithType[];
+    methods: NameWithType[];
+};
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isLoxProgram)!;
@@ -15,7 +22,18 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     const typir = new Typir();
     const primitiveKind = new PrimitiveKind(typir);
     const functionKind = new FunctionKind(typir);
-    const classKind = new ClassKind(typir);
+    const classKind = new CompositeKind<ClassChildren>(typir, 'Class', (superType, subType) => {
+        const visited = new Set<Type>();
+        let subClass: Type|undefined = subType;
+        while(subClass != undefined && !visited.has(subClass)) {
+            visited.add(subClass);
+            if(subClass === superType) {
+                return true;
+            }
+            subClass = subClass.properties.get(classKind.NODE_TYPE_CHILDREN)().superClass;
+        }
+        return false;
+    });
     const operators = typir.operators;
 
     // types
@@ -25,6 +43,29 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRule: (node) => isNumberExpression(node)});
     const typeString = primitiveKind.createPrimitiveType({ primitiveName: 'string', inferenceRule: node => isStringExpression(node) });
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void' });
+
+    const classes = new Map<Class, Type>();
+    const classASTNodes = domainNodeRoot.elements.filter(isClass);
+    for (const klass of classASTNodes) {
+        const classType = classKind.createType({
+            className: klass.name,
+            childrenFactories: {
+                superClass: () => klass.superClass ? mapType({
+                    $type: 'TypeReference',
+                    reference: klass.superClass,
+                    parameters: [],
+                    $container: undefined!,
+                }) : undefined,
+                fields: () => klass.members.filter(isFieldMember).map(m => [m.name, mapType(m.type)] as const),
+                //TODO resolve method type
+                methods: () => klass.members.filter(isMethodMember).map(m => [m.name, undefined! /* TODO */] as const),
+            }
+        });
+        classes.set(klass, classType);
+    }
+    for (const klass of classes.values()) {
+        klass.properties.get(classKind.NODE_TYPE_RESOLVE)();   
+    }
 
     // utility function to map language types to Typir types
     function mapType(typeRef: TypeReference): Type {
@@ -37,13 +78,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 default: assertUnreachable(typeRef.primitive);
             }
         } else if(typeRef.reference) {
-            assertTrue(isClass(typeRef.reference.ref));
-            const klass = typeRef.reference.ref!;
-            return classKind.createClassType({ 
-                className: klass.name,
-                fields: undefined!,
-                superClasses: undefined!
-            });
+            return classes.get((typeRef.reference.ref!))!;
         } else if(typeRef.returnType) {
             //TODO fill out for lambda
             return undefined!;
