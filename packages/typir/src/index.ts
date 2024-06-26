@@ -21,6 +21,7 @@ export * from './kinds/class-kind.js';
 export * from './kinds/fixed-parameters-kind.js';
 export * from './kinds/function-kind.js';
 export * from './kinds/kind.js';
+export * from './kinds/composite-kind.js';
 export * from './kinds/multiplicity-kind.js';
 export * from './kinds/primitive-kind.js';
 export * from './kinds/top-kind.js';

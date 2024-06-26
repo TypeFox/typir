@@ -10,71 +10,46 @@ import { Typir } from '../typir.js';
 import { TypirProblem } from '../utils/utils-type-comparison.js';
 import { Kind } from './kind.js';
 import { TypeEdge } from '../graph/type-edge.js';
+import { assertTrue } from '../utils/utils.js';
 
-/*
-function inferType(_node: AstNode): Type { return undefined!; }
-const classNode: NamedAstNode & {
-    superType: AstNode|undefined,
-    interfaces: AstNode[],
-    fields: NamedAstNode[]
-} = undefined!;
-export interface ClassTypeOptions {
-    name: string,
-    children: {
-        superType: () => Type|undefined,
-        interfaces: () => Type[],
-        members: () => Array<[string, Type]>,
-    }
-}
-function createComposite(_options: ClassTypeOptions): void {}
-createComposite({
-    name: classNode.name,
-    children: {
-        superType: () => classNode.superType ? inferType(classNode.superType) : undefined,
-        interfaces: () => classNode.interfaces.map(inferType),
-        members: () => classNode.fields.map(f => [f.name, inferType(f)] as const),
-    }
-});*/
-
-type ChildNameOrIndex = string | number;
-type ChildrenTypeKind = 'single-type' | 'multiple-types' | 'named-types';
-type ChildrenType = Type | Type[] | Array<[ChildNameOrIndex, Type]>;
+type ChildrenTypeKind = 'single-type' | 'multiple-types' | 'named-types' | 'indexed-types';
+export type NameWithType = [string, Type];
+export type IndexWithType = [number, Type];
+type ChildrenType = Type | Type[] | NameWithType[] | IndexWithType[];
 type CompositeChildrenBase = Record<string, ChildrenType>;
 type CompositeChildrenFactories<TChildren extends CompositeChildrenBase> = {
     [C in keyof TChildren]: () => TChildren[C];
 };
-type TypeWithCompositeChildren<TChildren extends CompositeChildrenBase> = {
-    type: Type;
-    children: TChildren;
-};
 type PrepareCompositeTypeDetails<TChildren extends CompositeChildrenBase> = {
     className: string;
     childrenFactories: CompositeChildrenFactories<TChildren>;
-    isSubType: (superType: TypeWithCompositeChildren<TChildren>, subType: TypeWithCompositeChildren<TChildren>) => boolean;
 };
 
 const EDGE_CHILD = 'COMPOSITE_CHILD';
-const EDGE_CHILD_ROLE = typedKey<ChildrenTypeKind>('ROLE');
+const EDGE_CHILD_ROLE = typedKey<string>('ROLE');
 const EDGE_CHILD_NAME = typedKey<string>('NAME');
 const EDGE_CHILD_INDEX = typedKey<number>('INDEX');
-const NODE_TYPE_RESOLVE = typedKey<() => void>('RESOLVE');
-function NODE_TYPE_CHILDREN<TChildren>() { return typedKey<() => TChildren>('CHILDREN'); }
-function NODE_TYPE_IS_SUBTYPE<TChildren extends CompositeChildrenBase>() { return typedKey<(superType: TypeWithCompositeChildren<TChildren>, subType: TypeWithCompositeChildren<TChildren>) => boolean>('IS_SUBTYPE'); }
+
 export class CompositeKind<TChildren extends CompositeChildrenBase> implements Kind {
+    public readonly NODE_TYPE_CHILDREN = typedKey<() => TChildren>('CHILDREN');
+    public readonly NODE_TYPE_RESOLVE = typedKey<() => void>('RESOLVE');
+
     readonly $name: string;
     readonly typir: Typir;
+    readonly internalIsSubType: (superType: Type, subType: Type) => boolean;
 
-    constructor(typir: Typir, name: string) {
+    constructor(typir: Typir, name: string, isSubType: (superType: Type, subType: Type) => boolean) {
         this.$name = name;
         this.typir = typir;
+        this.internalIsSubType = isSubType;
         this.typir.registerKind(this);
     }
 
-    protected createCompositeType({ className, childrenFactories: children, isSubType }: PrepareCompositeTypeDetails<TChildren>): Type {
+    public createType({ className, childrenFactories: children }: PrepareCompositeTypeDetails<TChildren>): Type {
         const classType = new Type(this, className);
         this.typir.graph.addNode(classType);
 
-        type RoleNameTypeTuple = readonly [keyof TChildren, ChildNameOrIndex | undefined, Type];
+        type RoleNameTypeTuple = readonly [keyof TChildren, number | string | undefined, Type];
         type RoleNameToChildKind = Record<keyof TChildren, ChildrenTypeKind>;
 
         let roles: RoleNameToChildKind = undefined!;
@@ -97,10 +72,19 @@ export class CompositeKind<TChildren extends CompositeChildrenBase> implements K
                             yield ([roleName, undefined, type] as const);
                         }
                     } else {
-                        const namedTypes = child as Array<[ChildNameOrIndex, Type]>;
-                        roles![roleName] = 'named-types';
-                        for (const [nameOrIndex, type] of namedTypes) {
-                            yield ([roleName, nameOrIndex, type] as const);
+                        assertTrue(Array.isArray(child[0]));
+                        if(typeof child[0][0] === 'number') {
+                            const indexedTypes = child as IndexWithType[];
+                            roles![roleName] = 'indexed-types';
+                            for (const [index, type] of indexedTypes) {
+                                yield ([roleName, index, type] as const);
+                            }
+                        } else {
+                            const namedTypes = child as NameWithType[];
+                            roles![roleName] = 'named-types';
+                            for (const [name, type] of namedTypes) {
+                                yield ([roleName, name, type] as const);
+                            }
                         }
                     }
                 } else {
@@ -137,16 +121,19 @@ export class CompositeKind<TChildren extends CompositeChildrenBase> implements K
                         break;
                     case 'named-types':
                         properties[roleName] = edges.filter(e => e.properties.get(EDGE_CHILD_ROLE) === roleName)
-                            .map(e => [e.properties.get(EDGE_CHILD_NAME) || e.properties.get(EDGE_CHILD_INDEX), e.to]) as TChildren[typeof roleName];
+                            .map(e => [e.properties.get(EDGE_CHILD_NAME), e.to]) as TChildren[typeof roleName];
+                        break;
+                    case 'indexed-types':
+                        properties[roleName] = edges.filter(e => e.properties.get(EDGE_CHILD_ROLE) === roleName)
+                            .map(e => [e.properties.get(EDGE_CHILD_INDEX), e.to]) as TChildren[typeof roleName];
                         break;
                 }
             }
             return properties;
         }
 
-        classType.properties.set(NODE_TYPE_IS_SUBTYPE<TChildren>(), isSubType);
-        classType.properties.set(NODE_TYPE_RESOLVE, resolveChildren);
-        classType.properties.set(NODE_TYPE_CHILDREN<TChildren>(), getChildren);
+        classType.properties.set(this.NODE_TYPE_RESOLVE, resolveChildren);
+        classType.properties.set(this.NODE_TYPE_CHILDREN, getChildren);
 
         return classType;
     }
@@ -159,16 +146,7 @@ export class CompositeKind<TChildren extends CompositeChildrenBase> implements K
         if (subType.kind !== this || superType.kind !== this) {
             throw new Error();
         }
-        const isSubType = subType.properties.get(NODE_TYPE_IS_SUBTYPE<TChildren>());
-        const sub: TypeWithCompositeChildren<TChildren> = {
-            type: subType,
-            children: subType.properties.get(NODE_TYPE_CHILDREN<TChildren>())()
-        };
-        const sup: TypeWithCompositeChildren<TChildren> = {
-            type: superType,
-            children: superType.properties.get(NODE_TYPE_CHILDREN<TChildren>())()
-        };
-        if (isSubType(sup, sub)) {
+        if (this.internalIsSubType(superType, subType)) {
             return [];
         }
         return [{
