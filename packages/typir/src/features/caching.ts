@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeEdge } from '../graph/type-edge.js';
-import { Type } from '../graph/type-node.js';
+import { Type, typedKey } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 
 /**
@@ -32,13 +32,10 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
             edge = this.getEdge(to, from, meaning);
         }
         if (edge) {
-            const result = edge.properties.get(TYPE_CACHING_RELATIONSHIP);
-            if (result && typeof result === 'string') {
-                return {
-                    relationship: result as RelationshipKind,
-                    additionalData: edge.properties.get(TYPE_CACHING_ADDITIONAL),
-                };
-            }
+            return {
+                relationship: edge.properties.get(TYPE_CACHING_RELATIONSHIP),
+                additionalData: edge.properties.get(TYPE_CACHING_ADDITIONAL),
+            };
         }
         return { relationship: 'UNKNOWN', additionalData: undefined };
     }
@@ -92,8 +89,8 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
     }
 }
 
-const TYPE_CACHING_RELATIONSHIP = 'TypeRelationshipCaching_Kind';
-const TYPE_CACHING_ADDITIONAL = 'TypeRelationshipCaching_Additional';
+const TYPE_CACHING_RELATIONSHIP = typedKey<RelationshipKind>('TypeRelationshipCaching_Kind');
+const TYPE_CACHING_ADDITIONAL = typedKey<unknown>('TypeRelationshipCaching_Additional');
 
 
 /**

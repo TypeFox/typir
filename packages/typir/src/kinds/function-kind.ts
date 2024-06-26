@@ -7,7 +7,7 @@
 import { CompositeTypeInferenceRule } from '../features/inference.js';
 import { DefaultValidationCollector, ValidationCollector, ValidationProblem } from '../features/validation.js';
 import { TypeEdge } from '../graph/type-edge.js';
-import { Type, isType } from '../graph/type-node.js';
+import { Type, isType, typedKey } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem, compareNameTypePair, compareNameTypePairs, compareTypes, compareValueForConflict } from '../utils/utils-type-comparison.js';
 import { NameTypePair } from '../utils/utils.js';
@@ -403,11 +403,7 @@ export class FunctionKind implements Kind {
     }
 
     getSimpleFunctionName(functionType: Type): string {
-        const name = functionType.properties.get(SIMPLE_NAME);
-        if (typeof name === 'string') {
-            return name;
-        }
-        throw new Error();
+        return functionType.properties.get(SIMPLE_NAME);
     }
 
     getOutput(functionType: Type): NameTypePair | undefined {
@@ -423,8 +419,8 @@ export class FunctionKind implements Kind {
 
     getInputs(functionType: Type): NameTypePair[] {
         return functionType.getOutgoingEdges(INPUT_PARAMETER)
-            .sort((e1, e2) => (e2.properties.get(PARAMETER_ORDER) as number) - (e1.properties.get(PARAMETER_ORDER) as number))
-            .map(edge => <NameTypePair>{ name: edge.properties.get(PARAMETER_NAME) as string, type: edge.to });
+            .sort((e1, e2) => e2.properties.get(PARAMETER_ORDER) - e1.properties.get(PARAMETER_ORDER))
+            .map(edge => <NameTypePair>{ name: edge.properties.get(PARAMETER_NAME), type: edge.to });
     }
 }
 
@@ -433,9 +429,9 @@ export const FUNCTION_MISSING_NAME = '';
 
 const OUTPUT_PARAMETER = 'isOutput';
 const INPUT_PARAMETER = 'isInput';
-const PARAMETER_NAME = 'parameterName';
-const PARAMETER_ORDER = 'parameterOrder';
-const SIMPLE_NAME = 'simpleFunctionName';
+const PARAMETER_NAME = typedKey<string>('parameterName');
+const PARAMETER_ORDER = typedKey<number>('parameterOrder');
+const SIMPLE_NAME = typedKey<string>('simpleFunctionName');
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
     return isKind(kind) && kind.$name === FunctionKindName;

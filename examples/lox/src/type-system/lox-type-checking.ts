@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, PrimitiveKind, Type, Typir } from 'typir';
+import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, PrimitiveKind, Type, Typir, assertTrue } from 'typir';
 import { BinaryExpression, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNumberExpression, isParameter, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
@@ -36,14 +36,19 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 case 'void': return typeVoid;
                 default: assertUnreachable(typeRef.primitive);
             }
-        } else if(typeRef.reference && typeRef.reference.ref) {
-            const klass = typeRef.reference.ref;
+        } else if(typeRef.reference) {
+            assertTrue(isClass(typeRef.reference.ref));
+            const klass = typeRef.reference.ref!;
             return classKind.createClassType({ 
                 className: klass.name,
-                fields: undefined!
+                fields: undefined!,
+                superClasses: undefined!
             });
+        } else if(typeRef.returnType) {
+            //TODO fill out for lambda
+            return undefined!;
         } else {
-            return functionKind.createFunctionType(undefined!)
+            throw new Error('Unreachable');
         }
     }
 

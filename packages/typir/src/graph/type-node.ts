@@ -7,6 +7,32 @@
 import { Kind, isKind } from '../kinds/kind.js';
 import { TypeEdge } from './type-edge.js';
 
+export type TypedKey<T> = {
+    key: string;
+    readonly _?: T
+};
+
+export function typedKey<T>(key: string): TypedKey<T> {
+    return { key };
+}
+
+export class TypedMap {
+    private map: Map<string, unknown>;
+
+    has<T>({key}: TypedKey<T>): boolean {
+        return this.map.has(key);
+    }
+    get<T>({key}: TypedKey<T>): T {
+        return this.map.get(key) as T;
+    }
+    set<T>({key}: TypedKey<T>, value: T): void {
+        this.map.set(key, value);
+    }
+    delete<T>({key}: TypedKey<T>): void {
+        this.map.delete(key);
+    }
+}
+
 /**
  * Design decisions:
  * - features of types are realized/determined by their kinds
@@ -17,7 +43,7 @@ export class Type {
     name: string;
     protected readonly edgesIncoming: Map<string, TypeEdge[]> = new Map();
     protected readonly edgesOutgoing: Map<string, TypeEdge[]> = new Map();
-    readonly properties: Map<string, unknown> = new Map(); // store arbitrary data at the type
+    readonly properties = new TypedMap(); // store arbitrary data at the type
 
     constructor(kind: Kind, name: string) {
         this.kind = kind;

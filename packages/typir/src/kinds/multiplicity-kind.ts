@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeEdge } from '../graph/type-edge.js';
-import { Type } from '../graph/type-node.js';
+import { Type, typedKey } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem, compareValueForConflict as compareValuesForConflict } from '../utils/utils-type-comparison.js';
 import { Kind, isKind } from './kind.js';
@@ -147,15 +147,15 @@ export class MultiplicityKind implements Kind {
     }
 
     getLowerBound(typeWithMultiplicity: Type): number {
-        return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].properties.get(MULTIPLICITY_LOWER) as number;
+        return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].properties.get(MULTIPLICITY_LOWER);
     }
     getUpperBound(typeWithMultiplicity: Type): number {
-        return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].properties.get(MULTIPLICITY_UPPER) as number;
+        return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].properties.get(MULTIPLICITY_UPPER);
     }
 }
 
-const MULTIPLICITY_LOWER = 'lowerBound';
-const MULTIPLICITY_UPPER = 'upperBound';
+const MULTIPLICITY_LOWER = typedKey<number>('lowerBound');
+const MULTIPLICITY_UPPER = typedKey<number>('upperBound');
 const CONSTRAINED_TYPE = 'isMultiplicityFor';
 
 export function isMultiplicityKind(kind: unknown): kind is MultiplicityKind {

@@ -14,7 +14,7 @@ export type NameTypePair = {
     type: Type;
 }
 
-export function assertTrue(condition: boolean, msg?: string) {
+export function assertTrue(condition: boolean, msg?: string): asserts condition {
     if (!condition) {
         throw new Error(msg);
     }

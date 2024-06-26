@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeEdge } from '../graph/type-edge.js';
-import { Type } from '../graph/type-node.js';
+import { Type, typedKey } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { IndexedTypeConflict, TypeComparisonStrategy, TypirProblem, compareNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
 import { NameTypePair, toArray } from '../utils/utils.js';
@@ -232,7 +232,7 @@ export class ClassKind implements Kind {
 }
 
 const FIELD_TYPE = 'hasField';
-const FIELD_NAME = 'name';
+const FIELD_NAME = typedKey<string>('name');
 const SUPER_CLASS = 'isSuperClass';
 
 export function isClassKind(kind: unknown): kind is ClassKind {

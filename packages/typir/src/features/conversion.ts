@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeEdge } from '../graph/type-edge.js';
-import { Type } from '../graph/type-node.js';
+import { Type, typedKey } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { toArray } from '../utils/utils.js';
 
@@ -59,4 +59,4 @@ export class DefaultTypeConversion implements TypeConversion {
 }
 
 const TYPE_CONVERSION = 'isConvertibleTo';
-const TYPE_CONVERSION_MODE = 'mode';
+const TYPE_CONVERSION_MODE = typedKey<ConversionMode>('mode');
