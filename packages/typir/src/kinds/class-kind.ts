@@ -4,15 +4,17 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { assertUnreachable } from 'langium';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { IndexedTypeConflict, TypeComparisonStrategy, TypirProblem, compareNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
+import { IndexedTypeConflict, MapListConverter, TypeComparisonStrategy, TypirProblem, compareNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
 import { NameTypePair, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
+import { InferenceProblem } from '../features/inference.js';
 
 export interface ClassKindOptions {
-    structuralTyping: boolean,
+    typing: 'Structural' | 'Nominal',
     /** Values < 0 indicate an arbitrary number of super classes. */
     maximumNumberOfSuperClasses: number,
     subtypeFieldChecking: TypeComparisonStrategy,
@@ -22,15 +24,28 @@ export interface ClassKindOptions {
 
 export const ClassKindName = 'ClassKind';
 
-export interface ClassTypeDetails {
+export interface ClassTypeDetails<T = unknown> {
     className: string,
     superClasses?: Type | Type[],
     fields: NameTypePair[],
+    inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
+    inferenceRulesForLiterals?: InferClassLiteral<T>,
+    inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | 'RULE_NOT_APPLICABLE', // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
 }
+
+// TODO nominal vs structural typing ??
+export type InferClassLiteral<T = unknown> = {
+    filter: (domainElement: unknown) => domainElement is T;
+    matching: (domainElement: T) => boolean;
+    inputValuesForFields: (domainElement: T) => Map<string, unknown>; // simple field name (including inherited fields) => value for this field! TODO implement that, [] for nominal typing
+};
 
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
  * Fields have exactly one type and no multiplicity (which can be realized with a type of kind 'MultiplicityKind').
+ * Fields have exactly one name which must be unique for the current class (TODO what about same field names in extended class?).
+ * The field name is used to identify fields of classes.
+ * The order of fields is not defined, i.e. there is no order of fields.
  */
 export class ClassKind implements Kind {
     readonly $name: 'ClassKind';
@@ -43,7 +58,7 @@ export class ClassKind implements Kind {
         this.typir.registerKind(this);
         this.options = {
             // the default values:
-            structuralTyping: false,
+            typing: 'Nominal',
             maximumNumberOfSuperClasses: 1,
             subtypeFieldChecking: 'EQUAL_TYPE',
             identifierPrefix: 'class',
@@ -53,12 +68,12 @@ export class ClassKind implements Kind {
         assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
 
-    getClassType(typeDetails: ClassTypeDetails | string): Type | undefined { // string for nominal typing
+    getClassType<T>(typeDetails: ClassTypeDetails<T> | string): Type | undefined { // string for nominal typing
         const key = this.printClassType(typeof typeDetails === 'string' ? { className: typeDetails, fields: []} : typeDetails);
         return this.typir.graph.getType(key);
     }
 
-    getOrCreateClassType(typeDetails: ClassTypeDetails): Type {
+    getOrCreateClassType<T>(typeDetails: ClassTypeDetails<T>): Type {
         const result = this.getClassType(typeDetails);
         if (result) {
             return result;
@@ -66,8 +81,10 @@ export class ClassKind implements Kind {
         return this.createClassType(typeDetails);
     }
 
-    createClassType(typeDetails: ClassTypeDetails): Type {
+    createClassType<T>(typeDetails: ClassTypeDetails<T>): Type {
         const theSuperClasses = toArray(typeDetails.superClasses);
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const classKind = this;
 
         // create the class type
         const classType = new Type(this, this.printClassType(typeDetails));
@@ -109,12 +126,96 @@ export class ClassKind implements Kind {
             this.typir.graph.addEdge(edge);
         }
 
+        // register inference rules
+        if (typeDetails.inferenceRuleForDeclaration) {
+            this.typir.inference.addInferenceRule({
+                isRuleApplicable(domainElement, _typir) {
+                    if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
+                        return classType;
+                    } else {
+                        return 'RULE_NOT_APPLICABLE';
+                    }
+                },
+                inferType(_domainElement, _childrenTypes, _typir) {
+                    // TODO check values for fields for nominal typing!
+                    return classType;
+                },
+            });
+        }
+        if (typeDetails.inferenceRulesForLiterals) {
+            const mapListConverter = new MapListConverter();
+            this.typir.inference.addInferenceRule({
+                isRuleApplicable(domainElement, _typir) {
+                    const result = typeDetails.inferenceRulesForLiterals!.filter(domainElement);
+                    if (result) {
+                        const matching = typeDetails.inferenceRulesForLiterals!.matching(domainElement);
+                        if (matching) {
+                            const inputArguments = typeDetails.inferenceRulesForLiterals!.inputValuesForFields(domainElement);
+                            if (inputArguments.size >= 1) {
+                                return mapListConverter.toList(inputArguments);
+                            } else {
+                                // there are no operands to check
+                                return classType; // this case occurs only, if the current class has no fields (including fields of super types) or is nominally typed
+                            }
+                        } else {
+                            // the domain element is slightly different
+                        }
+                    } else {
+                        // the domain element has a completely different purpose
+                    }
+                    // does not match at all
+                    return 'RULE_NOT_APPLICABLE';
+                },
+                inferType(domainElement, childrenTypes, typir) {
+                    const allExpectedFields = classKind.getFields(classType, true);
+                    // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
+                    const comparedFieldsProblems = compareNameTypesMap(
+                        allExpectedFields,
+                        mapListConverter.toMap(childrenTypes),
+                        createTypeComparisonStrategy(classKind.options.subtypeFieldChecking, typir)
+                    );
+                    if (comparedFieldsProblems.length >= 1) {
+                        // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
+                        return <InferenceProblem>{
+                            domainElement,
+                            inferenceCandidate: classType,
+                            location: 'values for fields',
+                            rule: this,
+                            subProblems: comparedFieldsProblems,
+                        };
+                    } else {
+                        // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
+                        return classType;
+                    }
+                },
+            });
+        }
+        if (typeDetails.inferenceRuleForFieldAccess) {
+            this.typir.inference.addInferenceRule({
+                isRuleApplicable(domainElement, _typir) {
+                    const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
+                    if (result === 'RULE_NOT_APPLICABLE') {
+                        return 'RULE_NOT_APPLICABLE';
+                    } else if (typeof result === 'string') {
+                        // get the type of the given field name
+                        const fieldType = classKind.getFields(classType, true).get(result);
+                        if (fieldType) {
+                            return fieldType;
+                        }
+                        throw new Error(`${result} is no known field`);
+                    } else {
+                        return result; // do the type inference for this element instead
+                    }
+                },
+            });
+        }
+
         return classType;
     }
 
-    protected printClassType(typeDetails: ClassTypeDetails): string {
+    protected printClassType<T>(typeDetails: ClassTypeDetails<T>): string {
         const prefix = this.options.identifierPrefix;
-        if (this.options.structuralTyping) {
+        if (this.options.typing === 'Structural') {
             // fields
             const fields: string[] = [];
             for (const field of typeDetails.fields.entries()) {
@@ -125,8 +226,10 @@ export class ClassKind implements Kind {
             const extendedClasses = superClasses.length <= 0 ? '' : `-extends-${superClasses.map(c => c.name).join(',')}`;
             // whole representation
             return `${prefix}-${typeDetails.className}{${fields.join(',')}}${extendedClasses}`;
-        } else {
+        } else if (this.options.typing === 'Nominal') {
             return `${prefix}-${typeDetails.className}`;
+        } else {
+            assertUnreachable(this.options.typing);
         }
     }
 
@@ -145,7 +248,7 @@ export class ClassKind implements Kind {
 
     isSubType(superType: Type, subType: Type): TypirProblem[] {
         if (isClassKind(superType.kind) && isClassKind(subType.kind)) {
-            if (this.options.structuralTyping) {
+            if (this.options.typing === 'Structural') {
                 // for structural typing, the sub type needs to have all fields of the super type with assignable types (including fields of all super classes):
                 const conflicts: IndexedTypeConflict[] = [];
                 const subFields = subType.kind.getFields(subType, true);
@@ -177,9 +280,20 @@ export class ClassKind implements Kind {
                 }
                 // Note that it is not necessary to check, whether the sub class has additional fields than the super type!
                 return conflicts;
+            } else if (this.options.typing === 'Nominal') {
+                // for nominal typing (takes super classes into account)
+                const allSub = this.getAllSuperClasses(subType, true);
+                const globalResult: TypirProblem[] = [];
+                for (const oneSub of allSub) {
+                    const localResult = compareValueForConflict(superType.name, oneSub.name, 'name');
+                    if (localResult.length <= 0) {
+                        return []; // class is found in the class hierarchy
+                    }
+                    globalResult.push(...localResult); // return all conflicts
+                }
+                return globalResult;
             } else {
-                // for nominal typing (super classes don't matter):
-                return compareValueForConflict(superType.name, subType.name, 'name');
+                assertUnreachable(this.options.typing);
             }
         }
         throw new Error();
@@ -187,13 +301,15 @@ export class ClassKind implements Kind {
 
     areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
         if (isClassKind(type1.kind) && isClassKind(type2.kind)) {
-            if (this.options.structuralTyping) {
+            if (this.options.typing === 'Structural') {
                 // for structural typing:
                 return compareNameTypesMap(type1.kind.getFields(type1, true), type2.kind.getFields(type2, true),
                     (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));
-            } else {
+            } else if (this.options.typing === 'Nominal') {
                 // for nominal typing:
                 return compareValueForConflict(type1.name, type2.name, 'name');
+            } else {
+                assertUnreachable(this.options.typing);
             }
         }
         throw new Error();
@@ -225,6 +341,8 @@ export class ClassKind implements Kind {
             }
         }
         return result;
+        // Sets preserve insertion order:
+        // return Array.from(set);
     }
 
     getAllSubClasses(classType: Type, includingGivenClass: boolean = false): Set<Type> {
@@ -248,7 +366,7 @@ export class ClassKind implements Kind {
     }
 
     getFields(classType: Type, withSuperClassesFields: boolean): Map<string, Type> {
-        // in case of conflicting field names, the type of the sub-class takes precedence!
+        // in case of conflicting field names, the type of the sub-class takes precedence! TODO
         const result = new Map();
         // fields of super classes
         if (withSuperClassesFields) {

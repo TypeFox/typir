@@ -10,7 +10,7 @@ import { TypeEqualityProblem } from '../features/equality.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { NameTypePair } from '../utils/utils.js';
+import { NameTypePair, assertTrue } from '../utils/utils.js';
 import { InferenceProblem } from '../features/inference.js';
 import { ValidationProblem } from '../features/validation.js';
 
@@ -215,7 +215,7 @@ export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Arr
     return conflicts;
 }
 
-export function compareNameTypesMap(sourceFields: Map<string, Type>, targetFields: Map<string, Type>, comparator: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function compareNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, comparator: (s: Type, t: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const targetCopy = new Map(targetFields);
     const conflicts: IndexedTypeConflict[] = [];
     for (const entry of sourceFields.entries()) {
@@ -223,38 +223,93 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
         const name = entry[0];
         if (targetCopy.has(name)) {
             // field exists in both maps
-            const targetType = targetCopy.get(name)!;
+            const targetType = targetCopy.get(name);
             targetCopy.delete(name);
-            const comparisonResult = comparator(sourceType, targetType);
-            if (comparisonResult !== true) {
-                // different types
+            if (sourceType === undefined && targetType === undefined) {
+                // both types don't exist, this is OK
+            } else if (sourceType === undefined && targetType !== undefined) {
+                // only the target type exists
                 conflicts.push({
-                    expected: sourceType,
+                    expected: undefined,
                     actual: targetType,
                     index: name,
-                    subProblems: [comparisonResult]
+                    subProblems: []
                 });
+            } else if (sourceType !== undefined && targetType === undefined) {
+                // only the source type exists
+                conflicts.push({
+                    expected: sourceType,
+                    actual: undefined,
+                    index: name,
+                    subProblems: []
+                });
+            } else if (sourceType !== undefined && targetType !== undefined) {
+                // both types exist => compare them
+                const comparisonResult = comparator(sourceType, targetType);
+                if (comparisonResult !== true) {
+                    // different types
+                    conflicts.push({
+                        expected: sourceType,
+                        actual: targetType,
+                        index: name,
+                        subProblems: [comparisonResult]
+                    });
+                } else {
+                    // same type
+                }
             } else {
-                // same type
+                throw new Error('impossible case');
             }
         } else {
             // field is missing in target
-            conflicts.push({
-                expected: sourceType,
-                actual: undefined,
-                index: name,
-                subProblems: []
-            });
+            if (sourceType === undefined) {
+                // this is OK
+            } else {
+                conflicts.push({
+                    expected: sourceType,
+                    actual: undefined,
+                    index: name,
+                    subProblems: []
+                });
+            }
         }
     }
     // fields are missing in source
     for (const entry of targetCopy.entries()) {
-        conflicts.push({
-            expected: undefined,
-            actual: entry[1],
-            index: entry[0],
-            subProblems: []
-        });
+        if (entry[1] === undefined) {
+            // this is OK
+        } else {
+            conflicts.push({
+                expected: undefined,
+                actual: entry[1],
+                index: entry[0],
+                subProblems: []
+            });
+        }
     }
     return conflicts;
+}
+
+export class MapListConverter {
+    protected names: string[] = [];
+
+    toList<T>(values: Map<string, T>): T[] {
+        this.names = [];
+        return Array.from(values)
+            .map(e => ({ fieldName: e[0], fieldType: e[1] }))
+            .sort((e1, e2) => e1.fieldName.localeCompare(e2.fieldName))
+            .map(e => {
+                this.names.push(e.fieldName);
+                return e.fieldType;
+            });
+    }
+
+    toMap<T>(values: T[]): Map<string, T> {
+        const result = new Map<string, T>();
+        assertTrue(values.length === this.names.length);
+        for (let i = 0; i < values.length; i++) {
+            result.set(this.names[i], values[i]);
+        }
+        return result;
+    }
 }

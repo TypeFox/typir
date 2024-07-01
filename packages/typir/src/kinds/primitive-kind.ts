@@ -26,16 +26,23 @@ export class PrimitiveKind implements Kind {
 
     createPrimitiveType(typeDetails: {
         primitiveName: string,
+        /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
         inferenceRules?: InferPrimitiveType | InferPrimitiveType[]
     }): Type {
         // create the primitive type
         const primitiveType = new Type(this, typeDetails.primitiveName);
         this.typir.graph.addNode(primitiveType);
-        // register all inference rules
-        for (const inferenceRule of toArray(typeDetails.inferenceRules)) {
+        // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
+        const rules = toArray(typeDetails.inferenceRules);
+        if (rules.length >= 1) {
             this.typir.inference.addInferenceRule({
-                isRuleApplicable(domainElement) {
-                    return inferenceRule(domainElement) ? primitiveType : 'RULE_NOT_APPLICABLE';
+                isRuleApplicable(domainElement, _typir) {
+                    for (const inferenceRule of rules) {
+                        if (inferenceRule(domainElement)) {
+                            return primitiveType;
+                        }
+                    }
+                    return 'RULE_NOT_APPLICABLE';
                 },
             });
         }

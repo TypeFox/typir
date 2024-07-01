@@ -260,6 +260,7 @@ export class FunctionKind implements Kind {
             /** Preconditions:
              * - there is a rule which specifies how to infer the current function type
              * - the current function has an output type/parameter, otherwise, this function could not provide any type, when it is called!
+             *   TODO sollte der dann zurückgegebene Type konfigurierbar gemacht werden? e.g. Type|undefined
              */
 
             // register inference rule for calls of the new function
@@ -320,7 +321,7 @@ export class FunctionKind implements Kind {
         // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
         if (typeDetails.inferenceRuleForDeclaration) {
             this.typir.inference.addInferenceRule({
-                isRuleApplicable(domainElement) {
+                isRuleApplicable(domainElement, _typir) {
                     if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
                         return functionType;
                     } else {

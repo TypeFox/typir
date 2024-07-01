@@ -15,7 +15,9 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     const typir = new Typir();
     const primitiveKind = new PrimitiveKind(typir);
     const functionKind = new FunctionKind(typir);
-    const classKind = new ClassKind(typir);
+    const classKind = new ClassKind(typir, {
+        typing: 'Nominal',
+    });
     const operators = typir.operators;
 
     // primitive types
@@ -36,7 +38,9 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             node => isStringExpression(node),
             node => isTypeReference(node) && node.primitive === 'string'
         ]});
-    const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void' }); // TODO 'nil' ??
+    const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void',
+        inferenceRules: node => isTypeReference(node) && node.primitive === 'void'
+     }); // TODO 'nil' ??
 
     // utility function to map language types to Typir types
     function mapType(typeRef: TypeReference): Type {
@@ -82,8 +86,10 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // binary operators: booleans => boolean
     operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule });
 
-    // ==, != for booleans and numbers
-    operators.createBinaryOperator({ name: ['=', '==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
+    // ==, != for all data types (TODO not only number and boolean!)
+    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
+    // = for SuperType = SubType (TODO)
+    operators.createBinaryOperator({ name: ['='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // unary operators
     operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });
@@ -121,17 +127,29 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
         // class types (nominal typing):
         if (isClass(node)) {
+            const className = node.name;
             classKind.createClassType({
-                className: node.name,
+                className,
                 superClasses: node.superClass?.ref ? classKind.getClassType(node.superClass.ref.name) : undefined, // TODO delayed
                 fields: node.members
                     .filter(m => isFieldMember(m)).map(f => f as FieldMember) // only Fields, no Methods
                     .map(f => <NameTypePair>{
                         name: f.name,
                         type: mapType(f.type), // TODO delayed
-                    })
+                    }),
                 // TODO methods in classes
+                // inference rule for declaration
+                inferenceRuleForDeclaration: (domainElement) => domainElement === node,
+                // inference ruleS(?) for objects/class literals conforming to the current class
+                inferenceRulesForLiterals: {
+                    filter: isMemberCall,
+                    matching: (domainElement) => isClass(domainElement.element?.ref) && domainElement.element!.ref.name === className,
+                    inputValuesForFields: (_domainElement) => new Map(), // values for fields don't matter for nominal typing
+                },
+                // inference rule for accessing fields
+                inferenceRuleForFieldAccess: (domainElement) => isFieldMember(domainElement) && domainElement.$container === node ? domainElement.name : 'RULE_NOT_APPLICABLE',
             });
+            // TODO validate assignments to fields/slots of classes/objects
         }
     });
 
@@ -175,7 +193,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             }
             // ... language types
             if (isTypeReference(domainElement)) {
-                return mapType(domainElement);
+                return mapType(domainElement); // TODO remove this!
             }
             return 'RULE_NOT_APPLICABLE';
         },
@@ -192,9 +210,6 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     ...typir.validation.constraints.ensureNodeHasNotType(node, typeVoid, "Variable can't be declared with a type 'void'.", 'type'),
                     ...typir.validation.constraints.ensureNodeIsAssignable(node.value, node, `The expression '${node.value?.$cstNode?.text}' is not assignable to '${node.name}'`, 'value')
                 ];
-            }
-            if (isBinaryExpression(node) && node.operator === '=' && node.left) {
-                return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, `The expression '${node.right.$cstNode?.text}' is not assignable to '${node.left.$cstNode?.text}'`, 'value');
             }
             if (isReturnStatement(node)) {
                 const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);

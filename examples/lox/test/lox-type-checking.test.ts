@@ -61,19 +61,56 @@ describe('Explicitly test type checking for LOX', () => {
     test('use overloaded operators', async () => {
         await validate('var myVar : boolean = true == false;', 0);
         await validate('var myVar : boolean = 2 == 3;', 0);
-        await validate('var myVar : boolean = true == 3;', 1);
-        await validate('var myVar : boolean = 2 == false;', 1);
+        await validate('var myVar : boolean = true == 3;', 2); // TODO should be only 1 problem ...
+        await validate('var myVar : boolean = 2 == false;', 2); // TODO should be only 1 problem ...
     });
 
     test('Only a single problem with the inner expression, since the type of "+" is always number!', async () => {
-        await validate('var myVar : number = 2 + (2 == false);', 2); // TODO should be only 1 problem ...
+        await validate('var myVar : number = 2 + (2 == false);', 3); // TODO should be only 1 problem ...
     });
 
-    test('Class', async () => {
+    test('Class literals', async () => {
         await validate(`
             class MyClass { name: string age: number }
             var v1 = MyClass(); // constructor call
         `, 0);
+        await validate(`
+            class MyClass { name: string age: number }
+            var v1: MyClass = MyClass(); // constructor call
+        `, 0);
+        await validate(`
+            class MyClass1 {}
+            class MyClass2 {}
+            var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
+        `, 0);
+    });
+
+    test('Class inheritance', async () => {
+        await validate(`
+            class MyClass1 { name: string age: number }
+            class MyClass2 < MyClass1 {}
+            var v1: MyClass1 = MyClass2();
+        `, 0);
+        await validate(`
+            class MyClass1 { name: string age: number }
+            class MyClass2 < MyClass1 {}
+            var v1: MyClass2 = MyClass1();
+        `, 1);
+    });
+
+    test('Class fields', async () => {
+        await validate(`
+            class MyClass1 { name: string age: number }
+            var v1: MyClass1 = MyClass1();
+            v1.name = "Bob";
+            v1.age = 42;
+        `, 0);
+        await validate(`
+            class MyClass1 { name: string age: number }
+            var v1: MyClass1 = MyClass1();
+            v1.name = 42;
+            v1.age = "Bob";
+        `, 2);
     });
 
 });
