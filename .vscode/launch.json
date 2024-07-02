@@ -6,7 +6,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run Extension",
+            "name": "Run Extension (OX)",
             "type": "extensionHost",
             "request": "launch",
             "args": [
@@ -15,7 +15,16 @@
             ]
         },
         {
-            "name": "Attach to Language Server",
+            "name": "Run Extension (LOX)",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}/examples/lox",
+                "${workspaceFolder}/examples/lox/examples"
+            ]
+        },
+        {
+            "name": "Attach to Language Server (OX)",
             "type": "node",
             "port": 6009,
             "request": "attach",
@@ -26,6 +35,20 @@
             "outFiles": [
                 "${workspaceFolder}/examples/ox/out/**/*.js",
                 "${workspaceFolder}/examples/ox/node_modules/langium/**/*.js"
+            ]
+        },
+        {
+            "name": "Attach to Language Server (LOX)",
+            "type": "node",
+            "port": 6009,
+            "request": "attach",
+            "skipFiles": [
+                "<node_internals>/**"
+            ],
+            "sourceMaps": true,
+            "outFiles": [
+                "${workspaceFolder}/examples/lox/out/**/*.js",
+                "${workspaceFolder}/examples/lox/node_modules/langium/**/*.js"
             ]
         },
         {

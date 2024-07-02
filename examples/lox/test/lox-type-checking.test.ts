@@ -8,7 +8,7 @@ import { EmptyFileSystem } from 'langium';
 import { parseDocument } from 'langium/test';
 import { describe, expect, test } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
-import { createLoxServices } from '../src/lox-module.js';
+import { createLoxServices } from '../src/language/lox-module.js';
 
 const loxServices = createLoxServices(EmptyFileSystem).Lox;
 

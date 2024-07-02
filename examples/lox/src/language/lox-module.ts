@@ -4,10 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { LangiumCoreServices, Module, PartialLangiumCoreServices, DefaultSharedCoreModuleContext, LangiumSharedCoreServices, inject, createDefaultSharedCoreModule, createDefaultCoreModule } from 'langium';
+import { DefaultSharedCoreModuleContext, LangiumCoreServices, LangiumSharedCoreServices, Module, PartialLangiumCoreServices, createDefaultCoreModule, createDefaultSharedCoreModule, inject } from 'langium';
 import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module.js';
 import { LoxScopeProvider } from './lox-scope.js';
 import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
+import { DefaultSharedModuleContext, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -54,12 +55,12 @@ export const LoxModule: Module<LoxServices, PartialLangiumCoreServices & LoxAdde
  * @param context Optional module context with the LSP connection
  * @returns An object wrapping the shared services and the language-specific services
  */
-export function createLoxServices(context: DefaultSharedCoreModuleContext): {
-    shared: LangiumSharedCoreServices,
+export function createLoxServices(context: DefaultSharedModuleContext): {
+    shared: LangiumSharedServices,
     Lox: LoxServices
 } {
     const shared = inject(
-        createDefaultSharedCoreModule(context),
+        createDefaultSharedModule(context),
         LoxGeneratedSharedModule
     );
     const Lox = inject(
