@@ -22,10 +22,12 @@ export interface FunctionKindOptions {
 
 export const FunctionKindName = 'FunctionKind';
 
+/** Collects all functions with the same name */
 interface OverloadedFunctionDetails {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     overloadedFunctions: Array<SingleFunctionDetails<any>>;
-    inference: CompositeTypeInferenceRule;
+    inference: CompositeTypeInferenceRule; // collects the inference rules for all functions with the same name
+    sameOutputType: Type | undefined; // if all overloaded functions with the same name have the same output/return type, this type is remembered here
 }
 
 interface SingleFunctionDetails<T> {
@@ -95,7 +97,7 @@ export class FunctionKind implements Kind {
             ...options
         };
 
-        // register stuff for overloaded functions
+        // register Validations for input arguments (must be done here to support overloaded functions)
         this.typir.validation.collector.addValidationRules(
             (domainElement, _typir) => {
                 const resultAll: ValidationProblem[] = [];
@@ -210,10 +212,11 @@ export class FunctionKind implements Kind {
         // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
     }): Type {
         // create the function type
-        this.enforceName(typeDetails.functionName, this.options.enforceFunctionName);
-        const uniqueTypeName = this.printFunctionType(typeDetails.functionName, typeDetails.inputParameters, typeDetails.outputParameter);
+        const functionName = typeDetails.functionName;
+        this.enforceName(functionName, this.options.enforceFunctionName);
+        const uniqueTypeName = this.printFunctionType(functionName, typeDetails.inputParameters, typeDetails.outputParameter);
         const functionType = new Type(this, uniqueTypeName);
-        functionType.properties.set(SIMPLE_NAME, typeDetails.functionName);
+        functionType.properties.set(SIMPLE_NAME, functionName);
         this.typir.graph.addNode(functionType);
 
         // output parameter
@@ -225,7 +228,7 @@ export class FunctionKind implements Kind {
         } else {
             // no output parameter => no inference rule for calling this function
             if (typeDetails.inferenceRuleForCalls) {
-                throw new Error(`A function '${typeDetails.functionName}' without output parameter cannot have an inferred type, when this function is called!`);
+                throw new Error(`A function '${functionName}' without output parameter cannot have an inferred type, when this function is called!`);
             }
         }
 
@@ -240,16 +243,28 @@ export class FunctionKind implements Kind {
 
         // remember the new function for later in order to enable overloaded functions!
         const mapNameTypes = this.mapNameTypes;
-        let overloaded = mapNameTypes.get(typeDetails.functionName);
+        let overloaded = mapNameTypes.get(functionName);
         if (overloaded) {
             // do nothing
         } else {
             overloaded = {
                 overloadedFunctions: [],
                 inference: new CompositeTypeInferenceRule(),
+                sameOutputType: undefined,
             };
-            mapNameTypes.set(typeDetails.functionName, overloaded);
+            mapNameTypes.set(functionName, overloaded);
             this.typir.inference.addInferenceRule(overloaded.inference);
+        }
+        if (overloaded.overloadedFunctions.length <= 0) {
+            // remember the output type of the first function
+            overloaded.sameOutputType = typeDetails.outputParameter?.type;
+        } else {
+            if (overloaded.sameOutputType && typeDetails.outputParameter?.type && this.typir.equality.areTypesEqual(overloaded.sameOutputType, typeDetails.outputParameter.type)) {
+                // the output types of all overloaded functions are the same for now
+            } else {
+                // there is a difference
+                overloaded.sameOutputType = undefined;
+            }
         }
         overloaded.overloadedFunctions.push({
             functionType,
@@ -273,10 +288,16 @@ export class FunctionKind implements Kind {
                             const inputArguments = typeDetails.inferenceRuleForCalls!.inputArguments(domainElement);
                             if (inputArguments && inputArguments.length >= 1) {
                                 // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-                                const overloadInfos = mapNameTypes.get(typeDetails.functionName);
+                                const overloadInfos = mapNameTypes.get(functionName);
                                 if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
-                                    // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
-                                    return inputArguments;
+                                    // (only) for overloaded functions:
+                                    if (overloadInfos.sameOutputType) {
+                                        // exception: all(!) overloaded functions have the same(!) output type, save performance and return this type!
+                                        return overloadInfos.sameOutputType;
+                                    } else {
+                                        // otherwise: the types of the parameters need to be inferred in order to determine an exact match
+                                        return inputArguments;
+                                    }
                                 } else {
                                     // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
                                     return typeDetails.outputParameter!.type;
