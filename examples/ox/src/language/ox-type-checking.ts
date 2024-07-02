@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
 import { InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir } from 'typir';
-import { BinaryExpression, TypeReference, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanExpression, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberExpression, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanExpression, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberExpression, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isOxProgram)!;
@@ -19,9 +19,10 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
     // types
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
-    const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRule: (node) => isBooleanExpression(node)});
+    const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean',
+        inferenceRules: (node: unknown) => isBooleanExpression(node)});
     // ... but their primitive kind is provided/preset by Typir
-    const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRule: (node) => isNumberExpression(node)});
+    const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRules: (node: unknown) => isNumberExpression(node)});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void' });
 
     // utility function to map language types to Typir types
@@ -37,13 +38,13 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
     const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
         filter: isBinaryExpression,
-        matching: (node, name) => node.operator === name,
-        operands: (node, _name) => [node.left, node.right],
+        matching: (node: BinaryExpression, name: string) => node.operator === name,
+        operands: (node: BinaryExpression, _name: string) => [node.left, node.right],
     };
     const unaryInferenceRule: InferOperatorWithSingleOperand<UnaryExpression> = {
         filter: isUnaryExpression,
-        matching: (node, name) => node.operator === name,
-        operand: (node, _name) => node.value,
+        matching: (node: UnaryExpression, name: string) => node.operator === name,
+        operand: (node: UnaryExpression, _name: string) => node.value,
     };
 
     // binary operators: numbers => number
@@ -72,15 +73,16 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 outputParameter: { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
                 inputParameters: node.parameters.map(p => ({ name: p.name, type: mapType(p.type) })),
                 // inference rule for function declaration:
-                inferenceRuleForDeclaration: (domainElement) => domainElement === node, // only the current function declaration matches!
+                inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function declaration matches!
                 /** inference rule for funtion calls:
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
                  * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
                  * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
                 inferenceRuleForCalls: {
                     filter: isMemberCall,
-                    matching: (domainElement) => isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName,
-                    inputArguments: (domainElement) => domainElement.arguments
+                    matching: (domainElement: MemberCall) => isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName,
+                    inputArguments: (domainElement: MemberCall) => domainElement.arguments
+                    // TODO does OX support overloaded function declarations?
                 }
             });
         }
@@ -88,7 +90,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
     // additional inference rules for ...
     typir.inference.addInferenceRule({
-        isRuleApplicable(domainElement) {
+        isRuleApplicable(domainElement: unknown) {
             // ... member calls
             if (isMemberCall(domainElement)) {
                 const ref = domainElement.element.ref;

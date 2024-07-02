@@ -51,7 +51,11 @@ export interface TypeInferenceRule {
     inferType?(domainElement: unknown, childrenTypes: Array<Type | undefined>, typir: Typir): Type | InferenceProblem
 }
 
-// this design still feels a bit strange ...
+/**
+ * This inference rule uses multiple internal inference rules for doing the type inference.
+ * If one of the child rules returns a type, this type is the result of the composite rule.
+ * Otherwise, all problems of all child rules are returned.
+ */
 export class CompositeTypeInferenceRule implements TypeInferenceRule {
     readonly subRules: TypeInferenceRule[] = [];
 
