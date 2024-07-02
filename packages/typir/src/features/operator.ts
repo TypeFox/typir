@@ -144,9 +144,9 @@ export class DefaultOperatorManager implements OperatorManager {
                 ? {
                     filter: (domainElement: unknown): domainElement is T => typeDetails.inferenceRule!.filter(domainElement, typeDetails.name),
                     matching: (domainElement: T) => typeDetails.inferenceRule!.matching(domainElement, typeDetails.name),
-                    inputArguments: (domainElement: T) =>
-                        (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(domainElement, typeDetails.name)
-                        ?? (typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(domainElement, typeDetails.name),
+                    inputArguments: (domainElement: T) => 'operands' in typeDetails.inferenceRule!
+                        ? (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(domainElement, typeDetails.name)
+                        : [(typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(domainElement, typeDetails.name)],
                 }
                 : undefined
         });
