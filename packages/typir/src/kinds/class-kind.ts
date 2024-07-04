@@ -29,9 +29,11 @@ export interface ClassTypeDetails<T = unknown> {
     className: string,
     superClasses?: Type | Type[],
     fields: NameTypePair[],
+    // TODO methods
     inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
     inferenceRulesForLiterals?: InferClassLiteral<T>,
     inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | 'RULE_NOT_APPLICABLE', // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
+    // TODO inference rule for method calls
 }
 
 // TODO nominal vs structural typing ??

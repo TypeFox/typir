@@ -88,9 +88,9 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // binary operators: booleans => boolean
     operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule });
 
-    // ==, != for all data types (TODO not only number and boolean!)
+    // ==, != for all data types (TODO how to deal with the warning?)
     operators.createBinaryOperator({ name: ['==', '!='], inputType: typeAny, outputType: typeBool, inferenceRule: binaryInferenceRule });
-    // = for SuperType = SubType (TODO validation)
+    // = for SuperType = SubType (TODO integrate the validation here? should be replaced!)
     operators.createBinaryOperator({ name: '=', inputType: typeAny, outputType: typeAny, inferenceRule: binaryInferenceRule });
 
     // unary operators
@@ -139,7 +139,6 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                         name: f.name,
                         type: mapType(f.type), // TODO delayed
                     }),
-                // TODO methods in classes
                 // inference rule for declaration
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node,
                 // inference ruleS(?) for objects/class literals conforming to the current class
@@ -149,9 +148,9 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     inputValuesForFields: (_domainElement: MemberCall) => new Map(), // values for fields don't matter for nominal typing
                 },
                 // inference rule for accessing fields
-                inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element.ref.$container === node ? domainElement.element.ref.name : 'RULE_NOT_APPLICABLE',
+                inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element.ref.$container === node
+                    ? domainElement.element.ref.name : 'RULE_NOT_APPLICABLE',
             });
-            // TODO validate assignments to fields/slots of classes/objects
         }
     });
 
@@ -160,7 +159,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         isRuleApplicable(domainElement: unknown) {
             // ... member calls
             if (isMemberCall(domainElement)) {
-                const ref = domainElement.element!.ref;
+                const ref = domainElement.element?.ref;
                 if (isClass(ref)) {
                     return undefined!; //TODO
                 } else if (isClassMember(ref)) {
@@ -212,6 +211,9 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     ...typir.validation.constraints.ensureNodeHasNotType(node, typeVoid, "Variable can't be declared with a type 'void'.", 'type'),
                     ...typir.validation.constraints.ensureNodeIsAssignable(node.value, node, `The expression '${node.value?.$cstNode?.text}' is not assignable to '${node.name}'`, 'value')
                 ];
+            }
+            if (isBinaryExpression(node) && node.operator === '=') {
+                return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, `The expression '${node.right.$cstNode?.text}' is not assignable to '${node.left}'`, 'value');
             }
             if (isReturnStatement(node)) {
                 const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
