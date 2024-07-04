@@ -147,7 +147,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     inputValuesForFields: (_domainElement: MemberCall) => new Map(), // values for fields don't matter for nominal typing
                 },
                 // inference rule for accessing fields
-                inferenceRuleForFieldAccess: (domainElement: unknown) => isFieldMember(domainElement) && domainElement.$container === node ? domainElement.name : 'RULE_NOT_APPLICABLE',
+                inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element.ref.$container === node ? domainElement.element.ref.name : 'RULE_NOT_APPLICABLE',
             });
             // TODO validate assignments to fields/slots of classes/objects
         }

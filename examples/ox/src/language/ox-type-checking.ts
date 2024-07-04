@@ -19,8 +19,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
     // types
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
-    const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean',
-        inferenceRules: (node: unknown) => isBooleanExpression(node)});
+    const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRules: (node: unknown) => isBooleanExpression(node)});
     // ... but their primitive kind is provided/preset by Typir
     const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRules: (node: unknown) => isNumberExpression(node)});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void' });
