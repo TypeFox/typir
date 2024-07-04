@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NameTypePair, PrimitiveKind, Type, Typir } from 'typir';
+import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NameTypePair, PrimitiveKind, TopKind, Type, Typir } from 'typir';
 import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNumberExpression, isParameter, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
@@ -18,6 +18,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     const classKind = new ClassKind(typir, {
         typing: 'Nominal',
     });
+    const anyKind = new TopKind(typir);
     const operators = typir.operators;
 
     // primitive types
@@ -39,8 +40,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             (node: unknown) => isTypeReference(node) && node.primitive === 'string'
         ]});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void',
-        inferenceRules: (node: unknown) => isTypeReference(node) && node.primitive === 'void'
-     }); // TODO 'nil' ??
+        inferenceRules: (node: unknown) => isTypeReference(node) && node.primitive === 'void'}); // TODO 'nil' ??
+    const typeAny = anyKind.createTopType({});
 
     // utility function to map language types to Typir types
     function mapType(typeRef: TypeReference): Type {
@@ -78,7 +79,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
     // binary operators: numbers => number
     operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber, inferenceRule: binaryInferenceRule });
-    // TODO '+' for strings + numbers + mixed!
+    operators.createBinaryOperator({ name: '+', inputType: typeString, outputType: typeString, inferenceRule: binaryInferenceRule });
+    // TODO '+' with mixed types!
 
     // binary operators: numbers => boolean
     operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule });
@@ -87,9 +89,9 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // ==, != for all data types (TODO not only number and boolean!)
-    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
-    // = for SuperType = SubType (TODO)
-    operators.createBinaryOperator({ name: ['='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
+    operators.createBinaryOperator({ name: ['==', '!='], inputType: typeAny, outputType: typeBool, inferenceRule: binaryInferenceRule });
+    // = for SuperType = SubType (TODO validation)
+    operators.createBinaryOperator({ name: '=', inputType: typeAny, outputType: typeAny, inferenceRule: binaryInferenceRule });
 
     // unary operators
     operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });

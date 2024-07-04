@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 import { CompositeTypeInferenceRule } from '../features/inference.js';
+import { SubTypeProblem } from '../features/subtype.js';
 import { DefaultValidationCollector, ValidationCollector, ValidationProblem } from '../features/validation.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type, isType } from '../graph/type-node.js';
@@ -403,7 +404,11 @@ export class FunctionKind implements Kind {
                 this.options.enforceInputParameterNames, (s, t) => this.typir.assignability.isAssignable(s, t)));
             return conflicts;
         }
-        throw new Error();
+        return [<SubTypeProblem>{
+            superType,
+            subType,
+            subProblems: compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
+        }];
     }
 
     areTypesEqual(type1: Type, type2: Type): TypirProblem[] {

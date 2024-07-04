@@ -4,10 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonStrategy, TypirProblem, compareTypes, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
+import { TypeComparisonStrategy, TypirProblem, compareTypes, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
@@ -78,7 +79,11 @@ export class FixedParameterKind implements Kind {
             const compareStrategy = createTypeComparisonStrategy(this.options.subtypeParameterChecking, this.typir);
             return compareTypes(superType.kind.getParameterTypes(superType), subType.kind.getParameterTypes(subType), compareStrategy);
         }
-        throw new Error();
+        return [<SubTypeProblem>{
+            superType,
+            subType,
+            subProblems: compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
+        }];
     }
 
     areTypesEqual(type1: Type, type2: Type): TypirProblem[] {

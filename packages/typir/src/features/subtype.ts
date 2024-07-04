@@ -7,7 +7,7 @@
 import { assertUnreachable } from 'langium';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem, compareValueForConflict } from '../utils/utils-type-comparison.js';
+import { TypirProblem } from '../utils/utils-type-comparison.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
 export interface SubTypeProblem {
@@ -78,27 +78,30 @@ export class DefaultSubType implements SubType {
     }
 
     protected calculateSubType(superType: Type, subType: Type): true | SubTypeProblem {
-        const kindComparisonResult = compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind');
-        if (kindComparisonResult.length >= 1) {
-            // sub-types need to have the same kind: this is the precondition
+        // compare the types: delegated to the kinds
+        // 1st delegate to the kind of the sub type
+        const resultSub = subType.kind.isSubType(superType, subType);
+        if (resultSub.length <= 0) {
+            return true;
+        }
+        if (superType.kind.$name === subType.kind.$name) {
+            // if sub type and super type have the same kind, there is no need to check the same kind twice
             return {
                 superType,
                 subType,
-                subProblems: kindComparisonResult,
+                subProblems: resultSub,
             };
-        } else {
-            // compare the types: delegated to the kind
-            const kindResult = superType.kind.isSubType(superType, subType);
-            if (kindResult.length >= 1) {
-                return {
-                    superType,
-                    subType,
-                    subProblems: kindResult,
-                };
-            } else {
-                return true;
-            }
         }
+        // 2nd delegate to the kind of the super type
+        const resultSuper = superType.kind.isSubType(superType, subType);
+        if (resultSuper.length <= 0) {
+            return true;
+        }
+        return {
+            superType,
+            subType,
+            subProblems: [...resultSuper, ...resultSub], // return the inference problems of both kinds
+        };
     }
 }
 

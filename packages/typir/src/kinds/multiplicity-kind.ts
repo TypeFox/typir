@@ -4,10 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem, compareValueForConflict as compareValuesForConflict } from '../utils/utils-type-comparison.js';
+import { TypirProblem, compareValueForConflict, compareValueForConflict as compareValuesForConflict } from '../utils/utils-type-comparison.js';
 import { Kind, isKind } from './kind.js';
 
 export interface MultiplicityKindOptions {
@@ -113,7 +114,11 @@ export class MultiplicityKind implements Kind {
             }
             return conflicts;
         }
-        throw new Error();
+        return [<SubTypeProblem>{
+            superType,
+            subType,
+            subProblems: compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
+        }];
     }
 
     protected isBoundGreaterEquals(leftBound: number, rightBound: number): boolean {

@@ -12,6 +12,7 @@ import { IndexedTypeConflict, MapListConverter, TypeComparisonStrategy, TypirPro
 import { NameTypePair, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 import { InferenceProblem } from '../features/inference.js';
+import { SubTypeProblem } from '../features/subtype.js';
 
 export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal',
@@ -296,7 +297,11 @@ export class ClassKind implements Kind {
                 assertUnreachable(this.options.typing);
             }
         }
-        throw new Error();
+        return [<SubTypeProblem>{
+            superType,
+            subType,
+            subProblems: compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
+        }];
     }
 
     areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
