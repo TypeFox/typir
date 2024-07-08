@@ -25,13 +25,14 @@ export interface ClassKindOptions {
 
 export const ClassKindName = 'ClassKind';
 
-export interface ClassTypeDetails<T = unknown> {
+export interface ClassTypeDetails<T1 = unknown, T2 = unknown> { // TODO the generics look very bad!
     className: string,
     superClasses?: Type | Type[],
     fields: NameTypePair[],
     // TODO methods
-    inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
-    inferenceRulesForLiterals?: InferClassLiteral<T>,
+    inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // TODO what is the purpose for this? what is the difference to literals?
+    inferenceRuleForLiteral?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
+    inferenceRuleForReference?: InferClassLiteral<T2>,
     inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | 'RULE_NOT_APPLICABLE', // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
     // TODO inference rule for method calls
 }
@@ -71,12 +72,12 @@ export class ClassKind implements Kind {
         assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
 
-    getClassType<T>(typeDetails: ClassTypeDetails<T> | string): Type | undefined { // string for nominal typing
+    getClassType<T1, T2>(typeDetails: ClassTypeDetails<T1, T2> | string): Type | undefined { // string for nominal typing
         const key = this.printClassType(typeof typeDetails === 'string' ? { className: typeDetails, fields: []} : typeDetails);
         return this.typir.graph.getType(key);
     }
 
-    getOrCreateClassType<T>(typeDetails: ClassTypeDetails<T>): Type {
+    getOrCreateClassType<T1, T2>(typeDetails: ClassTypeDetails<T1, T2>): Type {
         const result = this.getClassType(typeDetails);
         if (result) {
             return result;
@@ -84,7 +85,7 @@ export class ClassKind implements Kind {
         return this.createClassType(typeDetails);
     }
 
-    createClassType<T>(typeDetails: ClassTypeDetails<T>): Type {
+    createClassType<T1, T2>(typeDetails: ClassTypeDetails<T1, T2>): Type {
         const theSuperClasses = toArray(typeDetails.superClasses);
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const classKind = this;
@@ -145,53 +146,11 @@ export class ClassKind implements Kind {
                 },
             });
         }
-        if (typeDetails.inferenceRulesForLiterals) {
-            const mapListConverter = new MapListConverter();
-            this.typir.inference.addInferenceRule({
-                isRuleApplicable(domainElement, _typir) {
-                    const result = typeDetails.inferenceRulesForLiterals!.filter(domainElement);
-                    if (result) {
-                        const matching = typeDetails.inferenceRulesForLiterals!.matching(domainElement);
-                        if (matching) {
-                            const inputArguments = typeDetails.inferenceRulesForLiterals!.inputValuesForFields(domainElement);
-                            if (inputArguments.size >= 1) {
-                                return mapListConverter.toList(inputArguments);
-                            } else {
-                                // there are no operands to check
-                                return classType; // this case occurs only, if the current class has no fields (including fields of super types) or is nominally typed
-                            }
-                        } else {
-                            // the domain element is slightly different
-                        }
-                    } else {
-                        // the domain element has a completely different purpose
-                    }
-                    // does not match at all
-                    return 'RULE_NOT_APPLICABLE';
-                },
-                inferType(domainElement, childrenTypes, typir) {
-                    const allExpectedFields = classKind.getFields(classType, true);
-                    // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-                    const comparedFieldsProblems = compareNameTypesMap(
-                        allExpectedFields,
-                        mapListConverter.toMap(childrenTypes),
-                        createTypeComparisonStrategy(classKind.options.subtypeFieldChecking, typir)
-                    );
-                    if (comparedFieldsProblems.length >= 1) {
-                        // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
-                        return <InferenceProblem>{
-                            domainElement,
-                            inferenceCandidate: classType,
-                            location: 'values for fields',
-                            rule: this,
-                            subProblems: comparedFieldsProblems,
-                        };
-                    } else {
-                        // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
-                        return classType;
-                    }
-                },
-            });
+        if (typeDetails.inferenceRuleForLiteral) {
+            this.registerInferenceRule(typeDetails.inferenceRuleForLiteral, classKind, classType);
+        }
+        if (typeDetails.inferenceRuleForReference) {
+            this.registerInferenceRule(typeDetails.inferenceRuleForReference, classKind, classType);
         }
         if (typeDetails.inferenceRuleForFieldAccess) {
             this.typir.inference.addInferenceRule({
@@ -205,7 +164,13 @@ export class ClassKind implements Kind {
                         if (fieldType) {
                             return fieldType;
                         }
-                        throw new Error(`${result} is no known field`);
+                        return <InferenceProblem>{
+                            domainElement,
+                            inferenceCandidate: classType,
+                            location: `unknown field '${result}'`,
+                            rule: this,
+                            subProblems: [],
+                        };
                     } else {
                         return result; // do the type inference for this element instead
                     }
@@ -216,7 +181,56 @@ export class ClassKind implements Kind {
         return classType;
     }
 
-    protected printClassType<T>(typeDetails: ClassTypeDetails<T>): string {
+    protected registerInferenceRule<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: Type): void {
+        const mapListConverter = new MapListConverter();
+        this.typir.inference.addInferenceRule({
+            isRuleApplicable(domainElement, _typir) {
+                const result = rule.filter(domainElement);
+                if (result) {
+                    const matching = rule.matching(domainElement);
+                    if (matching) {
+                        const inputArguments = rule.inputValuesForFields(domainElement);
+                        if (inputArguments.size >= 1) {
+                            return mapListConverter.toList(inputArguments);
+                        } else {
+                            // there are no operands to check
+                            return classType; // this case occurs only, if the current class has no fields (including fields of super types) or is nominally typed
+                        }
+                    } else {
+                        // the domain element is slightly different
+                    }
+                } else {
+                    // the domain element has a completely different purpose
+                }
+                // does not match at all
+                return 'RULE_NOT_APPLICABLE';
+            },
+            inferType(domainElement, childrenTypes, typir) {
+                const allExpectedFields = classKind.getFields(classType, true);
+                // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
+                const comparedFieldsProblems = compareNameTypesMap(
+                    allExpectedFields,
+                    mapListConverter.toMap(childrenTypes),
+                    createTypeComparisonStrategy(classKind.options.subtypeFieldChecking, typir)
+                );
+                if (comparedFieldsProblems.length >= 1) {
+                    // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
+                    return <InferenceProblem>{
+                        domainElement,
+                        inferenceCandidate: classType,
+                        location: 'values for fields',
+                        rule: this,
+                        subProblems: comparedFieldsProblems,
+                    };
+                } else {
+                    // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
+                    return classType;
+                }
+            },
+        });
+    }
+
+    protected printClassType<T1, T2>(typeDetails: ClassTypeDetails<T1, T2>): string {
         const prefix = this.options.identifierPrefix;
         if (this.options.typing === 'Structural') {
             // fields

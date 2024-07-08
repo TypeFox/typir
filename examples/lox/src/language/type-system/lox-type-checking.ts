@@ -142,14 +142,19 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 // inference rule for declaration
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node,
                 // inference ruleS(?) for objects/class literals conforming to the current class
-                inferenceRulesForLiterals: {
+                inferenceRuleForLiteral: { // <InferClassLiteral<MemberCall>>
                     filter: isMemberCall,
                     matching: (domainElement: MemberCall) => isClass(domainElement.element?.ref) && domainElement.element!.ref.name === className,
                     inputValuesForFields: (_domainElement: MemberCall) => new Map(), // values for fields don't matter for nominal typing
                 },
+                inferenceRuleForReference: { // <InferClassLiteral<TypeReference>>
+                    filter: isTypeReference,
+                    matching: (domainElement: TypeReference) => isClass(domainElement.reference?.ref) && domainElement.reference!.ref.name === className,
+                    inputValuesForFields: (_domainElement: TypeReference) => new Map(), // values for fields don't matter for nominal typing
+                },
                 // inference rule for accessing fields
-                inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element.ref.$container === node
-                    ? domainElement.element.ref.name : 'RULE_NOT_APPLICABLE',
+                inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element!.ref.$container === node
+                    ? domainElement.element!.ref.name : 'RULE_NOT_APPLICABLE',
             });
         }
     });
