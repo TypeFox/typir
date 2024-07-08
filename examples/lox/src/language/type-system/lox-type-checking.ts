@@ -46,7 +46,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // utility function to map language types to Typir types
     function mapType(typeRef: TypeReference): Type {
         if (!typeRef) {
-            throw new Error();
+            throw new Error('a type reference must be given');
         }
         if (typeRef.primitive) {
             switch (typeRef.primitive) {
@@ -88,7 +88,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // binary operators: booleans => boolean
     operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule });
 
-    // ==, != for all data types (TODO how to deal with the warning?)
+    // ==, != for all data types (the warning for different types is realized below)
     operators.createBinaryOperator({ name: ['==', '!='], inputType: typeAny, outputType: typeBool, inferenceRule: binaryInferenceRule });
     // = for SuperType = SubType (TODO integrate the validation here? should be replaced!)
     operators.createBinaryOperator({ name: '=', inputType: typeAny, outputType: typeAny, inferenceRule: binaryInferenceRule });
@@ -214,6 +214,12 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             }
             if (isBinaryExpression(node) && node.operator === '=') {
                 return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, `The expression '${node.right.$cstNode?.text}' is not assignable to '${node.left}'`, 'value');
+            }
+            if (isBinaryExpression(node) && (node.operator === '==' || node.operator === '!=')) {
+                // TODO use inferred types in the message
+                const msg = `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have different types.`;
+                // TODO mark the 'operator' property!
+                return typir.validation.constraints.ensureNodeIsEquals(node.right, node.left, msg, undefined, 'warning');
             }
             if (isReturnStatement(node)) {
                 const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);

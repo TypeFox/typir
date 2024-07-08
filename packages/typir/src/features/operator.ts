@@ -117,6 +117,7 @@ export class DefaultOperatorManager implements OperatorManager {
     protected handleOperatorVariants(nameVariants: Names, inputTypeVariants: Types, operatorTypeCreator: (singleName: string, singleInputType: Type) => Type): Types {
         const allNames = toArray(nameVariants);
         const allTypes = toArray(inputTypeVariants);
+        assertTrue(allNames.length >= 1);
         assertTrue(allTypes.length >= 1);
         const result: Type[] = [];
         for (const singleName of allNames) {

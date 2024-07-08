@@ -8,6 +8,7 @@ import { EmptyFileSystem } from 'langium';
 import { parseDocument } from 'langium/test';
 import { describe, expect, test } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
+import { DiagnosticSeverity } from 'vscode-languageserver-types';
 import { createLoxServices } from '../src/language/lox-module.js';
 
 const loxServices = createLoxServices(EmptyFileSystem).Lox;
@@ -59,14 +60,14 @@ describe('Explicitly test type checking for LOX', () => {
     });
 
     test('use overloaded operators', async () => {
-        await validate('var myVar : boolean = true == false;', 0);
-        await validate('var myVar : boolean = 2 == 3;', 0);
-        await validate('var myVar : boolean = true == 3;', 1);
-        await validate('var myVar : boolean = 2 == false;', 1);
+        await validate('var myVar : boolean = true == false;', 0, 0);
+        await validate('var myVar : boolean = 2 == 3;', 0, 0);
+        await validate('var myVar : boolean = true == 3;', 0, 1);
+        await validate('var myVar : boolean = 2 == false;', 0, 1);
     });
 
     test('Only a single problem with the inner expression, since the type of "+" is always number!', async () => {
-        await validate('var myVar : number = 2 + (2 == false);', 1);
+        await validate('var myVar : number = 2 + (2 * false);', 1);
     });
 
     test('Class literals', async () => {
@@ -82,7 +83,7 @@ describe('Explicitly test type checking for LOX', () => {
             class MyClass1 {}
             class MyClass2 {}
             var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
-        `, 0);
+        `, 0, 1);
     });
 
     test('Class inheritance', async () => {
@@ -115,8 +116,13 @@ describe('Explicitly test type checking for LOX', () => {
 
 });
 
-async function validate(lox: string, errors: number) {
+async function validate(lox: string, errors: number, warnings: number = 0) {
     const document = await parseDocument(loxServices, lox.trim());
     const diagnostics: Diagnostic[] = await loxServices.validation.DocumentValidator.validateDocument(document);
-    expect(diagnostics, diagnostics.map(d => d.message).join('\n')).toHaveLength(errors);
+    // errors
+    const diagnosticsErrors = diagnostics.filter(d => d.severity === DiagnosticSeverity.Error);
+    expect(diagnosticsErrors, diagnosticsErrors.map(d => d.message).join('\n')).toHaveLength(errors);
+    // warnings
+    const diagnosticsWarnings = diagnostics.filter(d => d.severity === DiagnosticSeverity.Warning);
+    expect(diagnosticsWarnings, diagnosticsWarnings.map(d => d.message).join('\n')).toHaveLength(warnings);
 }

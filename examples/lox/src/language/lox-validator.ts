@@ -73,12 +73,12 @@ export class LoxValidator {
             //     })
             // }
         } else if (['==', '!='].includes(binary.operator)) {
-            if (!isAssignable(right, left)) {
-                accept('warning', `This comparison will always return '${binary.operator === '==' ? 'false' : 'true'}' as types '${typeToString(left)}' and '${typeToString(right)}' are not compatible.`, {
-                    node: binary,
-                    property: 'operator'
-                });
-            }
+            // if (!isAssignable(right, left)) {
+            //     accept('warning', `This comparison will always return '${binary.operator === '==' ? 'false' : 'true'}' as types '${typeToString(left)}' and '${typeToString(right)}' are not compatible.`, {
+            //         node: binary,
+            //         property: 'operator'
+            //     });
+            // }
         }
     }
 
