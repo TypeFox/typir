@@ -6,11 +6,9 @@
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
 import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NameTypePair, PrimitiveKind, TopKind, Type, Typir } from 'typir';
-import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNumberExpression, isParameter, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilExpression, isNumberExpression, isParameter, isPrintStatement, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
-    const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isLoxProgram)!;
-
     // set up Typir and reuse some predefined things
     const typir = new Typir();
     const primitiveKind = new PrimitiveKind(typir);
@@ -40,10 +38,17 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             (node: unknown) => isTypeReference(node) && node.primitive === 'string'
         ]});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void',
-        inferenceRules: (node: unknown) => isTypeReference(node) && node.primitive === 'void'}); // TODO 'nil' ??
+        inferenceRules: [
+            (node: unknown) => isTypeReference(node) && node.primitive === 'void',
+            (node: unknown) => isPrintStatement(node),
+            (node: unknown) => isReturnStatement(node) && node.value === undefined
+        ] });
+    const typeNil = primitiveKind.createPrimitiveType({ primitiveName: 'nil',
+        inferenceRules: (node: unknown) => isNilExpression(node) }); // TODO for what is this used?
     const typeAny = anyKind.createTopType({});
 
     // utility function to map language types to Typir types
+    // TODO get rid of these type dispatch!
     function mapType(typeRef: TypeReference): Type {
         if (!typeRef) {
             throw new Error('a type reference must be given');
@@ -112,6 +117,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });
     operators.createUnaryOperator({ name: ['-', '+'], operandType: typeNumber, inferenceRule: unaryInferenceRule });
 
+    // define types which are declared by the users of LOX => investigate the current AST
+    const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isLoxProgram)!;
     AstUtils.streamAllContents(domainNodeRoot).forEach((node: AstNode) => {
         // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
         if (isFunctionDeclaration(node)) {
@@ -120,7 +127,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             functionKind.createFunctionType({
                 functionName,
                 outputParameter: { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
-                inputParameters: node.parameters.map(p => ({ name: p.name, type: mapType(p.type) })),
+                inputParameters: node.parameters.map(p => (<NameTypePair>{ name: p.name, type: mapType(p.type) })),
                 // inference rule for function declaration:
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function declaration matches!
                 /** inference rule for funtion calls:
@@ -134,6 +141,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 },
             });
         }
+
+        // TODO support lambda (type references)!
 
         /**
          * TODO Delayed:
@@ -181,17 +190,17 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             if (isMemberCall(domainElement)) {
                 const ref = domainElement.element?.ref;
                 if (isClass(ref)) {
-                    return undefined!; //TODO
+                    return 'RULE_NOT_APPLICABLE'; // not required anymore
                 } else if (isClassMember(ref)) {
                     return undefined!; //TODO
                 } else if (isMethodMember(ref)) {
                     return undefined!; //TODO
                 } else if (isVariableDeclaration(ref)) {
                     // use variables inside expressions!
-                    return mapType(ref.type!);
+                    return ref.type!;
                 } else if (isParameter(ref)) {
                     // use parameters inside expressions
-                    return mapType(ref.type);
+                    return ref.type;
                 } else if (isFunctionDeclaration(ref)) {
                     // there is already an inference rule for function calls (see above for FunctionDeclaration)!
                     return 'RULE_NOT_APPLICABLE';
@@ -204,17 +213,13 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             // ... variable declarations
             if (isVariableDeclaration(domainElement)) {
                 if (domainElement.type) {
-                    return mapType(domainElement.type);
+                    return domainElement.type;
                 } else if (domainElement.value) {
                     // the type might be null; no type declared => do type inference of the assigned value instead!
                     return domainElement.value;
                 } else {
-                    throw new Error('impossible')
+                    return 'RULE_NOT_APPLICABLE'; // this case is impossible, there is a validation in the "usual LOX validator" for this case
                 }
-            }
-            // ... language types
-            if (isTypeReference(domainElement)) {
-                return mapType(domainElement); // TODO remove this!
             }
             return 'RULE_NOT_APPLICABLE';
         },
