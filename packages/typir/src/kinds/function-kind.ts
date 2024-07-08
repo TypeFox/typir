@@ -19,9 +19,24 @@ export interface FunctionKindOptions {
     enforceFunctionName: boolean,
     enforceInputParameterNames: boolean,
     enforceOutputParameterName: boolean,
+    /** Will be used only internally as prefix for the unique identifiers for function type names. */
+    identifierPrefix: string,
+    // TODO type to return, if a function has no output type
 }
 
 export const FunctionKindName = 'FunctionKind';
+
+export interface FunctionTypeDetails<T> {
+    functionName: string,
+    /** The order of parameters is important! */
+    outputParameter: NameTypePair | undefined,
+    inputParameters: NameTypePair[],
+    /** for function declarations => returns the funtion type (the whole signature including all names) */
+    inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
+    /** for function calls => returns the return type of the function */
+    inferenceRuleForCalls?: InferFunctionCall<T>,
+    // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
+}
 
 /** Collects all functions with the same name */
 interface OverloadedFunctionDetails {
@@ -94,6 +109,7 @@ export class FunctionKind implements Kind {
             enforceFunctionName: false,
             enforceInputParameterNames: false,
             enforceOutputParameterName: false,
+            identifierPrefix: 'function',
             // the actually overriden values:
             ...options
         };
@@ -148,7 +164,7 @@ export class FunctionKind implements Kind {
                                                     // this parameter value is fine
                                                 }
                                             } else {
-                                                // the type of the value for the input parameter is no inferrable
+                                                // the type of the value for the input parameter is not inferrable
                                                 currentProblems.push({
                                                     // Note that the node of the current parameter is chosen here, while the problem is a sub-problem of the whole function!
                                                     domainElement: inputArguments[i],
@@ -201,21 +217,27 @@ export class FunctionKind implements Kind {
         );
     }
 
-    createFunctionType<T>(typeDetails: {
-        functionName: string,
-        /** The order of parameters is important! */
-        outputParameter: NameTypePair | undefined,
-        inputParameters: NameTypePair[],
-        /** for function declarations => returns the funtion type (the whole signature including all names) */
-        inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
-        /** for function calls => returns the return type of the function */
-        inferenceRuleForCalls?: InferFunctionCall<T>,
-        // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
-    }): Type {
+    getFunctionType<T>(typeDetails: FunctionTypeDetails<T>): Type | undefined {
+        const key = this.printFunctionType(typeDetails);
+        return this.typir.graph.getType(key);
+    }
+
+    getOrCreateFunctionType<T>(typeDetails: FunctionTypeDetails<T>): Type {
+        const result = this.getFunctionType(typeDetails);
+        if (result) {
+            return result;
+        }
+        return this.createFunctionType(typeDetails);
+    }
+
+    createFunctionType<T>(typeDetails: FunctionTypeDetails<T>): Type {
         // create the function type
+        if (!typeDetails) {
+            throw new Error('is undefined');
+        }
         const functionName = typeDetails.functionName;
         this.enforceName(functionName, this.options.enforceFunctionName);
-        const uniqueTypeName = this.printFunctionType(functionName, typeDetails.inputParameters, typeDetails.outputParameter);
+        const uniqueTypeName = this.printFunctionType(typeDetails);
         const functionType = new Type(this, uniqueTypeName);
         functionType.properties.set(SIMPLE_NAME, functionName);
         this.typir.graph.addNode(functionType);
@@ -361,12 +383,21 @@ export class FunctionKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
-        return this.printFunctionType(this.getSimpleFunctionName(type), this.getInputs(type), this.getOutput(type));
-    }
-
-    protected printFunctionType(simpleFunctionName: string, inputs: NameTypePair[], output: NameTypePair | undefined): string {
-        const inputsString = inputs.map(input => this.printNameType(input)).join(', ');
-        const outputString = output ? this.typir.printer.printType(output.type) : undefined;
+        // check input
+        if (isFunctionKind(type.kind) === false) {
+            throw new Error();
+        }
+        // inputs
+        const inputs = this.getInputs(type);
+        const inputsString = inputs.map(input => this.getUserRepresentationNameTypePair(input)).join(', ');
+        // output
+        const output = this.getOutput(type);
+        const outputString = output
+            ? (this.hasName(output.name) ? `(${this.getUserRepresentationNameTypePair(output)})` : this.typir.printer.printType(output.type))
+            : undefined;
+        // function name
+        const simpleFunctionName = this.getSimpleFunctionName(type);
+        // complete signature
         if (this.hasName(simpleFunctionName)) {
             const outputValue = outputString ? `: ${outputString}` : '';
             return `${simpleFunctionName}(${inputsString})${outputValue}`;
@@ -375,10 +406,31 @@ export class FunctionKind implements Kind {
         }
     }
 
-    protected printNameType(pair: NameTypePair): string {
+    protected getUserRepresentationNameTypePair(pair: NameTypePair): string {
         const typeName = this.typir.printer.printType(pair.type);
         if (this.hasName(pair.name)) {
             return `${pair.name}: ${typeName}`;
+        } else {
+            return typeName;
+        }
+    }
+
+    protected printFunctionType<T>(typeDetails: FunctionTypeDetails<T>): string {
+        const prefix = this.options.identifierPrefix;
+        // inputs
+        const inputsString = typeDetails.inputParameters.map(input => this.printNameTypePair(input)).join(',');
+        // output
+        const outputString = typeDetails.outputParameter ? this.printNameTypePair(typeDetails.outputParameter) : '';
+        // function name
+        const functionName = this.hasName(typeDetails.functionName) ? typeDetails.functionName : '';
+        // complete signature
+        return `${prefix}-${functionName}(${inputsString}):(${outputString})`;
+    }
+
+    protected printNameTypePair(pair: NameTypePair): string {
+        const typeName = this.typir.printer.printType(pair.type);
+        if (this.hasName(pair.name)) {
+            return `${pair.name}:${typeName}`;
         } else {
             return typeName;
         }

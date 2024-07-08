@@ -58,10 +58,25 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             }
         } else if (typeRef.reference && typeRef.reference.ref) {
             // search for an existing class
-            return classKind.getClassType(typeRef.reference.ref.name)!;
+            const classType = classKind.getClassType(typeRef.reference.ref.name);
+            if (classType) {
+                return classType;
+            } else {
+                throw new Error();
+            }
         } else {
-            // TODO fix this
-            return functionKind.createFunctionType(undefined!);
+            // search for an existing function
+            // TODO lambda vs function
+            const functionType = functionKind.getFunctionType({
+                functionName: 'TODO',
+                inputParameters: [], // TODO
+                outputParameter: undefined, // TODO
+            });
+            if (functionType) {
+                return functionType;
+            } else {
+                throw new Error();
+            }
         }
     }
 
