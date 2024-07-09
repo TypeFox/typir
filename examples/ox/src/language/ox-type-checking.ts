@@ -15,7 +15,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     const functionKind = new FunctionKind(typir);
     const operators = typir.operators;
 
-    // types
+    // define primitive types
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
     const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRules: [
         (node: unknown) => isBooleanExpression(node),
@@ -42,6 +42,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         operand: (node: UnaryExpression, _name: string) => node.value,
     };
 
+    // define operators
     // binary operators: numbers => number
     operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber, inferenceRule: binaryInferenceRule });
 
@@ -58,7 +59,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });
     operators.createUnaryOperator({ name: '-', operandType: typeNumber, inferenceRule: unaryInferenceRule });
 
-    // function types: they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
+    // define function types
+    // they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
     const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isOxProgram)!;
     AstUtils.streamAllContents(domainNodeRoot).forEach((node: AstNode) => {
         if (isFunctionDeclaration(node)) {
@@ -78,7 +80,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     filter: isMemberCall,
                     matching: (domainElement: MemberCall) => isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName,
                     inputArguments: (domainElement: MemberCall) => domainElement.arguments
-                    // TODO does OX support overloaded function declarations?
+                    // TODO does OX support overloaded function declarations? add a scope provider for that ...
                 }
             });
         }
@@ -87,7 +89,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // additional inference rules for ...
     typir.inference.addInferenceRule({
         isRuleApplicable(domainElement: unknown) {
-            // ... member calls
+            // ... member calls (which are used in expressions)
             if (isMemberCall(domainElement)) {
                 const ref = domainElement.element.ref;
                 if (isVariableDeclaration(ref)) {
@@ -113,7 +115,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         },
     });
 
-    // some explicit validations for typing issues with Typir (replaces corresponding functions in the OxValidator!)
+    // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
     typir.validation.collector.addValidationRules(
         (node: unknown, typir: Typir) => {
             if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
@@ -123,21 +125,21 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             if (isVariableDeclaration(node)) {
                 return [
                     ...typir.validation.constraints.ensureNodeHasNotType(node, typeVoid,
-                        "Variable can't be declared with a type 'void'.", 'type'),
+                        "Variables can't be declared with the type 'void'.", 'type'),
                     ...typir.validation.constraints.ensureNodeIsAssignable(node.value, node,
-                        `The expression '${node.value?.$cstNode?.text}' is not assignable to '${node.name}'`, 'value')
+                        `The initialization expression '${node.value?.$cstNode?.text}' is not assignable to the variable '${node.name}'.`, 'value')
                 ];
             }
             if (isAssignmentStatement(node) && node.varRef.ref) {
                 return typir.validation.constraints.ensureNodeIsAssignable(node.value, node.varRef.ref,
-                    `The expression '${node.value.$cstNode?.text}' is not assignable to '${node.varRef.ref.name}'`, 'value');
+                    `The expression '${node.value.$cstNode?.text}' is not assignable to the variable '${node.varRef.ref.name}'.`, 'value');
             }
             if (isReturnStatement(node)) {
                 const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
                 if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function
                     return typir.validation.constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType,
-                        `The expression '${node.value.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'`, 'value');
+                        `The expression '${node.value.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, 'value');
                 }
             }
             return [];
