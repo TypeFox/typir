@@ -44,16 +44,13 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
     // define operators
     // binary operators: numbers => number
-    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputType: typeNumber, outputType: typeNumber, inferenceRule: binaryInferenceRule });
-
+    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputTypeLeftAndRightAndOutput: typeNumber, inferenceRule: binaryInferenceRule });
     // binary operators: numbers => boolean
-    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputType: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule });
-
+    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputTypeLeftAndRight: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule });
     // binary operators: booleans => boolean
-    operators.createBinaryOperator({ name: ['and', 'or'], inputType: typeBool, outputType: typeBool, inferenceRule: binaryInferenceRule });
-
+    operators.createBinaryOperator({ name: ['and', 'or'], inputTypeLeftAndRightAndOutput: typeBool, inferenceRule: binaryInferenceRule });
     // ==, != for booleans and numbers
-    operators.createBinaryOperator({ name: ['==', '!='], inputType: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
+    operators.createBinaryOperator({ name: ['==', '!='], inputTypeLeftAndRight: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
 
     // unary operators
     operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });

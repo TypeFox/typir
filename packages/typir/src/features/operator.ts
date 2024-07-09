@@ -22,21 +22,38 @@ export type InferOperatorWithMultipleOperands<T = unknown> = {
     operands: (domainElement: T, operatorName: string) => unknown[];
 };
 
+export type BinaryOperatorTypeDetails = {
+    inputTypeLeft: Types;
+    inputTypeRight: Types;
+    outputType: Type;
+} | {
+    inputTypeLeftAndRight: Types;
+    outputType: Type;
+} | {
+    inputTypeLeftAndRightAndOutput: Types;
+}
+
+const exm: BinaryOperatorTypeDetails = {
+    // inputTypeLeftAndRightAndOutput: [],
+    inputTypeLeftAndRight: [],
+    outputType: undefined!,
+    // inputTypeLeft: [],
+};
+console.log('' + exm);
+
 export interface OperatorManager {
     createUnaryOperator<T>(typeDetails: {
         name: Names,
         operandType: Types,
         inferenceRule?: InferOperatorWithSingleOperand<T>
     }): Types
-    createBinaryOperator<T>(typeDetails: {
+    createBinaryOperator<T>(typeDetails: BinaryOperatorTypeDetails & {
         name: Names,
-        inputType: Types,
-        /** If the output type is not specified, the input type is used for the output as well. */
-        outputType?: Type,
         inferenceRule?: InferOperatorWithMultipleOperands<T>
     }): Types
     createTernaryOperator<T>(typeDetails: {
         name: Names,
+        // TODO support different combinations here as well, similar to BinaryOperatorTypeDetails
         firstType: Type,
         secondAndThirdType: Types,
         inferenceRule?: InferOperatorWithMultipleOperands<T>
@@ -89,16 +106,42 @@ export class DefaultOperatorManager implements OperatorManager {
         }));
     }
 
-    createBinaryOperator<T>(typeDetails: { name: Names, inputType: Types, outputType?: Type, inferenceRule?: InferOperatorWithMultipleOperands<T> }): Types {
-        return this.handleOperatorVariants(typeDetails.name, typeDetails.inputType, (singleName, singleType) => this.createGenericOperator({
-            name: singleName,
-            outputType: typeDetails.outputType ?? singleType,
-            inferenceRule: typeDetails.inferenceRule,
-            inputParameter: [
-                { name: 'left', type: singleType},
-                { name: 'right', type: singleType}
-            ]
-        }));
+    createBinaryOperator<T>(typeDetails: BinaryOperatorTypeDetails & { name: Names, inferenceRule?: InferOperatorWithMultipleOperands<T> }): Types {
+        if ('inputTypeLeftAndRightAndOutput' in typeDetails) {
+            return this.handleOperatorVariants(typeDetails.name, typeDetails.inputTypeLeftAndRightAndOutput, (singleName, singleType) => this.createGenericOperator({
+                name: singleName,
+                outputType: singleType,
+                inferenceRule: typeDetails.inferenceRule,
+                inputParameter: [
+                    { name: 'left', type: singleType},
+                    { name: 'right', type: singleType}
+                ]
+            }));
+        } else if ('inputTypeLeftAndRight' in typeDetails) {
+            return this.handleOperatorVariants(typeDetails.name, typeDetails.inputTypeLeftAndRight, (singleName, singleType) => this.createGenericOperator({
+                name: singleName,
+                outputType: typeDetails.outputType,
+                inferenceRule: typeDetails.inferenceRule,
+                inputParameter: [
+                    { name: 'left', type: singleType},
+                    { name: 'right', type: singleType}
+                ]
+            }));
+        } else {
+            return this.handleOperatorVariants(typeDetails.name, typeDetails.inputTypeLeft, (singleName, singleTypeLeft) =>
+                this.handleOperatorVariants('', typeDetails.inputTypeRight, (ignoreName, singleTypeRight) =>
+                    this.createGenericOperator({
+                        name: singleName,
+                        outputType: typeDetails.outputType,
+                        inferenceRule: typeDetails.inferenceRule,
+                        inputParameter: [
+                            { name: 'left', type: singleTypeLeft},
+                            { name: 'right', type: singleTypeRight}
+                        ]
+                    })
+                )
+            );
+        }
     }
 
     createTernaryOperator<T>(typeDetails: { name: Names, firstType: Type, secondAndThirdType: Types, inferenceRule?: InferOperatorWithMultipleOperands<T> }): Types {
@@ -114,7 +157,7 @@ export class DefaultOperatorManager implements OperatorManager {
         }));
     }
 
-    protected handleOperatorVariants(nameVariants: Names, inputTypeVariants: Types, operatorTypeCreator: (singleName: string, singleInputType: Type) => Type): Types {
+    protected handleOperatorVariants(nameVariants: Names, inputTypeVariants: Types, operatorTypeCreator: (singleName: string, singleInputType: Type) => Types): Types {
         const allNames = toArray(nameVariants);
         const allTypes = toArray(inputTypeVariants);
         assertTrue(allNames.length >= 1);
@@ -122,7 +165,7 @@ export class DefaultOperatorManager implements OperatorManager {
         const result: Type[] = [];
         for (const singleName of allNames) {
             for (const singleType of allTypes) {
-                result.push(operatorTypeCreator(singleName, singleType));
+                result.push(...toArray(operatorTypeCreator(singleName, singleType)));
             }
         }
         return result.length === 1 ? result[0] : result;
