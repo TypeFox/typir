@@ -23,28 +23,28 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
     const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean',
         inferenceRules: [
-            (node: unknown) => isBooleanExpression(node),
+            isBooleanExpression,
             (node: unknown) => isTypeReference(node) && node.primitive === 'boolean'
         ]});
     // ... but their primitive kind is provided/preset by Typir
     const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number',
         inferenceRules: [
-            (node: unknown) => isNumberExpression(node),
+            isNumberExpression,
             (node: unknown) => isTypeReference(node) && node.primitive === 'number'
         ]});
     const typeString = primitiveKind.createPrimitiveType({ primitiveName: 'string',
         inferenceRules: [
-            (node: unknown) => isStringExpression(node),
+            isStringExpression,
             (node: unknown) => isTypeReference(node) && node.primitive === 'string'
         ]});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void',
         inferenceRules: [
             (node: unknown) => isTypeReference(node) && node.primitive === 'void',
-            (node: unknown) => isPrintStatement(node),
+            isPrintStatement,
             (node: unknown) => isReturnStatement(node) && node.value === undefined
         ] });
     const typeNil = primitiveKind.createPrimitiveType({ primitiveName: 'nil',
-        inferenceRules: (node: unknown) => isNilExpression(node) }); // TODO for what is this used?
+        inferenceRules: isNilExpression }); // TODO for what is this used?
     const typeAny = anyKind.createTopType({});
 
     // utility function to map language types to Typir types
@@ -98,24 +98,41 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     };
 
     // binary operators: numbers => number
-    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputTypeLeftAndRightAndOutput: typeNumber, inferenceRule: binaryInferenceRule });
-    operators.createBinaryOperator({ name: '+', inputTypeLeftAndRightAndOutput: typeString, inferenceRule: binaryInferenceRule });
-    // TODO '+' with mixed types!
+    for (const operator of ['-', '*', '/']) {
+        operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
+    }
+    operators.createBinaryOperator({ name: '+', signature: [
+        { left: typeNumber, right: typeNumber, return: typeNumber },
+        { left: typeString, right: typeString, return: typeString },
+        { left: typeNumber, right: typeString, return: typeString },
+        { left: typeString, right: typeNumber, return: typeString },
+    ], inferenceRule: binaryInferenceRule });
+    // TODO test cases for '+' with mixed types!
+
+    // TODO design decision: overload with the lowest number of conversions wins!
+    // TODO remove this later, it is not required for LOX!
+    typir.conversion.markAsConvertible(typeNumber, typeString, 'IMPLICIT'); // var my1: string = 42;
 
     // binary operators: numbers => boolean
-    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputTypeLeftAndRight: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule });
+    for (const operator of ['<', '<=', '>', '>=']) {
+        operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }, inferenceRule: binaryInferenceRule });
+    }
 
     // binary operators: booleans => boolean
-    operators.createBinaryOperator({ name: ['and', 'or'], inputTypeLeftAndRightAndOutput: typeBool, inferenceRule: binaryInferenceRule });
+    for (const operator of ['and', 'or']) {
+        operators.createBinaryOperator({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }, inferenceRule: binaryInferenceRule });
+    }
 
     // ==, != for all data types (the warning for different types is realized below)
-    operators.createBinaryOperator({ name: ['==', '!='], inputTypeLeftAndRight: typeAny, outputType: typeBool, inferenceRule: binaryInferenceRule });
+    for (const operator of ['==', '!=']) {
+        operators.createBinaryOperator({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }, inferenceRule: binaryInferenceRule });
+    }
     // = for SuperType = SubType (TODO integrate the validation here? should be replaced!)
-    operators.createBinaryOperator({ name: '=', inputTypeLeftAndRightAndOutput: typeAny, inferenceRule: binaryInferenceRule });
+    operators.createBinaryOperator({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }, inferenceRule: binaryInferenceRule });
 
     // unary operators
-    operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });
-    operators.createUnaryOperator({ name: ['-', '+'], operandType: typeNumber, inferenceRule: unaryInferenceRule });
+    operators.createUnaryOperator({ name: '!', signature: { operand: typeBool, return: typeBool }, inferenceRule: unaryInferenceRule });
+    operators.createUnaryOperator({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
 
     // define types which are declared by the users of LOX => investigate the current AST
     const domainNodeRoot = AstUtils.getContainerOfType(domainNodeEntry, isLoxProgram)!;

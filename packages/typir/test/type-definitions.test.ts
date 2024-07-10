@@ -61,27 +61,27 @@ describe('Tests for Typir', () => {
         });
 
         // binary operators on Integers
-        const opAdd = typir.operators.createBinaryOperator({ name: '+', inputTypeLeftAndRightAndOutput: typeInt });
-        const opMinus = typir.operators.createBinaryOperator({ name: '-', inputTypeLeftAndRightAndOutput: typeInt });
-        const opLess = typir.operators.createBinaryOperator({ name: '<', inputTypeLeftAndRight: typeInt, outputType: typeBoolean });
-        const opEqualInt = typir.operators.createBinaryOperator({ name: '==', inputTypeLeftAndRight: typeInt, outputType: typeBoolean,
+        const opAdd = typir.operators.createBinaryOperator({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } });
+        const opMinus = typir.operators.createBinaryOperator({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } });
+        const opLess = typir.operators.createBinaryOperator({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } });
+        const opEqualInt = typir.operators.createBinaryOperator({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean },
             inferenceRule: {
                 filter: (domainElement): domainElement is string => typeof domainElement === 'string',
                 matching: domainElement => domainElement.includes('=='),
                 operands: domainElement => []
             }});
         // binary operators on Booleans
-        const opEqualBool = typir.operators.createBinaryOperator({ name: '==', inputTypeLeftAndRightAndOutput: typeBoolean});
-        const opAnd = typir.operators.createBinaryOperator({ name: '&&', inputTypeLeftAndRightAndOutput: typeBoolean});
+        const opEqualBool = typir.operators.createBinaryOperator({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
+        const opAnd = typir.operators.createBinaryOperator({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
         // unary operators
-        const opNotBool = typir.operators.createUnaryOperator({ name: '!', operandType: typeBoolean,
+        const opNotBool = typir.operators.createUnaryOperator({ name: '!', signature: { operand: typeBoolean, return: typeBoolean },
             inferenceRule: {
                 filter: (domainElement): domainElement is string => typeof domainElement === 'string',
                 matching: domainElement => domainElement.includes('NOT'),
                 operand: domainElement => []
             }});
         // ternary operator
-        const opTernaryIf = typir.operators.createTernaryOperator({ name: 'if', firstType: typeBoolean, secondAndThirdType: typeInt}); // TODO support multiple/arbitrary types!
+        const opTernaryIf = typir.operators.createTernaryOperator({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } });
 
         // automated conversion from int to string
         // it is possible to define multiple sources and/or targets at the same time:

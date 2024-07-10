@@ -18,12 +18,12 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // define primitive types
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
     const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRules: [
-        (node: unknown) => isBooleanExpression(node),
+        isBooleanExpression,
         (node: unknown) => isTypeReference(node) && node.primitive === 'boolean',
     ]});
     // ... but their primitive kind is provided/preset by Typir
     const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRules: [
-        (node: unknown) => isNumberExpression(node),
+        isNumberExpression,
         (node: unknown) => isTypeReference(node) && node.primitive === 'number',
     ]});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void', inferenceRules:
@@ -44,17 +44,28 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
     // define operators
     // binary operators: numbers => number
-    operators.createBinaryOperator({ name: ['+', '-', '*', '/'], inputTypeLeftAndRightAndOutput: typeNumber, inferenceRule: binaryInferenceRule });
+    for (const operator of ['+', '-', '*', '/']) {
+        operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
+    }
+    // TODO better name: overloads, overloadRules, selectors, signatures
+    // TODO better name for "inferenceRule": astSelectors
     // binary operators: numbers => boolean
-    operators.createBinaryOperator({ name: ['<', '<=', '>', '>='], inputTypeLeftAndRight: typeNumber, outputType: typeBool, inferenceRule: binaryInferenceRule });
+    for (const operator of ['<', '<=', '>', '>=']) {
+        operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }, inferenceRule: binaryInferenceRule });
+    }
     // binary operators: booleans => boolean
-    operators.createBinaryOperator({ name: ['and', 'or'], inputTypeLeftAndRightAndOutput: typeBool, inferenceRule: binaryInferenceRule });
+    for (const operator of ['and', 'or']) {
+        operators.createBinaryOperator({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }, inferenceRule: binaryInferenceRule });
+    }
     // ==, != for booleans and numbers
-    operators.createBinaryOperator({ name: ['==', '!='], inputTypeLeftAndRight: [typeNumber, typeBool], outputType: typeBool, inferenceRule: binaryInferenceRule });
+    for (const operator of ['==', '!=']) {
+        operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }, inferenceRule: binaryInferenceRule });
+        operators.createBinaryOperator({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }, inferenceRule: binaryInferenceRule });
+    }
 
     // unary operators
-    operators.createUnaryOperator({ name: '!', operandType: typeBool, inferenceRule: unaryInferenceRule });
-    operators.createUnaryOperator({ name: '-', operandType: typeNumber, inferenceRule: unaryInferenceRule });
+    operators.createUnaryOperator({ name: '!', signature: { operand: typeBool, return: typeBool }, inferenceRule: unaryInferenceRule });
+    operators.createUnaryOperator({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
 
     // define function types
     // they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
