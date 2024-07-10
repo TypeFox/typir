@@ -15,7 +15,7 @@
         "npm": "9.6.7"
     },
     "scripts": {
-        "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo examples/*/*.tsbuildinfo",
+        "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo examples/**/lib examples/**/out examples/**/*.tsbuildinfo",
         "build": "tsc -b tsconfig.build.json && npm run build --workspace=typir --workspace=examples/ox --workspace=examples/lox",
         "watch": "concurrently -n tsc,vscode,ox -c blue,yellow,green \"tsc -b tsconfig.build.json -w\" \"npm run watch --workspace=typir\" \"npm run watch --workspace=examples/ox\" \"npm run watch --workspace=examples/lox\"",
         "build:clean": "npm run clean && npm run build",
