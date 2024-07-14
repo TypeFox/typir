@@ -87,10 +87,10 @@ MemberCall infers Expression:
 Primary infers Expression:
     '(' Expression ')' |
     UnaryExpression |
-    StringExpression |
-    BooleanExpression |
-    NumberExpression |
-    NilExpression |
+    StringLiteral |
+    BooleanLiteral |
+    NumberLiteral |
+    NilLiteral |
     FeatureCall;
 
 // TODO "FeatureCall" is never used ?!
@@ -107,10 +107,10 @@ FeatureCall infers Expression:
 UnaryExpression:
    operator=('!' | '-' | '+') value=Expression;
 
-NumberExpression: value=NUMBER;
-StringExpression: value=STRING;
-BooleanExpression: value?='true' | 'false';
-NilExpression: value='nil';
+NumberLiteral: value=NUMBER;
+StringLiteral: value=STRING;
+BooleanLiteral: value?='true' | 'false';
+NilLiteral: value='nil';
 
 FunctionDeclaration:
     'fun' name=ID '(' (parameters+=Parameter (',' parameters+=Parameter)*)? ')' ':' returnType=TypeReference body=ExpressionBlock;

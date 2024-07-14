@@ -63,8 +63,8 @@ Comparison infers Expression:
 Primary infers Expression:
     '(' Expression ')' |
     UnaryExpression |
-    BooleanExpression |
-    NumberExpression |
+    BooleanLiteral |
+    NumberLiteral |
     MemberCall;
 
 MemberCall:
@@ -80,8 +80,8 @@ MemberCall:
 UnaryExpression:
    operator=('!' | '-') value=Expression;
 
-NumberExpression: value=NUMBER;
-BooleanExpression: value?='true' | 'false';
+NumberLiteral: value=NUMBER;
+BooleanLiteral: value?='true' | 'false';
 
 FunctionDeclaration:
     'fun' name=ID '(' (parameters+=Parameter (',' parameters+=Parameter)*)? ')' ':' returnType=TypeReference body=Block;

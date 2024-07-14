@@ -5,8 +5,8 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir, NameTypePair, InferenceRuleNotApplicable } from 'typir';
-import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanExpression, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberExpression, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NameTypePair, PrimitiveKind, Type, Typir } from 'typir';
+import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     // set up Typir and reuse some predefined things
@@ -18,12 +18,12 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // define primitive types
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
     const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRules: [
-        isBooleanExpression,
+        isBooleanLiteral,
         (node: unknown) => isTypeReference(node) && node.primitive === 'boolean',
     ]});
     // ... but their primitive kind is provided/preset by Typir
     const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRules: [
-        isNumberExpression,
+        isNumberLiteral,
         (node: unknown) => isTypeReference(node) && node.primitive === 'number',
     ]});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void', inferenceRules:

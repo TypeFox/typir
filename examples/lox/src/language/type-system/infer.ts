@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { AstNode } from "langium";
-import { BinaryExpression, Class, isBinaryExpression, isBooleanExpression, isClass, isFieldMember, isFunctionDeclaration, isMemberCall, isMethodMember, isNilExpression, isNumberExpression, isParameter, isPrintStatement, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, MemberCall, TypeReference } from "../generated/ast.js";
+import { BinaryExpression, Class, isBinaryExpression, isBooleanLiteral, isClass, isFieldMember, isFunctionDeclaration, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, MemberCall, TypeReference } from "../generated/ast.js";
 import { createBooleanType, createClassType, createErrorType, createFunctionType, createNilType, createNumberType, createStringType, createVoidType, isFunctionType, isStringType, TypeDescription } from "./descriptions.js";
 
 export function inferType(node: AstNode | undefined, cache: Map<AstNode, TypeDescription>): TypeDescription {
@@ -19,13 +19,13 @@ export function inferType(node: AstNode | undefined, cache: Map<AstNode, TypeDes
     }
     // Prevent recursive inference errors
     cache.set(node, createErrorType('Recursive definition', node));
-    if (isStringExpression(node)) {
+    if (isStringLiteral(node)) {
         type = createStringType(node);
-    } else if (isNumberExpression(node)) {
+    } else if (isNumberLiteral(node)) {
         type = createNumberType(node);
-    } else if (isBooleanExpression(node)) {
+    } else if (isBooleanLiteral(node)) {
         type = createBooleanType(node);
-    } else if (isNilExpression(node)) {
+    } else if (isNilLiteral(node)) {
         type = createNilType();
     } else if (isFunctionDeclaration(node) || isMethodMember(node)) {
         const returnType = inferType(node.returnType, cache);

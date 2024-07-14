@@ -5,8 +5,8 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NameTypePair, PrimitiveKind, TopKind, Type, Typir } from 'typir';
-import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilExpression, isNumberExpression, isParameter, isPrintStatement, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NameTypePair, PrimitiveKind, TopKind, Type, Typir } from 'typir';
+import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     // set up Typir and reuse some predefined things
@@ -23,18 +23,18 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
     const typeBool = primitiveKind.createPrimitiveType({ primitiveName: 'boolean',
         inferenceRules: [
-            isBooleanExpression,
+            isBooleanLiteral,
             (node: unknown) => isTypeReference(node) && node.primitive === 'boolean'
         ]});
     // ... but their primitive kind is provided/preset by Typir
     const typeNumber = primitiveKind.createPrimitiveType({ primitiveName: 'number',
         inferenceRules: [
-            isNumberExpression,
+            isNumberLiteral,
             (node: unknown) => isTypeReference(node) && node.primitive === 'number'
         ]});
     const typeString = primitiveKind.createPrimitiveType({ primitiveName: 'string',
         inferenceRules: [
-            isStringExpression,
+            isStringLiteral,
             (node: unknown) => isTypeReference(node) && node.primitive === 'string'
         ]});
     const typeVoid = primitiveKind.createPrimitiveType({ primitiveName: 'void',
@@ -44,7 +44,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             (node: unknown) => isReturnStatement(node) && node.value === undefined
         ] });
     const typeNil = primitiveKind.createPrimitiveType({ primitiveName: 'nil',
-        inferenceRules: isNilExpression }); // TODO for what is this used?
+        inferenceRules: isNilLiteral }); // TODO for what is this used?
     const typeAny = anyKind.createTopType({});
 
     // utility function to map language types to Typir types
