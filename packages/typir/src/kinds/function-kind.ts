@@ -303,7 +303,7 @@ export class FunctionKind implements Kind {
 
             // register inference rule for calls of the new function
             overloaded.inference.subRules.push({
-                isRuleApplicable(domainElement, _typir) {
+                inferTypeWithoutChildren(domainElement, _typir) {
                     const result = typeDetails.inferenceRuleForCalls!.filter(domainElement);
                     if (result) {
                         const matching = typeDetails.inferenceRuleForCalls!.matching(domainElement);
@@ -338,7 +338,7 @@ export class FunctionKind implements Kind {
                     // does not match at all
                     return InferenceRuleNotApplicable;
                 },
-                inferType(domainElement, childrenTypes, typir) {
+                inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
                     const inputTypes = typeDetails.inputParameters.map(p => p.type);
                     // all operands need to be assignable(! not equal) to the required types
                     const comparisonConflicts = compareTypes(childrenTypes, inputTypes,

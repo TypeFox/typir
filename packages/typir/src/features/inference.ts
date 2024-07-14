@@ -23,8 +23,20 @@ export function isInferenceProblem(problem: unknown): problem is InferenceProble
 export type InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 export const InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 
-type TypeInferenceResultWithoutInferringChildren = Type | InferenceRuleNotApplicable | unknown | InferenceProblem;
-type TypeInferenceResultWithInferringChildren = TypeInferenceResultWithoutInferringChildren | unknown[];
+type TypeInferenceResultWithoutInferringChildren =
+    /** the identified type */
+    Type |
+    /** 'N/A' to indicate, that the current inference rule is not applicable for the given domain element at all */
+    InferenceRuleNotApplicable |
+    /** a domain element whose type should be inferred instead */
+    unknown |
+    /** an inference problem */
+    InferenceProblem;
+type TypeInferenceResultWithInferringChildren =
+    /** the usual results, since it might be possible to determine the type of the parent without its children */
+    TypeInferenceResultWithoutInferringChildren |
+    /** the children whos types need to be inferred and taken into account to determine the parent's type */
+    unknown[];
 
 /**
  * Represents a single rule for inference,
@@ -46,19 +58,15 @@ export interface TypeInferenceRuleWithInferringChildren {
      * 1st step is to check, whether this inference rule is applicable to the given domain element.
      * @param domainElement the element whose type shall be inferred
      * @param typir the current Typir instance
-     * @returns the identified type (if it is already possible to determine the type)
-     * or 'N/A' to indicate, that the current inference rule is not applicable for the given domain element at all,
-     * or a domain element whose type should be inferred instead,
-     * or an inference problem,
-     * or a list of domain elements, whose types need to be inferred, before this rule is able to decide, whether it is applicable.
-     * Only in the last case, the other function will be called, otherwise, it is skipped (that is the reason, why it is optional).
+     * @returns Only in the case, that children elements are return,
+     * the other function will be called for step 2, otherwise, it is skipped.
      */
-    isRuleApplicable(domainElement: unknown, typir: Typir): TypeInferenceResultWithInferringChildren;
+    inferTypeWithoutChildren(domainElement: unknown, typir: Typir): TypeInferenceResultWithInferringChildren;
 
     /**
      * 2nd step is to finally decide about the inferred type.
      * When the 1st step returned a list of elements to resolve their types,
-     * this function is mandatory, since it need to complete this inference rule, otherwise, this step is not called.
+     * this function is called in order to complete this inference rule, otherwise, this step is not called.
      * Advantage of this step is to split it to allow a postponed inferrence of the additional elements by Typir.
      * Disadvantage of this step is, that already checked TS types of domainElement cannot be reused.
      * @param domainElement the element whose type shall be inferred
@@ -66,7 +74,7 @@ export interface TypeInferenceRuleWithInferringChildren {
      * @param typir the current Typir instance
      * @returns the finally inferred type or a problem, why this inference rule is finally not applicable
      */
-    inferType(domainElement: unknown, childrenTypes: Array<Type | undefined>, typir: Typir): Type | InferenceProblem
+    inferTypeWithChildrensTypes(domainElement: unknown, childrenTypes: Array<Type | undefined>, typir: Typir): Type | InferenceProblem
 }
 
 /**
@@ -78,7 +86,7 @@ export interface TypeInferenceRuleWithInferringChildren {
 export class CompositeTypeInferenceRule implements TypeInferenceRuleWithInferringChildren {
     readonly subRules: TypeInferenceRule[] = [];
 
-    isRuleApplicable(domainElement: unknown, typir: Typir): TypeInferenceResultWithInferringChildren {
+    inferTypeWithoutChildren(domainElement: unknown, typir: Typir): TypeInferenceResultWithInferringChildren {
         class FunctionInference extends DefaultTypeInferenceCollector {
             // do not check "pending" (again), since it is already checked by the "parent" DefaultTypeInferenceCollector!
             override pendingGet(_domainElement: unknown): boolean {
@@ -108,7 +116,7 @@ export class CompositeTypeInferenceRule implements TypeInferenceRuleWithInferrin
         }
     }
 
-    inferType(_domainElement: unknown, _childrenTypes: Array<Type | undefined>, _typir: Typir): Type | InferenceProblem {
+    inferTypeWithChildrensTypes(_domainElement: unknown, _childrenTypes: Array<Type | undefined>, _typir: Typir): Type | InferenceProblem {
         throw new Error('This function will not be called.');
     }
 }
@@ -183,7 +191,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                 }
             } else {
                 // more complex case with inferring the type for children
-                const ruleResult: TypeInferenceResultWithInferringChildren = rule.isRuleApplicable(domainElement, this.typir);
+                const ruleResult: TypeInferenceResultWithInferringChildren = rule.inferTypeWithoutChildren(domainElement, this.typir);
                 if (Array.isArray(ruleResult)) {
                     // this rule might match => continue applying this rule
                     // resolve the requested child types
@@ -211,7 +219,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                         });
                     } else {
                         // the types of all children are successfully inferred
-                        const finalInferenceResult = rule.inferType(domainElement, childTypes as Type[], this.typir);
+                        const finalInferenceResult = rule.inferTypeWithChildrensTypes(domainElement, childTypes as Type[], this.typir);
                         if (isType(finalInferenceResult)) {
                             // type is inferred!
                             return finalInferenceResult;

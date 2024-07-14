@@ -133,14 +133,14 @@ export class ClassKind implements Kind {
         // register inference rules
         if (typeDetails.inferenceRuleForDeclaration) {
             this.typir.inference.addInferenceRule({
-                isRuleApplicable(domainElement, _typir) {
+                inferTypeWithoutChildren(domainElement, _typir) {
                     if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
                         return classType;
                     } else {
                         return InferenceRuleNotApplicable;
                     }
                 },
-                inferType(_domainElement, _childrenTypes, _typir) {
+                inferTypeWithChildrensTypes(_domainElement, _childrenTypes, _typir) {
                     // TODO check values for fields for nominal typing!
                     return classType;
                 },
@@ -182,7 +182,7 @@ export class ClassKind implements Kind {
     protected registerInferenceRule<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: Type): void {
         const mapListConverter = new MapListConverter();
         this.typir.inference.addInferenceRule({
-            isRuleApplicable(domainElement, _typir) {
+            inferTypeWithoutChildren(domainElement, _typir) {
                 const result = rule.filter(domainElement);
                 if (result) {
                     const matching = rule.matching(domainElement);
@@ -203,7 +203,7 @@ export class ClassKind implements Kind {
                 // does not match at all
                 return InferenceRuleNotApplicable;
             },
-            inferType(domainElement, childrenTypes, typir) {
+            inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
                 const allExpectedFields = classKind.getFields(classType, true);
                 // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
                 const comparedFieldsProblems = compareNameTypesMap(

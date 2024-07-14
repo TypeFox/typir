@@ -95,7 +95,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     });
 
     // additional inference rules for ...
-    typir.inference.addInferenceRule((domainElement: unknown) => { // TODO rename "is" leads to boolean
+    typir.inference.addInferenceRule((domainElement: unknown) => {
         // ... member calls (which are used in expressions)
         if (isMemberCall(domainElement)) {
             const ref = domainElement.element.ref;
