@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir, NameTypePair } from 'typir';
+import { InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, PrimitiveKind, Type, Typir, NameTypePair, InferenceRuleNotApplicable } from 'typir';
 import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanExpression, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberExpression, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
@@ -108,18 +108,24 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     return ref.type;
                 } else if (isFunctionDeclaration(ref)) {
                     // there is already an inference rule for function calls (see above for FunctionDeclaration)!
-                    return 'RULE_NOT_APPLICABLE';
+                    return 'N/A'; // as an alternative: use 'InferenceRuleNotApplicable' instead, what should we recommend?
                 } else if (ref === undefined) {
-                    return 'RULE_NOT_APPLICABLE';
+                    return InferenceRuleNotApplicable;
                 } else {
                     assertUnreachable(ref);
                 }
             }
+            return InferenceRuleNotApplicable;
+        },
+    });
+    // TODO lieber mehrere eigene Rules, automatic dispatch?!
+    typir.inference.addInferenceRule({
+        isRuleApplicable(domainElement, _typir) {
             // ... variable declarations
             if (isVariableDeclaration(domainElement)) {
                 return domainElement.type;
             }
-            return 'RULE_NOT_APPLICABLE';
+            return InferenceRuleNotApplicable;
         },
     });
 

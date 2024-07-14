@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NameTypePair, PrimitiveKind, TopKind, Type, Typir } from 'typir';
+import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NameTypePair, PrimitiveKind, TopKind, Type, Typir } from 'typir';
 import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanExpression, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilExpression, isNumberExpression, isParameter, isPrintStatement, isReturnStatement, isStringExpression, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
@@ -194,7 +194,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 },
                 // inference rule for accessing fields
                 inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element!.ref.$container === node
-                    ? domainElement.element!.ref.name : 'RULE_NOT_APPLICABLE',
+                    ? domainElement.element!.ref.name : 'N/A', // as an alternative, use 'InferenceRuleNotApplicable' instead, what should we recommend?
             });
         }
     });
@@ -206,7 +206,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             if (isMemberCall(domainElement)) {
                 const ref = domainElement.element?.ref;
                 if (isClass(ref)) {
-                    return 'RULE_NOT_APPLICABLE'; // not required anymore
+                    return InferenceRuleNotApplicable; // not required anymore
                 } else if (isClassMember(ref)) {
                     return undefined!; //TODO
                 } else if (isMethodMember(ref)) {
@@ -219,9 +219,9 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     return ref.type;
                 } else if (isFunctionDeclaration(ref)) {
                     // there is already an inference rule for function calls (see above for FunctionDeclaration)!
-                    return 'RULE_NOT_APPLICABLE';
+                    return InferenceRuleNotApplicable;
                 } else if (ref === undefined) {
-                    return 'RULE_NOT_APPLICABLE';
+                    return InferenceRuleNotApplicable;
                 } else {
                     assertUnreachable(ref);
                 }
@@ -234,10 +234,10 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     // the type might be null; no type declared => do type inference of the assigned value instead!
                     return domainElement.value;
                 } else {
-                    return 'RULE_NOT_APPLICABLE'; // this case is impossible, there is a validation in the "usual LOX validator" for this case
+                    return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the "usual LOX validator" for this case
                 }
             }
-            return 'RULE_NOT_APPLICABLE';
+            return InferenceRuleNotApplicable;
         },
     });
 

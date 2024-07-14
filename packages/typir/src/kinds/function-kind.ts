@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { CompositeTypeInferenceRule } from '../features/inference.js';
+import { CompositeTypeInferenceRule, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { DefaultValidationCollector, ValidationCollector, ValidationProblem } from '../features/validation.js';
 import { TypeEdge } from '../graph/type-edge.js';
@@ -336,7 +336,7 @@ export class FunctionKind implements Kind {
                         // the domain element has a completely different purpose
                     }
                     // does not match at all
-                    return 'RULE_NOT_APPLICABLE';
+                    return InferenceRuleNotApplicable;
                 },
                 inferType(domainElement, childrenTypes, typir) {
                     const inputTypes = typeDetails.inputParameters.map(p => p.type);
@@ -369,7 +369,7 @@ export class FunctionKind implements Kind {
                     if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
                         return functionType;
                     } else {
-                        return 'RULE_NOT_APPLICABLE';
+                        return InferenceRuleNotApplicable;
                     }
                 },
             });

@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
@@ -43,7 +44,7 @@ export class PrimitiveKind implements Kind {
                             return primitiveType;
                         }
                     }
-                    return 'RULE_NOT_APPLICABLE';
+                    return InferenceRuleNotApplicable;
                 },
             });
         }

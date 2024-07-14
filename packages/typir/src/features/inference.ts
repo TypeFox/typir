@@ -19,6 +19,15 @@ export function isInferenceProblem(problem: unknown): problem is InferenceProble
     return typeof problem === 'object' && problem !== null && typeof (problem as InferenceProblem).location === 'string' && (problem as InferenceProblem).domainElement !== undefined;
 }
 
+// Type and Value to indicate, that an inference rule is intended for another case, and therefore is unable to infer a type for the current case.
+export type InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
+export const InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
+
+export type TypeInferenceResult = Type | InferenceRuleNotApplicable | unknown | InferenceProblem;
+
+// TODO support this variant as simplification
+export type TypeInferenceRuleSimple = (domainElement: unknown, typir: Typir) => TypeInferenceResult;
+
 /**
  * Represents a single rule for inference,
  * i.e. only a single type (or no type at all) can be inferred for a given domain element.
@@ -29,13 +38,13 @@ export interface TypeInferenceRule {
      * @param domainElement the element whose type shall be inferred
      * @param typir the current Typir instance
      * @returns the identified type (if it is already possible to determine the type)
-     * or 'RULE_NOT_APPLICABLE' to indicate, that the current inference rule is not applicable for the given domain element at all,
+     * or 'N/A' to indicate, that the current inference rule is not applicable for the given domain element at all,
      * or a domain element whose type should be inferred instead,
      * or an inference problem,
      * or a list of domain elements, whose types need to be inferred, before this rule is able to decide, whether it is applicable.
      * Only in the last case, the other function will be called, otherwise, it is skipped (that is the reason, why it is optional).
      */
-    isRuleApplicable(domainElement: unknown, typir: Typir): Type | 'RULE_NOT_APPLICABLE' | unknown | InferenceProblem | unknown[];
+    isRuleApplicable(domainElement: unknown, typir: Typir): TypeInferenceResult | unknown[];
 
     /**
      * 2nd step is to finally decide about the inferred type.
@@ -59,7 +68,7 @@ export interface TypeInferenceRule {
 export class CompositeTypeInferenceRule implements TypeInferenceRule {
     readonly subRules: TypeInferenceRule[] = [];
 
-    isRuleApplicable(domainElement: unknown, typir: Typir): Type | InferenceProblem | unknown[] | 'RULE_NOT_APPLICABLE' {
+    isRuleApplicable(domainElement: unknown, typir: Typir): TypeInferenceResult | unknown[] {
         class FunctionInference extends DefaultTypeInferenceCollector {
             // do not check "pending" (again), since it is already checked by the "parent" DefaultTypeInferenceCollector!
             override pendingGet(_domainElement: unknown): boolean {
@@ -75,7 +84,7 @@ export class CompositeTypeInferenceRule implements TypeInferenceRule {
             return result;
         } else {
             if (result.length <= 0) {
-                return 'RULE_NOT_APPLICABLE';
+                return InferenceRuleNotApplicable;
             } else if (result.length === 1) {
                 return result[0];
             } else {
@@ -153,7 +162,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
         const collectedInferenceProblems: InferenceProblem[] = [];
         for (const rule of this.inferenceRules) {
             const firstCheck = rule.isRuleApplicable(domainElement, this.typir);
-            if (firstCheck === 'RULE_NOT_APPLICABLE') {
+            if (firstCheck === InferenceRuleNotApplicable) {
                 // this rule is not applicable at all => check the next rule
             } else if (isType(firstCheck)) {
                 // the result type is already found!

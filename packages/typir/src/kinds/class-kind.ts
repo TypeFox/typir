@@ -11,7 +11,7 @@ import { Typir } from '../typir.js';
 import { IndexedTypeConflict, MapListConverter, TypeComparisonStrategy, TypirProblem, compareNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
 import { NameTypePair, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
-import { InferenceProblem } from '../features/inference.js';
+import { InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 
 export interface ClassKindOptions {
@@ -33,7 +33,7 @@ export interface ClassTypeDetails<T1 = unknown, T2 = unknown> { // TODO the gene
     inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // TODO what is the purpose for this? what is the difference to literals?
     inferenceRuleForLiteral?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
     inferenceRuleForReference?: InferClassLiteral<T2>,
-    inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | 'RULE_NOT_APPLICABLE', // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
+    inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | InferenceRuleNotApplicable, // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
     // TODO inference rule for method calls
 }
 
@@ -137,7 +137,7 @@ export class ClassKind implements Kind {
                     if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
                         return classType;
                     } else {
-                        return 'RULE_NOT_APPLICABLE';
+                        return InferenceRuleNotApplicable;
                     }
                 },
                 inferType(_domainElement, _childrenTypes, _typir) {
@@ -156,8 +156,8 @@ export class ClassKind implements Kind {
             this.typir.inference.addInferenceRule({
                 isRuleApplicable(domainElement, _typir) {
                     const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
-                    if (result === 'RULE_NOT_APPLICABLE') {
-                        return 'RULE_NOT_APPLICABLE';
+                    if (result === InferenceRuleNotApplicable) {
+                        return InferenceRuleNotApplicable;
                     } else if (typeof result === 'string') {
                         // get the type of the given field name
                         const fieldType = classKind.getFields(classType, true).get(result);
@@ -203,7 +203,7 @@ export class ClassKind implements Kind {
                     // the domain element has a completely different purpose
                 }
                 // does not match at all
-                return 'RULE_NOT_APPLICABLE';
+                return InferenceRuleNotApplicable;
             },
             inferType(domainElement, childrenTypes, typir) {
                 const allExpectedFields = classKind.getFields(classType, true);
