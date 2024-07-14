@@ -282,7 +282,7 @@ export class FunctionKind implements Kind {
             // remember the output type of the first function
             overloaded.sameOutputType = typeDetails.outputParameter?.type;
         } else {
-            if (overloaded.sameOutputType && typeDetails.outputParameter?.type && this.typir.equality.areTypesEqual(overloaded.sameOutputType, typeDetails.outputParameter.type)) {
+            if (overloaded.sameOutputType && typeDetails.outputParameter?.type && this.typir.equality.areTypesEqual(overloaded.sameOutputType, typeDetails.outputParameter.type) === true) {
                 // the output types of all overloaded functions are the same for now
             } else {
                 // there is a difference

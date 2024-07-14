@@ -42,7 +42,7 @@ describe('Explicitly test type checking for LOX', () => {
     });
 
     test('boolean in conditions', async () => {
-        // await validate('if ( true ) {}', 0);
+        await validate('if ( true ) {}', 0);
         await validate('if ( 3 ) {}', 1);
     });
 
@@ -59,7 +59,14 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('fun myFunction() : number { return true; }', 1);
     });
 
-    test('use overloaded operators', async () => {
+    test('use overloaded operators: +', async () => {
+        await validate('var myVar : number = 2 + 3;', 0, 0);
+        await validate('var myVar : string = "a" + "b";', 0, 0);
+        await validate('var myVar : string = "a" + 3;', 0, 0);
+        await validate('var myVar : string = 2 + "b";', 0, 0);
+    });
+
+    test('use overloaded operators: ==', async () => {
         await validate('var myVar : boolean = true == false;', 0, 0);
         await validate('var myVar : boolean = 2 == 3;', 0, 0);
         await validate('var myVar : boolean = true == 3;', 0, 1);

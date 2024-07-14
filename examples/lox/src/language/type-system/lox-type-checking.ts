@@ -107,11 +107,10 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         { left: typeNumber, right: typeString, return: typeString },
         { left: typeString, right: typeNumber, return: typeString },
     ], inferenceRule: binaryInferenceRule });
-    // TODO test cases for '+' with mixed types!
 
     // TODO design decision: overload with the lowest number of conversions wins!
     // TODO remove this later, it is not required for LOX!
-    typir.conversion.markAsConvertible(typeNumber, typeString, 'IMPLICIT'); // var my1: string = 42;
+    // typir.conversion.markAsConvertible(typeNumber, typeString, 'IMPLICIT'); // var my1: string = 42;
 
     // binary operators: numbers => boolean
     for (const operator of ['<', '<=', '>', '>=']) {
