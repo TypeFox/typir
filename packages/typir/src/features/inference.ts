@@ -74,7 +74,8 @@ export interface TypeInferenceRuleWithInferringChildren {
  * If one of the child rules returns a type, this type is the result of the composite rule.
  * Otherwise, all problems of all child rules are returned.
  */
-export class CompositeTypeInferenceRule implements TypeInferenceRuleWithInferringChildren { // TODO could this be simplified?! TypeInferenceRuleWithoutInferringChildren??
+// TODO this design looks a bit ugly ... "implements TypeInferenceRuleWithoutInferringChildren" does not work, since it is a function ...
+export class CompositeTypeInferenceRule implements TypeInferenceRuleWithInferringChildren {
     readonly subRules: TypeInferenceRule[] = [];
 
     isRuleApplicable(domainElement: unknown, typir: Typir): TypeInferenceResultWithInferringChildren {
@@ -187,7 +188,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                     // this rule might match => continue applying this rule
                     // resolve the requested child types
                     const childElements = ruleResult;
-                    const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.typir.inference.inferType(child));
+                    const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.inferType(child));
                     // check, whether inferring the children resulted in some other inference problems
                     const childTypeProblems: InferenceProblem[] = [];
                     for (let i = 0; i < childTypes.length; i++) {
@@ -230,7 +231,16 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                 }
             }
         }
-        // TODO handle empty array
+
+        // return all the collected inference problems
+        if (collectedInferenceProblems.length <= 0) {
+            // document the reason, why neither a type nor inference problems are found
+            collectedInferenceProblems.push({
+                domainElement,
+                location: 'found no applicable inference rules',
+                subProblems: [],
+            });
+        }
         return collectedInferenceProblems;
     }
 
@@ -245,7 +255,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
             collectedInferenceProblems.push(result);
         } else {
             // this 'result' domain element is used instead to infer its type, which is the type for the current domain element as well
-            return this.typir.inference.inferType(result);
+            return this.inferType(result);
         }
         return undefined;
     }
