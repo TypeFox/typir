@@ -200,45 +200,43 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     });
 
     // additional inference rules for ...
-    typir.inference.addInferenceRule({
-        isRuleApplicable(domainElement: unknown) {
-            // ... member calls
-            if (isMemberCall(domainElement)) {
-                const ref = domainElement.element?.ref;
-                if (isClass(ref)) {
-                    return InferenceRuleNotApplicable; // not required anymore
-                } else if (isClassMember(ref)) {
-                    return undefined!; //TODO
-                } else if (isMethodMember(ref)) {
-                    return undefined!; //TODO
-                } else if (isVariableDeclaration(ref)) {
-                    // use variables inside expressions!
-                    return ref.type!;
-                } else if (isParameter(ref)) {
-                    // use parameters inside expressions
-                    return ref.type;
-                } else if (isFunctionDeclaration(ref)) {
-                    // there is already an inference rule for function calls (see above for FunctionDeclaration)!
-                    return InferenceRuleNotApplicable;
-                } else if (ref === undefined) {
-                    return InferenceRuleNotApplicable;
-                } else {
-                    assertUnreachable(ref);
-                }
+    typir.inference.addInferenceRule((domainElement: unknown) => {
+        // ... member calls
+        if (isMemberCall(domainElement)) {
+            const ref = domainElement.element?.ref;
+            if (isClass(ref)) {
+                return InferenceRuleNotApplicable; // not required anymore
+            } else if (isClassMember(ref)) {
+                return undefined!; //TODO
+            } else if (isMethodMember(ref)) {
+                return undefined!; //TODO
+            } else if (isVariableDeclaration(ref)) {
+                // use variables inside expressions!
+                return ref.type!;
+            } else if (isParameter(ref)) {
+                // use parameters inside expressions
+                return ref.type;
+            } else if (isFunctionDeclaration(ref)) {
+                // there is already an inference rule for function calls (see above for FunctionDeclaration)!
+                return InferenceRuleNotApplicable;
+            } else if (ref === undefined) {
+                return InferenceRuleNotApplicable;
+            } else {
+                assertUnreachable(ref);
             }
-            // ... variable declarations
-            if (isVariableDeclaration(domainElement)) {
-                if (domainElement.type) {
-                    return domainElement.type;
-                } else if (domainElement.value) {
-                    // the type might be null; no type declared => do type inference of the assigned value instead!
-                    return domainElement.value;
-                } else {
-                    return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the "usual LOX validator" for this case
-                }
+        }
+        // ... variable declarations
+        if (isVariableDeclaration(domainElement)) {
+            if (domainElement.type) {
+                return domainElement.type;
+            } else if (domainElement.value) {
+                // the type might be null; no type declared => do type inference of the assigned value instead!
+                return domainElement.value;
+            } else {
+                return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the "usual LOX validator" for this case
             }
-            return InferenceRuleNotApplicable;
-        },
+        }
+        return InferenceRuleNotApplicable;
     });
 
     // some explicit validations for typing issues with Typir (replaces corresponding functions in the OxValidator!)

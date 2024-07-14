@@ -364,14 +364,12 @@ export class FunctionKind implements Kind {
         // register inference rule for the declaration of the new function
         // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
         if (typeDetails.inferenceRuleForDeclaration) {
-            this.typir.inference.addInferenceRule({
-                isRuleApplicable(domainElement, _typir) {
-                    if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
-                        return functionType;
-                    } else {
-                        return InferenceRuleNotApplicable;
-                    }
-                },
+            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+                if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
+                    return functionType;
+                } else {
+                    return InferenceRuleNotApplicable;
+                }
             });
         }
 

@@ -53,15 +53,13 @@ export class TopKind implements Kind {
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.typir.inference.addInferenceRule({
-                isRuleApplicable(domainElement, _typir) {
-                    for (const inferenceRule of rules) {
-                        if (inferenceRule(domainElement)) {
-                            return topType;
-                        }
+            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+                for (const inferenceRule of rules) {
+                    if (inferenceRule(domainElement)) {
+                        return topType;
                     }
-                    return InferenceRuleNotApplicable;
-                },
+                }
+                return InferenceRuleNotApplicable;
             });
         }
         return topType;

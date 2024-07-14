@@ -5,14 +5,14 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
+import { InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
+import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { IndexedTypeConflict, MapListConverter, TypeComparisonStrategy, TypirProblem, compareNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
 import { NameTypePair, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
-import { InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
-import { SubTypeProblem } from '../features/subtype.js';
 
 export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal',
@@ -153,28 +153,26 @@ export class ClassKind implements Kind {
             this.registerInferenceRule(typeDetails.inferenceRuleForReference, classKind, classType);
         }
         if (typeDetails.inferenceRuleForFieldAccess) {
-            this.typir.inference.addInferenceRule({
-                isRuleApplicable(domainElement, _typir) {
-                    const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
-                    if (result === InferenceRuleNotApplicable) {
-                        return InferenceRuleNotApplicable;
-                    } else if (typeof result === 'string') {
-                        // get the type of the given field name
-                        const fieldType = classKind.getFields(classType, true).get(result);
-                        if (fieldType) {
-                            return fieldType;
-                        }
-                        return <InferenceProblem>{
-                            domainElement,
-                            inferenceCandidate: classType,
-                            location: `unknown field '${result}'`,
-                            rule: this,
-                            subProblems: [],
-                        };
-                    } else {
-                        return result; // do the type inference for this element instead
+            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+                const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
+                if (result === InferenceRuleNotApplicable) {
+                    return InferenceRuleNotApplicable;
+                } else if (typeof result === 'string') {
+                    // get the type of the given field name
+                    const fieldType = classKind.getFields(classType, true).get(result);
+                    if (fieldType) {
+                        return fieldType;
                     }
-                },
+                    return <InferenceProblem>{
+                        domainElement,
+                        inferenceCandidate: classType,
+                        location: `unknown field '${result}'`,
+                        // rule: this, // this does not work with functions ...
+                        subProblems: [],
+                    };
+                } else {
+                    return result; // do the type inference for this element instead
+                }
             });
         }
 

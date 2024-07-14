@@ -95,38 +95,34 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     });
 
     // additional inference rules for ...
-    typir.inference.addInferenceRule({
-        isRuleApplicable(domainElement: unknown) {
-            // ... member calls (which are used in expressions)
-            if (isMemberCall(domainElement)) {
-                const ref = domainElement.element.ref;
-                if (isVariableDeclaration(ref)) {
-                    // use variables inside expressions!
-                    return ref.type;
-                } else if (isParameter(ref)) {
-                    // use parameters inside expressions
-                    return ref.type;
-                } else if (isFunctionDeclaration(ref)) {
-                    // there is already an inference rule for function calls (see above for FunctionDeclaration)!
-                    return 'N/A'; // as an alternative: use 'InferenceRuleNotApplicable' instead, what should we recommend?
-                } else if (ref === undefined) {
-                    return InferenceRuleNotApplicable;
-                } else {
-                    assertUnreachable(ref);
-                }
+    typir.inference.addInferenceRule((domainElement: unknown) => { // TODO rename "is" leads to boolean
+        // ... member calls (which are used in expressions)
+        if (isMemberCall(domainElement)) {
+            const ref = domainElement.element.ref;
+            if (isVariableDeclaration(ref)) {
+                // use variables inside expressions!
+                return ref.type;
+            } else if (isParameter(ref)) {
+                // use parameters inside expressions
+                return ref.type;
+            } else if (isFunctionDeclaration(ref)) {
+                // there is already an inference rule for function calls (see above for FunctionDeclaration)!
+                return 'N/A'; // as an alternative: use 'InferenceRuleNotApplicable' instead, what should we recommend?
+            } else if (ref === undefined) {
+                return InferenceRuleNotApplicable;
+            } else {
+                assertUnreachable(ref);
             }
-            return InferenceRuleNotApplicable;
-        },
+        }
+        return InferenceRuleNotApplicable;
     });
     // TODO lieber mehrere eigene Rules, automatic dispatch?!
-    typir.inference.addInferenceRule({
-        isRuleApplicable(domainElement, _typir) {
-            // ... variable declarations
-            if (isVariableDeclaration(domainElement)) {
-                return domainElement.type;
-            }
-            return InferenceRuleNotApplicable;
-        },
+    typir.inference.addInferenceRule((domainElement, _typir) => {
+        // ... variable declarations
+        if (isVariableDeclaration(domainElement)) {
+            return domainElement.type;
+        }
+        return InferenceRuleNotApplicable;
     });
 
     // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
