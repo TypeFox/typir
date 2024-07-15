@@ -11,7 +11,7 @@ import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { IndexedTypeConflict, MapListConverter, TypeComparisonStrategy, TypirProblem, compareNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
-import { NameTypePair, assertTrue, toArray } from '../utils/utils.js';
+import { NameTypePair, assertKind, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface ClassKindOptions {
@@ -249,6 +249,7 @@ export class ClassKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
+        assertKind(type.kind, isClassKind);
         // fields
         const fields: string[] = [];
         for (const field of this.getFields(type, false).entries()) {
@@ -335,14 +336,17 @@ export class ClassKind implements Kind {
     }
 
     getDeclaredSuperClasses(classType: Type): Type[] {
+        assertKind(classType.kind, isClassKind);
         return classType.getOutgoingEdges(SUPER_CLASS).map(edge => edge.to);
     }
 
     getDeclaredSubClasses(classType: Type): Type[] {
+        assertKind(classType.kind, isClassKind);
         return classType.getIncomingEdges(SUPER_CLASS).map(edge => edge.from);
     }
 
     getAllSuperClasses(classType: Type, includingGivenClass: boolean = false): Set<Type> {
+        assertKind(classType.kind, isClassKind);
         const result = new Set<Type>();
         if (includingGivenClass) {
             result.add(classType);
@@ -365,6 +369,7 @@ export class ClassKind implements Kind {
     }
 
     getAllSubClasses(classType: Type, includingGivenClass: boolean = false): Set<Type> {
+        assertKind(classType.kind, isClassKind);
         const result = new Set<Type>();
         if (includingGivenClass) {
             result.add(classType);
@@ -385,6 +390,7 @@ export class ClassKind implements Kind {
     }
 
     getFields(classType: Type, withSuperClassesFields: boolean): Map<string, Type> {
+        assertKind(classType.kind, isClassKind);
         // in case of conflicting field names, the type of the sub-class takes precedence! TODO
         const result = new Map();
         // fields of super classes

@@ -9,6 +9,7 @@ import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem, compareValueForConflict, compareValueForConflict as compareValuesForConflict } from '../utils/utils-type-comparison.js';
+import { assertKind } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface MultiplicityKindOptions {
@@ -94,11 +95,8 @@ export class MultiplicityKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
-        // TODO check the kind before?!
-        if (isMultiplicityKind(type.kind)) {
-            return this.printType(type.kind.getConstrainedType(type), type.kind.getLowerBound(type), type.kind.getUpperBound(type));
-        }
-        throw new Error();
+        assertKind(type.kind, isMultiplicityKind);
+        return this.printType(type.kind.getConstrainedType(type), type.kind.getLowerBound(type), type.kind.getUpperBound(type));
     }
 
     isSubType(superType: Type, subType: Type): TypirProblem[] {
@@ -148,13 +146,16 @@ export class MultiplicityKind implements Kind {
     }
 
     getConstrainedType(typeWithMultiplicity: Type): Type {
+        assertKind(typeWithMultiplicity.kind, isMultiplicityKind);
         return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].to;
     }
 
     getLowerBound(typeWithMultiplicity: Type): number {
+        assertKind(typeWithMultiplicity.kind, isMultiplicityKind);
         return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].properties.get(MULTIPLICITY_LOWER) as number;
     }
     getUpperBound(typeWithMultiplicity: Type): number {
+        assertKind(typeWithMultiplicity.kind, isMultiplicityKind);
         return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].properties.get(MULTIPLICITY_UPPER) as number;
     }
 }

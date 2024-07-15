@@ -9,7 +9,7 @@ import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem, compareValueForConflict, compareValueForConflict as compareValuesForConflict } from '../utils/utils-type-comparison.js';
-import { toArray } from '../utils/utils.js';
+import { assertKind, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export type InferPrimitiveType = (domainElement: unknown) => boolean;
@@ -50,6 +50,7 @@ export class PrimitiveKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
+        assertKind(type.kind, isPrimitiveKind);
         return type.name;
     }
 

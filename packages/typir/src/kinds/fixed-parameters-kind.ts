@@ -9,7 +9,7 @@ import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypeComparisonStrategy, TypirProblem, compareTypes, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
-import { assertTrue, toArray } from '../utils/utils.js';
+import { assertKind, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface FixedParameterKindOptions {
@@ -66,6 +66,7 @@ export class FixedParameterKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
+        assertKind(type.kind, isFixedParametersKind);
         return this.printSignature(this.baseName, this.getParameterTypes(type));
     }
     protected printSignature(baseName: string, parameterTypes: Type[]): string {
@@ -96,6 +97,7 @@ export class FixedParameterKind implements Kind {
     }
 
     getParameterTypes(fixedParameterType: Type): Type[] {
+        assertKind(fixedParameterType.kind, isFixedParametersKind);
         const result = fixedParameterType.getOutgoingEdges(FIXED_PARAMETER_TYPE).map(edge => edge.to);
         assertTrue(result.length === this.parameterNames.length);
         return result;

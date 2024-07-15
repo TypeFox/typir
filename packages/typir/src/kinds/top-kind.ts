@@ -9,7 +9,7 @@ import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem, compareValueForConflict } from '../utils/utils-type-comparison.js';
-import { toArray } from '../utils/utils.js';
+import { assertKind, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface TopKindOptions {
@@ -66,6 +66,7 @@ export class TopKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
+        assertKind(type.kind, isTopKind);
         return type.name;
     }
 

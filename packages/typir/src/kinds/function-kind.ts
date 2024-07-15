@@ -11,7 +11,7 @@ import { TypeEdge } from '../graph/type-edge.js';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem, compareNameTypePair, compareNameTypePairs, compareTypes, compareValueForConflict } from '../utils/utils-type-comparison.js';
-import { NameTypePair } from '../utils/utils.js';
+import { assertKind, NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface FunctionKindOptions {
@@ -381,6 +381,7 @@ export class FunctionKind implements Kind {
     }
 
     getUserRepresentation(type: Type): string {
+        assertKind(type.kind, isFunctionKind);
         // check input
         if (isFunctionKind(type.kind) === false) {
             throw new Error();
@@ -480,6 +481,7 @@ export class FunctionKind implements Kind {
     }
 
     getSimpleFunctionName(functionType: Type): string {
+        assertKind(functionType.kind, isFunctionKind);
         const name = functionType.properties.get(SIMPLE_NAME);
         if (typeof name === 'string') {
             return name;
@@ -488,6 +490,7 @@ export class FunctionKind implements Kind {
     }
 
     getOutput(functionType: Type): NameTypePair | undefined {
+        assertKind(functionType.kind, isFunctionKind);
         const outs = functionType.getOutgoingEdges(OUTPUT_PARAMETER);
         if (outs.length <= 0) {
             return undefined;
@@ -499,6 +502,7 @@ export class FunctionKind implements Kind {
     }
 
     getInputs(functionType: Type): NameTypePair[] {
+        assertKind(functionType.kind, isFunctionKind);
         return functionType.getOutgoingEdges(INPUT_PARAMETER)
             .sort((e1, e2) => (e2.properties.get(PARAMETER_ORDER) as number) - (e1.properties.get(PARAMETER_ORDER) as number))
             .map(edge => <NameTypePair>{ name: edge.properties.get(PARAMETER_NAME) as string, type: edge.to });

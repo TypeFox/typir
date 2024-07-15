@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 import { Type } from '../graph/type-node.js';
+import { Kind } from '../kinds/kind.js';
 
 export type Types = Type | Type[];
 export type Names = string | string[];
@@ -32,4 +33,12 @@ export function toArray<T>(value: undefined | T | T[]): T[] {
 
 export function assertUnreachable(_: never): never {
     throw new Error('Error! The input value was not handled.');
+}
+
+export function assertKind<T extends Kind>(kind: unknown, check: (kind: unknown) => kind is T): asserts kind is T {
+    if (check(kind)) {
+        // this is the expected case
+    } else {
+        throw new Error(`'${kind}' has another kind`);
+    }
 }
