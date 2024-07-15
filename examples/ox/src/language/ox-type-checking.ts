@@ -94,9 +94,9 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         }
     });
 
-    // additional inference rules for ...
+    // additional inference rules ...
     typir.inference.addInferenceRule((domainElement: unknown) => {
-        // ... member calls (which are used in expressions)
+        // ... for member calls (which are used in expressions)
         if (isMemberCall(domainElement)) {
             const ref = domainElement.element.ref;
             if (isVariableDeclaration(ref)) {
@@ -116,16 +116,21 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         }
         return InferenceRuleNotApplicable;
     });
-    // TODO lieber mehrere eigene Rules, automatic dispatch?!
+    // it is up to the user of Typir, how to structure the inference rules!
     typir.inference.addInferenceRule((domainElement, _typir) => {
-        // ... variable declarations
+        // ... and for variable declarations
         if (isVariableDeclaration(domainElement)) {
             return domainElement.type;
         }
         return InferenceRuleNotApplicable;
     });
+    // TODO: [<VariableDeclaration>{ selector: isVariableDeclaration, result: domainElement => domainElement.type }, <BinaryExpression>{}]      Array<InferenceRule<T>>
+    // discriminator rule: $type '$VariableDeclaration' + record / "Sprungtabelle" for the Langium-binding (or both in core)? for improved performance (?)
+    // alternativ discriminator rule: unknown => string; AstNode => node.$type; Vorsicht mit Sub-Typen (Vollständigkeit+Updates, no abstract types)!
+    // später realisieren
 
     // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
+    // TODO selector API + gleiche Diskussion für Inference Rules
     typir.validation.collector.addValidationRules(
         (node: unknown, typir: Typir) => {
             if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
