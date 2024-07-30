@@ -35,10 +35,10 @@ export function assertUnreachable(_: never): never {
     throw new Error('Error! The input value was not handled.');
 }
 
-export function assertKind<T extends Kind>(kind: unknown, check: (kind: unknown) => kind is T): asserts kind is T {
+export function assertKind<T extends Kind>(kind: unknown, check: (kind: unknown) => kind is T, msg?: string): asserts kind is T {
     if (check(kind)) {
         // this is the expected case
     } else {
-        throw new Error(`'${kind}' has another kind`);
+        throw new Error(msg ?? `'${kind}' has another kind`);
     }
 }

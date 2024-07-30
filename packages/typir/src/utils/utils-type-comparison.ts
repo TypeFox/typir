@@ -275,14 +275,14 @@ export function compareNameTypesMap(sourceFields: Map<string, Type|undefined>, t
         }
     }
     // fields are missing in source
-    for (const entry of targetCopy.entries()) {
-        if (entry[1] === undefined) {
+    for (const [index, actual] of targetCopy.entries()) {
+        if (actual === undefined) {
             // this is OK
         } else {
             conflicts.push({
                 expected: undefined,
-                actual: entry[1],
-                index: entry[0],
+                actual,
+                index,
                 subProblems: []
             });
         }
@@ -296,7 +296,7 @@ export class MapListConverter {
     toList<T>(values: Map<string, T>): T[] {
         this.names = [];
         return Array.from(values)
-            .map(e => ({ fieldName: e[0], fieldType: e[1] }))
+            .map(([fieldName, fieldType]) => ({ fieldName, fieldType }))
             .sort((e1, e2) => e1.fieldName.localeCompare(e2.fieldName))
             .map(e => {
                 this.names.push(e.fieldName);

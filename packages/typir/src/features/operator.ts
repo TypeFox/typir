@@ -62,6 +62,7 @@ export interface GenericOperatorDetails<T> {
     inferenceRule?: InferOperatorWithSingleOperand<T> | InferOperatorWithMultipleOperands<T>;
 }
 
+// TODO rename it to "OperatorFactory", when there are no more responsibilities!
 export interface OperatorManager {
     createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): Types
     createBinaryOperator<T>(typeDetails: BinaryOperatorDetails<T>): Types
