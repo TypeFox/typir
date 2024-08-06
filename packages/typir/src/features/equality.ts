@@ -20,7 +20,8 @@ export function isTypeEqualityProblem(problem: unknown): problem is TypeEquality
 }
 
 export interface TypeEquality {
-    areTypesEqual(type1: Type, type2: Type): true | TypeEqualityProblem;
+    areTypesEqual(type1: Type, type2: Type): boolean;
+    getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined;
 }
 
 export class DefaultTypeEquality implements TypeEquality {
@@ -30,7 +31,11 @@ export class DefaultTypeEquality implements TypeEquality {
         this.typir = typir;
     }
 
-    areTypesEqual(type1: Type, type2: Type): true | TypeEqualityProblem {
+    areTypesEqual(type1: Type, type2: Type): boolean {
+        return this.getTypeEqualityProblem(type1, type2) === undefined;
+    }
+
+    getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined {
         const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
         const linkData = cache.getRelationship(type1, type2, EQUAL_TYPE, false);
         const linkRelationship = linkData.relationship;
@@ -41,12 +46,15 @@ export class DefaultTypeEquality implements TypeEquality {
 
         // skip recursive checking
         if (linkRelationship === 'PENDING') {
-            return true; // is 'true' the correct result here? 'true' will be stored in the type graph ...
+            /** 'undefined' should be correct here ...
+             * - since this relationship will be checked earlier/higher/upper in the call stack again
+             * - since this values is not cached and therefore NOT reused in the earlier call! */
+            return undefined;
         }
 
         // the result is already known
         if (linkRelationship === 'LINK_EXISTS') {
-            return true;
+            return undefined;
         }
         if (linkRelationship === 'NO_LINK') {
             return {
@@ -65,7 +73,7 @@ export class DefaultTypeEquality implements TypeEquality {
             const result = this.calculateEquality(type1, type2);
 
             // this allows to cache results (and to re-set the PENDING state)
-            if (result === true) {
+            if (result === undefined) {
                 save('LINK_EXISTS', undefined);
             } else {
                 save('NO_LINK', result);
@@ -75,12 +83,12 @@ export class DefaultTypeEquality implements TypeEquality {
         assertUnreachable(linkRelationship);
     }
 
-    protected calculateEquality(type1: Type, type2: Type): true | TypeEqualityProblem {
+    protected calculateEquality(type1: Type, type2: Type): TypeEqualityProblem | undefined {
         if (type1 === type2) {
-            return true;
+            return undefined;
         }
         if (type1.name === type2.name) { // this works, since names are unique!
-            return true;
+            return undefined;
         }
 
         const kindComparisonResult = checkValueForConflict(type1.kind.$name, type2.kind.$name, 'kind');
@@ -93,7 +101,7 @@ export class DefaultTypeEquality implements TypeEquality {
             };
         } else {
             // check the types: delegated to the kind
-            const kindResult = type1.kind.areTypesEqual(type1, type2);
+            const kindResult = type1.kind.analyzeTypeEqualityProblems(type1, type2);
             if (kindResult.length >= 1) {
                 return {
                     type1,
@@ -101,7 +109,7 @@ export class DefaultTypeEquality implements TypeEquality {
                     subProblems: kindResult
                 };
             } else {
-                return true;
+                return undefined;
             }
         }
     }

@@ -129,15 +129,15 @@ export class MultiplicityKind implements Kind {
         return leftBound >= rightBound;
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
+    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
         if (isMultiplicityKind(type1.kind) && isMultiplicityKind(type2.kind)) {
             const conflicts: TypirProblem[] = [];
             // check the multiplicities
             conflicts.push(...checkValueForConflict(this.getLowerBound(type1), this.getLowerBound(type2), 'lower bound'));
             conflicts.push(...checkValueForConflict(this.getUpperBound(type1), this.getUpperBound(type2), 'upper bound'));
             // check the constrained type
-            const constrainedTypeConflict = this.typir.equality.areTypesEqual(type1.kind.getConstrainedType(type1), type2.kind.getConstrainedType(type2));
-            if (constrainedTypeConflict !== true) {
+            const constrainedTypeConflict = this.typir.equality.getTypeEqualityProblem(type1.kind.getConstrainedType(type1), type2.kind.getConstrainedType(type2));
+            if (constrainedTypeConflict !== undefined) {
                 conflicts.push(constrainedTypeConflict);
             }
             return conflicts;

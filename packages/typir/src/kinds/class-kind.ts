@@ -274,7 +274,7 @@ export class ClassKind implements Kind {
                         const subFieldType = subFields.get(superFieldName)!;
                         const checkStrategy = createTypeCheckStrategy(this.options.subtypeFieldChecking, this.typir);
                         const subTypeComparison = checkStrategy(subFieldType, superFieldType);
-                        if (subTypeComparison !== true) {
+                        if (subTypeComparison !== undefined) {
                             conflicts.push({
                                 expected: superType,
                                 actual: subType,
@@ -319,12 +319,12 @@ export class ClassKind implements Kind {
         }];
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
+    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
         if (isClassKind(type1.kind) && isClassKind(type2.kind)) {
             if (this.options.typing === 'Structural') {
                 // for structural typing:
                 return checkNameTypesMap(type1.kind.getFields(type1, true), type2.kind.getFields(type2, true),
-                    (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));
+                    (t1, t2) => this.typir.equality.getTypeEqualityProblem(t1, t2));
             } else if (this.options.typing === 'Nominal') {
                 // for nominal typing:
                 return checkValueForConflict(type1.name, type2.name, 'name');

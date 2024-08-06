@@ -63,7 +63,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
             const expectedType = isType(expected) ? expected : this.typir.inference.inferType(expected);
             if (isType(actualType) && isType(expectedType)) {
                 const comparisonResult = createTypeCheckStrategy(strategy, this.typir)(actualType, expectedType);
-                if (comparisonResult !== true) {
+                if (comparisonResult !== undefined) {
                     if (negated) {
                         // everything is fine
                     } else {
