@@ -49,7 +49,10 @@ export class DefaultSubType implements SubType {
 
         // skip recursive checking
         if (linkRelationship === 'PENDING') {
-            return undefined; // is 'undefined' the correct result here? TODO was passiert hier? 'true' will be stored in the type graph ...
+            /** 'undefined' should be correct here ...
+             * - since this relationship will be checked earlier/higher/upper in the call stack again
+             * - since this values is not cached and therefore NOT reused in the earlier call! */
+            return undefined;
         }
 
         // the result is already known

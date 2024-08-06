@@ -100,8 +100,8 @@ describe('Tests for Typir', () => {
         expect(typir.assignability.isAssignable(typeListInt, typeListInt)).toBe(true);
         // classes
         expect(typir.assignability.isAssignable(typeStudent, typePerson)).toBe(true);
-        const assignConflicts = typir.assignability.isAssignable(typePerson, typeStudent);
-        expect(assignConflicts).not.toBe(true);
+        const assignConflicts = typir.assignability.getAssignabilityProblem(typePerson, typeStudent);
+        expect(assignConflicts).not.toBe(undefined);
         const msg = typir.printer.printAssignabilityProblem(assignConflicts as AssignabilityProblem);
         console.log(msg);
     });
