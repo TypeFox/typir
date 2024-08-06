@@ -40,6 +40,39 @@ describe('Explicitly test type checking for OX', () => {
         await validate('var myResult: boolean; myResult = 2 < 3;', 0);
     });
 
+    // TODO add new test cases to LOX as well
+    test('binary operators', async () => {
+        await validate('var myResult: number = 2 + 3;', 0);
+        await validate('var myResult: number = 2 - 3;', 0);
+        await validate('var myResult: number = 2 * 3;', 0);
+        await validate('var myResult: number = 2 / 3;', 0);
+
+        await validate('var myResult: boolean = 2 < 3;', 0);
+        await validate('var myResult: boolean = 2 <= 3;', 0);
+        await validate('var myResult: boolean = 2 > 3;', 0);
+        await validate('var myResult: boolean = 2 >= 3;', 0);
+
+        await validate('var myResult: boolean = true and false;', 0);
+        await validate('var myResult: boolean = true or false;', 0);
+
+        await validate('var myResult: boolean = 2 == 3;', 0);
+        await validate('var myResult: boolean = 2 != 3;', 0);
+        await validate('var myResult: boolean = true == false;', 0);
+        await validate('var myResult: boolean = true != false;', 0);
+    });
+
+    test('unary operator: !', async () => {
+        await validate('var myResult: boolean = !true;', 0);
+        await validate('var myResult: boolean = !!true;', 0);
+        await validate('var myResult: boolean = !!!true;', 0);
+    });
+
+    test('unary operator: -', async () => {
+        await validate('var myResult: number = -2;', 0);
+        await validate('var myResult: number = --2;', 0);
+        await validate('var myResult: number = ---2;', 0);
+    });
+
     test('boolean in conditions', async () => {
         await validate('if ( true ) {}', 0);
         await validate('if ( 3 ) {}', 1);

@@ -2,14 +2,11 @@
     "projectName": "Lox",
     "languages": [{
         "id": "lox",
-        "grammar": "src/lox.langium",
+        "grammar": "src/language/lox.langium",
         "fileExtensions": [".lox"],
         "textMate": {
             "out": "syntaxes/lox.tmLanguage.json"
-        },
-        "monarch": {
-            "out": "syntaxes/lox.monarch.ts"
         }
     }],
-    "out": "src/generated"
+    "out": "src/language/generated"
 }

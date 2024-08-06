@@ -12,6 +12,10 @@ false; // Not *not* false.
 // "";    // The empty string.
 // "123"; // This is a string, not a number.
 
+// variables
+var n: number = 12;
+var b: boolean = true;
+
 // Expressions
 // Arithmetics
 var add: number = 23 + 41;

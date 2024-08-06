@@ -28,7 +28,6 @@ export interface ProblemPrinter {
     printTypirProblems(problems: TypirProblem[]): string;
 
     printType(type: Type): string;
-    printType(type: Type, sentenceBegin: boolean): string;
 }
 
 export class DefaultTypeConflictPrinter implements ProblemPrinter {
@@ -65,11 +64,11 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
             result = result + `For property '${problem.index}', `;
         }
         if (left !== undefined && right !== undefined) {
-            result = result + `${this.printType(left)} and ${this.printType(right)} do not match.`;
+            result = result + `the types '${this.printType(left)}' and '${this.printType(right)}' do not match.`;
         } else if (left !== undefined && right === undefined) {
-            result = result + `${this.printType(left)} on the left has no opposite type on the right to match with.`;
+            result = result + `the type '${this.printType(left)}' on the left has no opposite type on the right to match with.`;
         } else if (left === undefined && right !== undefined) {
-            result = result + `there is no type on the left to match with ${this.printType(right)} on the right.`;
+            result = result + `there is no type on the left to match with the type '${this.printType(right)}' on the right.`;
         } else {
             throw new Error();
         }
@@ -79,21 +78,21 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     }
 
     printAssignabilityProblem(problem: AssignabilityProblem, level: number = 0): string {
-        let result = `${this.printType(problem.source, true)} is not assignable to ${this.printType(problem.target)}.`;
+        let result = `The type '${this.printType(problem.source)}' is not assignable to the type '${this.printType(problem.target)}'.`;
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
     }
 
     printSubTypeProblem(problem: SubTypeProblem, level: number = 0): string {
-        let result = `${this.printType(problem.superType, true)} is no super-type of ${this.printType(problem.subType)}.`;
+        let result = `The type '${this.printType(problem.superType)}' is no super-type of '${this.printType(problem.subType)}'.`;
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
     }
 
     printTypeEqualityProblem(problem: TypeEqualityProblem, level: number = 0): string {
-        let result = `${this.printType(problem.type1, true)} and ${this.printType(problem.type2)} are not equal.`;
+        let result = `The types '${this.printType(problem.type1)}' and '${this.printType(problem.type2)}' are not equal.`;
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
@@ -102,7 +101,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     printInferenceProblem(problem: InferenceProblem, level: number = 0): string {
         let result = `While inferring the type for ${this.printDomainElement(problem.domainElement)}, at ${problem.location}`;
         if (problem.inferenceCandidate) {
-            result = result + ` of ${this.printType(problem.inferenceCandidate)} as candidate to infer`;
+            result = result + ` of the type '${this.printType(problem.inferenceCandidate)}' as candidate to infer`;
         }
         result = result + ', some problems occurred.';
         // Since Rules have no name (yet), it is not possible to print problem.rule here.
@@ -146,8 +145,8 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         return `${sentenceBegin ? 'T' : 't'}he domain element '${domainElement}'`;
     }
 
-    printType(type: Type, sentenceBegin: boolean = false): string {
-        return `${sentenceBegin ? 'T' : 't'}he type '${type.getUserRepresentation()}'`;
+    printType(type: Type): string {
+        return type.getUserRepresentation();
     }
 
     protected printSubProblems(result: string, subProblems: undefined | TypirProblem[], level: number = 0): string {

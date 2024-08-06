@@ -19,7 +19,7 @@ export async function extractDocument(fileName: string, services: LangiumCoreSer
     }
 
     if (!fs.existsSync(fileName)) {
-        console.error(chalk.red(`File '${fileName}' does not exist.`));
+        console.error(chalk.red(`File ${fileName} does not exist.`));
         process.exit(1);
     }
 

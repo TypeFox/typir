@@ -7,7 +7,7 @@
 import { assertUnreachable } from 'langium';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem, compareValueForConflict } from '../utils/utils-type-comparison.js';
+import { TypirProblem, checkValueForConflict } from '../utils/utils-type-comparison.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
 export interface TypeEqualityProblem {
@@ -83,7 +83,7 @@ export class DefaultTypeEquality implements TypeEquality {
             return true;
         }
 
-        const kindComparisonResult = compareValueForConflict(type1.kind.$name, type2.kind.$name, 'kind');
+        const kindComparisonResult = checkValueForConflict(type1.kind.$name, type2.kind.$name, 'kind');
         if (kindComparisonResult.length >= 1) {
             // equal types must have the same kind
             return {
@@ -92,7 +92,7 @@ export class DefaultTypeEquality implements TypeEquality {
                 subProblems: kindComparisonResult
             };
         } else {
-            // compare the types: delegated to the kind
+            // check the types: delegated to the kind
             const kindResult = type1.kind.areTypesEqual(type1, type2);
             if (kindResult.length >= 1) {
                 return {

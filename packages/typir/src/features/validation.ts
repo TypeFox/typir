@@ -6,13 +6,14 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonStrategy, TypirProblem, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
+import { TypeCheckStrategy, TypirProblem, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 
+export type Severity = 'error' | 'warning' | 'info' | 'hint';
 export interface ValidationProblem {
     domainElement: unknown;
     domainProperty?: string; // name of a property of the domain element; TODO make this type-safe!
     domainIndex?: number; // index, if this property is an Array property
-    severity: 'error' | 'warning' | 'info' | 'hint';
+    severity: Severity;
     message: string;
     subProblems?: TypirProblem[];
 }
@@ -23,10 +24,14 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
 export type ValidationRule = (domainElement: unknown, typir: Typir) => ValidationProblem[];
 
 export interface ValidationConstraints {
-    ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown, message: string, domainProperty?: string): ValidationProblem[];
-    ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown, message: string, domainProperty?: string): ValidationProblem[];
+    ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
+        message: string, domainProperty?: string|undefined, severity?: Severity|undefined): ValidationProblem[];
+    ensureNodeIsEquals(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
+        message: string, domainProperty?: string|undefined, severity?: Severity): ValidationProblem[];
+    ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown,
+        message: string, domainProperty?: string|undefined, severity?: Severity): ValidationProblem[];
 
-    ensureNodeComparedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeComparisonStrategy, negated: boolean, message: string, domainProperty?: string): ValidationProblem[];
+    ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean, message: string, domainProperty?: string|undefined): ValidationProblem[];
 }
 
 export class DefaultValidationConstraints implements ValidationConstraints {
@@ -36,20 +41,28 @@ export class DefaultValidationConstraints implements ValidationConstraints {
         this.typir = typir;
     }
 
-    ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown, message: string, domainProperty?: string): ValidationProblem[] {
-        return this.ensureNodeComparedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, message, domainProperty);
+    ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
+        message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
+        return this.ensureNodeRelatedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, message, domainProperty, severity);
     }
 
-    ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown, message: string, domainProperty?: string): ValidationProblem[] {
-        return this.ensureNodeComparedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, message, domainProperty);
+    ensureNodeIsEquals(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
+        message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
+        return this.ensureNodeRelatedWithType(sourceNode, expected, 'EQUAL_TYPE', false, message, domainProperty, severity);
     }
 
-    ensureNodeComparedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeComparisonStrategy, negated: boolean, message: string, domainProperty?: string): ValidationProblem[] {
+    ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown,
+        message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
+        return this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, message, domainProperty, severity);
+    }
+
+    ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean,
+        message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
         if (domainNode !== undefined && expected !== undefined) {
             const actualType = isType(domainNode) ? domainNode : this.typir.inference.inferType(domainNode);
             const expectedType = isType(expected) ? expected : this.typir.inference.inferType(expected);
             if (isType(actualType) && isType(expectedType)) {
-                const comparisonResult = createTypeComparisonStrategy(strategy, this.typir)(actualType, expectedType);
+                const comparisonResult = createTypeCheckStrategy(strategy, this.typir)(actualType, expectedType);
                 if (comparisonResult !== true) {
                     if (negated) {
                         // everything is fine
@@ -57,7 +70,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                         return [{
                             domainElement: domainNode,
                             domainProperty,
-                            severity: 'error',
+                            severity,
                             message,
                             subProblems: [comparisonResult]
                         }];
@@ -67,7 +80,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                         return [{
                             domainElement: domainNode,
                             domainProperty,
-                            severity: 'error',
+                            severity,
                             message,
                             subProblems: [] // no sub-problems are available!
                         }];

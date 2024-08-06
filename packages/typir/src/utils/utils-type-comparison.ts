@@ -10,16 +10,16 @@ import { TypeEqualityProblem } from '../features/equality.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { NameTypePair } from '../utils/utils.js';
+import { NameTypePair, assertTrue } from '../utils/utils.js';
 import { InferenceProblem } from '../features/inference.js';
 import { ValidationProblem } from '../features/validation.js';
 
-export type TypeComparisonStrategy =
+export type TypeCheckStrategy =
     'EQUAL_TYPE' | // the most strict checking
     'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
     'SUB_TYPE'; // more relaxed checking
 
-export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, typir: Typir): (t1: Type, t2: Type) => true | TypirProblem {
+export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: Typir): (t1: Type, t2: Type) => true | TypirProblem {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
             return typir.assignability.isAssignable
@@ -27,11 +27,10 @@ export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, t
         case 'EQUAL_TYPE':
             return typir.equality.areTypesEqual
                 .bind(typir.equality);
-        case 'SUB_TYPE':
-            return typir.subtype.isSubType
-                .bind(typir.subtype);
             // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
             // see https://stackoverflow.com/questions/20279484/how-to-access-the-correct-this-inside-a-callback
+        case 'SUB_TYPE':
+            return (t1, t2) => typir.subtype.getSubTypeProblem(t1, t2) ?? true;
         default:
             assertUnreachable(strategy);
     }
@@ -49,10 +48,10 @@ export function isValueConflict(problem: unknown): problem is ValueConflict {
     return typeof problem === 'object' && problem !== null
         && ((typeof (problem as ValueConflict).firstValue === 'string') || (typeof (problem as ValueConflict).secondValue === 'string'));
 }
-export function compareValueForConflict<T>(first: T, second: T, location: string,
-    comparator: (e: T, a: T) => boolean = (e, a) => e === a): ValueConflict[] {
+export function checkValueForConflict<T>(first: T, second: T, location: string,
+    relationToCheck: (e: T, a: T) => boolean = (e, a) => e === a): ValueConflict[] {
     const conflicts: ValueConflict[] = [];
-    if (comparator(first, second) === false) {
+    if (relationToCheck(first, second) === false) {
         conflicts.push({
             firstValue: `${first}`,
             secondValue: `${second}`,
@@ -73,11 +72,11 @@ export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeC
     return typeof problem === 'object' && problem !== null && ['string', 'number'].includes(typeof (problem as IndexedTypeConflict).index);
 }
 
-export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[], compareNames: boolean, comparatorTypes: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], checkNames: boolean, relationToCheck: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
-    // compare first common indices
+    // check first common indices
     for (let i = 0; i < left.length; i++) {
-        const subProblems = compareNameTypePair(left[i], right[i], compareNames, comparatorTypes);
+        const subProblems = checkNameTypePair(left[i], right[i], checkNames, relationToCheck);
         if (subProblems.length >= 1) {
             conflicts.push({
                 expected: left[i].type,
@@ -110,18 +109,18 @@ export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[]
     return conflicts;
 }
 
-export function compareNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, compareNames: boolean, comparatorTypes: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, checkNames: boolean, relationToCheck: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     if ((left === undefined) && (right === undefined)) {
         // everything is fine
     } else if ((left !== undefined) && (right !== undefined)) {
         const subProblems: TypirProblem[] = [];
-        if (compareNames) {
-            subProblems.push(...compareValueForConflict(left.name, right.name, 'name'));
+        if (checkNames) {
+            subProblems.push(...checkValueForConflict(left.name, right.name, 'name'));
         }
-        const typeComparison = comparatorTypes(left.type, right.type);
-        if (typeComparison !== true) {
-            subProblems.push(typeComparison);
+        const relationCheckResult = relationToCheck(left.type, right.type);
+        if (relationCheckResult !== true) {
+            subProblems.push(relationCheckResult);
         }
         if (subProblems.length >= 1) {
             conflicts.push({
@@ -153,9 +152,9 @@ export function compareNameTypePair(left: NameTypePair | undefined, right: NameT
     return conflicts;
 }
 
-export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, comparator: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, relationToCheck: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
-    // compare first common indices
+    // check first common indices
     for (let i = 0; i < Math.min(leftTypes.length, rightTypes.length); i++) {
         const left = leftTypes[i];
         const right = rightTypes[i];
@@ -178,14 +177,14 @@ export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Arr
                 subProblems: []
             });
         } else if (left !== undefined && right !== undefined) {
-            // compare both existing types with each other
-            const subProblem = comparator(left!, right!);
-            if (subProblem !== true) {
+            // check both existing types with each other
+            const relationCheckResult = relationToCheck(left!, right!);
+            if (relationCheckResult !== true) {
                 conflicts.push({
                     expected: left,
                     actual: right,
                     index: i,
-                    subProblems: [subProblem]
+                    subProblems: [relationCheckResult]
                 });
             } else {
                 // everything is fine
@@ -215,7 +214,7 @@ export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Arr
     return conflicts;
 }
 
-export function compareNameTypesMap(sourceFields: Map<string, Type>, targetFields: Map<string, Type>, comparator: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, relationToCheck: (s: Type, t: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const targetCopy = new Map(targetFields);
     const conflicts: IndexedTypeConflict[] = [];
     for (const entry of sourceFields.entries()) {
@@ -223,38 +222,93 @@ export function compareNameTypesMap(sourceFields: Map<string, Type>, targetField
         const name = entry[0];
         if (targetCopy.has(name)) {
             // field exists in both maps
-            const targetType = targetCopy.get(name)!;
+            const targetType = targetCopy.get(name);
             targetCopy.delete(name);
-            const comparisonResult = comparator(sourceType, targetType);
-            if (comparisonResult !== true) {
-                // different types
+            if (sourceType === undefined && targetType === undefined) {
+                // both types don't exist, this is OK
+            } else if (sourceType === undefined && targetType !== undefined) {
+                // only the target type exists
                 conflicts.push({
-                    expected: sourceType,
+                    expected: undefined,
                     actual: targetType,
                     index: name,
-                    subProblems: [comparisonResult]
+                    subProblems: []
                 });
+            } else if (sourceType !== undefined && targetType === undefined) {
+                // only the source type exists
+                conflicts.push({
+                    expected: sourceType,
+                    actual: undefined,
+                    index: name,
+                    subProblems: []
+                });
+            } else if (sourceType !== undefined && targetType !== undefined) {
+                // both types exist => check them
+                const relationCheckResult = relationToCheck(sourceType, targetType);
+                if (relationCheckResult !== true) {
+                    // different types
+                    conflicts.push({
+                        expected: sourceType,
+                        actual: targetType,
+                        index: name,
+                        subProblems: [relationCheckResult]
+                    });
+                } else {
+                    // same type
+                }
             } else {
-                // same type
+                throw new Error('impossible case');
             }
         } else {
             // field is missing in target
+            if (sourceType === undefined) {
+                // this is OK
+            } else {
+                conflicts.push({
+                    expected: sourceType,
+                    actual: undefined,
+                    index: name,
+                    subProblems: []
+                });
+            }
+        }
+    }
+    // fields are missing in source
+    for (const [index, actual] of targetCopy.entries()) {
+        if (actual === undefined) {
+            // this is OK
+        } else {
             conflicts.push({
-                expected: sourceType,
-                actual: undefined,
-                index: name,
+                expected: undefined,
+                actual,
+                index,
                 subProblems: []
             });
         }
     }
-    // fields are missing in source
-    for (const entry of targetCopy.entries()) {
-        conflicts.push({
-            expected: undefined,
-            actual: entry[1],
-            index: entry[0],
-            subProblems: []
-        });
-    }
     return conflicts;
+}
+
+export class MapListConverter {
+    protected names: string[] = [];
+
+    toList<T>(values: Map<string, T>): T[] {
+        this.names = [];
+        return Array.from(values)
+            .map(([fieldName, fieldType]) => ({ fieldName, fieldType }))
+            .sort((e1, e2) => e1.fieldName.localeCompare(e2.fieldName))
+            .map(e => {
+                this.names.push(e.fieldName);
+                return e.fieldType;
+            });
+    }
+
+    toMap<T>(values: T[]): Map<string, T> {
+        const result = new Map<string, T>();
+        assertTrue(values.length === this.names.length);
+        for (let i = 0; i < values.length; i++) {
+            result.set(this.names[i], values[i]);
+        }
+        return result;
+    }
 }

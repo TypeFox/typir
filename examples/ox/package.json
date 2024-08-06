@@ -1,7 +1,7 @@
 {
     "name": "ox",
-    "version": "0.0.1",
     "displayName": "Ox",
+    "version": "0.0.1",
     "description": "Please enter a brief description here",
     "author": {
         "name": "TypeFox",
@@ -17,20 +17,16 @@
         "npm": "9.6.7"
     },
     "scripts": {
-        "clean": "shx rm -rf lib out coverage",
         "build": "tsc -b tsconfig.json && node esbuild.mjs",
-        "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\"",
-        "build:clean": "npm run clean && npm run build",
-        "test": "vitest",
-        "test-ui": "vitest --ui",
-        "coverage": "vitest run --coverage",
-        "lint": "eslint src --ext ts",
+        "clean": "shx rm -rf lib out coverage node_modules",
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
-        "vscode:prepublish": "npm run build && npm run lint"
+        "lint": "eslint src --ext ts",
+        "test": "vitest",
+        "vscode:prepublish": "npm run build && npm run lint",
+        "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\""
     },
     "dependencies": {
-        "chalk": "~5.3.0",
         "commander": "~11.0.0",
         "langium": "~3.0.0",
         "vscode-languageclient": "~9.0.1",
@@ -75,6 +71,6 @@
     ],
     "main": "./out/extension/main.cjs",
     "bin": {
-        "ox-cli": "./bin/cli.js"
+        "ox-cli": "./out/cli/main.js"
     }
 }

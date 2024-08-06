@@ -108,13 +108,21 @@ export interface DomainElementInferenceCaching {
     pendingGet(domainElement: unknown): boolean;
 }
 
+export type CachePending = 'CACHE_PENDING';
+export const CachePending = 'CACHE_PENDING';
+
 export class DefaultDomainElementInferenceCaching implements DomainElementInferenceCaching {
     protected readonly typir: Typir;
-    /** 'undefined' marks the 'pending' case */
-    protected cache: Map<unknown, Type | undefined> = new Map(); // TODO reset cache for updated Langium documents!
+    protected cache: Map<unknown, Type | CachePending>;
 
     constructor(typir: Typir) {
         this.typir = typir;
+        this.initializeCache();
+    }
+
+    protected initializeCache() {
+        // TODO reset cache for updated Langium documents!
+        this.cache = new Map();
     }
 
     cacheSet(domainElement: unknown, type: Type): void {
@@ -126,16 +134,16 @@ export class DefaultDomainElementInferenceCaching implements DomainElementInfere
         if (this.pendingGet(domainElement)) {
             return undefined;
         } else {
-            return this.cache.get(domainElement);
+            return this.cache.get(domainElement) as (Type | undefined);
         }
     }
 
     pendingSet(domainElement: unknown): void {
-        this.cache.set(domainElement, undefined);
+        this.cache.set(domainElement, CachePending);
     }
 
     pendingClear(domainElement: unknown): void {
-        if (this.cache.get(domainElement) !== undefined) {
+        if (this.cache.get(domainElement) !== CachePending) {
             // do nothing
         } else {
             this.cache.delete(domainElement);
@@ -143,6 +151,6 @@ export class DefaultDomainElementInferenceCaching implements DomainElementInfere
     }
 
     pendingGet(domainElement: unknown): boolean {
-        return this.cache.has(domainElement) && this.cache.get(domainElement) === undefined;
+        return this.cache.has(domainElement) && this.cache.get(domainElement) === CachePending;
     }
 }

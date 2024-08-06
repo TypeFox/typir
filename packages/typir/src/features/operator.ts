@@ -7,7 +7,7 @@
 import { Type } from '../graph/type-node.js';
 import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName, isFunctionKind } from '../kinds/function-kind.js';
 import { Typir } from '../typir.js';
-import { NameTypePair, Names, Types, assertTrue, toArray } from '../utils/utils.js';
+import { NameTypePair, Types, toArray } from '../utils/utils.js';
 
 // export type InferOperatorWithSingleOperand = (domainElement: unknown, operatorName: string) => boolean | unknown;
 export type InferOperatorWithSingleOperand<T = unknown> = {
@@ -22,35 +22,54 @@ export type InferOperatorWithMultipleOperands<T = unknown> = {
     operands: (domainElement: T, operatorName: string) => unknown[];
 };
 
-export interface OperatorManager {
-    createUnaryOperator<T>(typeDetails: {
-        name: Names,
-        operandType: Types,
-        inferenceRule?: InferOperatorWithSingleOperand<T>
-    }): Types
-    createBinaryOperator<T>(typeDetails: {
-        name: Names,
-        inputType: Types,
-        /** If the output type is not specified, the input type is used for the output as well. */
-        outputType?: Type,
-        inferenceRule?: InferOperatorWithMultipleOperands<T>
-    }): Types
-    createTernaryOperator<T>(typeDetails: {
-        name: Names,
-        firstType: Type,
-        secondAndThirdType: Types,
-        inferenceRule?: InferOperatorWithMultipleOperands<T>
-    }): Types
+export interface UnaryOperatorDetails<T> {
+    name: string;
+    signature: UnaryOperatorSignature | UnaryOperatorSignature[];
+    inferenceRule?: InferOperatorWithSingleOperand<T>;
+}
+export interface UnaryOperatorSignature {
+    operand: Type;
+    return: Type;
+}
 
-    /** This function allows to create operators with arbitrary input operands,
-     * e.g. un/bin/ternary operators with asymetric operand types.
-     */
-    createGenericOperator(typeDetails: {
-        name: string,
-        outputType: Type,
-        inferenceRule?: InferOperatorWithMultipleOperands,
-        inputParameter: NameTypePair[]
-    }): Type;
+export interface BinaryOperatorDetails<T> {
+    name: string;
+    signature: BinaryOperatorSignature | BinaryOperatorSignature[];
+    inferenceRule?: InferOperatorWithMultipleOperands<T>;
+}
+export interface BinaryOperatorSignature {
+    left: Type;
+    right: Type;
+    return: Type;
+}
+
+export interface TernaryOperatorDetails<T> {
+    name: string;
+    signature: TernaryOperatorSignature | TernaryOperatorSignature[];
+    inferenceRule?: InferOperatorWithMultipleOperands<T>;
+}
+export interface TernaryOperatorSignature {
+    first: Type;
+    second: Type;
+    third: Type;
+    return: Type;
+}
+
+export interface GenericOperatorDetails<T> {
+    name: string;
+    outputType: Type;
+    inputParameter: NameTypePair[];
+    inferenceRule?: InferOperatorWithSingleOperand<T> | InferOperatorWithMultipleOperands<T>;
+}
+
+// TODO rename it to "OperatorFactory", when there are no more responsibilities!
+export interface OperatorManager {
+    createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): Types
+    createBinaryOperator<T>(typeDetails: BinaryOperatorDetails<T>): Types
+    createTernaryOperator<T>(typeDetails: TernaryOperatorDetails<T>): Types
+
+    /** This function allows to create a single operator with arbitrary input operands. */
+    createGenericOperator<T>(typeDetails: GenericOperatorDetails<T>): Type;
 }
 
 /**
@@ -78,56 +97,58 @@ export class DefaultOperatorManager implements OperatorManager {
         this.typir = typir;
     }
 
-    createUnaryOperator<T>(typeDetails: { name: Names, operandType: Types, inferenceRule?: InferOperatorWithSingleOperand<T> }): Types {
-        return this.handleOperatorVariants(typeDetails.name, typeDetails.operandType, (singleName, singleType) => this.createGenericOperator({
-            name: singleName,
-            outputType: singleType,
-            inferenceRule: typeDetails.inferenceRule,
-            inputParameter: [
-                { name: 'operand', type: singleType }
-            ]
-        }));
-    }
-
-    createBinaryOperator<T>(typeDetails: { name: Names, inputType: Types, outputType?: Type, inferenceRule?: InferOperatorWithMultipleOperands<T> }): Types {
-        return this.handleOperatorVariants(typeDetails.name, typeDetails.inputType, (singleName, singleType) => this.createGenericOperator({
-            name: singleName,
-            outputType: typeDetails.outputType ?? singleType,
-            inferenceRule: typeDetails.inferenceRule,
-            inputParameter: [
-                { name: 'left', type: singleType},
-                { name: 'right', type: singleType}
-            ]
-        }));
-    }
-
-    createTernaryOperator<T>(typeDetails: { name: Names, firstType: Type, secondAndThirdType: Types, inferenceRule?: InferOperatorWithMultipleOperands<T> }): Types {
-        return this.handleOperatorVariants(typeDetails.name, typeDetails.secondAndThirdType, (singleName, singleType) => this.createGenericOperator({
-            name: singleName,
-            outputType: singleType,
-            inferenceRule: typeDetails.inferenceRule,
-            inputParameter: [
-                { name: 'first', type: typeDetails.firstType},
-                { name: 'second', type: singleType},
-                { name: 'third', type: singleType}
-            ]
-        }));
-    }
-
-    protected handleOperatorVariants(nameVariants: Names, inputTypeVariants: Types, operatorTypeCreator: (singleName: string, singleInputType: Type) => Type): Types {
-        const allNames = toArray(nameVariants);
-        const allTypes = toArray(inputTypeVariants);
-        assertTrue(allTypes.length >= 1);
+    createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): Types {
+        const signatures = toArray(typeDetails.signature);
         const result: Type[] = [];
-        for (const singleName of allNames) {
-            for (const singleType of allTypes) {
-                result.push(operatorTypeCreator(singleName, singleType));
-            }
+        for (const signature of signatures) {
+            result.push(this.createGenericOperator({
+                name: typeDetails.name,
+                outputType: signature.return,
+                inferenceRule: typeDetails.inferenceRule, // TODO zu oft ??
+                inputParameter: [
+                    { name: 'operand', type: signature.operand },
+                ]
+            }));
         }
         return result.length === 1 ? result[0] : result;
     }
 
-    createGenericOperator<T>(typeDetails: { name: string, outputType: Type, inferenceRule?: (InferOperatorWithSingleOperand<T> | InferOperatorWithMultipleOperands<T>), inputParameter: NameTypePair[] }): Type {
+    createBinaryOperator<T>(typeDetails: BinaryOperatorDetails<T>): Types {
+        const signatures = toArray(typeDetails.signature);
+        const result: Type[] = [];
+        for (const signature of signatures) {
+            result.push(this.createGenericOperator({
+                name: typeDetails.name,
+                outputType: signature.return,
+                inferenceRule: typeDetails.inferenceRule, // TODO zu oft ??
+                inputParameter: [
+                    { name: 'left', type: signature.left},
+                    { name: 'right', type: signature.right}
+                ]
+            }));
+        }
+        return result.length === 1 ? result[0] : result;
+    }
+
+    createTernaryOperator<T>(typeDetails: TernaryOperatorDetails<T>): Types {
+        const signatures = toArray(typeDetails.signature);
+        const result: Type[] = [];
+        for (const signature of signatures) {
+            result.push(this.createGenericOperator({
+                name: typeDetails.name,
+                outputType: signature.return,
+                inferenceRule: typeDetails.inferenceRule, // TODO zu oft ??
+                inputParameter: [
+                    { name: 'first', type: signature.first },
+                    { name: 'second', type: signature.second },
+                    { name: 'third', type: signature.third },
+                ]
+            }));
+        }
+        return result.length === 1 ? result[0] : result;
+    }
+
+    createGenericOperator<T>(typeDetails: GenericOperatorDetails<T>): Type {
         // define/register the wanted operator as "special" function
 
         // ensure, that Typir uses the predefined 'function' kind
@@ -144,9 +165,9 @@ export class DefaultOperatorManager implements OperatorManager {
                 ? {
                     filter: (domainElement: unknown): domainElement is T => typeDetails.inferenceRule!.filter(domainElement, typeDetails.name),
                     matching: (domainElement: T) => typeDetails.inferenceRule!.matching(domainElement, typeDetails.name),
-                    inputArguments: (domainElement: T) =>
-                        (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(domainElement, typeDetails.name)
-                        ?? (typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(domainElement, typeDetails.name),
+                    inputArguments: (domainElement: T) => 'operands' in typeDetails.inferenceRule!
+                        ? (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(domainElement, typeDetails.name)
+                        : [(typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(domainElement, typeDetails.name)],
                 }
                 : undefined
         });
