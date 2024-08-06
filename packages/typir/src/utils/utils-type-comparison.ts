@@ -19,18 +19,19 @@ export type TypeCheckStrategy =
     'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
     'SUB_TYPE'; // more relaxed checking
 
-export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: Typir): (t1: Type, t2: Type) => true | TypirProblem {
+export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: Typir): (t1: Type, t2: Type) => TypirProblem | undefined {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
-            return typir.assignability.isAssignable
+            return typir.assignability.getAssignabilityProblem // t1 === source, t2 === target
                 .bind(typir.assignability);
         case 'EQUAL_TYPE':
-            return typir.equality.areTypesEqual
+            return typir.equality.getTypeEqualityProblem // (unordered, order does not matter)
+                .bind(typir.equality);
+        case 'SUB_TYPE':
+            return typir.subtype.getSubTypeProblem // t1 === sub, t2 === super
                 .bind(typir.equality);
             // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
             // see https://stackoverflow.com/questions/20279484/how-to-access-the-correct-this-inside-a-callback
-        case 'SUB_TYPE':
-            return (t1, t2) => typir.subtype.getSubTypeProblem(t1, t2) ?? true;
         default:
             assertUnreachable(strategy);
     }
@@ -72,7 +73,7 @@ export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeC
     return typeof problem === 'object' && problem !== null && ['string', 'number'].includes(typeof (problem as IndexedTypeConflict).index);
 }
 
-export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], checkNames: boolean, relationToCheck: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], checkNames: boolean, relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
     for (let i = 0; i < left.length; i++) {
@@ -109,7 +110,7 @@ export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], 
     return conflicts;
 }
 
-export function checkNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, checkNames: boolean, relationToCheck: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, checkNames: boolean, relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     if ((left === undefined) && (right === undefined)) {
         // everything is fine
@@ -119,7 +120,7 @@ export function checkNameTypePair(left: NameTypePair | undefined, right: NameTyp
             subProblems.push(...checkValueForConflict(left.name, right.name, 'name'));
         }
         const relationCheckResult = relationToCheck(left.type, right.type);
-        if (relationCheckResult !== true) {
+        if (relationCheckResult !== undefined) {
             subProblems.push(relationCheckResult);
         }
         if (subProblems.length >= 1) {
@@ -152,7 +153,7 @@ export function checkNameTypePair(left: NameTypePair | undefined, right: NameTyp
     return conflicts;
 }
 
-export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, relationToCheck: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
     for (let i = 0; i < Math.min(leftTypes.length, rightTypes.length); i++) {
@@ -179,7 +180,7 @@ export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array
         } else if (left !== undefined && right !== undefined) {
             // check both existing types with each other
             const relationCheckResult = relationToCheck(left!, right!);
-            if (relationCheckResult !== true) {
+            if (relationCheckResult !== undefined) {
                 conflicts.push({
                     expected: left,
                     actual: right,
@@ -214,7 +215,7 @@ export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array
     return conflicts;
 }
 
-export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, relationToCheck: (s: Type, t: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, relationToCheck: (s: Type, t: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
     const targetCopy = new Map(targetFields);
     const conflicts: IndexedTypeConflict[] = [];
     for (const entry of sourceFields.entries()) {
@@ -245,7 +246,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
             } else if (sourceType !== undefined && targetType !== undefined) {
                 // both types exist => check them
                 const relationCheckResult = relationToCheck(sourceType, targetType);
-                if (relationCheckResult !== true) {
+                if (relationCheckResult !== undefined) {
                     // different types
                     conflicts.push({
                         expected: sourceType,

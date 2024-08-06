@@ -21,9 +21,8 @@ export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
 }
 
 export interface SubType {
-    // TODO switch order of sub and super!!
-    isSubType(superType: Type, subType: Type): boolean;
-    getSubTypeProblem(superType: Type, subType: Type): SubTypeProblem | undefined;
+    isSubType(subType: Type, superType: Type): boolean;
+    getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined;
 }
 
 export class DefaultSubType implements SubType {
@@ -33,11 +32,11 @@ export class DefaultSubType implements SubType {
         this.typir = typir;
     }
 
-    isSubType(superType: Type, subType: Type): boolean {
-        return this.getSubTypeProblem(superType, subType) === undefined;
+    isSubType(subType: Type, superType: Type): boolean {
+        return this.getSubTypeProblem(subType, superType) === undefined;
     }
 
-    getSubTypeProblem(superType: Type, subType: Type): SubTypeProblem | undefined {
+    getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined {
         const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
 
         const linkData = cache.getRelationship(subType, superType, SUB_TYPE, true);
@@ -49,7 +48,10 @@ export class DefaultSubType implements SubType {
 
         // skip recursive checking
         if (linkRelationship === 'PENDING') {
-            return undefined; // is 'undefined' the correct result here? TODO was passiert hier? 'true' will be stored in the type graph ...
+            /** 'undefined' should be correct here ...
+             * - since this relationship will be checked earlier/higher/upper in the call stack again
+             * - since this values is not cached and therefore NOT reused in the earlier call! */
+            return undefined;
         }
 
         // the result is already known
@@ -86,7 +88,7 @@ export class DefaultSubType implements SubType {
     protected calculateSubType(superType: Type, subType: Type): SubTypeProblem | undefined {
         // check the types: delegated to the kinds
         // 1st delegate to the kind of the sub type
-        const resultSub = subType.kind.analyzeSubTypeProblems(superType, subType);
+        const resultSub = subType.kind.analyzeSubTypeProblems(subType, superType);
         if (resultSub.length <= 0) {
             return undefined;
         }
@@ -99,7 +101,7 @@ export class DefaultSubType implements SubType {
             };
         }
         // 2nd delegate to the kind of the super type
-        const resultSuper = superType.kind.analyzeSubTypeProblems(superType, subType);
+        const resultSuper = superType.kind.analyzeSubTypeProblems(subType, superType);
         if (resultSuper.length <= 0) {
             return undefined;
         }

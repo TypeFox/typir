@@ -54,9 +54,9 @@ export class PrimitiveKind implements Kind {
         return type.name;
     }
 
-    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
         if (isPrimitiveKind(superType.kind) && isPrimitiveKind(subType.kind)) {
-            return this.areTypesEqual(superType, subType);
+            return this.analyzeTypeEqualityProblems(superType, subType);
         }
         return [<SubTypeProblem>{
             superType,
@@ -65,7 +65,7 @@ export class PrimitiveKind implements Kind {
         }];
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
+    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
         if (isPrimitiveKind(type1.kind) && isPrimitiveKind(type2.kind)) {
             return checkValueForConflict(type1.name, type2.name, 'name');
         }

@@ -70,7 +70,7 @@ export class TopKind implements Kind {
         return type.name;
     }
 
-    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
         if (isTopKind(superType.kind)) {
             return [];
         }
@@ -88,7 +88,7 @@ export class TopKind implements Kind {
         }];
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
+    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
         if (isTopKind(type1.kind) && isTopKind(type2.kind)) {
             return [];
         }

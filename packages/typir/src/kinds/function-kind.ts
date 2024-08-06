@@ -151,8 +151,8 @@ export class FunctionKind implements Kind {
                                             const expectedType = expectedParameterTypes[i];
                                             const inferredType = inferredParameterTypes[i];
                                             if (isType(inferredType)) {
-                                                const parameterComparison = typir.assignability.isAssignable(inferredType, expectedType.type);
-                                                if (parameterComparison !== true) {
+                                                const parameterComparison = typir.assignability.getAssignabilityProblem(inferredType, expectedType.type);
+                                                if (parameterComparison !== undefined) {
                                                     // the value is not assignable to the type of the input parameter
                                                     currentProblems.push({
                                                         domainElement: inputArguments[i],
@@ -342,7 +342,7 @@ export class FunctionKind implements Kind {
                     const inputTypes = typeDetails.inputParameters.map(p => p.type);
                     // all operands need to be assignable(! not equal) to the required types
                     const comparisonConflicts = checkTypes(childrenTypes, inputTypes,
-                        (t1, t2) => typir.assignability.isAssignable(t1, t2));
+                        (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2));
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
                         return {
@@ -444,15 +444,15 @@ export class FunctionKind implements Kind {
         return name !== undefined && name !== FUNCTION_MISSING_NAME;
     }
 
-    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
         if (isFunctionKind(superType.kind) && isFunctionKind(subType.kind)) {
             const conflicts: TypirProblem[] = [];
             // output: target parameter must be assignable to source parameter
             conflicts.push(...checkNameTypePair(superType.kind.getOutput(superType), subType.kind.getOutput(subType),
-                this.options.enforceOutputParameterName, (s, t) => this.typir.assignability.isAssignable(t, s)));
+                this.options.enforceOutputParameterName, (s, t) => this.typir.assignability.getAssignabilityProblem(t, s)));
             // input: source parameters must be assignable to target parameters
             conflicts.push(...checkNameTypePairs(superType.kind.getInputs(superType), subType.kind.getInputs(subType),
-                this.options.enforceInputParameterNames, (s, t) => this.typir.assignability.isAssignable(s, t)));
+                this.options.enforceInputParameterNames, (s, t) => this.typir.assignability.getAssignabilityProblem(s, t)));
             return conflicts;
         }
         return [<SubTypeProblem>{
@@ -462,7 +462,7 @@ export class FunctionKind implements Kind {
         }];
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
+    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
         if (isFunctionKind(type1.kind) && isFunctionKind(type2.kind)) {
             const conflicts: TypirProblem[] = [];
             // same name? TODO is this correct??
@@ -471,10 +471,10 @@ export class FunctionKind implements Kind {
             }
             // same output?
             conflicts.push(...checkNameTypePair(type1.kind.getOutput(type1), type2.kind.getOutput(type2),
-                this.options.enforceOutputParameterName, (s, t) => this.typir.equality.areTypesEqual(s, t)));
+                this.options.enforceOutputParameterName, (s, t) => this.typir.equality.getTypeEqualityProblem(s, t)));
             // same input?
             conflicts.push(...checkNameTypePairs(type2.kind.getInputs(type1), type2.kind.getInputs(type2),
-                this.options.enforceInputParameterNames, (s, t) => this.typir.equality.areTypesEqual(s, t)));
+                this.options.enforceInputParameterNames, (s, t) => this.typir.equality.getTypeEqualityProblem(s, t)));
             return conflicts;
         }
         throw new Error();

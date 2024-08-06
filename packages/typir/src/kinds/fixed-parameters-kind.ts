@@ -73,12 +73,12 @@ export class FixedParameterKind implements Kind {
         return `${baseName}<${parameterTypes.map(p => this.typir.printer.printType(p)).join(', ')}>`;
     }
 
-    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
         // same name, e.g. both need to be Map, Set, Array, ...
         if (isFixedParametersKind(superType.kind) && isFixedParametersKind(subType.kind) && superType.kind.baseName === subType.kind.baseName) {
             // all parameter types must match
             const checkStrategy = createTypeCheckStrategy(this.options.subtypeParameterChecking, this.typir);
-            return checkTypes(superType.kind.getParameterTypes(superType), subType.kind.getParameterTypes(subType), checkStrategy);
+            return checkTypes(subType.kind.getParameterTypes(subType), superType.kind.getParameterTypes(superType), checkStrategy);
         }
         return [<SubTypeProblem>{
             superType,
@@ -87,10 +87,10 @@ export class FixedParameterKind implements Kind {
         }];
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
+    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
         if (isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind) && type1.kind.baseName === type2.kind.baseName) {
             const conflicts: TypirProblem[] = [];
-            conflicts.push(...checkTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2)));
+            conflicts.push(...checkTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.typir.equality.getTypeEqualityProblem(t1, t2)));
             return conflicts;
         }
         throw new Error();

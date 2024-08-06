@@ -18,7 +18,9 @@ export function isAssignabilityProblem(problem: unknown): problem is Assignabili
 }
 
 export interface TypeAssignability {
-    isAssignable(source: Type, target: Type): true | AssignabilityProblem; // target := source;
+    // target := source;
+    isAssignable(source: Type, target: Type): boolean;
+    getAssignabilityProblem(source: Type, target: Type): AssignabilityProblem | undefined;
 }
 
 export class DefaultTypeAssignability implements TypeAssignability {
@@ -28,16 +30,20 @@ export class DefaultTypeAssignability implements TypeAssignability {
         this.typir = typir;
     }
 
-    isAssignable(source: Type, target: Type): true | AssignabilityProblem {
+    isAssignable(source: Type, target: Type): boolean {
+        return this.getAssignabilityProblem(source, target) === undefined;
+    }
+
+    getAssignabilityProblem(source: Type, target: Type): AssignabilityProblem | undefined {
         // conversion possible?
         if (this.typir.conversion.isConvertibleTo(source, target, 'IMPLICIT')) {
-            return true;
+            return undefined;
         }
 
         // allow the types kind to determine about sub-type relationships
-        const subTypeResult = this.typir.subtype.getSubTypeProblem(target, source);
+        const subTypeResult = this.typir.subtype.getSubTypeProblem(source, target);
         if (subTypeResult === undefined) {
-            return true;
+            return undefined;
         } else {
             return {
                 source,

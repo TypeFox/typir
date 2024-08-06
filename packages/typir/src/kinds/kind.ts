@@ -18,9 +18,9 @@ export interface Kind {
 
     /** If the kinds of super type and sub type are different, this function will be called for both kinds in order to check,
      * whether at least one kinds reports a sub-type-relationship. */
-    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[];
-    // TODO make it consistent with isSubType ??
-    areTypesEqual(type1: Type, type2: Type): TypirProblem[];
+    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[];
+
+    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[];
 }
 
 export function isKind(kind: unknown): kind is Kind {

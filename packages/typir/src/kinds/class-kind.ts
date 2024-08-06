@@ -207,8 +207,8 @@ export class ClassKind implements Kind {
                 const allExpectedFields = classKind.getFields(classType, true);
                 // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
                 const checkedFieldsProblems = checkNameTypesMap(
-                    allExpectedFields,
                     mapListConverter.toMap(childrenTypes),
+                    allExpectedFields,
                     createTypeCheckStrategy(classKind.options.subtypeFieldChecking, typir)
                 );
                 if (checkedFieldsProblems.length >= 1) {
@@ -262,7 +262,7 @@ export class ClassKind implements Kind {
         return `${type.name} { ${fields.join(', ')} }${extendedClasses}`;
     }
 
-    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
         if (isClassKind(superType.kind) && isClassKind(subType.kind)) {
             if (this.options.typing === 'Structural') {
                 // for structural typing, the sub type needs to have all fields of the super type with assignable types (including fields of all super classes):
@@ -274,7 +274,7 @@ export class ClassKind implements Kind {
                         const subFieldType = subFields.get(superFieldName)!;
                         const checkStrategy = createTypeCheckStrategy(this.options.subtypeFieldChecking, this.typir);
                         const subTypeComparison = checkStrategy(subFieldType, superFieldType);
-                        if (subTypeComparison !== true) {
+                        if (subTypeComparison !== undefined) {
                             conflicts.push({
                                 expected: superType,
                                 actual: subType,
@@ -319,12 +319,12 @@ export class ClassKind implements Kind {
         }];
     }
 
-    areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
+    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
         if (isClassKind(type1.kind) && isClassKind(type2.kind)) {
             if (this.options.typing === 'Structural') {
                 // for structural typing:
                 return checkNameTypesMap(type1.kind.getFields(type1, true), type2.kind.getFields(type2, true),
-                    (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));
+                    (t1, t2) => this.typir.equality.getTypeEqualityProblem(t1, t2));
             } else if (this.options.typing === 'Nominal') {
                 // for nominal typing:
                 return checkValueForConflict(type1.name, type2.name, 'name');
