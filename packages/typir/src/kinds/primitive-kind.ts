@@ -54,7 +54,7 @@ export class PrimitiveKind implements Kind {
         return type.name;
     }
 
-    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
         if (isPrimitiveKind(superType.kind) && isPrimitiveKind(subType.kind)) {
             return this.analyzeTypeEqualityProblems(superType, subType);
         }

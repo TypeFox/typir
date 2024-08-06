@@ -41,7 +41,7 @@ export class DefaultTypeAssignability implements TypeAssignability {
         }
 
         // allow the types kind to determine about sub-type relationships
-        const subTypeResult = this.typir.subtype.getSubTypeProblem(target, source);
+        const subTypeResult = this.typir.subtype.getSubTypeProblem(source, target);
         if (subTypeResult === undefined) {
             return undefined;
         } else {

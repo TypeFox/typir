@@ -22,13 +22,13 @@ export type TypeCheckStrategy =
 export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: Typir): (t1: Type, t2: Type) => TypirProblem | undefined {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
-            return typir.assignability.getAssignabilityProblem
+            return typir.assignability.getAssignabilityProblem // t1 === source, t2 === target
                 .bind(typir.assignability);
         case 'EQUAL_TYPE':
-            return typir.equality.getTypeEqualityProblem
+            return typir.equality.getTypeEqualityProblem // (unordered, order does not matter)
                 .bind(typir.equality);
         case 'SUB_TYPE':
-            return typir.subtype.getSubTypeProblem
+            return typir.subtype.getSubTypeProblem // t1 === sub, t2 === super
                 .bind(typir.equality);
             // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
             // see https://stackoverflow.com/questions/20279484/how-to-access-the-correct-this-inside-a-callback
