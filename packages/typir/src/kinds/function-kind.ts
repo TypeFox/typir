@@ -10,7 +10,7 @@ import { DefaultValidationCollector, ValidationCollector, ValidationProblem } fr
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem, compareNameTypePair, compareNameTypePairs, compareTypes, compareValueForConflict } from '../utils/utils-type-comparison.js';
+import { TypirProblem, checkNameTypePair, checkNameTypePairs, checkTypes, checkValueForConflict } from '../utils/utils-type-comparison.js';
 import { assertKind, NameTypePair } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
@@ -136,7 +136,7 @@ export class FunctionKind implements Kind {
                                     // check, that the given number of parameters is the same as the expected number of input parameters
                                     const currentProblems: ValidationProblem[] = [];
                                     // TODO use existing helper functions for that? that are no "ValidationProblem"s, but IndexedTypeConflicts, AssignabilityProblems?
-                                    const parameterLength = compareValueForConflict(expectedParameterTypes.length, inputArguments.length, 'number of input parameter values');
+                                    const parameterLength = checkValueForConflict(expectedParameterTypes.length, inputArguments.length, 'number of input parameter values');
                                     if (parameterLength.length >= 1) {
                                         currentProblems.push({
                                             domainElement,
@@ -341,7 +341,7 @@ export class FunctionKind implements Kind {
                 inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
                     const inputTypes = typeDetails.inputParameters.map(p => p.type);
                     // all operands need to be assignable(! not equal) to the required types
-                    const comparisonConflicts = compareTypes(childrenTypes, inputTypes,
+                    const comparisonConflicts = checkTypes(childrenTypes, inputTypes,
                         (t1, t2) => typir.assignability.isAssignable(t1, t2));
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
@@ -448,17 +448,17 @@ export class FunctionKind implements Kind {
         if (isFunctionKind(superType.kind) && isFunctionKind(subType.kind)) {
             const conflicts: TypirProblem[] = [];
             // output: target parameter must be assignable to source parameter
-            conflicts.push(...compareNameTypePair(superType.kind.getOutput(superType), subType.kind.getOutput(subType),
+            conflicts.push(...checkNameTypePair(superType.kind.getOutput(superType), subType.kind.getOutput(subType),
                 this.options.enforceOutputParameterName, (s, t) => this.typir.assignability.isAssignable(t, s)));
             // input: source parameters must be assignable to target parameters
-            conflicts.push(...compareNameTypePairs(superType.kind.getInputs(superType), subType.kind.getInputs(subType),
+            conflicts.push(...checkNameTypePairs(superType.kind.getInputs(superType), subType.kind.getInputs(subType),
                 this.options.enforceInputParameterNames, (s, t) => this.typir.assignability.isAssignable(s, t)));
             return conflicts;
         }
         return [<SubTypeProblem>{
             superType,
             subType,
-            subProblems: compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
+            subProblems: checkValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
         }];
     }
 
@@ -467,13 +467,13 @@ export class FunctionKind implements Kind {
             const conflicts: TypirProblem[] = [];
             // same name? TODO is this correct??
             if (this.options.enforceFunctionName) {
-                conflicts.push(...compareValueForConflict(type1.kind.getSimpleFunctionName(type1), type2.kind.getSimpleFunctionName(type2), 'simple name'));
+                conflicts.push(...checkValueForConflict(type1.kind.getSimpleFunctionName(type1), type2.kind.getSimpleFunctionName(type2), 'simple name'));
             }
             // same output?
-            conflicts.push(...compareNameTypePair(type1.kind.getOutput(type1), type2.kind.getOutput(type2),
+            conflicts.push(...checkNameTypePair(type1.kind.getOutput(type1), type2.kind.getOutput(type2),
                 this.options.enforceOutputParameterName, (s, t) => this.typir.equality.areTypesEqual(s, t)));
             // same input?
-            conflicts.push(...compareNameTypePairs(type2.kind.getInputs(type1), type2.kind.getInputs(type2),
+            conflicts.push(...checkNameTypePairs(type2.kind.getInputs(type1), type2.kind.getInputs(type2),
                 this.options.enforceInputParameterNames, (s, t) => this.typir.equality.areTypesEqual(s, t)));
             return conflicts;
         }

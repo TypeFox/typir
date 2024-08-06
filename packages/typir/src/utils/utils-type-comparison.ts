@@ -14,12 +14,12 @@ import { NameTypePair, assertTrue } from '../utils/utils.js';
 import { InferenceProblem } from '../features/inference.js';
 import { ValidationProblem } from '../features/validation.js';
 
-export type TypeComparisonStrategy =
+export type TypeCheckStrategy =
     'EQUAL_TYPE' | // the most strict checking
     'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
     'SUB_TYPE'; // more relaxed checking
 
-export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, typir: Typir): (t1: Type, t2: Type) => true | TypirProblem {
+export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: Typir): (t1: Type, t2: Type) => true | TypirProblem {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
             return typir.assignability.isAssignable
@@ -48,10 +48,10 @@ export function isValueConflict(problem: unknown): problem is ValueConflict {
     return typeof problem === 'object' && problem !== null
         && ((typeof (problem as ValueConflict).firstValue === 'string') || (typeof (problem as ValueConflict).secondValue === 'string'));
 }
-export function compareValueForConflict<T>(first: T, second: T, location: string,
-    comparator: (e: T, a: T) => boolean = (e, a) => e === a): ValueConflict[] {
+export function checkValueForConflict<T>(first: T, second: T, location: string,
+    relationToCheck: (e: T, a: T) => boolean = (e, a) => e === a): ValueConflict[] {
     const conflicts: ValueConflict[] = [];
-    if (comparator(first, second) === false) {
+    if (relationToCheck(first, second) === false) {
         conflicts.push({
             firstValue: `${first}`,
             secondValue: `${second}`,
@@ -72,11 +72,11 @@ export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeC
     return typeof problem === 'object' && problem !== null && ['string', 'number'].includes(typeof (problem as IndexedTypeConflict).index);
 }
 
-export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[], compareNames: boolean, comparatorTypes: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], checkNames: boolean, relationToCheck: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
-    // compare first common indices
+    // check first common indices
     for (let i = 0; i < left.length; i++) {
-        const subProblems = compareNameTypePair(left[i], right[i], compareNames, comparatorTypes);
+        const subProblems = checkNameTypePair(left[i], right[i], checkNames, relationToCheck);
         if (subProblems.length >= 1) {
             conflicts.push({
                 expected: left[i].type,
@@ -109,18 +109,18 @@ export function compareNameTypePairs(left: NameTypePair[], right: NameTypePair[]
     return conflicts;
 }
 
-export function compareNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, compareNames: boolean, comparatorTypes: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, checkNames: boolean, relationToCheck: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     if ((left === undefined) && (right === undefined)) {
         // everything is fine
     } else if ((left !== undefined) && (right !== undefined)) {
         const subProblems: TypirProblem[] = [];
-        if (compareNames) {
-            subProblems.push(...compareValueForConflict(left.name, right.name, 'name'));
+        if (checkNames) {
+            subProblems.push(...checkValueForConflict(left.name, right.name, 'name'));
         }
-        const typeComparison = comparatorTypes(left.type, right.type);
-        if (typeComparison !== true) {
-            subProblems.push(typeComparison);
+        const relationCheckResult = relationToCheck(left.type, right.type);
+        if (relationCheckResult !== true) {
+            subProblems.push(relationCheckResult);
         }
         if (subProblems.length >= 1) {
             conflicts.push({
@@ -152,9 +152,9 @@ export function compareNameTypePair(left: NameTypePair | undefined, right: NameT
     return conflicts;
 }
 
-export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, comparator: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, relationToCheck: (l: Type, r: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
-    // compare first common indices
+    // check first common indices
     for (let i = 0; i < Math.min(leftTypes.length, rightTypes.length); i++) {
         const left = leftTypes[i];
         const right = rightTypes[i];
@@ -177,14 +177,14 @@ export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Arr
                 subProblems: []
             });
         } else if (left !== undefined && right !== undefined) {
-            // compare both existing types with each other
-            const subProblem = comparator(left!, right!);
-            if (subProblem !== true) {
+            // check both existing types with each other
+            const relationCheckResult = relationToCheck(left!, right!);
+            if (relationCheckResult !== true) {
                 conflicts.push({
                     expected: left,
                     actual: right,
                     index: i,
-                    subProblems: [subProblem]
+                    subProblems: [relationCheckResult]
                 });
             } else {
                 // everything is fine
@@ -214,7 +214,7 @@ export function compareTypes(leftTypes: Array<Type | undefined>, rightTypes: Arr
     return conflicts;
 }
 
-export function compareNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, comparator: (s: Type, t: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
+export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, relationToCheck: (s: Type, t: Type) => (true | TypirProblem)): IndexedTypeConflict[] {
     const targetCopy = new Map(targetFields);
     const conflicts: IndexedTypeConflict[] = [];
     for (const entry of sourceFields.entries()) {
@@ -243,15 +243,15 @@ export function compareNameTypesMap(sourceFields: Map<string, Type|undefined>, t
                     subProblems: []
                 });
             } else if (sourceType !== undefined && targetType !== undefined) {
-                // both types exist => compare them
-                const comparisonResult = comparator(sourceType, targetType);
-                if (comparisonResult !== true) {
+                // both types exist => check them
+                const relationCheckResult = relationToCheck(sourceType, targetType);
+                if (relationCheckResult !== true) {
                     // different types
                     conflicts.push({
                         expected: sourceType,
                         actual: targetType,
                         index: name,
-                        subProblems: [comparisonResult]
+                        subProblems: [relationCheckResult]
                     });
                 } else {
                     // same type

@@ -6,7 +6,7 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonStrategy, TypirProblem, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
+import { TypeCheckStrategy, TypirProblem, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 export interface ValidationProblem {
@@ -31,7 +31,7 @@ export interface ValidationConstraints {
     ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown,
         message: string, domainProperty?: string|undefined, severity?: Severity): ValidationProblem[];
 
-    ensureNodeComparedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeComparisonStrategy, negated: boolean, message: string, domainProperty?: string|undefined): ValidationProblem[];
+    ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean, message: string, domainProperty?: string|undefined): ValidationProblem[];
 }
 
 export class DefaultValidationConstraints implements ValidationConstraints {
@@ -43,26 +43,26 @@ export class DefaultValidationConstraints implements ValidationConstraints {
 
     ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
         message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
-        return this.ensureNodeComparedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, message, domainProperty, severity);
+        return this.ensureNodeRelatedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, message, domainProperty, severity);
     }
 
     ensureNodeIsEquals(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
         message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
-        return this.ensureNodeComparedWithType(sourceNode, expected, 'EQUAL_TYPE', false, message, domainProperty, severity);
+        return this.ensureNodeRelatedWithType(sourceNode, expected, 'EQUAL_TYPE', false, message, domainProperty, severity);
     }
 
     ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown,
         message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
-        return this.ensureNodeComparedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, message, domainProperty, severity);
+        return this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, message, domainProperty, severity);
     }
 
-    ensureNodeComparedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeComparisonStrategy, negated: boolean,
+    ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean,
         message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
         if (domainNode !== undefined && expected !== undefined) {
             const actualType = isType(domainNode) ? domainNode : this.typir.inference.inferType(domainNode);
             const expectedType = isType(expected) ? expected : this.typir.inference.inferType(expected);
             if (isType(actualType) && isType(expectedType)) {
-                const comparisonResult = createTypeComparisonStrategy(strategy, this.typir)(actualType, expectedType);
+                const comparisonResult = createTypeCheckStrategy(strategy, this.typir)(actualType, expectedType);
                 if (comparisonResult !== true) {
                     if (negated) {
                         // everything is fine

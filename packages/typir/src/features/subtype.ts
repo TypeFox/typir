@@ -84,7 +84,7 @@ export class DefaultSubType implements SubType {
     }
 
     protected calculateSubType(superType: Type, subType: Type): SubTypeProblem | undefined {
-        // compare the types: delegated to the kinds
+        // check the types: delegated to the kinds
         // 1st delegate to the kind of the sub type
         const resultSub = subType.kind.analyzeSubTypeProblems(superType, subType);
         if (resultSub.length <= 0) {

@@ -10,7 +10,7 @@ import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { IndexedTypeConflict, MapListConverter, TypeComparisonStrategy, TypirProblem, checkNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
+import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, TypirProblem, checkNameTypesMap, checkValueForConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { NameTypePair, assertKind, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
@@ -18,7 +18,7 @@ export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
     /** Values < 0 indicate an arbitrary number of super classes. */
     maximumNumberOfSuperClasses: number,
-    subtypeFieldChecking: TypeComparisonStrategy,
+    subtypeFieldChecking: TypeCheckStrategy,
     /** Will be used only internally as prefix for the unique identifiers for class type names. */
     identifierPrefix: string,
 }
@@ -206,19 +206,19 @@ export class ClassKind implements Kind {
             inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
                 const allExpectedFields = classKind.getFields(classType, true);
                 // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-                const comparedFieldsProblems = compareNameTypesMap(
+                const checkedFieldsProblems = checkNameTypesMap(
                     allExpectedFields,
                     mapListConverter.toMap(childrenTypes),
-                    createTypeComparisonStrategy(classKind.options.subtypeFieldChecking, typir)
+                    createTypeCheckStrategy(classKind.options.subtypeFieldChecking, typir)
                 );
-                if (comparedFieldsProblems.length >= 1) {
+                if (checkedFieldsProblems.length >= 1) {
                     // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
                     return <InferenceProblem>{
                         domainElement,
                         inferenceCandidate: classType,
                         location: 'values for fields',
                         rule: this,
-                        subProblems: comparedFieldsProblems,
+                        subProblems: checkedFieldsProblems,
                     };
                 } else {
                     // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
@@ -272,8 +272,8 @@ export class ClassKind implements Kind {
                     if (subFields.has(superFieldName)) {
                         // field is both in super and sub
                         const subFieldType = subFields.get(superFieldName)!;
-                        const compareStrategy = createTypeComparisonStrategy(this.options.subtypeFieldChecking, this.typir);
-                        const subTypeComparison = compareStrategy(subFieldType, superFieldType);
+                        const checkStrategy = createTypeCheckStrategy(this.options.subtypeFieldChecking, this.typir);
+                        const subTypeComparison = checkStrategy(subFieldType, superFieldType);
                         if (subTypeComparison !== true) {
                             conflicts.push({
                                 expected: superType,
@@ -301,7 +301,7 @@ export class ClassKind implements Kind {
                 const allSub = this.getAllSuperClasses(subType, true);
                 const globalResult: TypirProblem[] = [];
                 for (const oneSub of allSub) {
-                    const localResult = compareValueForConflict(superType.name, oneSub.name, 'name');
+                    const localResult = checkValueForConflict(superType.name, oneSub.name, 'name');
                     if (localResult.length <= 0) {
                         return []; // class is found in the class hierarchy
                     }
@@ -315,7 +315,7 @@ export class ClassKind implements Kind {
         return [<SubTypeProblem>{
             superType,
             subType,
-            subProblems: compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
+            subProblems: checkValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
         }];
     }
 
@@ -323,11 +323,11 @@ export class ClassKind implements Kind {
         if (isClassKind(type1.kind) && isClassKind(type2.kind)) {
             if (this.options.typing === 'Structural') {
                 // for structural typing:
-                return compareNameTypesMap(type1.kind.getFields(type1, true), type2.kind.getFields(type2, true),
+                return checkNameTypesMap(type1.kind.getFields(type1, true), type2.kind.getFields(type2, true),
                     (t1, t2) => this.typir.equality.areTypesEqual(t1, t2));
             } else if (this.options.typing === 'Nominal') {
                 // for nominal typing:
-                return compareValueForConflict(type1.name, type2.name, 'name');
+                return checkValueForConflict(type1.name, type2.name, 'name');
             } else {
                 assertUnreachable(this.options.typing);
             }

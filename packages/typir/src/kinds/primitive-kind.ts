@@ -8,7 +8,7 @@ import { InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem, compareValueForConflict, compareValueForConflict as compareValuesForConflict } from '../utils/utils-type-comparison.js';
+import { TypirProblem, checkValueForConflict } from '../utils/utils-type-comparison.js';
 import { assertKind, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
@@ -61,13 +61,13 @@ export class PrimitiveKind implements Kind {
         return [<SubTypeProblem>{
             superType,
             subType,
-            subProblems: compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
+            subProblems: checkValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
         }];
     }
 
     areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
         if (isPrimitiveKind(type1.kind) && isPrimitiveKind(type2.kind)) {
-            return compareValuesForConflict(type1.name, type2.name, 'name');
+            return checkValueForConflict(type1.name, type2.name, 'name');
         }
         throw new Error();
     }

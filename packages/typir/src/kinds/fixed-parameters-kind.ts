@@ -8,12 +8,12 @@ import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeComparisonStrategy, TypirProblem, compareTypes, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
+import { TypeCheckStrategy, TypirProblem, checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertKind, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface FixedParameterKindOptions {
-    subtypeParameterChecking: TypeComparisonStrategy,
+    subtypeParameterChecking: TypeCheckStrategy,
 }
 
 export const FixedParameterKindName = 'FixedParameterKind';
@@ -77,20 +77,20 @@ export class FixedParameterKind implements Kind {
         // same name, e.g. both need to be Map, Set, Array, ...
         if (isFixedParametersKind(superType.kind) && isFixedParametersKind(subType.kind) && superType.kind.baseName === subType.kind.baseName) {
             // all parameter types must match
-            const compareStrategy = createTypeComparisonStrategy(this.options.subtypeParameterChecking, this.typir);
-            return compareTypes(superType.kind.getParameterTypes(superType), subType.kind.getParameterTypes(subType), compareStrategy);
+            const checkStrategy = createTypeCheckStrategy(this.options.subtypeParameterChecking, this.typir);
+            return checkTypes(superType.kind.getParameterTypes(superType), subType.kind.getParameterTypes(subType), checkStrategy);
         }
         return [<SubTypeProblem>{
             superType,
             subType,
-            subProblems: compareValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
+            subProblems: checkValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
         }];
     }
 
     areTypesEqual(type1: Type, type2: Type): TypirProblem[] {
         if (isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind) && type1.kind.baseName === type2.kind.baseName) {
             const conflicts: TypirProblem[] = [];
-            conflicts.push(...compareTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2)));
+            conflicts.push(...checkTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.typir.equality.areTypesEqual(t1, t2)));
             return conflicts;
         }
         throw new Error();
