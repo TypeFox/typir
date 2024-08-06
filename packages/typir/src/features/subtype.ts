@@ -21,7 +21,9 @@ export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
 }
 
 export interface SubType {
-    isSubType(superType: Type, subType: Type): true | SubTypeProblem;
+    // TODO switch order of sub and super!!
+    isSubType(superType: Type, subType: Type): boolean;
+    getSubTypeProblem(superType: Type, subType: Type): SubTypeProblem | undefined;
 }
 
 export class DefaultSubType implements SubType {
@@ -31,7 +33,11 @@ export class DefaultSubType implements SubType {
         this.typir = typir;
     }
 
-    isSubType(superType: Type, subType: Type): true | SubTypeProblem {
+    isSubType(superType: Type, subType: Type): boolean {
+        return this.getSubTypeProblem(superType, subType) === undefined;
+    }
+
+    getSubTypeProblem(superType: Type, subType: Type): SubTypeProblem | undefined {
         const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
 
         const linkData = cache.getRelationship(subType, superType, SUB_TYPE, true);
@@ -43,12 +49,12 @@ export class DefaultSubType implements SubType {
 
         // skip recursive checking
         if (linkRelationship === 'PENDING') {
-            return true; // is 'true' the correct result here? 'true' will be stored in the type graph ...
+            return undefined; // is 'undefined' the correct result here? TODO was passiert hier? 'true' will be stored in the type graph ...
         }
 
         // the result is already known
         if (linkRelationship === 'LINK_EXISTS') {
-            return true;
+            return undefined;
         }
         if (linkRelationship === 'NO_LINK') {
             return {
@@ -67,7 +73,7 @@ export class DefaultSubType implements SubType {
             const result = this.calculateSubType(superType, subType);
 
             // this allows to cache results (and to re-set the PENDING state)
-            if (result === true) {
+            if (result === undefined) {
                 save('LINK_EXISTS', undefined);
             } else {
                 save('NO_LINK', result);
@@ -77,12 +83,12 @@ export class DefaultSubType implements SubType {
         assertUnreachable(linkRelationship);
     }
 
-    protected calculateSubType(superType: Type, subType: Type): true | SubTypeProblem {
+    protected calculateSubType(superType: Type, subType: Type): SubTypeProblem | undefined {
         // compare the types: delegated to the kinds
         // 1st delegate to the kind of the sub type
-        const resultSub = subType.kind.isSubType(superType, subType);
+        const resultSub = subType.kind.analyzeSubTypeProblems(superType, subType);
         if (resultSub.length <= 0) {
-            return true;
+            return undefined;
         }
         if (superType.kind.$name === subType.kind.$name) {
             // if sub type and super type have the same kind, there is no need to check the same kind twice
@@ -93,9 +99,9 @@ export class DefaultSubType implements SubType {
             };
         }
         // 2nd delegate to the kind of the super type
-        const resultSuper = superType.kind.isSubType(superType, subType);
+        const resultSuper = superType.kind.analyzeSubTypeProblems(superType, subType);
         if (resultSuper.length <= 0) {
-            return true;
+            return undefined;
         }
         return {
             superType,

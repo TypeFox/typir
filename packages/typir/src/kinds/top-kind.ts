@@ -70,7 +70,7 @@ export class TopKind implements Kind {
         return type.name;
     }
 
-    isSubType(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
         if (isTopKind(superType.kind)) {
             return [];
         }

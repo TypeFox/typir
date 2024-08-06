@@ -73,7 +73,7 @@ export class FixedParameterKind implements Kind {
         return `${baseName}<${parameterTypes.map(p => this.typir.printer.printType(p)).join(', ')}>`;
     }
 
-    isSubType(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
         // same name, e.g. both need to be Map, Set, Array, ...
         if (isFixedParametersKind(superType.kind) && isFixedParametersKind(subType.kind) && superType.kind.baseName === subType.kind.baseName) {
             // all parameter types must match

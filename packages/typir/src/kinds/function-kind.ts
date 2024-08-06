@@ -444,7 +444,7 @@ export class FunctionKind implements Kind {
         return name !== undefined && name !== FUNCTION_MISSING_NAME;
     }
 
-    isSubType(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
         if (isFunctionKind(superType.kind) && isFunctionKind(subType.kind)) {
             const conflicts: TypirProblem[] = [];
             // output: target parameter must be assignable to source parameter

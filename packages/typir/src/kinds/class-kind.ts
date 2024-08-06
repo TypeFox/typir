@@ -10,12 +10,12 @@ import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { IndexedTypeConflict, MapListConverter, TypeComparisonStrategy, TypirProblem, compareNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
+import { IndexedTypeConflict, MapListConverter, TypeComparisonStrategy, TypirProblem, checkNameTypesMap, compareValueForConflict, createTypeComparisonStrategy } from '../utils/utils-type-comparison.js';
 import { NameTypePair, assertKind, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface ClassKindOptions {
-    typing: 'Structural' | 'Nominal',
+    typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
     /** Values < 0 indicate an arbitrary number of super classes. */
     maximumNumberOfSuperClasses: number,
     subtypeFieldChecking: TypeComparisonStrategy,
@@ -262,7 +262,7 @@ export class ClassKind implements Kind {
         return `${type.name} { ${fields.join(', ')} }${extendedClasses}`;
     }
 
-    isSubType(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
         if (isClassKind(superType.kind) && isClassKind(subType.kind)) {
             if (this.options.typing === 'Structural') {
                 // for structural typing, the sub type needs to have all fields of the super type with assignable types (including fields of all super classes):

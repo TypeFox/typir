@@ -99,15 +99,15 @@ export class MultiplicityKind implements Kind {
         return this.printType(type.kind.getConstrainedType(type), type.kind.getLowerBound(type), type.kind.getUpperBound(type));
     }
 
-    isSubType(superType: Type, subType: Type): TypirProblem[] {
+    analyzeSubTypeProblems(superType: Type, subType: Type): TypirProblem[] {
         if (isMultiplicityKind(superType.kind) && isMultiplicityKind(subType.kind)) {
             const conflicts: TypirProblem[] = [];
             // compare the multiplicities
             conflicts.push(...compareValuesForConflict(superType.kind.getLowerBound(superType), subType.kind.getLowerBound(subType), 'lower bound', this.isBoundGreaterEquals));
             conflicts.push(...compareValuesForConflict(superType.kind.getUpperBound(superType), subType.kind.getUpperBound(subType), 'upper bound', this.isBoundGreaterEquals));
             // compare the constrained type
-            const constrainedTypeConflict = this.typir.subtype.isSubType(superType.kind.getConstrainedType(superType), subType.kind.getConstrainedType(subType));
-            if (constrainedTypeConflict !== true) {
+            const constrainedTypeConflict = this.typir.subtype.getSubTypeProblem(superType.kind.getConstrainedType(superType), subType.kind.getConstrainedType(subType));
+            if (constrainedTypeConflict !== undefined) {
                 conflicts.push(constrainedTypeConflict);
             }
             return conflicts;

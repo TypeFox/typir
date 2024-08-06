@@ -27,11 +27,10 @@ export function createTypeComparisonStrategy(strategy: TypeComparisonStrategy, t
         case 'EQUAL_TYPE':
             return typir.equality.areTypesEqual
                 .bind(typir.equality);
-        case 'SUB_TYPE':
-            return typir.subtype.isSubType
-                .bind(typir.subtype);
             // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
             // see https://stackoverflow.com/questions/20279484/how-to-access-the-correct-this-inside-a-callback
+        case 'SUB_TYPE':
+            return (t1, t2) => typir.subtype.getSubTypeProblem(t1, t2) ?? true;
         default:
             assertUnreachable(strategy);
     }
