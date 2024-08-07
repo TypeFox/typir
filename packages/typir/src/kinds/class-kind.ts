@@ -10,9 +10,10 @@ import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, TypirProblem, checkNameTypesMap, checkValueForConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
-import { NameTypePair, assertKind, assertTrue, toArray } from '../utils/utils.js';
+import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { assertKind, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
+import { NameTypePair, TypirProblem } from '../utils/utils-definitions.js';
 
 export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural

@@ -8,7 +8,8 @@ import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem, checkValueForConflict } from '../utils/utils-type-comparison.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
+import { checkValueForConflict } from '../utils/utils-type-comparison.js';
 import { assertKind } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 

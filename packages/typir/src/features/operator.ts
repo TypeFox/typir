@@ -7,7 +7,8 @@
 import { Type } from '../graph/type-node.js';
 import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName, isFunctionKind } from '../kinds/function-kind.js';
 import { Typir } from '../typir.js';
-import { NameTypePair, Types, toArray } from '../utils/utils.js';
+import { NameTypePair, Types } from '../utils/utils-definitions.js';
+import { toArray } from '../utils/utils.js';
 
 // export type InferOperatorWithSingleOperand = (domainElement: unknown, operatorName: string) => boolean | unknown;
 export type InferOperatorWithSingleOperand<T = unknown> = {

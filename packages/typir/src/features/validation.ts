@@ -6,9 +6,11 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypeCheckStrategy, TypirProblem, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
+import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
+
 export interface ValidationProblem {
     domainElement: unknown;
     domainProperty?: string; // name of a property of the domain element; TODO make this type-safe!

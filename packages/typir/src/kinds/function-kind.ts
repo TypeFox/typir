@@ -10,8 +10,9 @@ import { DefaultValidationCollector, ValidationCollector, ValidationProblem } fr
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem, checkNameTypePair, checkNameTypePairs, checkTypes, checkValueForConflict } from '../utils/utils-type-comparison.js';
-import { assertKind, NameTypePair } from '../utils/utils.js';
+import { NameTypePair, resolveTypeSelector, TypeSelector, TypirProblem } from '../utils/utils-definitions.js';
+import { checkNameTypePair, checkNameTypePairs, checkTypes, checkValueForConflict } from '../utils/utils-type-comparison.js';
+import { assertKind, assertTrue } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export interface FunctionKindOptions {

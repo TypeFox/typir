@@ -7,8 +7,8 @@
 import { assertUnreachable } from 'langium';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem } from '../utils/utils-type-comparison.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 
 export interface SubTypeProblem {
     // 'undefined' means type or information is missing, 'string' is for data which are no Types

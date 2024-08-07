@@ -7,13 +7,14 @@
 import { assertUnreachable } from 'langium';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { IndexedTypeConflict, TypirProblem, ValueConflict, isIndexedTypeConflict, isValueConflict } from '../utils/utils-type-comparison.js';
+import { IndexedTypeConflict, ValueConflict, isIndexedTypeConflict, isValueConflict } from '../utils/utils-type-comparison.js';
 import { toArray } from '../utils/utils.js';
 import { AssignabilityProblem, isAssignabilityProblem } from './assignability.js';
 import { TypeEqualityProblem, isTypeEqualityProblem } from './equality.js';
 import { InferenceProblem, isInferenceProblem } from './inference.js';
 import { SubTypeProblem, isSubTypeProblem } from './subtype.js';
 import { ValidationProblem, isValidationProblem } from './validation.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 
 export interface ProblemPrinter {
     printValueConflict(problem: ValueConflict): string;
