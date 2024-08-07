@@ -23,14 +23,21 @@ export type NameTypePair = {
     type: Type;
 }
 
+// TODO this is a WIP sketch for managing the use of Types in properties/details of other Types (e.g. Types of fields of class Types)
 export interface TypeReference<T extends Type = Type> {
     readonly ref?: T;
     readonly selector?: TypeSelector;
     readonly error?: TypirProblem;
 }
 
+// This TypeScript type defines the possible ways to identify a wanted Typir type.
 // TODO find better names
-export type TypeSelector = Type | string | unknown; // Type itself | identifier of the type (in the type graph) | node to infer the type from
+export type TypeSelector =
+    | Type      // the instance of the wanted type
+    | string    // identifier of the type (in the type graph/map)
+    | unknown   // domain node to infer the final type from
+    ;
+// TODO this is a sketch for delaying the type selection in the future
 export type DelayedTypeSelector = TypeSelector | (() => TypeSelector);
 
 export function resolveTypeSelector(typir: Typir, selector: TypeSelector): Type {

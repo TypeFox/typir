@@ -95,7 +95,16 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         }
     });
 
-    // TODO fix order, since the function types already use type inference and therefore might need the following additional inference rules
+    /** Hints regarding the order of Typir configurations for OX:
+     * - In general, Typir aims to not depend on the order of configurations.
+     *   (Beyond some obvious things, e.g. created Type instances can be used only afterwards and not before their creation.)
+     * - But at the moment, this objective is not reached in general!
+     * - As an example, since the function definition above uses type inference for their parameter types, it is necessary,
+     *   that the primitive types and their corresponding inference rules are defined earlier!
+     * - In the future, the user of Typir will not need to do a topological sorting of type definitions anymore,
+     *   since the type definition process will be split and parts will be delayed.
+     * - The following inference rules are OK, since they are not relevant for defining function types
+     */
 
     // additional inference rules ...
     typir.inference.addInferenceRule((domainElement: unknown) => {

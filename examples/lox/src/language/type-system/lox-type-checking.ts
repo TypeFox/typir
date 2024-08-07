@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NameTypePair, PrimitiveKind, TopKind, Type, Typir } from 'typir';
+import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FieldDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PrimitiveKind, TopKind, Typir } from 'typir';
 import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
@@ -47,44 +47,6 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         inferenceRules: isNilLiteral }); // TODO for what is this used?
     const typeAny = anyKind.createTopType({});
 
-    // utility function to map language types to Typir types
-    // TODO get rid of these type dispatch!
-    function mapType(typeRef: TypeReference): Type {
-        if (!typeRef) {
-            throw new Error('a type reference must be given');
-        }
-        if (typeRef.primitive) {
-            switch (typeRef.primitive) {
-                case 'number': return typeNumber;
-                case 'string': return typeString;
-                case 'boolean': return typeBool;
-                case 'void': return typeVoid;
-                default: assertUnreachable(typeRef.primitive);
-            }
-        } else if (typeRef.reference && typeRef.reference.ref) {
-            // search for an existing class
-            const classType = classKind.getClassType(typeRef.reference.ref.name);
-            if (classType) {
-                return classType;
-            } else {
-                throw new Error();
-            }
-        } else {
-            // search for an existing function
-            // TODO lambda vs function
-            const functionType = functionKind.getFunctionType({
-                functionName: 'TODO',
-                inputParameters: [], // TODO
-                outputParameter: undefined, // TODO
-            });
-            if (functionType) {
-                return functionType;
-            } else {
-                throw new Error();
-            }
-        }
-    }
-
     // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
     const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
         filter: isBinaryExpression,
@@ -110,6 +72,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
     // TODO design decision: overload with the lowest number of conversions wins!
     // TODO remove this later, it is not required for LOX!
+    // TODO is it possible to skip one of these options?? probably not ...
+    // TODO docu/guide: this vs operator combinations
     // typir.conversion.markAsConvertible(typeNumber, typeString, 'IMPLICIT'); // var my1: string = 42;
 
     // binary operators: numbers => boolean
@@ -142,8 +106,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             // define function type
             functionKind.createFunctionType({
                 functionName,
-                outputParameter: { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
-                inputParameters: node.parameters.map(p => (<NameTypePair>{ name: p.name, type: mapType(p.type) })),
+                outputParameter: { name: FUNCTION_MISSING_NAME, type: node.returnType },
+                inputParameters: node.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
                 // inference rule for function declaration:
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function declaration matches!
                 /** inference rule for funtion calls:
@@ -172,12 +136,12 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             const className = node.name;
             classKind.createClassType({
                 className,
-                superClasses: node.superClass?.ref ? classKind.getClassType(node.superClass.ref.name) : undefined, // TODO delayed
+                superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
                 fields: node.members
                     .filter(m => isFieldMember(m)).map(f => f as FieldMember) // only Fields, no Methods
-                    .map(f => <NameTypePair>{
+                    .map(f => <FieldDetails>{
                         name: f.name,
-                        type: mapType(f.type), // TODO delayed
+                        type: f.type, // note that type inference is used here; TODO delayed
                     }),
                 // inference rule for declaration
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node,
