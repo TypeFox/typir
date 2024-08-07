@@ -22,16 +22,21 @@ export interface FunctionKindOptions {
     enforceOutputParameterName: boolean,
     /** Will be used only internally as prefix for the unique identifiers for function type names. */
     identifierPrefix: string,
-    // TODO type to return, if a function has no output type
+    // TODO configure the (default) type to return, if a function has no output type (e.g. "void"), default is "undefined" of TypeScript
 }
 
 export const FunctionKindName = 'FunctionKind';
 
+export interface ParameterDetails {
+    name: string;
+    type: TypeSelector;
+}
+
 export interface FunctionTypeDetails<T> {
     functionName: string,
     /** The order of parameters is important! */
-    outputParameter: NameTypePair | undefined,
-    inputParameters: NameTypePair[],
+    outputParameter: ParameterDetails | undefined,
+    inputParameters: ParameterDetails[],
     /** for function declarations => returns the funtion type (the whole signature including all names) */
     inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
     /** for function calls => returns the return type of the function */
@@ -244,8 +249,10 @@ export class FunctionKind implements Kind {
         this.typir.graph.addNode(functionType);
 
         // output parameter
+        const outputType = typeDetails.outputParameter ? resolveTypeSelector(this.typir, typeDetails.outputParameter.type) : undefined;
         if (typeDetails.outputParameter) {
-            const edge = new TypeEdge(functionType, typeDetails.outputParameter.type, OUTPUT_PARAMETER);
+            assertTrue(outputType !== undefined);
+            const edge = new TypeEdge(functionType, outputType, OUTPUT_PARAMETER);
             this.enforceName(typeDetails.outputParameter.name, this.options.enforceOutputParameterName);
             edge.properties.set(PARAMETER_NAME, typeDetails.outputParameter.name);
             this.typir.graph.addEdge(edge);
@@ -258,7 +265,7 @@ export class FunctionKind implements Kind {
 
         // input parameters
         typeDetails.inputParameters.forEach((input, index) => {
-            const edge = new TypeEdge(functionType, input.type, INPUT_PARAMETER);
+            const edge = new TypeEdge(functionType, resolveTypeSelector(this.typir, input.type), INPUT_PARAMETER);
             this.enforceName(input.name, this.options.enforceInputParameterNames);
             edge.properties.set(PARAMETER_NAME, input.name);
             edge.properties.set(PARAMETER_ORDER, index);
@@ -281,9 +288,9 @@ export class FunctionKind implements Kind {
         }
         if (overloaded.overloadedFunctions.length <= 0) {
             // remember the output type of the first function
-            overloaded.sameOutputType = typeDetails.outputParameter?.type;
+            overloaded.sameOutputType = outputType;
         } else {
-            if (overloaded.sameOutputType && typeDetails.outputParameter?.type && this.typir.equality.areTypesEqual(overloaded.sameOutputType, typeDetails.outputParameter.type) === true) {
+            if (overloaded.sameOutputType && outputType && this.typir.equality.areTypesEqual(overloaded.sameOutputType, outputType) === true) {
                 // the output types of all overloaded functions are the same for now
             } else {
                 // there is a difference
@@ -295,7 +302,7 @@ export class FunctionKind implements Kind {
             inferenceRuleForCalls: typeDetails.inferenceRuleForCalls,
         });
 
-        if (typeDetails.inferenceRuleForCalls && typeDetails.outputParameter?.type) {
+        if (typeDetails.inferenceRuleForCalls && outputType) {
             /** Preconditions:
              * - there is a rule which specifies how to infer the current function type
              * - the current function has an output type/parameter, otherwise, this function could not provide any type, when it is called!
@@ -324,11 +331,11 @@ export class FunctionKind implements Kind {
                                     }
                                 } else {
                                     // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
-                                    return typeDetails.outputParameter!.type;
+                                    return outputType;
                                 }
                             } else {
                                 // there are no operands to check
-                                return typeDetails.outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
+                                return outputType; // this case occurs only, if the current function has an output type/parameter!
                             }
                         } else {
                             // the domain element is slightly different
@@ -340,7 +347,7 @@ export class FunctionKind implements Kind {
                     return InferenceRuleNotApplicable;
                 },
                 inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
-                    const inputTypes = typeDetails.inputParameters.map(p => p.type);
+                    const inputTypes = typeDetails.inputParameters.map(p => resolveTypeSelector(typir, p.type));
                     // all operands need to be assignable(! not equal) to the required types
                     const comparisonConflicts = checkTypes(childrenTypes, inputTypes,
                         (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2));
@@ -356,7 +363,7 @@ export class FunctionKind implements Kind {
                         // We have a dedicated validation for this case (see below), but a resulting error might be ignored by the user => return the problem during type-inference again
                     } else {
                         // matching => return the return type of the function for the case of a function call!
-                        return typeDetails.outputParameter!.type; // this case occurs only, if the current function has an output type/parameter!
+                        return outputType; // this case occurs only, if the current function has an output type/parameter!
                     }
                 },
             });
@@ -427,8 +434,8 @@ export class FunctionKind implements Kind {
         return `${prefix}-${functionName}(${inputsString}):(${outputString})`;
     }
 
-    protected printNameTypePair(pair: NameTypePair): string {
-        const typeName = this.typir.printer.printType(pair.type);
+    protected printNameTypePair(pair: ParameterDetails): string {
+        const typeName = this.typir.printer.printType(resolveTypeSelector(this.typir, pair.type));
         if (this.hasName(pair.name)) {
             return `${pair.name}:${typeName}`;
         } else {

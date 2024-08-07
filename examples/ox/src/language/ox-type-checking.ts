@@ -5,8 +5,8 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NameTypePair, PrimitiveKind, Type, Typir } from 'typir';
-import { BinaryExpression, MemberCall, TypeReference, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PrimitiveKind, Typir } from 'typir';
+import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     // set up Typir and reuse some predefined things
@@ -76,8 +76,9 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             // define function type
             functionKind.createFunctionType({
                 functionName,
-                outputParameter: { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
-                inputParameters: node.parameters.map(p => (<NameTypePair>{ name: p.name, type: mapType(p.type) })),
+                // note that the following two lines internally use type inference here in order to map language types to Typir types
+                outputParameter: { name: FUNCTION_MISSING_NAME, type: node.returnType },
+                inputParameters: node.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
                 // inference rule for function declaration:
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function declaration matches!
                 /** inference rule for funtion calls:
@@ -93,6 +94,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             });
         }
     });
+
+    // TODO fix order, since the function types already use type inference and therefore might need the following additional inference rules
 
     // additional inference rules ...
     typir.inference.addInferenceRule((domainElement: unknown) => {
@@ -172,17 +175,6 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         }
     }
     typir.printer = new OxPrinter(typir);
-
-    // utility function to map language types to Typir types
-    // TODO get rid of these type dispatch!
-    function mapType(typeRef: TypeReference): Type {
-        switch (typeRef.primitive) {
-            case 'number': return typeNumber;
-            case 'boolean': return typeBool;
-            case 'void': return typeVoid;
-            default: assertUnreachable(typeRef.primitive);
-        }
-    }
 
     return typir;
 }
