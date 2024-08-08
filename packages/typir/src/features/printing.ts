@@ -28,6 +28,7 @@ export interface ProblemPrinter {
     printTypirProblem(problem: TypirProblem): string;
     printTypirProblems(problems: TypirProblem[]): string;
 
+    printDomainElement(domainElement: unknown, sentenceBegin: boolean): string;
     printType(type: Type): string;
 }
 
@@ -142,7 +143,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         return problems.map(p => this.printTypirProblem(p, level)).join('\n');
     }
 
-    protected printDomainElement(domainElement: unknown, sentenceBegin: boolean = false): string {
+    printDomainElement(domainElement: unknown, sentenceBegin: boolean = false): string {
         return `${sentenceBegin ? 'T' : 't'}he domain element '${domainElement}'`;
     }
 

@@ -7,6 +7,7 @@
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
 import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PrimitiveKind, Typir } from 'typir';
 import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     // set up Typir and reuse some predefined things
@@ -147,26 +148,29 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         (node: unknown, typir: Typir) => {
             if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
                 return typir.validation.constraints.ensureNodeIsAssignable(node.condition, typeBool,
-                    "Conditions need to be evaluated to 'boolean'.", 'condition');
+                    () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", domainProperty: 'condition' });
             }
             if (isVariableDeclaration(node)) {
                 return [
                     ...typir.validation.constraints.ensureNodeHasNotType(node, typeVoid,
-                        "Variables can't be declared with the type 'void'.", 'type'),
+                        () => <ValidationMessageDetails>{ message: "Variables can't be declared with the type 'void'.", domainProperty: 'type' }),
                     ...typir.validation.constraints.ensureNodeIsAssignable(node.value, node,
-                        `The initialization expression '${node.value?.$cstNode?.text}' is not assignable to the variable '${node.name}'.`, 'value')
+                        (actual, expected) => <ValidationMessageDetails>{ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, domainProperty: 'value' })
                 ];
             }
             if (isAssignmentStatement(node) && node.varRef.ref) {
                 return typir.validation.constraints.ensureNodeIsAssignable(node.value, node.varRef.ref,
-                    `The expression '${node.value.$cstNode?.text}' is not assignable to the variable '${node.varRef.ref.name}'.`, 'value');
+                    (actual, expected) => <ValidationMessageDetails>{
+                        message: `The expression '${node.value.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.varRef.ref!.name}' with type '${expected.name}'.`,
+                        domainProperty: 'value',
+                    });
             }
             if (isReturnStatement(node)) {
                 const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
                 if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function
                     return typir.validation.constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType,
-                        `The expression '${node.value.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, 'value');
+                        () => <ValidationMessageDetails>{ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, domainProperty: 'value' });
                 }
             }
             return [];
@@ -176,7 +180,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // override some default behaviour ...
     // ... print the text of the corresponding CstNode
     class OxPrinter extends DefaultTypeConflictPrinter {
-        protected override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
+        override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
             if (isAstNode(domainElement)) {
                 return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
             }

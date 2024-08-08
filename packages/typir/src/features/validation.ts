@@ -11,12 +11,15 @@ import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
-export interface ValidationProblem {
+export interface ValidationMessageDetails {
     domainElement: unknown;
     domainProperty?: string; // name of a property of the domain element; TODO make this type-safe!
     domainIndex?: number; // index, if this property is an Array property
     severity: Severity;
     message: string;
+}
+
+export interface ValidationProblem extends ValidationMessageDetails {
     subProblems?: TypirProblem[];
 }
 export function isValidationProblem(problem: unknown): problem is ValidationProblem {
@@ -25,15 +28,18 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
 
 export type ValidationRule = (domainElement: unknown, typir: Typir) => ValidationProblem[];
 
+export type ValidationMessageProvider = (actual: Type, expected: Type) => Partial<ValidationMessageDetails>;
+
 export interface ValidationConstraints {
     ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
-        message: string, domainProperty?: string|undefined, severity?: Severity|undefined): ValidationProblem[];
+        message: ValidationMessageProvider): ValidationProblem[];
     ensureNodeIsEquals(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
-        message: string, domainProperty?: string|undefined, severity?: Severity): ValidationProblem[];
+        message: ValidationMessageProvider): ValidationProblem[];
     ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown,
-        message: string, domainProperty?: string|undefined, severity?: Severity): ValidationProblem[];
+        message: ValidationMessageProvider): ValidationProblem[];
 
-    ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean, message: string, domainProperty?: string|undefined): ValidationProblem[];
+    ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean,
+        message: ValidationMessageProvider): ValidationProblem[];
 }
 
 export class DefaultValidationConstraints implements ValidationConstraints {
@@ -44,22 +50,22 @@ export class DefaultValidationConstraints implements ValidationConstraints {
     }
 
     ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
-        message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
-        return this.ensureNodeRelatedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, message, domainProperty, severity);
+        message: ValidationMessageProvider): ValidationProblem[] {
+        return this.ensureNodeRelatedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, message);
     }
 
     ensureNodeIsEquals(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
-        message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
-        return this.ensureNodeRelatedWithType(sourceNode, expected, 'EQUAL_TYPE', false, message, domainProperty, severity);
+        message: ValidationMessageProvider): ValidationProblem[] {
+        return this.ensureNodeRelatedWithType(sourceNode, expected, 'EQUAL_TYPE', false, message);
     }
 
     ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown,
-        message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
-        return this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, message, domainProperty, severity);
+        message: ValidationMessageProvider): ValidationProblem[] {
+        return this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, message);
     }
 
     ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean,
-        message: string, domainProperty?: string|undefined, severity: Severity = 'error'): ValidationProblem[] {
+        message: ValidationMessageProvider): ValidationProblem[] {
         if (domainNode !== undefined && expected !== undefined) {
             const actualType = isType(domainNode) ? domainNode : this.typir.inference.inferType(domainNode);
             const expectedType = isType(expected) ? expected : this.typir.inference.inferType(expected);
@@ -69,21 +75,25 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                     if (negated) {
                         // everything is fine
                     } else {
+                        const details = message(actualType, expectedType);
                         return [{
-                            domainElement: domainNode,
-                            domainProperty,
-                            severity,
-                            message,
+                            domainElement: details.domainElement ?? domainNode,
+                            domainProperty: details.domainProperty,
+                            domainIndex: details.domainIndex,
+                            severity: details.severity ?? 'error',
+                            message: details.message ?? `'${actualType.name}' is ${negated ? '' : 'not '}related to '${expectedType.name}' regarding ${strategy}.`,
                             subProblems: [comparisonResult]
                         }];
                     }
                 } else {
                     if (negated) {
+                        const details = message(actualType, expectedType);
                         return [{
-                            domainElement: domainNode,
-                            domainProperty,
-                            severity,
-                            message,
+                            domainElement: details.domainElement ?? domainNode,
+                            domainProperty: details.domainProperty,
+                            domainIndex: details.domainIndex,
+                            severity: details.severity ?? 'error',
+                            message: details.message ?? `'${actualType.name}' is ${negated ? '' : 'not '}related to '${expectedType.name}' regarding ${strategy}.`,
                             subProblems: [] // no sub-problems are available!
                         }];
                     } else {

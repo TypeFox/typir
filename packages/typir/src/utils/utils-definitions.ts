@@ -60,7 +60,7 @@ export function resolveTypeSelector(typir: Typir, selector: TypeSelector): Type 
         if (isType(result)) {
             return result;
         } else {
-            throw new Error('TODO handle inference problem');
+            throw new Error('TODO handle inference problem for ' + typir.printer.printDomainElement(selector, false));
         }
     }
 }
