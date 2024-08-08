@@ -5,8 +5,9 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NameTypePair, PrimitiveKind, TopKind, Type, Typir } from 'typir';
+import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FieldDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PrimitiveKind, TopKind, Typir } from 'typir';
 import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
 
 export function createTypir(domainNodeEntry: AstNode): Typir {
     // set up Typir and reuse some predefined things
@@ -18,6 +19,18 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     });
     const anyKind = new TopKind(typir);
     const operators = typir.operators;
+
+    // override some default behaviour ...
+    // ... print the text of the corresponding CstNode
+    class OxPrinter extends DefaultTypeConflictPrinter {
+        override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
+            if (isAstNode(domainElement)) {
+                return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
+            }
+            return super.printDomainElement(domainElement, sentenceBegin);
+        }
+    }
+    typir.printer = new OxPrinter(typir);
 
     // primitive types
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
@@ -47,44 +60,6 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         inferenceRules: isNilLiteral }); // TODO for what is this used?
     const typeAny = anyKind.createTopType({});
 
-    // utility function to map language types to Typir types
-    // TODO get rid of these type dispatch!
-    function mapType(typeRef: TypeReference): Type {
-        if (!typeRef) {
-            throw new Error('a type reference must be given');
-        }
-        if (typeRef.primitive) {
-            switch (typeRef.primitive) {
-                case 'number': return typeNumber;
-                case 'string': return typeString;
-                case 'boolean': return typeBool;
-                case 'void': return typeVoid;
-                default: assertUnreachable(typeRef.primitive);
-            }
-        } else if (typeRef.reference && typeRef.reference.ref) {
-            // search for an existing class
-            const classType = classKind.getClassType(typeRef.reference.ref.name);
-            if (classType) {
-                return classType;
-            } else {
-                throw new Error();
-            }
-        } else {
-            // search for an existing function
-            // TODO lambda vs function
-            const functionType = functionKind.getFunctionType({
-                functionName: 'TODO',
-                inputParameters: [], // TODO
-                outputParameter: undefined, // TODO
-            });
-            if (functionType) {
-                return functionType;
-            } else {
-                throw new Error();
-            }
-        }
-    }
-
     // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
     const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
         filter: isBinaryExpression,
@@ -110,6 +85,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
 
     // TODO design decision: overload with the lowest number of conversions wins!
     // TODO remove this later, it is not required for LOX!
+    // TODO is it possible to skip one of these options?? probably not ...
+    // TODO docu/guide: this vs operator combinations
     // typir.conversion.markAsConvertible(typeNumber, typeString, 'IMPLICIT'); // var my1: string = 42;
 
     // binary operators: numbers => boolean
@@ -142,8 +119,8 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             // define function type
             functionKind.createFunctionType({
                 functionName,
-                outputParameter: { name: FUNCTION_MISSING_NAME, type: mapType(node.returnType) },
-                inputParameters: node.parameters.map(p => (<NameTypePair>{ name: p.name, type: mapType(p.type) })),
+                outputParameter: { name: FUNCTION_MISSING_NAME, type: node.returnType },
+                inputParameters: node.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
                 // inference rule for function declaration:
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function declaration matches!
                 /** inference rule for funtion calls:
@@ -172,12 +149,12 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
             const className = node.name;
             classKind.createClassType({
                 className,
-                superClasses: node.superClass?.ref ? classKind.getClassType(node.superClass.ref.name) : undefined, // TODO delayed
+                superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
                 fields: node.members
                     .filter(m => isFieldMember(m)).map(f => f as FieldMember) // only Fields, no Methods
-                    .map(f => <NameTypePair>{
+                    .map(f => <FieldDetails>{
                         name: f.name,
-                        type: mapType(f.type), // TODO delayed
+                        type: f.type, // note that type inference is used here; TODO delayed
                     }),
                 // inference rule for declaration
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node,
@@ -243,45 +220,43 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     typir.validation.collector.addValidationRules(
         (node: unknown, typir: Typir) => {
             if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
-                return typir.validation.constraints.ensureNodeIsAssignable(node.condition, typeBool, "Conditions need to be evaluated to 'boolean'.", 'condition');
+                return typir.validation.constraints.ensureNodeIsAssignable(node.condition, typeBool,
+                    () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", domainProperty: 'condition' });
             }
             if (isVariableDeclaration(node)) {
                 return [
-                    ...typir.validation.constraints.ensureNodeHasNotType(node, typeVoid, "Variable can't be declared with a type 'void'.", 'type'),
-                    ...typir.validation.constraints.ensureNodeIsAssignable(node.value, node, `The expression '${node.value?.$cstNode?.text}' is not assignable to '${node.name}'`, 'value')
+                    ...typir.validation.constraints.ensureNodeHasNotType(node, typeVoid,
+                        () => <ValidationMessageDetails>{ message: "Variable can't be declared with a type 'void'.", domainProperty: 'type' }),
+                    ...typir.validation.constraints.ensureNodeIsAssignable(node.value, node, (actual, expected) => <ValidationMessageDetails>{
+                        message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
+                        domainProperty: 'value' }),
                 ];
             }
             if (isBinaryExpression(node) && node.operator === '=') {
-                return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, `The expression '${node.right.$cstNode?.text}' is not assignable to '${node.left}'`, 'value');
+                return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{
+                    message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left}' with type '${expected.name}'`,
+                    domainProperty: 'value' });
             }
+            // TODO Idee: Validierung für Langium-binding an AstTypen hängen wie es standardmäßig in Langium gemacht wird => ist auch performanter => dafür API hier anpassen/umbauen
             if (isBinaryExpression(node) && (node.operator === '==' || node.operator === '!=')) {
-                // TODO use inferred types in the message
-                const msg = `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have different types.`;
-                // TODO mark the 'operator' property!
-                return typir.validation.constraints.ensureNodeIsEquals(node.right, node.left, msg, undefined, 'warning');
+                return typir.validation.constraints.ensureNodeIsEquals(node.left, node.right, (actual, expected) => <ValidationMessageDetails>{
+                    message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
+                    domainElement: node, // mark the 'operator' property! (note that "node.right" and "node.left" are the input for Typir)
+                    domainProperty: 'operator',
+                    severity: 'warning' });
             }
             if (isReturnStatement(node)) {
                 const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
                 if (functionDeclaration && functionDeclaration.returnType.primitive && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function
-                    return typir.validation.constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType, `The expression '${node.value.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'`, 'value');
+                    return typir.validation.constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType, (actual, expected) => <ValidationMessageDetails>{
+                        message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${functionDeclaration.name}' with return type '${expected.name}'.`,
+                        domainProperty: 'value' });
                 }
             }
             return [];
         }
     );
-
-    // override some default behaviour ...
-    // ... print the text of the corresponding CstNode
-    class OxPrinter extends DefaultTypeConflictPrinter {
-        protected override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
-            if (isAstNode(domainElement)) {
-                return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
-            }
-            return super.printDomainElement(domainElement, sentenceBegin);
-        }
-    }
-    typir.printer = new OxPrinter(typir);
 
     return typir;
 }

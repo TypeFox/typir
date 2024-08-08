@@ -5,14 +5,10 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { AssignabilityProblem } from '../features/assignability.js';
-import { TypeEqualityProblem } from '../features/equality.js';
-import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { NameTypePair, assertTrue } from '../utils/utils.js';
-import { InferenceProblem } from '../features/inference.js';
-import { ValidationProblem } from '../features/validation.js';
+import { assertTrue } from '../utils/utils.js';
+import { NameTypePair, TypirProblem } from './utils-definitions.js';
 
 export type TypeCheckStrategy =
     'EQUAL_TYPE' | // the most strict checking
@@ -36,8 +32,6 @@ export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: Typi
             assertUnreachable(strategy);
     }
 }
-
-export type TypirProblem = ValueConflict | IndexedTypeConflict | AssignabilityProblem | SubTypeProblem | TypeEqualityProblem | InferenceProblem | ValidationProblem;
 
 export interface ValueConflict {
     // 'undefined' means value is missing, 'string' is the string representation of the value

@@ -10,9 +10,10 @@ import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, TypirProblem, checkNameTypesMap, checkValueForConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
-import { NameTypePair, assertKind, assertTrue, toArray } from '../utils/utils.js';
+import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { assertKind, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
+import { resolveTypeSelector, TypeSelector, TypirProblem } from '../utils/utils-definitions.js';
 
 export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
@@ -25,10 +26,15 @@ export interface ClassKindOptions {
 
 export const ClassKindName = 'ClassKind';
 
+export interface FieldDetails {
+    name: string;
+    type: TypeSelector;
+}
+
 export interface ClassTypeDetails<T1 = unknown, T2 = unknown> { // TODO the generics look very bad!
     className: string,
-    superClasses?: Type | Type[],
-    fields: NameTypePair[],
+    superClasses?: TypeSelector | TypeSelector[],
+    fields: FieldDetails[],
     // TODO methods
     inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // TODO what is the purpose for this? what is the difference to literals?
     inferenceRuleForLiteral?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
@@ -98,7 +104,8 @@ export class ClassKind implements Kind {
         // link it to all its "field types"
         for (const fieldInfos of typeDetails.fields) {
             // new edge between class and field with "semantics key"
-            const edge = new TypeEdge(classType, fieldInfos.type, FIELD_TYPE);
+            const fieldType = resolveTypeSelector(this.typir, fieldInfos.type);
+            const edge = new TypeEdge(classType, fieldType, FIELD_TYPE);
             // store the name of the field within the edge
             edge.properties.set(FIELD_NAME, fieldInfos.name);
             this.typir.graph.addEdge(edge);
@@ -116,17 +123,19 @@ export class ClassKind implements Kind {
             }
         }
         // check cycles
-        for (const superClass of theSuperClasses) {
+        for (const superDetails of theSuperClasses) {
+            const superClass = resolveTypeSelector(this.typir, superDetails);
             if (this.getAllSuperClasses(superClass, true).has(classType)) {
                 throw new Error('Circle in super-sub-class-relationships are not allowed.');
             }
         }
         // link the new class to all its super classes
-        for (const superr of theSuperClasses) {
-            if (superr.kind.$name !== classType.kind.$name) {
+        for (const superDetails of theSuperClasses) {
+            const superClass = resolveTypeSelector(this.typir, superDetails);
+            if (superClass.kind.$name !== classType.kind.$name) {
                 throw new Error();
             }
-            const edge = new TypeEdge(classType, superr, SUPER_CLASS);
+            const edge = new TypeEdge(classType, superClass, SUPER_CLASS);
             this.typir.graph.addEdge(edge);
         }
 
@@ -233,11 +242,11 @@ export class ClassKind implements Kind {
         if (this.options.typing === 'Structural') {
             // fields
             const fields: string[] = [];
-            for (const field of typeDetails.fields.entries()) {
-                fields.push(`${field[0]}:${field[1].name}`);
+            for (const [fieldNUmber, fieldDetails] of typeDetails.fields.entries()) {
+                fields.push(`${fieldNUmber}:${fieldDetails.name}`);
             }
             // super classes
-            const superClasses = toArray(typeDetails.superClasses);
+            const superClasses = toArray(typeDetails.superClasses).map(selector => resolveTypeSelector(this.typir, selector));
             const extendedClasses = superClasses.length <= 0 ? '' : `-extends-${superClasses.map(c => c.name).join(',')}`;
             // whole representation
             return `${prefix}-${typeDetails.className}{${fields.join(',')}}${extendedClasses}`;

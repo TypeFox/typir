@@ -93,7 +93,7 @@ describe('Explicitly test type checking for LOX', () => {
         `, 0, 1);
     });
 
-    test('Class inheritance', async () => {
+    test('Class inheritance for assignments', async () => {
         await validate(`
             class MyClass1 { name: string age: number }
             class MyClass2 < MyClass1 {}
@@ -104,6 +104,19 @@ describe('Explicitly test type checking for LOX', () => {
             class MyClass2 < MyClass1 {}
             var v1: MyClass2 = MyClass1();
         `, 1);
+    });
+
+    test.fails('Class inheritance and the order of type definitions', async () => {
+        // the "normal" case: 1st super class, 2nd sub class
+        await validate(`
+            class MyClass1 {}
+            class MyClass2 < MyClass1 {}
+        `, 0);
+        // switching the order of super and sub class works in Langium, but not in Typir at the moment
+        await validate(`
+            class MyClass2 < MyClass1 {}
+            class MyClass1 {}
+        `, 0);
     });
 
     test('Class fields', async () => {

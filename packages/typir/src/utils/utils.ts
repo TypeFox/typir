@@ -4,18 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from '../graph/type-node.js';
 import { Kind } from '../kinds/kind.js';
 
-export type Types = Type | Type[];
-export type Names = string | string[];
-
-export type NameTypePair = {
-    name: string;
-    type: Type;
-}
-
-export function assertTrue(condition: boolean, msg?: string) {
+export function assertTrue(condition: boolean, msg?: string): asserts condition {
     if (!condition) {
         throw new Error(msg);
     }

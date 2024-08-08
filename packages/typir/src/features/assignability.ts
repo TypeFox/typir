@@ -6,7 +6,7 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem } from '../utils/utils-type-comparison.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 
 export interface AssignabilityProblem {
     source: Type;
