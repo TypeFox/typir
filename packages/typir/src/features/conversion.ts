@@ -12,11 +12,13 @@ import { toArray } from '../utils/utils.js';
 export type ConversionMode =
     'IMPLICIT' | // coercion
     'EXPLICIT' | // casting
-    'BOTH'; // TODO does this make sense? Does IMPLICIT => EXPLICIT hold?
+    'NONE' |     // no conversion possible at all
+    'SELF';      // a type is always self-convertible to itself
 
 export interface TypeConversion {
     markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionMode): void
-    isConvertibleTo(from: Type, to: Type, mode: ConversionMode): boolean;
+    getConversion(from: Type, to: Type): ConversionMode;
+    isConvertible(from: Type, to: Type, mode: ConversionMode): boolean;
 }
 
 export class DefaultTypeConversion implements TypeConversion {
@@ -35,22 +37,42 @@ export class DefaultTypeConversion implements TypeConversion {
             }
         }
     }
+
     protected markAsConvertibleSingle(from: Type, to: Type, mode: ConversionMode): void {
+        const storeNothing = mode === 'NONE' || mode === 'SELF';
         let edge = this.getEdge(from, to);
-        if (!edge) {
-            edge = new TypeEdge(from, to, TYPE_CONVERSION);
-            this.typir.graph.addEdge(edge);
+        if (storeNothing) {
+            if (edge) {
+                // remove an existing edge
+                this.typir.graph.removeEdge(edge);
+            } else {
+                // nothing to do
+            }
+        } else {
+            if (!edge) {
+                // create a missing edge
+                edge = new TypeEdge(from, to, TYPE_CONVERSION);
+                this.typir.graph.addEdge(edge);
+            }
+            edge.properties.set(TYPE_CONVERSION_MODE, mode);
         }
-        edge.properties.set(TYPE_CONVERSION_MODE, mode);
     }
 
-    isConvertibleTo(from: Type, to: Type, mode: ConversionMode): boolean {
+    getConversion(from: Type, to: Type): ConversionMode {
         const edge = this.getEdge(from, to);
         if (edge) {
-            const current = edge.properties.get(TYPE_CONVERSION_MODE) as ConversionMode;
-            return current === mode || current === 'BOTH';
+            return edge.properties.get(TYPE_CONVERSION_MODE) as ConversionMode;
         }
-        return false;
+        if (this.typir.equality.areTypesEqual(from, to)) {
+            return 'SELF';
+        } else {
+            return 'NONE';
+        }
+    }
+
+    isConvertible(from: Type, to: Type, mode: ConversionMode): boolean {
+        const currentMode = this.getConversion(from, to);
+        return currentMode === mode;
     }
 
     protected getEdge(from: Type, to: Type): TypeEdge | undefined {

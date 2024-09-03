@@ -36,7 +36,7 @@ export class DefaultTypeAssignability implements TypeAssignability {
 
     getAssignabilityProblem(source: Type, target: Type): AssignabilityProblem | undefined {
         // conversion possible?
-        if (this.typir.conversion.isConvertibleTo(source, target, 'IMPLICIT')) {
+        if (this.typir.conversion.isConvertible(source, target, 'IMPLICIT')) {
             return undefined;
         }
 
