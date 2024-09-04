@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type } from '../graph/type-node.js';
-import { TypirProblem } from '../utils/utils-type-comparison.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 
 /**
  * Typir provides a default set of Kinds, e.g. primitive types and class types.

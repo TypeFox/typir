@@ -6,7 +6,7 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem } from '../utils/utils-type-comparison.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 
 export interface AssignabilityProblem {
     source: Type;
@@ -36,7 +36,7 @@ export class DefaultTypeAssignability implements TypeAssignability {
 
     getAssignabilityProblem(source: Type, target: Type): AssignabilityProblem | undefined {
         // conversion possible?
-        if (this.typir.conversion.isConvertibleTo(source, target, 'IMPLICIT')) {
+        if (this.typir.conversion.isConvertible(source, target, 'IMPLICIT')) {
             return undefined;
         }
 

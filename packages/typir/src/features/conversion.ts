@@ -10,13 +10,41 @@ import { Typir } from '../typir.js';
 import { toArray } from '../utils/utils.js';
 
 export type ConversionMode =
-    'IMPLICIT' | // coercion
-    'EXPLICIT' | // casting
-    'BOTH'; // TODO does this make sense? Does IMPLICIT => EXPLICIT hold?
+    'IMPLICIT' | // coercion (e.g. in "3 + 'three'" the int value 3 is implicitly converted to the string value '3')
+    'EXPLICIT' | // casting (e.g. in "myValue as MyType" the value stored in the variable myValue is explicitly casted to MyType)
+    'NONE' |     // no conversion possible at all (this is the default mode)
+    'SELF';      // a type is always self-convertible to itself, in this case no conversion is necessary
 
+/**
+ * Manages conversions between different types.
+ * A conversion is a directed relationship between two types.
+ * If a source type can be converted to a target type, the source type could be assignable to the target type (depending on the conversion mode: target := source).
+ */
 export interface TypeConversion {
+    /**
+     * Defines the conversion relationship between two types.
+     * @param from the from/source type
+     * @param to the to/target type
+     * @param mode the desired conversion relationship between the two given types
+     */
     markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionMode): void
-    isConvertibleTo(from: Type, to: Type, mode: ConversionMode): boolean;
+
+    /**
+     * Identifies the existing conversion relationship between two given types.
+     * @param from the from/source type
+     * @param to the to/target type
+     * @returns the existing conversion relationship between the two given types
+     */
+    getConversion(from: Type, to: Type): ConversionMode;
+
+    /**
+     * Checks whether the given conversion relationship exists between two types.
+     * @param from the from/source type
+     * @param to the to/target type
+     * @param mode the conversion relationship to check between the two given types
+     * @returns
+     */
+    isConvertible(from: Type, to: Type, mode: ConversionMode): boolean;
 }
 
 export class DefaultTypeConversion implements TypeConversion {
@@ -35,22 +63,46 @@ export class DefaultTypeConversion implements TypeConversion {
             }
         }
     }
+
     protected markAsConvertibleSingle(from: Type, to: Type, mode: ConversionMode): void {
+        const storeNothing = mode === 'NONE' || mode === 'SELF';
         let edge = this.getEdge(from, to);
-        if (!edge) {
-            edge = new TypeEdge(from, to, TYPE_CONVERSION);
-            this.typir.graph.addEdge(edge);
+        if (storeNothing) {
+            if (edge) {
+                // remove an existing edge
+                this.typir.graph.removeEdge(edge);
+            } else {
+                // nothing to do
+            }
+        } else {
+            if (!edge) {
+                // create a missing edge
+                edge = new TypeEdge(from, to, TYPE_CONVERSION);
+                this.typir.graph.addEdge(edge);
+            }
+            edge.properties.set(TYPE_CONVERSION_MODE, mode);
         }
-        edge.properties.set(TYPE_CONVERSION_MODE, mode);
     }
 
-    isConvertibleTo(from: Type, to: Type, mode: ConversionMode): boolean {
+    getConversion(from: Type, to: Type): ConversionMode {
+        // check whether the conversion is stored in the type graph
         const edge = this.getEdge(from, to);
         if (edge) {
-            const current = edge.properties.get(TYPE_CONVERSION_MODE) as ConversionMode;
-            return current === mode || current === 'BOTH';
+            return edge.properties.get(TYPE_CONVERSION_MODE) as ConversionMode;
         }
-        return false;
+
+        // special case: if both types are equal, no conversion is needed
+        if (this.typir.equality.areTypesEqual(from, to)) {
+            return 'SELF';
+        }
+
+        // the default case
+        return 'NONE';
+    }
+
+    isConvertible(from: Type, to: Type, mode: ConversionMode): boolean {
+        const currentMode = this.getConversion(from, to);
+        return currentMode === mode;
     }
 
     protected getEdge(from: Type, to: Type): TypeEdge | undefined {
