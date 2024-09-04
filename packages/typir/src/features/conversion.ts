@@ -10,14 +10,40 @@ import { Typir } from '../typir.js';
 import { toArray } from '../utils/utils.js';
 
 export type ConversionMode =
-    'IMPLICIT' | // coercion
-    'EXPLICIT' | // casting
-    'NONE' |     // no conversion possible at all
-    'SELF';      // a type is always self-convertible to itself
+    'IMPLICIT' | // coercion (e.g. in "3 + 'three'" the int value 3 is implicitly converted to the string value '3')
+    'EXPLICIT' | // casting (e.g. in "myValue as MyType" the value stored in the variable myValue is explicitly casted to MyType)
+    'NONE' |     // no conversion possible at all (this is the default mode)
+    'SELF';      // a type is always self-convertible to itself, in this case no conversion is necessary
 
+/**
+ * Manages conversions between different types.
+ * A conversion is a directed relationship between two types.
+ * If a source type can be converted to a target type, the source type could be assignable to the target type (depending on the conversion mode: target := source).
+ */
 export interface TypeConversion {
+    /**
+     * Defines the conversion relationship between two types.
+     * @param from the from/source type
+     * @param to the to/target type
+     * @param mode the desired conversion relationship between the two given types
+     */
     markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionMode): void
+
+    /**
+     * Identifies the existing conversion relationship between two given types.
+     * @param from the from/source type
+     * @param to the to/target type
+     * @returns the existing conversion relationship between the two given types
+     */
     getConversion(from: Type, to: Type): ConversionMode;
+
+    /**
+     * Checks whether the given conversion relationship exists between two types.
+     * @param from the from/source type
+     * @param to the to/target type
+     * @param mode the conversion relationship to check between the two given types
+     * @returns
+     */
     isConvertible(from: Type, to: Type, mode: ConversionMode): boolean;
 }
 
@@ -59,15 +85,19 @@ export class DefaultTypeConversion implements TypeConversion {
     }
 
     getConversion(from: Type, to: Type): ConversionMode {
+        // check whether the conversion is stored in the type graph
         const edge = this.getEdge(from, to);
         if (edge) {
             return edge.properties.get(TYPE_CONVERSION_MODE) as ConversionMode;
         }
+
+        // special case: if both types are equal, no conversion is needed
         if (this.typir.equality.areTypesEqual(from, to)) {
             return 'SELF';
-        } else {
-            return 'NONE';
         }
+
+        // the default case
+        return 'NONE';
     }
 
     isConvertible(from: Type, to: Type, mode: ConversionMode): boolean {
