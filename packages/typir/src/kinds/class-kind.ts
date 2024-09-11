@@ -75,7 +75,7 @@ export class ClassType extends Type {
 
     override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
         if (isClassType(superType)) {
-            this.analyzeSubTypeProblems(this, superType);
+            return this.analyzeSubTypeProblems(this, superType);
         }
         return [<SubTypeProblem>{
             superType,
@@ -86,7 +86,7 @@ export class ClassType extends Type {
 
     override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
         if (isClassType(subType)) {
-            this.analyzeSubTypeProblems(subType, this);
+            return this.analyzeSubTypeProblems(subType, this);
         }
         return [<SubTypeProblem>{
             superType: this,

@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeEqualityProblem } from '../features/equality.js';
 import { InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { isType, Type } from '../graph/type-node.js';
@@ -29,7 +30,11 @@ export class TopType extends Type {
         if (isTopType(otherType)) {
             return [];
         }
-        throw new Error();
+        return [<TypeEqualityProblem>{
+            type1: this,
+            type2: otherType,
+            subProblems: [createKindConflict(otherType, this)],
+        }];
     }
 
     override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
