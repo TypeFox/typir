@@ -12,7 +12,7 @@ export class TypeGraph {
     protected readonly edges: TypeEdge[] = [];
 
     addNode(type: Type): void {
-        const key = type.name;
+        const key = type.identifier;
         if (this.nodes.has(key)) {
             if (this.nodes.get(key) === type) {
                 // this type is already registered => that is OK
@@ -29,7 +29,7 @@ export class TypeGraph {
         type.getAllIncomingEdges().forEach(e => this.removeEdge(e));
         type.getAllOutgoingEdges().forEach(e => this.removeEdge(e));
         // remove the type itself
-        this.nodes.delete(type.name);
+        this.nodes.delete(type.identifier);
     }
 
     getNode(name: string): Type | undefined {

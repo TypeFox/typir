@@ -20,6 +20,21 @@ export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
     return typeof problem === 'object' && problem !== null && isType((problem as SubTypeProblem).superType) && isType((problem as SubTypeProblem).subType);
 }
 
+// TODO new feature: allow to mark arbitrary types with a sub-type edge! (similar to conversion!)
+
+/**
+ * Analyzes, whether there is a sub type-relationship between two types.
+ *
+ * The sub-type relationship might be direct or indirect (transitive).
+ * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself.
+ *
+ * In theory, the difference between sub type-relationships and super type-relationships are only switched types.
+ * But in practise, the default implementation will ask both involved types (if they have different kinds),
+ * whether there is a sub type-relationship respectively a super type-relationship.
+ * If at least one type reports a relationship, a sub type-relationship is assumed.
+ * This simplifies the implementation of TopTypes and the implementation of new types (or customization of existing types),
+ * since unchanged types don't need to be customized to report sub type-relationships accordingly.
+ */
 export interface SubType {
     isSubType(subType: Type, superType: Type): boolean;
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined;
@@ -88,12 +103,13 @@ export class DefaultSubType implements SubType {
     protected calculateSubType(superType: Type, subType: Type): SubTypeProblem | undefined {
         // check the types: delegated to the kinds
         // 1st delegate to the kind of the sub type
-        const resultSub = subType.kind.analyzeSubTypeProblems(subType, superType);
+        const resultSub = subType.analyzeIsSubTypeOf(superType);
         if (resultSub.length <= 0) {
             return undefined;
         }
         if (superType.kind.$name === subType.kind.$name) {
             // if sub type and super type have the same kind, there is no need to check the same kind twice
+            // TODO does this make sense?
             return {
                 superType,
                 subType,
@@ -101,14 +117,14 @@ export class DefaultSubType implements SubType {
             };
         }
         // 2nd delegate to the kind of the super type
-        const resultSuper = superType.kind.analyzeSubTypeProblems(subType, superType);
+        const resultSuper = superType.analyzeIsSuperTypeOf(subType);
         if (resultSuper.length <= 0) {
             return undefined;
         }
         return {
             superType,
             subType,
-            subProblems: [...resultSuper, ...resultSub], // return the inference problems of both kinds
+            subProblems: [...resultSuper, ...resultSub], // return the sub-type problems of both types
         };
     }
 }

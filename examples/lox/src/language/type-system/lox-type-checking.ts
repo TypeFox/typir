@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FieldDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PrimitiveKind, TopKind, Typir } from 'typir';
+import { ClassKind, CreateFieldDetails, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FieldDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PrimitiveKind, TopKind, Typir } from 'typir';
 import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
 
@@ -152,7 +152,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
                 fields: node.members
                     .filter(m => isFieldMember(m)).map(f => f as FieldMember) // only Fields, no Methods
-                    .map(f => <FieldDetails>{
+                    .map(f => <CreateFieldDetails>{
                         name: f.name,
                         type: f.type, // note that type inference is used here; TODO delayed
                     }),
@@ -228,19 +228,19 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     ...typir.validation.constraints.ensureNodeHasNotType(node, typeVoid,
                         () => <ValidationMessageDetails>{ message: "Variable can't be declared with a type 'void'.", domainProperty: 'type' }),
                     ...typir.validation.constraints.ensureNodeIsAssignable(node.value, node, (actual, expected) => <ValidationMessageDetails>{
-                        message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
+                        message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.identifier}' is not assignable to '${node.name}' with type '${expected.identifier}'`,
                         domainProperty: 'value' }),
                 ];
             }
             if (isBinaryExpression(node) && node.operator === '=') {
                 return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{
-                    message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left}' with type '${expected.name}'`,
+                    message: `The expression '${node.right.$cstNode?.text}' of type '${actual.identifier}' is not assignable to '${node.left}' with type '${expected.identifier}'`,
                     domainProperty: 'value' });
             }
             // TODO Idee: Validierung für Langium-binding an AstTypen hängen wie es standardmäßig in Langium gemacht wird => ist auch performanter => dafür API hier anpassen/umbauen
             if (isBinaryExpression(node) && (node.operator === '==' || node.operator === '!=')) {
                 return typir.validation.constraints.ensureNodeIsEquals(node.left, node.right, (actual, expected) => <ValidationMessageDetails>{
-                    message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
+                    message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.identifier}' and '${expected.identifier}'.`,
                     domainElement: node, // mark the 'operator' property! (note that "node.right" and "node.left" are the input for Typir)
                     domainProperty: 'operator',
                     severity: 'warning' });
@@ -250,7 +250,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                 if (functionDeclaration && functionDeclaration.returnType.primitive && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function
                     return typir.validation.constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType, (actual, expected) => <ValidationMessageDetails>{
-                        message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${functionDeclaration.name}' with return type '${expected.name}'.`,
+                        message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.identifier}' is not usable as return value for the function '${functionDeclaration.name}' with return type '${expected.identifier}'.`,
                         domainProperty: 'value' });
                 }
             }

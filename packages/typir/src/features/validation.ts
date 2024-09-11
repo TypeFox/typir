@@ -81,7 +81,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                             domainProperty: details.domainProperty,
                             domainIndex: details.domainIndex,
                             severity: details.severity ?? 'error',
-                            message: details.message ?? `'${actualType.name}' is ${negated ? '' : 'not '}related to '${expectedType.name}' regarding ${strategy}.`,
+                            message: details.message ?? `'${actualType.identifier}' is ${negated ? '' : 'not '}related to '${expectedType.identifier}' regarding ${strategy}.`,
                             subProblems: [comparisonResult]
                         }];
                     }
@@ -93,7 +93,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                             domainProperty: details.domainProperty,
                             domainIndex: details.domainIndex,
                             severity: details.severity ?? 'error',
-                            message: details.message ?? `'${actualType.name}' is ${negated ? '' : 'not '}related to '${expectedType.name}' regarding ${strategy}.`,
+                            message: details.message ?? `'${actualType.identifier}' is ${negated ? '' : 'not '}related to '${expectedType.identifier}' regarding ${strategy}.`,
                             subProblems: [] // no sub-problems are available!
                         }];
                     } else {

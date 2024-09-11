@@ -23,8 +23,8 @@ describe('Tests for Typir', () => {
         const primitiveKind = new PrimitiveKind(typir);
         const multiplicityKind = new MultiplicityKind(typir, { symbolForUnlimited: '*' });
         const classKind = new ClassKind(typir, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' });
-        const listKind = new FixedParameterKind(typir, 'List', { subtypeParameterChecking: 'EQUAL_TYPE' }, 'entry');
-        const mapKind = new FixedParameterKind(typir, 'Map', { subtypeParameterChecking: 'EQUAL_TYPE' }, 'key', 'value');
+        const listKind = new FixedParameterKind(typir, 'List', { parameterSubtypeCheckingStrategy: 'EQUAL_TYPE' }, 'entry');
+        const mapKind = new FixedParameterKind(typir, 'Map', { parameterSubtypeCheckingStrategy: 'EQUAL_TYPE' }, 'key', 'value');
         const functionKind = new FunctionKind(typir);
 
         // create some primitive types

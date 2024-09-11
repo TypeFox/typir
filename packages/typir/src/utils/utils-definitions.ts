@@ -13,6 +13,7 @@ import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { ValueConflict, IndexedTypeConflict } from './utils-type-comparison.js';
 
+// TODO besser durch implements Interface lösen, weil das einfacher zu erweitern ist!!
 export type TypirProblem = ValueConflict | IndexedTypeConflict | AssignabilityProblem | SubTypeProblem | TypeEqualityProblem | InferenceProblem | ValidationProblem;
 
 export type Types = Type | Type[];

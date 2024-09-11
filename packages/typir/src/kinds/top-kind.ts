@@ -6,12 +6,61 @@
 
 import { InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
-import { Type } from '../graph/type-node.js';
+import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
-import { checkValueForConflict } from '../utils/utils-type-comparison.js';
-import { assertKind, toArray } from '../utils/utils.js';
-import { Kind, isKind } from './kind.js';
+import { createKindConflict } from '../utils/utils-type-comparison.js';
+import { toArray } from '../utils/utils.js';
+import { isKind, Kind } from './kind.js';
+
+export class TopType extends Type {
+    override readonly kind: TopKind;
+
+    constructor(kind: TopKind, identifier: string) {
+        super(identifier);
+        this.kind = kind;
+    }
+
+    override getUserRepresentation(): string {
+        return this.identifier;
+    }
+
+    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+        if (isTopType(otherType)) {
+            return [];
+        }
+        throw new Error();
+    }
+
+    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
+        if (isTopType(superType)) {
+            // special case by definition: TopType is sub-type of TopType
+            return [];
+        }
+        return [<SubTypeProblem>{
+            superType,
+            subType: this,
+            subProblems: [createKindConflict(superType, this)],
+        }];
+    }
+
+    override analyzeIsSuperTypeOf(_subType: Type): TypirProblem[] {
+        // a TopType is the super type of all types!
+        return [];
+    }
+
+}
+
+export function isTopType(type: unknown): type is TopType {
+    return isType(type) && isTopKind(type.kind);
+}
+
+
+
+export interface TopTypeDetails {
+    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
+    inferenceRules?: InferTopType | InferTopType[]
+}
 
 export interface TopKindOptions {
     name: string;
@@ -25,10 +74,10 @@ export class TopKind implements Kind {
     readonly $name: 'TopKind';
     readonly typir: Typir;
     readonly options: TopKindOptions;
-    protected instance: Type | undefined;
+    protected instance: TopType | undefined;
 
     constructor(typir: Typir, options?: Partial<TopKindOptions>) {
-        this.$name = 'TopKind';
+        this.$name = TopKindName;
         this.typir = typir;
         this.typir.registerKind(this);
         this.options = {
@@ -39,18 +88,16 @@ export class TopKind implements Kind {
         };
     }
 
-    createTopType(typeDetails: {
-        /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
-        inferenceRules?: InferTopType | InferTopType[]
-    }): Type {
+    createTopType(typeDetails: TopTypeDetails): TopType {
         // create the top type (singleton)
         if (this.instance) {
             // note, that the given inference rules are ignored in this case!
             return this.instance;
         }
-        const topType = new Type(this, this.options.name);
+        const topType = new TopType(this, this.calculateIdentifier(typeDetails));
         this.instance = topType;
         this.typir.graph.addNode(topType);
+
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
@@ -63,38 +110,14 @@ export class TopKind implements Kind {
                 return InferenceRuleNotApplicable;
             });
         }
+
         return topType;
     }
 
-    getUserRepresentation(type: Type): string {
-        assertKind(type.kind, isTopKind);
-        return type.name;
+    calculateIdentifier(_typeDetails: TopTypeDetails): string {
+        return this.options.name;
     }
 
-    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
-        if (isTopKind(superType.kind)) {
-            return [];
-        }
-        if (isTopKind(subType.kind)) {
-            return [<SubTypeProblem>{
-                superType,
-                subType,
-                subProblems: [], // TODO better error message?
-            }];
-        }
-        return [<SubTypeProblem>{
-            superType,
-            subType,
-            subProblems: checkValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
-        }];
-    }
-
-    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
-        if (isTopKind(type1.kind) && isTopKind(type2.kind)) {
-            return [];
-        }
-        throw new Error();
-    }
 }
 
 export function isTopKind(kind: unknown): kind is TopKind {

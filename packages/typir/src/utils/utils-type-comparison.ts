@@ -5,10 +5,11 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { Type } from '../graph/type-node.js';
+import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
 import { NameTypePair, TypirProblem } from './utils-definitions.js';
+import { Kind } from '../kinds/kind.js';
 
 export type TypeCheckStrategy =
     'EQUAL_TYPE' | // the most strict checking
@@ -54,6 +55,20 @@ export function checkValueForConflict<T>(first: T, second: T, location: string,
         });
     }
     return conflicts;
+}
+
+export function createKindConflict(first: Type | Kind, second: Type | Kind): ValueConflict {
+    if (isType(first)) {
+        first = first.kind;
+    }
+    if (isType(second)) {
+        second = second.kind;
+    }
+    return {
+        firstValue: first.$name,
+        secondValue: second.$name,
+        location: 'kind',
+    };
 }
 
 export interface IndexedTypeConflict {

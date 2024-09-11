@@ -4,14 +4,118 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeEqualityProblem } from '../features/equality.js';
 import { SubTypeProblem } from '../features/subtype.js';
-import { TypeEdge } from '../graph/type-edge.js';
-import { Type } from '../graph/type-node.js';
+import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
-import { checkValueForConflict } from '../utils/utils-type-comparison.js';
-import { assertKind } from '../utils/utils.js';
-import { Kind, isKind } from './kind.js';
+import { checkValueForConflict, createKindConflict } from '../utils/utils-type-comparison.js';
+import { isKind, Kind } from './kind.js';
+
+export class MultiplicityType extends Type {
+    override readonly kind: MultiplicityKind;
+    readonly constrainedType: Type;
+    readonly lowerBound: number;
+    readonly upperBound: number;
+
+    constructor(kind: MultiplicityKind, identifier: string,
+        constrainedType: Type, lowerBound: number, upperBound: number) {
+        super(identifier);
+        this.kind = kind;
+        this.constrainedType = constrainedType;
+        this.lowerBound = lowerBound;
+        this.upperBound = upperBound;
+    }
+
+    override getUserRepresentation(): string {
+        return this.kind.printType(this.getConstrainedType(), this.getLowerBound(), this.getUpperBound());
+    }
+
+    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+        if (isMultiplicityKind(otherType)) {
+            const conflicts: TypirProblem[] = [];
+            // check the multiplicities
+            conflicts.push(...checkValueForConflict(this.getLowerBound(), this.getLowerBound(), 'lower bound'));
+            conflicts.push(...checkValueForConflict(this.getUpperBound(), this.getUpperBound(), 'upper bound'));
+            // check the constrained type
+            const constrainedTypeConflict = this.kind.typir.equality.getTypeEqualityProblem(this.getConstrainedType(), this.getConstrainedType());
+            if (constrainedTypeConflict !== undefined) {
+                conflicts.push(constrainedTypeConflict);
+            }
+            return conflicts;
+        } else {
+            return [<TypeEqualityProblem>{
+                type1: this,
+                type2: otherType,
+                subProblems: [createKindConflict(otherType, this)],
+            }];
+        }
+    }
+
+    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
+        if (isMultiplicityType(superType)) {
+            const conflicts: TypirProblem[] = [];
+            // check the multiplicities
+            conflicts.push(...checkValueForConflict(this.getLowerBound(), superType.getLowerBound(), 'lower bound', this.kind.isBoundGreaterEquals));
+            conflicts.push(...checkValueForConflict(this.getUpperBound(), superType.getUpperBound(), 'upper bound', this.kind.isBoundGreaterEquals));
+            // check the constrained type
+            const constrainedTypeConflict = this.kind.typir.subtype.getSubTypeProblem(this.getConstrainedType(), superType.getConstrainedType());
+            if (constrainedTypeConflict !== undefined) {
+                conflicts.push(constrainedTypeConflict);
+            }
+            return conflicts;
+        }
+        return [<SubTypeProblem>{
+            superType,
+            subType: this,
+            subProblems: [createKindConflict(this, superType)],
+        }];
+    }
+
+    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
+        if (isMultiplicityType(subType)) {
+            const conflicts: TypirProblem[] = [];
+            // check the multiplicities
+            conflicts.push(...checkValueForConflict(subType.getLowerBound(), this.getLowerBound(), 'lower bound', this.kind.isBoundGreaterEquals));
+            conflicts.push(...checkValueForConflict(subType.getUpperBound(), this.getUpperBound(), 'upper bound', this.kind.isBoundGreaterEquals));
+            // check the constrained type
+            const constrainedTypeConflict = this.kind.typir.subtype.getSubTypeProblem(subType.getConstrainedType(), this.getConstrainedType());
+            if (constrainedTypeConflict !== undefined) {
+                conflicts.push(constrainedTypeConflict);
+            }
+            return conflicts;
+        }
+        return [<SubTypeProblem>{
+            superType: this,
+            subType,
+            subProblems: [createKindConflict(subType, this)],
+        }];
+    }
+
+    getConstrainedType(): Type {
+        return this.constrainedType;
+    }
+
+    getLowerBound(): number {
+        return this.lowerBound;
+    }
+
+    getUpperBound(): number {
+        return this.upperBound;
+    }
+}
+
+export function isMultiplicityType(type: unknown): type is MultiplicityType {
+    return isType(type) && isMultiplicityKind(type.kind);
+}
+
+
+
+export interface MultiplicityTypeDetails {
+    constrainedType: Type,
+    lowerBound: number,
+    upperBound: number
+}
 
 export interface MultiplicityKindOptions {
     symbolForUnlimited: string;
@@ -30,7 +134,7 @@ export class MultiplicityKind implements Kind {
     readonly options: MultiplicityKindOptions;
 
     constructor(typir: Typir, options?: Partial<MultiplicityKindOptions>) {
-        this.$name = 'MultiplicityTypeKind';
+        this.$name = MultiplicityKindName;
         this.typir = typir;
         this.typir.registerKind(this);
         this.options = {
@@ -41,30 +145,21 @@ export class MultiplicityKind implements Kind {
         };
     }
 
-    createMultiplicityForType(typeDetails: {
-        constrainedType: Type,
-        lowerBound: number,
-        upperBound: number
-    }): Type {
+    createMultiplicityForType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
         // check input
         if (!this.checkBounds(typeDetails.lowerBound, typeDetails.upperBound)) {
             throw new Error();
         }
 
         // create the type with multiplicities
-        const name = this.printType(typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
-        const newType = new Type(this, name);
+        const newType = new MultiplicityType(this, this.calculateIdentifier(typeDetails), typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
         this.typir.graph.addNode(newType);
 
-        // link it to the constrained type
-        const edge = new TypeEdge(newType, typeDetails.constrainedType, CONSTRAINED_TYPE);
-        this.typir.graph.addEdge(edge);
-
-        // set values (at the edge, not at the node!)
-        edge.properties.set(MULTIPLICITY_LOWER, typeDetails.lowerBound);
-        edge.properties.set(MULTIPLICITY_UPPER, typeDetails.upperBound);
-
         return newType;
+    }
+
+    calculateIdentifier(typeDetails: MultiplicityTypeDetails): string {
+        return this.printType(typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
     }
 
     protected checkBounds(lowerBound: number, upperBound: number): boolean {
@@ -79,7 +174,7 @@ export class MultiplicityKind implements Kind {
         return true;
     }
 
-    protected printType(constrainedType: Type, lowerBound: number, upperBound: number): string {
+    printType(constrainedType: Type, lowerBound: number, upperBound: number): string {
         return `${this.typir.printer.printType(constrainedType)}${this.printRange(lowerBound, upperBound)}`;
     }
     protected printRange(lowerBound: number, upperBound: number): string {
@@ -95,32 +190,7 @@ export class MultiplicityKind implements Kind {
         return bound === MULTIPLICITY_UNLIMITED ? this.options.symbolForUnlimited : `${bound}`;
     }
 
-    getUserRepresentation(type: Type): string {
-        assertKind(type.kind, isMultiplicityKind);
-        return this.printType(type.kind.getConstrainedType(type), type.kind.getLowerBound(type), type.kind.getUpperBound(type));
-    }
-
-    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
-        if (isMultiplicityKind(superType.kind) && isMultiplicityKind(subType.kind)) {
-            const conflicts: TypirProblem[] = [];
-            // check the multiplicities
-            conflicts.push(...checkValueForConflict(superType.kind.getLowerBound(superType), subType.kind.getLowerBound(subType), 'lower bound', this.isBoundGreaterEquals));
-            conflicts.push(...checkValueForConflict(superType.kind.getUpperBound(superType), subType.kind.getUpperBound(subType), 'upper bound', this.isBoundGreaterEquals));
-            // check the constrained type
-            const constrainedTypeConflict = this.typir.subtype.getSubTypeProblem(subType.kind.getConstrainedType(subType), superType.kind.getConstrainedType(superType));
-            if (constrainedTypeConflict !== undefined) {
-                conflicts.push(constrainedTypeConflict);
-            }
-            return conflicts;
-        }
-        return [<SubTypeProblem>{
-            superType,
-            subType,
-            subProblems: checkValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
-        }];
-    }
-
-    protected isBoundGreaterEquals(leftBound: number, rightBound: number): boolean {
+    isBoundGreaterEquals(leftBound: number, rightBound: number): boolean {
         if (leftBound === MULTIPLICITY_UNLIMITED) {
             return true;
         }
@@ -130,40 +200,7 @@ export class MultiplicityKind implements Kind {
         return leftBound >= rightBound;
     }
 
-    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
-        if (isMultiplicityKind(type1.kind) && isMultiplicityKind(type2.kind)) {
-            const conflicts: TypirProblem[] = [];
-            // check the multiplicities
-            conflicts.push(...checkValueForConflict(this.getLowerBound(type1), this.getLowerBound(type2), 'lower bound'));
-            conflicts.push(...checkValueForConflict(this.getUpperBound(type1), this.getUpperBound(type2), 'upper bound'));
-            // check the constrained type
-            const constrainedTypeConflict = this.typir.equality.getTypeEqualityProblem(type1.kind.getConstrainedType(type1), type2.kind.getConstrainedType(type2));
-            if (constrainedTypeConflict !== undefined) {
-                conflicts.push(constrainedTypeConflict);
-            }
-            return conflicts;
-        }
-        throw new Error();
-    }
-
-    getConstrainedType(typeWithMultiplicity: Type): Type {
-        assertKind(typeWithMultiplicity.kind, isMultiplicityKind);
-        return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].to;
-    }
-
-    getLowerBound(typeWithMultiplicity: Type): number {
-        assertKind(typeWithMultiplicity.kind, isMultiplicityKind);
-        return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].properties.get(MULTIPLICITY_LOWER) as number;
-    }
-    getUpperBound(typeWithMultiplicity: Type): number {
-        assertKind(typeWithMultiplicity.kind, isMultiplicityKind);
-        return typeWithMultiplicity.getOutgoingEdges(CONSTRAINED_TYPE)[0].properties.get(MULTIPLICITY_UPPER) as number;
-    }
 }
-
-const MULTIPLICITY_LOWER = 'lowerBound';
-const MULTIPLICITY_UPPER = 'upperBound';
-const CONSTRAINED_TYPE = 'isMultiplicityFor';
 
 export function isMultiplicityKind(kind: unknown): kind is MultiplicityKind {
     return isKind(kind) && kind.$name === MultiplicityKindName;

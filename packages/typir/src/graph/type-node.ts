@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 import { Kind, isKind } from '../kinds/kind.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 import { TypeEdge } from './type-edge.js';
 
 /**
@@ -12,26 +13,66 @@ import { TypeEdge } from './type-edge.js';
  * - features of types are realized/determined by their kinds
  * - Names of types must be unique!
  */
-export class Type {
-    readonly kind: Kind;
-    name: string;
+export abstract class Type {
+    readonly kind: Kind; // => $kind: string, required for isXType() checks
+    /**
+     * Identifiers must be unique and stable, since they are used as key to store types in maps.
+     * Identifiers might have a naming schema for calculatable values.
+     */
+    /* Design decision for the name of this attribute
+     * - identifier
+     * - ID: sounds like an arbitrary, internal value without schema behind
+     * - name: what is the name of a union type?
+     */
+    readonly identifier: string;
+
+    // this is required only to apply graph algorithms in a generic way!
+    // is there a simplier solution to combine generic graph algoriths with specifc properties?
     protected readonly edgesIncoming: Map<string, TypeEdge[]> = new Map();
     protected readonly edgesOutgoing: Map<string, TypeEdge[]> = new Map();
-    readonly properties: Map<string, unknown> = new Map(); // store arbitrary data at the type
 
-    constructor(kind: Kind, name: string) {
-        this.kind = kind;
-        this.name = name;
+    constructor(identifier: string) {
+        this.identifier = identifier;
     }
 
-    getUserRepresentation(): string {
-        return this.kind.getUserRepresentation(this);
-    }
+
+    /**
+     * Calculates a string value which might be shown to users of the type-checked elements.
+     * This value don't need to be unique for all types.
+     * @returns a string value to show to the user
+     */
+    abstract getUserRepresentation(): string;
+
+    /**
+     * Analyzes, whether two types are equal.
+     * @param otherType to be compared with the current type
+     * @returns an empty array, if both types are equal, otherwise some problems which might point to found differences/conflicts between the two types
+     */
+    abstract analyzeTypeEqualityProblems(otherType: Type): TypirProblem[];
+
+    /**
+     * Analyzes, whether there is a sub type-relationship between two types.
+     * The difference between sub type-relationships and super type-relationships are only switched types.
+     *
+     * @param superType the super type, while the current type is the sub type
+     * @returns an empty array, if the relationship exists, otherwise some problems which might point to violations of the investigated relationship
+     */
+    abstract analyzeIsSubTypeOf(superType: Type): TypirProblem[];
+
+    /**
+     * Analyzes, whether there is a super type-relationship between two types.
+     * The difference between sub type-relationships and super type-relationships are only switched types.
+     *
+     * @param subType the sub type, while the current type is super type
+     * @returns an empty array, if the relationship exists, otherwise some problems which might point to violations of the investigated relationship
+     */
+    abstract analyzeIsSuperTypeOf(subType: Type): TypirProblem[];
+
 
     addIncomingEdge(edge: TypeEdge): void {
         const key = edge.meaning;
         if (this.edgesIncoming.has(key)) {
-            this.edgesIncoming.get(key)?.push(edge);
+            this.edgesIncoming.get(key)!.push(edge);
         } else {
             this.edgesIncoming.set(key, [edge]);
         }
@@ -39,7 +80,7 @@ export class Type {
     addOutgoingEdge(edge: TypeEdge): void {
         const key = edge.meaning;
         if (this.edgesOutgoing.has(key)) {
-            this.edgesOutgoing.get(key)?.push(edge);
+            this.edgesOutgoing.get(key)!.push(edge);
         } else {
             this.edgesOutgoing.set(key, [edge]);
         }
@@ -91,6 +132,7 @@ export class Type {
     }
 }
 
+// TODO dies funktioniert mit Vererbung gar nicht richtig, oder? A extends B, funktioniert dann isA auf Instanzen von B??
 export function isType(type: unknown): type is Type {
-    return typeof type === 'object' && type !== null && typeof (type as Type).name === 'string' && isKind((type as Type).kind);
+    return typeof type === 'object' && type !== null && typeof (type as Type).identifier === 'string' && isKind((type as Type).kind);
 }

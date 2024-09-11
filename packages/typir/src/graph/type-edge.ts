@@ -6,6 +6,7 @@
 
 import { Type } from './type-node.js';
 
+// TODO make TypeEdge abstract??
 export class TypeEdge {
     readonly from: Type;
     readonly to: Type;

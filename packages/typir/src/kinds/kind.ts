@@ -4,8 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from '../graph/type-node.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
 
 /**
  * Typir provides a default set of Kinds, e.g. primitive types and class types.
@@ -13,14 +11,6 @@ import { TypirProblem } from '../utils/utils-definitions.js';
  */
 export interface Kind {
     readonly $name: string;
-
-    getUserRepresentation(type: Type): string;
-
-    /** If the kinds of super type and sub type are different, this function will be called for both kinds in order to check,
-     * whether at least one kinds reports a sub-type-relationship. */
-    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[];
-
-    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[];
 }
 
 export function isKind(kind: unknown): kind is Kind {

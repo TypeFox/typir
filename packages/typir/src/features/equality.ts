@@ -7,9 +7,8 @@
 import { assertUnreachable } from 'langium';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { checkValueForConflict } from '../utils/utils-type-comparison.js';
-import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
+import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
 export interface TypeEqualityProblem {
     type1: Type;
@@ -20,6 +19,7 @@ export function isTypeEqualityProblem(problem: unknown): problem is TypeEquality
     return typeof problem === 'object' && problem !== null && isType((problem as TypeEqualityProblem).type1) && isType((problem as TypeEqualityProblem).type2);
 }
 
+// TODO comments
 export interface TypeEquality {
     areTypesEqual(type1: Type, type2: Type): boolean;
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined;
@@ -88,32 +88,38 @@ export class DefaultTypeEquality implements TypeEquality {
         if (type1 === type2) {
             return undefined;
         }
-        if (type1.name === type2.name) { // this works, since names are unique!
+        if (type1.identifier === type2.identifier) { // this works, since identifiers are unique!
             return undefined;
         }
 
-        const kindComparisonResult = checkValueForConflict(type1.kind.$name, type2.kind.$name, 'kind');
-        if (kindComparisonResult.length >= 1) {
-            // equal types must have the same kind
+        // use the type-specific logic
+        // ask the 1st type
+        const result1 = type1.analyzeTypeEqualityProblems(type2);
+        if (result1.length <= 0) {
+            return undefined;
+        }
+        if (type1.kind.$name === type2.kind.$name) {
+            // if type1 and type2 have the same kind, there is no need to check the same kind twice
+            // TODO does this make sense?
             return {
                 type1,
                 type2,
-                subProblems: kindComparisonResult
+                subProblems: result1,
             };
-        } else {
-            // check the types: delegated to the kind
-            const kindResult = type1.kind.analyzeTypeEqualityProblems(type1, type2);
-            if (kindResult.length >= 1) {
-                return {
-                    type1,
-                    type2,
-                    subProblems: kindResult
-                };
-            } else {
-                return undefined;
-            }
         }
+        // ask the 2nd type
+        const result2 = type2.analyzeTypeEqualityProblems(type1);
+        if (result2.length <= 0) {
+            return undefined;
+        }
+        // both types reported, that they are diffferent
+        return {
+            type1,
+            type2,
+            subProblems: [...result1, ...result2] // return the equality problems of both types
+        };
     }
+
 }
 
 const EQUAL_TYPE = 'areEqual';
