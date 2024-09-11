@@ -19,24 +19,44 @@ export class ClassType extends Type {
     override readonly kind: ClassKind;
     readonly className: string;
     readonly superClasses: ClassType[];
+    readonly subClasses: ClassType[] = [];
     readonly fields: FieldDetails[];
 
     constructor(kind: ClassKind, identifier: string, typeDetails: ClassTypeDetails) {
         super(identifier);
         this.kind = kind;
         this.className = typeDetails.className;
+
+        // resolve the super classes
         this.superClasses = toArray(typeDetails.superClasses).map(superr => {
             const cls = resolveTypeSelector(this.kind.typir, superr);
             assertType(cls, isClassType);
             return cls;
         });
-        this.fields = typeDetails.fields.map(field => {
-            const type = resolveTypeSelector(this.kind.typir, field);
-            return <FieldDetails>{
-                name: field.name,
-                type,
-            };
+        // register this class as sub-class for all super-classes
+        this.superClasses.forEach(superr => superr.subClasses.push(this));
+        // check number of allowed super classes
+        if (this.kind.options.maximumNumberOfSuperClasses >= 0) {
+            if (this.kind.options.maximumNumberOfSuperClasses < this.superClasses.length) {
+                throw new Error(`Only ${this.kind.options.maximumNumberOfSuperClasses} super-classes are allowed.`);
+            }
+        }
+        // check for cycles in sub-type-relationships
+        for (const superClass of this.superClasses) {
+            if (superClass.getAllSuperClasses(true).has(this)) {
+                throw new Error('Circle in super-sub-class-relationships are not allowed.');
+            }
+        }
+
+        // fields
+        this.fields = typeDetails.fields.map(field => <FieldDetails>{
+            name: field.name,
+            type: resolveTypeSelector(this.kind.typir, field.type),
         });
+        // check collisions of field names
+        if (this.getFields(false).size !== typeDetails.fields.length) {
+            throw new Error('field names must be unique!');
+        }
     }
 
     override getUserRepresentation(): string {
@@ -150,8 +170,7 @@ export class ClassType extends Type {
     }
 
     getDeclaredSubClasses(): ClassType[] {
-        // TODO
-        return [];
+        return this.subClasses;
     }
 
     getAllSuperClasses(includingGivenClass: boolean = false): Set<ClassType> {
@@ -307,30 +326,6 @@ export class ClassKind implements Kind {
         // create the class type
         const classType = new ClassType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.typir.graph.addNode(classType);
-
-        // TODO move these checks to another location!
-        // FIELDS
-        // check collisions of field names
-        if (classType.getFields(false).size !== typeDetails.fields.length) {
-            throw new Error('field names must be unique!');
-        }
-
-        // SUB-SUPER-CLASSES
-        const theSuperClasses = toArray(typeDetails.superClasses);
-        // check number of allowed super classes
-        if (this.options.maximumNumberOfSuperClasses >= 0) {
-            if (this.options.maximumNumberOfSuperClasses < theSuperClasses.length) {
-                throw new Error(`Only ${this.options.maximumNumberOfSuperClasses} super-classes are allowed.`);
-            }
-        }
-        // check cycles
-        for (const superDetails of theSuperClasses) {
-            const superClass = resolveTypeSelector(this.typir, superDetails);
-            assertType(superClass, isClassType);
-            if (superClass.getAllSuperClasses(true).has(classType)) {
-                throw new Error('Circle in super-sub-class-relationships are not allowed.');
-            }
-        }
 
         // register inference rules
         if (typeDetails.inferenceRuleForDeclaration) {
