@@ -59,6 +59,9 @@ describe('Explicitly test type checking for OX', () => {
         await validate('var myResult: boolean = 2 != 3;', 0);
         await validate('var myResult: boolean = true == false;', 0);
         await validate('var myResult: boolean = true != false;', 0);
+
+        await validate('var myResult: boolean = true == 3;', 1);
+        await validate('var myResult: boolean = 2 != false;', 1);
     });
 
     test('unary operator: !', async () => {

@@ -60,8 +60,10 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     }
     // ==, != for booleans and numbers
     for (const operator of ['==', '!=']) {
-        operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }, inferenceRule: binaryInferenceRule });
-        operators.createBinaryOperator({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }, inferenceRule: binaryInferenceRule });
+        operators.createBinaryOperator({ name: operator, signature: [
+            { left: typeNumber, right: typeNumber, return: typeBool },
+            { left: typeBool, right: typeBool, return: typeBool },
+        ], inferenceRule: binaryInferenceRule });
     }
 
     // unary operators
