@@ -365,7 +365,7 @@ export class FunctionKind implements Kind {
     }
 
     getFunctionType(typeDetails: FunctionTypeDetails): FunctionType | undefined {
-        const key = this.printFunctionType(typeDetails);
+        const key = this.calculateIdentifier(typeDetails);
         return this.typir.graph.getType(key) as FunctionType;
     }
 
@@ -391,7 +391,7 @@ export class FunctionKind implements Kind {
         this.enforceName(functionName, this.options.enforceFunctionName);
 
         // create the function type
-        const functionType = new FunctionType(this, (this.calculateIdentifier(typeDetails)), typeDetails);
+        const functionType = new FunctionType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.typir.graph.addNode(functionType);
 
         // output parameter

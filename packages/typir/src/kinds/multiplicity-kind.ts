@@ -145,7 +145,20 @@ export class MultiplicityKind implements Kind {
         };
     }
 
-    createMultiplicityForType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
+    getMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.typir.graph.getType(key) as MultiplicityType;
+    }
+
+    getOrCreateMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
+        const result = this.getMultiplicityType(typeDetails);
+        if (result) {
+            return result;
+        }
+        return this.createMultiplicityType(typeDetails);
+    }
+
+    createMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
         // check input
         if (!this.checkBounds(typeDetails.lowerBound, typeDetails.upperBound)) {
             throw new Error();

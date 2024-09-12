@@ -41,7 +41,7 @@ export class PrimitiveType extends Type {
 
     override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
         if (isPrimitiveType(superType)) {
-            return this.analyzeTypeEqualityProblems(superType);
+            return this.analyzeSubTypeProblems(this, superType);
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
@@ -54,7 +54,7 @@ export class PrimitiveType extends Type {
 
     override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
         if (isPrimitiveType(subType)) {
-            return this.analyzeTypeEqualityProblems(subType);
+            return this.analyzeSubTypeProblems(subType, this);
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
@@ -63,6 +63,10 @@ export class PrimitiveType extends Type {
                 subProblems: [createKindConflict(subType, this)],
             }];
         }
+    }
+
+    protected analyzeSubTypeProblems(subType: PrimitiveType, superType: PrimitiveType): TypirProblem[] {
+        return subType.analyzeTypeEqualityProblems(superType);
     }
 
 }
@@ -91,6 +95,19 @@ export class PrimitiveKind implements Kind {
         this.$name = PrimitiveKindName;
         this.typir = typir;
         this.typir.registerKind(this);
+    }
+
+    getPrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.typir.graph.getType(key) as PrimitiveType;
+    }
+
+    getOrCreatePrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType {
+        const result = this.getPrimitiveType(typeDetails);
+        if (result) {
+            return result;
+        }
+        return this.createPrimitiveType(typeDetails);
     }
 
     createPrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType {

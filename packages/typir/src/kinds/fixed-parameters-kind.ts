@@ -165,6 +165,19 @@ export class FixedParameterKind implements Kind {
         assertTrue(this.parameters.length >= 1);
     }
 
+    getFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.typir.graph.getType(key) as FixedParameterType;
+    }
+
+    getOrCreateFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
+        const result = this.getFixedParameterType(typeDetails);
+        if (result) {
+            return result;
+        }
+        return this.createFixedParameterType(typeDetails);
+    }
+
     // the order of parameters matters!
     createFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
         // create the class type

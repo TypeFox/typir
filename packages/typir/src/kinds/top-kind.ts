@@ -97,6 +97,19 @@ export class TopKind implements Kind {
         };
     }
 
+    getTopType(typeDetails: TopTypeDetails): TopType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.typir.graph.getType(key) as TopType;
+    }
+
+    getOrCreateTopType(typeDetails: TopTypeDetails): TopType {
+        const result = this.getTopType(typeDetails);
+        if (result) {
+            return result;
+        }
+        return this.createTopType(typeDetails);
+    }
+
     createTopType(typeDetails: TopTypeDetails): TopType {
         // create the top type (singleton)
         if (this.instance) {

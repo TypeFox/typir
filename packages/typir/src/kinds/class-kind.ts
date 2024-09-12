@@ -317,7 +317,7 @@ export class ClassKind implements Kind {
     }
 
     getClassType(typeDetails: ClassTypeDetails | string): ClassType | undefined { // string for nominal typing
-        const key = this.printClassType(typeof typeDetails === 'string' ? { className: typeDetails, fields: []} : typeDetails);
+        const key = this.calculateIdentifier(typeof typeDetails === 'string' ? { className: typeDetails, fields: []} : typeDetails);
         return this.typir.graph.getType(key) as ClassType;
     }
 

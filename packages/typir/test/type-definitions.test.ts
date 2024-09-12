@@ -34,7 +34,7 @@ describe('Tests for Typir', () => {
         const typeBoolean = primitiveKind.createPrimitiveType({ primitiveName: 'Boolean' });
 
         // create class type Person with 1 firstName and 1..2 lastNames and a age properties
-        const typeOneOrTwoStrings = multiplicityKind.createMultiplicityForType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
+        const typeOneOrTwoStrings = multiplicityKind.createMultiplicityType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
         const typePerson = classKind.createClassType({
             className: 'Person',
             fields: [
