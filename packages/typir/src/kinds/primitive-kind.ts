@@ -29,37 +29,40 @@ export class PrimitiveType extends Type {
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isPrimitiveType(otherType)) {
             return checkValueForConflict(this.identifier, otherType.identifier, 'name');
+        } else {
+            return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
+                type1: this,
+                type2: otherType,
+                subProblems: [createKindConflict(otherType, this)],
+            }];
         }
-        return [<TypeEqualityProblem>{
-            $problem: TypeEqualityProblem,
-            type1: this,
-            type2: otherType,
-            subProblems: [createKindConflict(otherType, this)],
-        }];
     }
 
     override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
         if (isPrimitiveType(superType)) {
             return this.analyzeTypeEqualityProblems(superType);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType,
+                subType: this,
+                subProblems: [createKindConflict(this, superType)],
+            }];
         }
-        return [<SubTypeProblem>{
-            $problem: SubTypeProblem,
-            superType,
-            subType: this,
-            subProblems: [createKindConflict(this, superType)],
-        }];
     }
 
     override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
         if (isPrimitiveType(subType)) {
             return this.analyzeTypeEqualityProblems(subType);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType: this,
+                subType,
+                subProblems: [createKindConflict(subType, this)],
+            }];
         }
-        return [<SubTypeProblem>{
-            $problem: SubTypeProblem,
-            superType: this,
-            subType,
-            subProblems: [createKindConflict(subType, this)],
-        }];
     }
 
 }

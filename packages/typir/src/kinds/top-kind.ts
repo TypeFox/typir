@@ -29,26 +29,28 @@ export class TopType extends Type {
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isTopType(otherType)) {
             return [];
+        } else {
+            return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
+                type1: this,
+                type2: otherType,
+                subProblems: [createKindConflict(otherType, this)],
+            }];
         }
-        return [<TypeEqualityProblem>{
-            $problem: TypeEqualityProblem,
-            type1: this,
-            type2: otherType,
-            subProblems: [createKindConflict(otherType, this)],
-        }];
     }
 
     override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
         if (isTopType(superType)) {
             // special case by definition: TopType is sub-type of TopType
             return [];
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType,
+                subType: this,
+                subProblems: [createKindConflict(superType, this)],
+            }];
         }
-        return [<SubTypeProblem>{
-            $problem: SubTypeProblem,
-            superType,
-            subType: this,
-            subProblems: [createKindConflict(superType, this)],
-        }];
     }
 
     override analyzeIsSuperTypeOf(_subType: Type): TypirProblem[] {

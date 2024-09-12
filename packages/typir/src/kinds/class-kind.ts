@@ -97,25 +97,27 @@ export class ClassType extends Type {
     override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
         if (isClassType(superType)) {
             return this.analyzeSubTypeProblems(this, superType);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType,
+                subType: this,
+                subProblems: [createKindConflict(this, superType)],
+            }];
         }
-        return [<SubTypeProblem>{
-            $problem: SubTypeProblem,
-            superType,
-            subType: this,
-            subProblems: [createKindConflict(this, superType)],
-        }];
     }
 
     override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
         if (isClassType(subType)) {
             return this.analyzeSubTypeProblems(subType, this);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType: this,
+                subType,
+                subProblems: [createKindConflict(subType, this)],
+            }];
         }
-        return [<SubTypeProblem>{
-            $problem: SubTypeProblem,
-            superType: this,
-            subType,
-            subProblems: [createKindConflict(subType, this)],
-        }];
     }
 
     protected analyzeSubTypeProblems(subType: ClassType, superType: ClassType): TypirProblem[] {
