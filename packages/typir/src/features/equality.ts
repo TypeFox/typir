@@ -5,18 +5,20 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { Type, isType } from '../graph/type-node.js';
+import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
+import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 
-export interface TypeEqualityProblem {
+export interface TypeEqualityProblem extends TypirProblem {
+    $problem: 'TypeEqualityProblem';
     type1: Type;
     type2: Type;
     subProblems: TypirProblem[]; // might be empty
 }
+export const TypeEqualityProblem = 'TypeEqualityProblem';
 export function isTypeEqualityProblem(problem: unknown): problem is TypeEqualityProblem {
-    return typeof problem === 'object' && problem !== null && isType((problem as TypeEqualityProblem).type1) && isType((problem as TypeEqualityProblem).type2);
+    return isConcreteTypirProblem(problem, TypeEqualityProblem);
 }
 
 // TODO comments
@@ -59,6 +61,7 @@ export class DefaultTypeEquality implements TypeEquality {
         }
         if (linkRelationship === 'NO_LINK') {
             return {
+                $problem: TypeEqualityProblem,
                 type1,
                 type2,
                 subProblems: isTypeEqualityProblem(linkData.additionalData) ? [linkData.additionalData] : [],
@@ -102,6 +105,7 @@ export class DefaultTypeEquality implements TypeEquality {
             // if type1 and type2 have the same kind, there is no need to check the same kind twice
             // TODO does this make sense?
             return {
+                $problem: TypeEqualityProblem,
                 type1,
                 type2,
                 subProblems: result1,
@@ -114,6 +118,7 @@ export class DefaultTypeEquality implements TypeEquality {
         }
         // both types reported, that they are diffferent
         return {
+            $problem: TypeEqualityProblem,
             type1,
             type2,
             subProblems: [...result1, ...result2] // return the equality problems of both types

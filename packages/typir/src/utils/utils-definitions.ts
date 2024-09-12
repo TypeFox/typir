@@ -4,17 +4,17 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AssignabilityProblem } from '../features/assignability.js';
-import { TypeEqualityProblem } from '../features/equality.js';
-import { InferenceProblem } from '../features/inference.js';
-import { SubTypeProblem } from '../features/subtype.js';
-import { ValidationProblem } from '../features/validation.js';
 import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { ValueConflict, IndexedTypeConflict } from './utils-type-comparison.js';
 
 // TODO besser durch implements Interface lösen, weil das einfacher zu erweitern ist!!
-export type TypirProblem = ValueConflict | IndexedTypeConflict | AssignabilityProblem | SubTypeProblem | TypeEqualityProblem | InferenceProblem | ValidationProblem;
+// export type TypirProblem = ValueConflict | IndexedTypeConflict | AssignabilityProblem | SubTypeProblem | TypeEqualityProblem | InferenceProblem | ValidationProblem;
+export interface TypirProblem {
+    readonly $problem: string;
+}
+export function isConcreteTypirProblem(problem: unknown, $problem: string): problem is TypirProblem {
+    return typeof problem === 'object' && problem !== null && ((problem as TypirProblem).$problem === $problem);
+}
 
 export type Types = Type | Type[];
 export type Names = string | string[];

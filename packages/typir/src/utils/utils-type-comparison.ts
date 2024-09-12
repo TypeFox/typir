@@ -6,10 +6,10 @@
 
 import { assertUnreachable } from 'langium';
 import { isType, Type } from '../graph/type-node.js';
+import { Kind } from '../kinds/kind.js';
 import { Typir } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
-import { NameTypePair, TypirProblem } from './utils-definitions.js';
-import { Kind } from '../kinds/kind.js';
+import { isConcreteTypirProblem, NameTypePair, TypirProblem } from './utils-definitions.js';
 
 export type TypeCheckStrategy =
     'EQUAL_TYPE' | // the most strict checking
@@ -34,21 +34,24 @@ export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: Typi
     }
 }
 
-export interface ValueConflict {
+export interface ValueConflict extends TypirProblem {
+    readonly $problem: 'ValueConflict';
     // 'undefined' means value is missing, 'string' is the string representation of the value
     firstValue: string | undefined;
     secondValue: string | undefined;
     location: string;
 }
+export const ValueConflict = 'ValueConflict';
 export function isValueConflict(problem: unknown): problem is ValueConflict {
-    return typeof problem === 'object' && problem !== null
-        && ((typeof (problem as ValueConflict).firstValue === 'string') || (typeof (problem as ValueConflict).secondValue === 'string'));
+    return isConcreteTypirProblem(problem, ValueConflict);
 }
+
 export function checkValueForConflict<T>(first: T, second: T, location: string,
     relationToCheck: (e: T, a: T) => boolean = (e, a) => e === a): ValueConflict[] {
     const conflicts: ValueConflict[] = [];
     if (relationToCheck(first, second) === false) {
         conflicts.push({
+            $problem: ValueConflict,
             firstValue: `${first}`,
             secondValue: `${second}`,
             location
@@ -65,21 +68,24 @@ export function createKindConflict(first: Type | Kind, second: Type | Kind): Val
         second = second.kind;
     }
     return {
+        $problem: ValueConflict,
         firstValue: first.$name,
         secondValue: second.$name,
         location: 'kind',
     };
 }
 
-export interface IndexedTypeConflict {
+export interface IndexedTypeConflict extends TypirProblem {
+    $problem: 'IndexedTypeConflict';
     // 'undefined' means type or information is missing, 'string' is for data which are no Types
     expected: Type | undefined; // first, left
     actual: Type | undefined; // second, right
     index: number | string;
     subProblems: TypirProblem[];
 }
+export const IndexedTypeConflict = 'IndexedTypeConflict';
 export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeConflict {
-    return typeof problem === 'object' && problem !== null && ['string', 'number'].includes(typeof (problem as IndexedTypeConflict).index);
+    return isConcreteTypirProblem(problem, IndexedTypeConflict);
 }
 
 export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], checkNames: boolean, relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
@@ -89,6 +95,7 @@ export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], 
         const subProblems = checkNameTypePair(left[i], right[i], checkNames, relationToCheck);
         if (subProblems.length >= 1) {
             conflicts.push({
+                $problem: IndexedTypeConflict,
                 expected: left[i].type,
                 actual: right[i].type,
                 index: `${i}-${left[i].name}`,
@@ -101,6 +108,7 @@ export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], 
     // existing in right, but missing in left
     for (let i = left.length; i < right.length; i++) {
         conflicts.push({
+            $problem: IndexedTypeConflict,
             expected: undefined,
             actual: right[i].type,
             index: `${i}-${right[i].name}`,
@@ -110,6 +118,7 @@ export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], 
     // existing in left, but missing in right
     for (let i = right.length; i < left.length; i++) {
         conflicts.push({
+            $problem: IndexedTypeConflict,
             expected: left[i].type,
             actual: undefined,
             index: `${i}-${left[i].name}`,
@@ -134,6 +143,7 @@ export function checkNameTypePair(left: NameTypePair | undefined, right: NameTyp
         }
         if (subProblems.length >= 1) {
             conflicts.push({
+                $problem: IndexedTypeConflict,
                 expected: left.type,
                 actual: right.type,
                 index: left.name,
@@ -144,6 +154,7 @@ export function checkNameTypePair(left: NameTypePair | undefined, right: NameTyp
         }
     } else if ((left === undefined) && (right !== undefined)) {
         conflicts.push({
+            $problem: IndexedTypeConflict,
             expected: undefined,
             actual: right.type,
             index: right.name,
@@ -151,6 +162,7 @@ export function checkNameTypePair(left: NameTypePair | undefined, right: NameTyp
         });
     } else if ((left !== undefined) && (right === undefined)) {
         conflicts.push({
+            $problem: IndexedTypeConflict,
             expected: left.type,
             actual: undefined,
             index: left.name,
@@ -173,6 +185,7 @@ export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array
         } else if (left !== undefined && right === undefined) {
             // missing in the right
             conflicts.push({
+                $problem: IndexedTypeConflict,
                 expected: left,
                 actual: undefined,
                 index: i,
@@ -181,6 +194,7 @@ export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array
         } else if (left === undefined && right !== undefined) {
             // missing in the right
             conflicts.push({
+                $problem: IndexedTypeConflict,
                 expected: undefined,
                 actual: right,
                 index: i,
@@ -191,6 +205,7 @@ export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array
             const relationCheckResult = relationToCheck(left!, right!);
             if (relationCheckResult !== undefined) {
                 conflicts.push({
+                    $problem: IndexedTypeConflict,
                     expected: left,
                     actual: right,
                     index: i,
@@ -206,6 +221,7 @@ export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array
     // missing in the left
     for (let i = leftTypes.length; i < rightTypes.length; i++) {
         conflicts.push({
+            $problem: IndexedTypeConflict,
             expected: undefined,
             actual: rightTypes[i],
             index: i,
@@ -215,6 +231,7 @@ export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array
     // missing in the right
     for (let i = rightTypes.length; i < leftTypes.length; i++) {
         conflicts.push({
+            $problem: IndexedTypeConflict,
             expected: leftTypes[i],
             actual: undefined,
             index: i,
@@ -239,6 +256,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
             } else if (sourceType === undefined && targetType !== undefined) {
                 // only the target type exists
                 conflicts.push({
+                    $problem: IndexedTypeConflict,
                     expected: undefined,
                     actual: targetType,
                     index: name,
@@ -247,6 +265,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
             } else if (sourceType !== undefined && targetType === undefined) {
                 // only the source type exists
                 conflicts.push({
+                    $problem: IndexedTypeConflict,
                     expected: sourceType,
                     actual: undefined,
                     index: name,
@@ -258,6 +277,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                 if (relationCheckResult !== undefined) {
                     // different types
                     conflicts.push({
+                        $problem: IndexedTypeConflict,
                         expected: sourceType,
                         actual: targetType,
                         index: name,
@@ -275,6 +295,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                 // this is OK
             } else {
                 conflicts.push({
+                    $problem: IndexedTypeConflict,
                     expected: sourceType,
                     actual: undefined,
                     index: name,
@@ -289,6 +310,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
             // this is OK
         } else {
             conflicts.push({
+                $problem: IndexedTypeConflict,
                 expected: undefined,
                 actual,
                 index,

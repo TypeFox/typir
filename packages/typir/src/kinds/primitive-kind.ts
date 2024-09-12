@@ -31,6 +31,7 @@ export class PrimitiveType extends Type {
             return checkValueForConflict(this.identifier, otherType.identifier, 'name');
         }
         return [<TypeEqualityProblem>{
+            $problem: TypeEqualityProblem,
             type1: this,
             type2: otherType,
             subProblems: [createKindConflict(otherType, this)],
@@ -42,6 +43,7 @@ export class PrimitiveType extends Type {
             return this.analyzeTypeEqualityProblems(superType);
         }
         return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
             superType,
             subType: this,
             subProblems: [createKindConflict(this, superType)],
@@ -53,6 +55,7 @@ export class PrimitiveType extends Type {
             return this.analyzeTypeEqualityProblems(subType);
         }
         return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
             superType: this,
             subType,
             subProblems: [createKindConflict(subType, this)],

@@ -6,7 +6,7 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
+import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
@@ -19,11 +19,13 @@ export interface ValidationMessageDetails {
     message: string;
 }
 
-export interface ValidationProblem extends ValidationMessageDetails {
+export interface ValidationProblem extends ValidationMessageDetails, TypirProblem {
+    $problem: 'ValidationProblem';
     subProblems?: TypirProblem[];
 }
+export const ValidationProblem = 'ValidationProblem';
 export function isValidationProblem(problem: unknown): problem is ValidationProblem {
-    return typeof problem === 'object' && problem !== null && typeof (problem as ValidationProblem).severity === 'string' && (problem as ValidationProblem).message !== undefined;
+    return isConcreteTypirProblem(problem, ValidationProblem);
 }
 
 export type ValidationRule = (domainElement: unknown, typir: Typir) => ValidationProblem[];
@@ -78,6 +80,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                     } else {
                         const details = message(actualType, expectedType);
                         return [{
+                            $problem: ValidationProblem,
                             domainElement: details.domainElement ?? domainNode,
                             domainProperty: details.domainProperty,
                             domainIndex: details.domainIndex,
@@ -90,6 +93,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                     if (negated) {
                         const details = message(actualType, expectedType);
                         return [{
+                            $problem: ValidationProblem,
                             domainElement: details.domainElement ?? domainNode,
                             domainProperty: details.domainProperty,
                             domainIndex: details.domainIndex,

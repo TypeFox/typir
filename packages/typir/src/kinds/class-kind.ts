@@ -86,6 +86,7 @@ export class ClassType extends Type {
             }
         } else {
             return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(otherType, this)],
@@ -98,6 +99,7 @@ export class ClassType extends Type {
             return this.analyzeSubTypeProblems(this, superType);
         }
         return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
             superType,
             subType: this,
             subProblems: [createKindConflict(this, superType)],
@@ -109,6 +111,7 @@ export class ClassType extends Type {
             return this.analyzeSubTypeProblems(subType, this);
         }
         return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
             superType: this,
             subType,
             subProblems: [createKindConflict(subType, this)],
@@ -128,6 +131,7 @@ export class ClassType extends Type {
                     const subTypeComparison = checkStrategy(subFieldType, superFieldType);
                     if (subTypeComparison !== undefined) {
                         conflicts.push({
+                            $problem: IndexedTypeConflict,
                             expected: superType,
                             actual: subType,
                             index: superFieldName,
@@ -139,6 +143,7 @@ export class ClassType extends Type {
                 } else {
                     // missing sub field
                     conflicts.push({
+                        $problem: IndexedTypeConflict,
                         expected: superFieldType,
                         actual: undefined,
                         index: superFieldName,
@@ -361,6 +366,7 @@ export class ClassKind implements Kind {
                         return fieldType;
                     }
                     return <InferenceProblem>{
+                        $problem: InferenceProblem,
                         domainElement,
                         inferenceCandidate: classType,
                         location: `unknown field '${result}'`,
@@ -411,6 +417,7 @@ export class ClassKind implements Kind {
                 if (checkedFieldsProblems.length >= 1) {
                     // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
                     return <InferenceProblem>{
+                        $problem: InferenceProblem,
                         domainElement,
                         inferenceCandidate: classType,
                         location: 'values for fields',

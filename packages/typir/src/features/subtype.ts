@@ -5,19 +5,21 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { Type, isType } from '../graph/type-node.js';
+import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
+import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
 
-export interface SubTypeProblem {
+export interface SubTypeProblem extends TypirProblem {
+    $problem: 'SubTypeProblem';
     // 'undefined' means type or information is missing, 'string' is for data which are no Types
     superType: Type;
     subType: Type;
     subProblems: TypirProblem[]; // might be empty
 }
+export const SubTypeProblem = 'SubTypeProblem';
 export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
-    return typeof problem === 'object' && problem !== null && isType((problem as SubTypeProblem).superType) && isType((problem as SubTypeProblem).subType);
+    return isConcreteTypirProblem(problem, SubTypeProblem);
 }
 
 // TODO new feature: allow to mark arbitrary types with a sub-type edge! (similar to conversion!)
@@ -75,6 +77,7 @@ export class DefaultSubType implements SubType {
         }
         if (linkRelationship === 'NO_LINK') {
             return {
+                $problem: SubTypeProblem,
                 superType,
                 subType,
                 subProblems: isSubTypeProblem(linkData.additionalData) ? [linkData.additionalData] : [],
@@ -111,6 +114,7 @@ export class DefaultSubType implements SubType {
             // if sub type and super type have the same kind, there is no need to check the same kind twice
             // TODO does this make sense?
             return {
+                $problem: SubTypeProblem,
                 superType,
                 subType,
                 subProblems: resultSub,
@@ -122,6 +126,7 @@ export class DefaultSubType implements SubType {
             return undefined;
         }
         return {
+            $problem: SubTypeProblem,
             superType,
             subType,
             subProblems: [...resultSuper, ...resultSub], // return the sub-type problems of both types

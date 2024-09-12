@@ -45,6 +45,7 @@ export class MultiplicityType extends Type {
             return conflicts;
         } else {
             return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(otherType, this)],
@@ -57,6 +58,7 @@ export class MultiplicityType extends Type {
             return this.analyzeSubTypeProblems(this, superType);
         }
         return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
             superType,
             subType: this,
             subProblems: [createKindConflict(this, superType)],
@@ -68,6 +70,7 @@ export class MultiplicityType extends Type {
             return this.analyzeSubTypeProblems(subType, this);
         }
         return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
             superType: this,
             subType,
             subProblems: [createKindConflict(subType, this)],

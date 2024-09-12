@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeEqualityProblem } from '../features/equality.js';
-import { CompositeTypeInferenceRule, InferenceRuleNotApplicable } from '../features/inference.js';
+import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { DefaultValidationCollector, ValidationCollector, ValidationProblem } from '../features/validation.js';
 import { Type, isType } from '../graph/type-node.js';
@@ -86,6 +86,7 @@ export class FunctionType extends Type {
             return conflicts;
         } else {
             return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(otherType, this)],
@@ -98,6 +99,7 @@ export class FunctionType extends Type {
             return this.analyzeSubTypeProblems(this, superType);
         }
         return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
             superType,
             subType: this,
             subProblems: [createKindConflict(this, superType)],
@@ -109,6 +111,7 @@ export class FunctionType extends Type {
             return this.analyzeSubTypeProblems(subType, this);
         }
         return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
             superType: this,
             subType,
             subProblems: [createKindConflict(subType, this)],
@@ -278,10 +281,11 @@ export class FunctionKind implements Kind {
                                     const parameterLength = checkValueForConflict(expectedParameterTypes.length, inputArguments.length, 'number of input parameter values');
                                     if (parameterLength.length >= 1) {
                                         currentProblems.push({
+                                            $problem: ValidationProblem,
                                             domainElement,
                                             severity: 'error',
                                             message: 'The number of given parameter values does not match the expected number of input parameters.',
-                                            subProblems: parameterLength
+                                            subProblems: parameterLength,
                                         });
                                     } else {
                                         // there are parameter values to check their types
@@ -294,6 +298,7 @@ export class FunctionKind implements Kind {
                                                 if (parameterComparison !== undefined) {
                                                     // the value is not assignable to the type of the input parameter
                                                     currentProblems.push({
+                                                        $problem: ValidationProblem,
                                                         domainElement: inputArguments[i],
                                                         severity: 'error',
                                                         message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
@@ -305,6 +310,7 @@ export class FunctionKind implements Kind {
                                             } else {
                                                 // the type of the value for the input parameter is not inferrable
                                                 currentProblems.push({
+                                                    $problem: ValidationProblem,
                                                     // Note that the node of the current parameter is chosen here, while the problem is a sub-problem of the whole function!
                                                     domainElement: inputArguments[i],
                                                     severity: 'error',
@@ -318,6 +324,7 @@ export class FunctionKind implements Kind {
                                     if (currentProblems.length >= 1) {
                                         // some problems with parameters => this signature does not match
                                         resultOverloaded.push({
+                                            $problem: ValidationProblem,
                                             domainElement,
                                             severity: 'error',
                                             message: `The given operands for the function '${this.typir.printer.printType(singleFunction.functionType)}' match the expected types only partially.`,
@@ -341,6 +348,7 @@ export class FunctionKind implements Kind {
                     if (resultOverloaded.length >= 1) {
                         if (isOverloaded) {
                             resultAll.push({
+                                $problem: ValidationProblem,
                                 domainElement,
                                 severity: 'error',
                                 message: `The given operands for the overloaded function '${overloadedName}' match the expected types only partially.`,
@@ -471,6 +479,7 @@ export class FunctionKind implements Kind {
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
                         return {
+                            $problem: InferenceProblem,
                             domainElement,
                             inferenceCandidate: functionType,
                             location: 'input parameters',

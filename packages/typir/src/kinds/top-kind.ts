@@ -31,6 +31,7 @@ export class TopType extends Type {
             return [];
         }
         return [<TypeEqualityProblem>{
+            $problem: TypeEqualityProblem,
             type1: this,
             type2: otherType,
             subProblems: [createKindConflict(otherType, this)],
@@ -43,6 +44,7 @@ export class TopType extends Type {
             return [];
         }
         return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
             superType,
             subType: this,
             subProblems: [createKindConflict(superType, this)],

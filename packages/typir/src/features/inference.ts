@@ -4,19 +4,21 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, isType } from '../graph/type-node.js';
+import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
+import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 
-export interface InferenceProblem {
+export interface InferenceProblem extends TypirProblem {
+    $problem: 'InferenceProblem';
     domainElement: unknown;
     inferenceCandidate?: Type;
     location: string;
     rule?: TypeInferenceRule; // for debugging only, since rules have no names (so far); TODO this does not really work with TypeInferenceRuleWithoutInferringChildren
     subProblems: TypirProblem[]; // might be missing or empty
 }
+export const InferenceProblem = 'InferenceProblem';
 export function isInferenceProblem(problem: unknown): problem is InferenceProblem {
-    return typeof problem === 'object' && problem !== null && typeof (problem as InferenceProblem).location === 'string' && (problem as InferenceProblem).domainElement !== undefined;
+    return isConcreteTypirProblem(problem, InferenceProblem);
 }
 
 // Type and Value to indicate, that an inference rule is intended for another case, and therefore is unable to infer a type for the current case.
@@ -107,6 +109,7 @@ export class CompositeTypeInferenceRule implements TypeInferenceRuleWithInferrin
                 return result[0];
             } else {
                 return <InferenceProblem>{
+                    $problem: InferenceProblem,
                     domainElement,
                     location: 'sub-rules for inference',
                     rule: this,
@@ -203,6 +206,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                         const child = childTypes[i];
                         if (Array.isArray(child)) {
                             childTypeProblems.push({
+                                $problem: InferenceProblem,
                                 domainElement: childElements[i],
                                 location: `child element ${i}`,
                                 rule,
@@ -212,6 +216,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                     }
                     if (childTypeProblems.length >= 1) {
                         collectedInferenceProblems.push({
+                            $problem: InferenceProblem,
                             domainElement,
                             location: 'inferring depending children',
                             rule,
@@ -244,6 +249,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
         if (collectedInferenceProblems.length <= 0) {
             // document the reason, why neither a type nor inference problems are found
             collectedInferenceProblems.push({
+                $problem: InferenceProblem,
                 domainElement,
                 location: 'found no applicable inference rules',
                 subProblems: [],

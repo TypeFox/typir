@@ -74,6 +74,7 @@ export class FixedParameterType extends Type {
             }
         } else {
             return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(this, otherType)],
@@ -86,6 +87,7 @@ export class FixedParameterType extends Type {
             return this.analyzeSubTypeProblems(this, superType);
         } else {
             return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
                 superType,
                 subType: this,
                 subProblems: [createKindConflict(this, superType)],
@@ -98,6 +100,7 @@ export class FixedParameterType extends Type {
             return this.analyzeSubTypeProblems(subType, this);
         } else {
             return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
                 superType: this,
                 subType,
                 subProblems: [createKindConflict(subType, this)],

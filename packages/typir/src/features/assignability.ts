@@ -4,17 +4,19 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, isType } from '../graph/type-node.js';
+import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
+import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 
-export interface AssignabilityProblem {
+export interface AssignabilityProblem extends TypirProblem {
+    $problem: 'AssignabilityProblem';
     source: Type;
     target: Type;
     subProblems: TypirProblem[];
 }
+export const AssignabilityProblem = 'AssignabilityProblem';
 export function isAssignabilityProblem(problem: unknown): problem is AssignabilityProblem {
-    return typeof problem === 'object' && problem !== null && isType((problem as AssignabilityProblem).source) && isType((problem as AssignabilityProblem).target);
+    return isConcreteTypirProblem(problem, AssignabilityProblem);
 }
 
 export interface TypeAssignability {
@@ -46,6 +48,7 @@ export class DefaultTypeAssignability implements TypeAssignability {
             return undefined;
         } else {
             return {
+                $problem: AssignabilityProblem,
                 source,
                 target,
                 subProblems: [subTypeResult]
