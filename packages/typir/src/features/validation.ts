@@ -30,7 +30,13 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
 
 export type ValidationRule = (domainElement: unknown, typir: Typir) => ValidationProblem[];
 
-export type ValidationMessageProvider = (actual: Type, expected: Type) => Partial<ValidationMessageDetails>;
+/** Annotate types after the validation with additional information in order to ease the creation of usefull messages. */
+export interface AnnotatedTypeAfterValidation {
+    type: Type;
+    userRepresentation: string;
+    name: string;
+}
+export type ValidationMessageProvider = (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails>;
 
 export interface ValidationConstraints {
     ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
@@ -78,7 +84,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                     if (negated) {
                         // everything is fine
                     } else {
-                        const details = message(actualType, expectedType);
+                        const details = message(this.annotateType(actualType), this.annotateType(expectedType));
                         return [{
                             $problem: ValidationProblem,
                             domainElement: details.domainElement ?? domainNode,
@@ -91,7 +97,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                     }
                 } else {
                     if (negated) {
-                        const details = message(actualType, expectedType);
+                        const details = message(this.annotateType(actualType), this.annotateType(expectedType));
                         return [{
                             $problem: ValidationProblem,
                             domainElement: details.domainElement ?? domainNode,
@@ -111,7 +117,16 @@ export class DefaultValidationConstraints implements ValidationConstraints {
         }
         return [];
     }
+
+    protected annotateType(type: Type): AnnotatedTypeAfterValidation {
+        return {
+            type,
+            userRepresentation: this.typir.printer.printType(type),
+            name: type.identifier,
+        };
+    }
 }
+
 
 export interface ValidationCollector {
     validate(domainElement: unknown): ValidationProblem[];

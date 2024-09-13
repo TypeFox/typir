@@ -157,13 +157,13 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
                     ...typir.validation.constraints.ensureNodeHasNotType(node, typeVoid,
                         () => <ValidationMessageDetails>{ message: "Variables can't be declared with the type 'void'.", domainProperty: 'type' }),
                     ...typir.validation.constraints.ensureNodeIsAssignable(node.value, node,
-                        (actual, expected) => <ValidationMessageDetails>{ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.identifier}' is not assignable to the variable '${node.name}' with type '${expected.identifier}'.`, domainProperty: 'value' })
+                        (actual, expected) => <ValidationMessageDetails>{ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, domainProperty: 'value' })
                 ];
             }
             if (isAssignmentStatement(node) && node.varRef.ref) {
                 return typir.validation.constraints.ensureNodeIsAssignable(node.value, node.varRef.ref,
                     (actual, expected) => <ValidationMessageDetails>{
-                        message: `The expression '${node.value.$cstNode?.text}' of type '${actual.identifier}' is not assignable to the variable '${node.varRef.ref!.name}' with type '${expected.identifier}'.`,
+                        message: `The expression '${node.value.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.varRef.ref!.name}' with type '${expected.name}'.`,
                         domainProperty: 'value',
                     });
             }
