@@ -8,7 +8,8 @@ import { assertUnreachable } from 'langium';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
-import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
+import { CachingKind, TypeRelationshipCaching } from './caching.js';
+import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 
 export interface TypeEqualityProblem extends TypirProblem {
     $problem: 'TypeEqualityProblem';
@@ -40,12 +41,18 @@ export class DefaultTypeEquality implements TypeEquality {
 
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined {
         const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
-        const linkData = cache.getRelationship(type1, type2, EQUAL_TYPE, false);
-        const linkRelationship = linkData.relationship;
+        const linkData = cache.getRelationship<EqualityEdge>(type1, type2, EqualityEdge, false);
+        const linkRelationship = linkData?.cachingInformation ?? 'UNKNOWN';
 
-        const save = (relationship: RelationshipKind, error: TypeEqualityProblem | undefined): void => {
-            cache.setRelationship(type1, type2, EQUAL_TYPE, false, relationship, error);
-        };
+        function save(relationship: CachingKind, error: TypeEqualityProblem | undefined): void {
+            const newEdge: EqualityEdge = {
+                $meaning: EqualityEdge,
+                from: type1,
+                to: type2,
+                error,
+            };
+            cache.setOrUpdateRelationship(newEdge, false, relationship);
+        }
 
         // skip recursive checking
         if (linkRelationship === 'PENDING') {
@@ -64,7 +71,7 @@ export class DefaultTypeEquality implements TypeEquality {
                 $problem: TypeEqualityProblem,
                 type1,
                 type2,
-                subProblems: isTypeEqualityProblem(linkData.additionalData) ? [linkData.additionalData] : [],
+                subProblems: linkData?.error ? [linkData.error] : [],
             };
         }
 
@@ -73,7 +80,7 @@ export class DefaultTypeEquality implements TypeEquality {
             // mark the current relationship as PENDING to detect and resolve cycling checks
             save('PENDING', undefined);
 
-            // do the real logic
+            // do the real calculation
             const result = this.calculateEquality(type1, type2);
 
             // this allows to cache results (and to re-set the PENDING state)
@@ -127,4 +134,12 @@ export class DefaultTypeEquality implements TypeEquality {
 
 }
 
-const EQUAL_TYPE = 'areEqual';
+export interface EqualityEdge extends TypeEdge {
+    readonly $meaning: 'EqualityEdge';
+    readonly error: TypeEqualityProblem | undefined;
+}
+export const EqualityEdge = 'EqualityEdge';
+
+export function isEqualityEdge(edge: unknown): edge is EqualityEdge {
+    return isTypeEdge(edge) && edge.$meaning === EqualityEdge;
+}

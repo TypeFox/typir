@@ -27,7 +27,7 @@ export abstract class Type {
     readonly identifier: string;
 
     // this is required only to apply graph algorithms in a generic way!
-    // is there a simplier solution to combine generic graph algoriths with specifc properties?
+    // $meaning is used as key
     protected readonly edgesIncoming: Map<string, TypeEdge[]> = new Map();
     protected readonly edgesOutgoing: Map<string, TypeEdge[]> = new Map();
 
@@ -70,7 +70,7 @@ export abstract class Type {
 
 
     addIncomingEdge(edge: TypeEdge): void {
-        const key = edge.meaning;
+        const key = edge.$meaning;
         if (this.edgesIncoming.has(key)) {
             this.edgesIncoming.get(key)!.push(edge);
         } else {
@@ -78,7 +78,7 @@ export abstract class Type {
         }
     }
     addOutgoingEdge(edge: TypeEdge): void {
-        const key = edge.meaning;
+        const key = edge.$meaning;
         if (this.edgesOutgoing.has(key)) {
             this.edgesOutgoing.get(key)!.push(edge);
         } else {
@@ -87,7 +87,7 @@ export abstract class Type {
     }
 
     removeIncomingEdge(edge: TypeEdge): boolean {
-        const key = edge.meaning;
+        const key = edge.$meaning;
         const list = this.edgesIncoming.get(key);
         if (list) {
             const index = list.indexOf(edge);
@@ -102,7 +102,7 @@ export abstract class Type {
         return false;
     }
     removeOutgoingEdge(edge: TypeEdge): boolean {
-        const key = edge.meaning;
+        const key = edge.$meaning;
         const list = this.edgesOutgoing.get(key);
         if (list) {
             const index = list.indexOf(edge);
@@ -117,11 +117,11 @@ export abstract class Type {
         return false;
     }
 
-    getIncomingEdges(key: string): TypeEdge[] {
-        return this.edgesIncoming.get(key) ?? [];
+    getIncomingEdges<T extends TypeEdge>($meaning: T['$meaning']): T[] {
+        return this.edgesIncoming.get($meaning) as T[] ?? [];
     }
-    getOutgoingEdges(key: string): TypeEdge[] {
-        return this.edgesOutgoing.get(key) ?? [];
+    getOutgoingEdges<T extends TypeEdge>($meaning: T['$meaning']): T[] {
+        return this.edgesOutgoing.get($meaning) as T[] ?? [];
     }
 
     getAllIncomingEdges(): TypeEdge[] {

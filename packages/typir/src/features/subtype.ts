@@ -5,10 +5,11 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
+import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
-import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
+import { CachingKind, TypeRelationshipCaching } from './caching.js';
 
 export interface SubTypeProblem extends TypirProblem {
     $problem: 'SubTypeProblem';
@@ -55,12 +56,17 @@ export class DefaultSubType implements SubType {
 
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined {
         const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
+        const linkData = cache.getRelationship<SubTypeEdge>(subType, superType, SubTypeEdge, true);
+        const linkRelationship = linkData?.cachingInformation ?? 'UNKNOWN';
 
-        const linkData = cache.getRelationship(subType, superType, SUB_TYPE, true);
-        const linkRelationship = linkData.relationship;
-
-        const save = (relationship: RelationshipKind, error: SubTypeProblem | undefined): void => {
-            cache.setRelationship(subType, superType, SUB_TYPE, false, relationship, error);
+        const save = (relationship: CachingKind, error: SubTypeProblem | undefined): void => {
+            const newEdge: SubTypeEdge = {
+                $meaning: SubTypeEdge,
+                from: subType,
+                to: superType,
+                error,
+            };
+            cache.setOrUpdateRelationship(newEdge, true, relationship);
         };
 
         // skip recursive checking
@@ -80,7 +86,7 @@ export class DefaultSubType implements SubType {
                 $problem: SubTypeProblem,
                 superType,
                 subType,
-                subProblems: isSubTypeProblem(linkData.additionalData) ? [linkData.additionalData] : [],
+                subProblems: linkData?.error ? [linkData.error] : [],
             };
         }
 
@@ -89,7 +95,7 @@ export class DefaultSubType implements SubType {
             // mark the current relationship as PENDING to detect and resolve cycling checks
             save('PENDING', undefined);
 
-            // do the real logic
+            // do the real calculation
             const result = this.calculateSubType(superType, subType);
 
             // this allows to cache results (and to re-set the PENDING state)
@@ -140,4 +146,12 @@ export class DefaultSubType implements SubType {
     }
 }
 
-const SUB_TYPE = 'isSubTypeOf';
+export interface SubTypeEdge extends TypeEdge {
+    readonly $meaning: 'SubTypeEdge';
+    readonly error: SubTypeProblem | undefined;
+}
+export const SubTypeEdge = 'SubTypeEdge';
+
+export function isSubTypeEdge(edge: unknown): edge is SubTypeEdge {
+    return isTypeEdge(edge) && edge.$meaning === SubTypeEdge;
+}

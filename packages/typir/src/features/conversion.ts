@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEdge } from '../graph/type-edge.js';
+import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { toArray } from '../utils/utils.js';
@@ -83,7 +83,7 @@ export class DefaultTypeConversion implements TypeConversion {
 
     protected markAsConvertibleSingle(from: Type, to: Type, mode: ConversionMode): void {
         const storeNothing = mode === 'NONE' || mode === 'SELF';
-        let edge = this.getEdge(from, to);
+        let edge = this.getConversionEdge(from, to);
         if (storeNothing) {
             if (edge) {
                 // remove an existing edge
@@ -95,10 +95,17 @@ export class DefaultTypeConversion implements TypeConversion {
             // add or update the current ConversionMode
             if (!edge) {
                 // create a missing edge
-                edge = new TypeEdge(from, to, TYPE_CONVERSION);
+                edge = {
+                    $meaning: ConversionEdge,
+                    from,
+                    to,
+                    mode,
+                };
                 this.typir.graph.addEdge(edge);
+            } else {
+                // update the mode
+                edge.mode = mode;
             }
-            edge.properties.set(TYPE_CONVERSION_MODE, mode);
 
             // check, that the new edges did not introduce cycles
             this.checkForCycles(mode);
@@ -123,9 +130,9 @@ export class DefaultTypeConversion implements TypeConversion {
 
     getConversion(from: Type, to: Type): ConversionMode {
         // check whether the direct conversion is stored in the type graph (this is quite fast)
-        const edge = this.getEdge(from, to);
+        const edge = this.getConversionEdge(from, to);
         if (edge) {
-            return edge.properties.get(TYPE_CONVERSION_MODE) as ConversionMode;
+            return edge.mode;
         }
 
         // special case: if both types are equal, no conversion is needed (often this check is quite fast)
@@ -155,10 +162,17 @@ export class DefaultTypeConversion implements TypeConversion {
         return currentMode === mode;
     }
 
-    protected getEdge(from: Type, to: Type): TypeEdge | undefined {
-        return from.getOutgoingEdges(TYPE_CONVERSION).find(edge => edge.to === to);
+    protected getConversionEdge(from: Type, to: Type): ConversionEdge | undefined {
+        return from.getOutgoingEdges<ConversionEdge>(ConversionEdge).find(edge => edge.to === to);
     }
 }
 
-const TYPE_CONVERSION = 'isConvertibleTo';
-const TYPE_CONVERSION_MODE = 'mode';
+export interface ConversionEdge extends TypeEdge {
+    readonly $meaning: 'ConversionEdge';
+    mode: ConversionMode;
+}
+export const ConversionEdge = 'ConversionEdge';
+
+export function isConversionEdge(edge: unknown): edge is ConversionEdge {
+    return isTypeEdge(edge) && edge.$meaning === ConversionEdge;
+}

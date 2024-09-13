@@ -4,18 +4,16 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { CachingKind } from '../features/caching.js';
 import { Type } from './type-node.js';
 
-// TODO make TypeEdge abstract??
-export class TypeEdge {
+export interface TypeEdge {
+    readonly $meaning: string;
     readonly from: Type;
     readonly to: Type;
-    readonly meaning: string; // unique keys to indicate the meaning of this edge
-    readonly properties: Map<string, unknown> = new Map(); // store arbitrary data along edges
+    cachingInformation?: CachingKind;
+}
 
-    constructor(from: Type, to: Type, meaning: string) {
-        this.from = from;
-        this.to = to;
-        this.meaning = meaning;
-    }
+export function isTypeEdge(edge: unknown): edge is TypeEdge {
+    return typeof edge === 'object' && edge !== null && typeof (edge as TypeEdge).$meaning === 'string';
 }
