@@ -35,11 +35,6 @@ import { Kind } from './kinds/kind.js';
  *     - Cycles at instances/objects: Parent used as Child?!
  */
 
-/** TODO missing things
- * - support dedicated inference rules for all kinds
- * - separate kinds for bottom and top types!
- */
-
 export class Typir {
     // store types and kinds
     graph: TypeGraph = new TypeGraph();

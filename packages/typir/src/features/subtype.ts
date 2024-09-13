@@ -104,14 +104,19 @@ export class DefaultSubType implements SubType {
     }
 
     protected calculateSubType(superType: Type, subType: Type): SubTypeProblem | undefined {
-        // check the types: delegated to the kinds
+        /** Approach:
+         * - delegated to the types, since they realize type-specific sub-type checking
+         * - Therefore, it is not necessary to add special cases for TopType and BottomType here (e.g. if (isTopType(superType)) { return undefined; }).
+         * - Additionally, this allows users of Typir to implement top/bottom types on their own without changing this implementation here!
+         */
+
         // 1st delegate to the kind of the sub type
         const resultSub = subType.analyzeIsSubTypeOf(superType);
         if (resultSub.length <= 0) {
             return undefined;
         }
+        // if sub type and super type have the same kind, there is no need to check the same kind twice
         if (superType.kind.$name === subType.kind.$name) {
-            // if sub type and super type have the same kind, there is no need to check the same kind twice
             // TODO does this make sense?
             return {
                 $problem: SubTypeProblem,
@@ -120,6 +125,7 @@ export class DefaultSubType implements SubType {
                 subProblems: resultSub,
             };
         }
+
         // 2nd delegate to the kind of the super type
         const resultSuper = superType.analyzeIsSuperTypeOf(subType);
         if (resultSuper.length <= 0) {
