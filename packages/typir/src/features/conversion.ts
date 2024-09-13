@@ -10,10 +10,23 @@ import { Typir } from '../typir.js';
 import { toArray } from '../utils/utils.js';
 
 export type ConversionMode =
-    'IMPLICIT' | // coercion (e.g. in "3 + 'three'" the int value 3 is implicitly converted to the string value '3')
-    'EXPLICIT' | // casting (e.g. in "myValue as MyType" the value stored in the variable myValue is explicitly casted to MyType)
-    'NONE' |     // no conversion possible at all (this is the default mode)
-    'SELF';      // a type is always self-convertible to itself, in this case no conversion is necessary
+    /** coercion
+     * (e.g. in "3 + 'three'" the int value 3 is implicitly converted to the string value '3')
+     * By default, this relation is transitive (this could be configured).
+     * Cycles are not allowed for this relation.
+     */
+    'IMPLICIT' |
+    /** casting
+     * (e.g. in "myValue as MyType" the value stored in the variable myValue is explicitly casted to MyType)
+     * By default, this relation is not transitive (this could be configured).
+     * Cycles are allowed for this relation.
+     */
+    'EXPLICIT' |
+    /** no conversion possible at all (this is the default mode) */
+    'NONE' |
+    /** a type is always self-convertible to itself, in this case no conversion is necessary */
+    'SELF';
+// TODO what about intersections of IMPLICIT and EXPLICIT?
 
 /**
  * Manages conversions between different types.
@@ -47,6 +60,10 @@ export interface TypeConversion {
     isConvertible(from: Type, to: Type, mode: ConversionMode): boolean;
 }
 
+/**
+ * Design decision:
+ * - Do not store transitive relationships, since they must be removed, when types of the corresponding path are removed!
+ */
 export class DefaultTypeConversion implements TypeConversion {
     protected readonly typir: Typir;
 
@@ -75,29 +92,62 @@ export class DefaultTypeConversion implements TypeConversion {
                 // nothing to do
             }
         } else {
+            // add or update the current ConversionMode
             if (!edge) {
                 // create a missing edge
                 edge = new TypeEdge(from, to, TYPE_CONVERSION);
                 this.typir.graph.addEdge(edge);
             }
             edge.properties.set(TYPE_CONVERSION_MODE, mode);
+
+            // check, that the new edges did not introduce cycles
+            this.checkForCycles(mode);
         }
     }
 
+    protected checkForCycles(mode: ConversionMode): void {
+        if (mode === 'IMPLICIT') {
+            this.checkForCyclesLogic(mode);
+        } else {
+            // all other modes allow cycles
+        }
+    }
+    protected checkForCyclesLogic(_mode: ConversionMode): void {
+        // TODO check for cycles and throw an Error in case of found cycles
+    }
+
+    protected isTransitive(mode: ConversionMode): boolean {
+        // by default, only IMPLICIT is transitive!
+        return mode === 'IMPLICIT';
+    }
+
     getConversion(from: Type, to: Type): ConversionMode {
-        // check whether the conversion is stored in the type graph
+        // check whether the direct conversion is stored in the type graph (this is quite fast)
         const edge = this.getEdge(from, to);
         if (edge) {
             return edge.properties.get(TYPE_CONVERSION_MODE) as ConversionMode;
         }
 
-        // special case: if both types are equal, no conversion is needed
+        // special case: if both types are equal, no conversion is needed (often this check is quite fast)
         if (this.typir.equality.areTypesEqual(from, to)) {
             return 'SELF';
         }
 
+        // check whether there is a transitive relationship (in general, these checks are expensive)
+        if (this.isTransitive('EXPLICIT') && this.isTransitivelyConvertable(from, to, 'EXPLICIT')) {
+            return 'EXPLICIT';
+        }
+        if (this.isTransitive('IMPLICIT') && this.isTransitivelyConvertable(from, to, 'IMPLICIT')) {
+            return 'IMPLICIT';
+        }
+
         // the default case
         return 'NONE';
+    }
+
+    protected isTransitivelyConvertable(_from: Type, _to: Type, _mode: ConversionMode): boolean {
+        // TODO calculate transitive relationship
+        return false;
     }
 
     isConvertible(from: Type, to: Type, mode: ConversionMode): boolean {
