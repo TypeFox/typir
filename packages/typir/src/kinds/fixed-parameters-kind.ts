@@ -184,6 +184,8 @@ export class FixedParameterKind implements Kind {
 
     // the order of parameters matters!
     createFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
+        assertTrue(this.getFixedParameterType(typeDetails) === undefined);
+
         // create the class type
         const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), ...toArray(typeDetails.parameterTypes));
         this.typir.graph.addNode(typeWithParameters);

@@ -7,7 +7,7 @@
 import { TypeEqualityProblem } from '../features/equality.js';
 import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
-import { DefaultValidationCollector, ValidationCollector, ValidationProblem } from '../features/validation.js';
+import { ValidationProblem } from '../features/validation.js';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { NameTypePair, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
@@ -56,6 +56,8 @@ export class FunctionType extends Type {
     }
 
     override getUserRepresentation(): string {
+        // function name
+        const simpleFunctionName = this.getSimpleFunctionName();
         // inputs
         const inputs = this.getInputs();
         const inputsString = inputs.map(input => this.kind.getNameTypePairRepresentation(input)).join(', ');
@@ -64,8 +66,6 @@ export class FunctionType extends Type {
         const outputString = output
             ? (this.kind.hasName(output.name) ? `(${this.kind.getNameTypePairRepresentation(output)})` : output.type.getName())
             : undefined;
-        // function name
-        const simpleFunctionName = this.getSimpleFunctionName();
         // complete signature
         if (this.kind.hasName(simpleFunctionName)) {
             const outputValue = outputString ? `: ${outputString}` : '';
@@ -233,6 +233,12 @@ export type InferFunctionCall<T = unknown> = {
 /**
  * Represents signatures of executable code.
  *
+ * Constraints of overloaded functions:
+ * - no duplicated variants!
+ * - The names of all paramaters don't matter for functions to be unique.
+ * - a variant is uniquely identified by: function name (if available), types of input parameters; options.identifierPrefix
+ * - For overloaded functions, it is not enough to have different output types or different parameter names!
+ *
  * TODO possible Extensions:
  * - multiple output parameters
  * - create variants of this, e.g. functions, procedures, lambdas
@@ -267,7 +273,6 @@ export class FunctionKind implements Kind {
         };
 
         // register Validations for input arguments of function calls (must be done here to support overloaded functions)
-        // TODO what about the case, that multiple variants match?? after implicit conversion?!
         this.typir.validation.collector.addValidationRules(
             (domainElement, typir) => {
                 const resultAll: ValidationProblem[] = [];
@@ -380,6 +385,7 @@ export class FunctionKind implements Kind {
         const functionName = typeDetails.functionName;
 
         // check the input
+        assertTrue(this.getFunctionType(typeDetails) === undefined); // ensures, that no duplicated functions are created!
         if (!typeDetails) {
             throw new Error('is undefined');
         }
@@ -434,6 +440,7 @@ export class FunctionKind implements Kind {
              * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
              *   (exception: the options contain a type to return in this special case)
              */
+            // TODO what about the case, that multiple variants match?? after implicit conversion for example?!
             function check(returnType: Type | undefined): Type {
                 if (returnType) {
                     return returnType;
@@ -497,7 +504,7 @@ export class FunctionKind implements Kind {
                         // We have a dedicated validation for this case (see below), but a resulting error might be ignored by the user => return the problem during type-inference again
                     } else {
                         // matching => return the return type of the function for the case of a function call!
-                        return check(outputTypeForFunctionCalls); // this case occurs only, if the current function has an output type/parameter!
+                        return check(outputTypeForFunctionCalls);
                     }
                 },
             });
@@ -519,11 +526,14 @@ export class FunctionKind implements Kind {
     }
 
     calculateIdentifier(typeDetails: FunctionTypeDetails): string {
-        return this.printFunctionType(typeDetails);
-    }
-
-    protected createValidationServiceForFunctions(): ValidationCollector {
-        return new DefaultValidationCollector(this.typir);
+        // this schema allows to identify duplicated functions!
+        const prefix = this.options.identifierPrefix;
+        // function name
+        const functionName = this.hasName(typeDetails.functionName) ? typeDetails.functionName : '';
+        // inputs
+        const inputsString = typeDetails.inputParameters.map(input => resolveTypeSelector(this.typir, input.type).getName()).join(',');
+        // complete signature
+        return `${prefix}-${functionName}(${inputsString})`;
     }
 
     getNameTypePairRepresentation(pair: NameTypePair): string {
@@ -535,28 +545,7 @@ export class FunctionKind implements Kind {
         }
     }
 
-    protected printFunctionType(typeDetails: FunctionTypeDetails): string {
-        const prefix = this.options.identifierPrefix;
-        // inputs
-        const inputsString = typeDetails.inputParameters.map(input => this.printNameTypePair(input)).join(',');
-        // output
-        const outputString = typeDetails.outputParameter ? this.printNameTypePair(typeDetails.outputParameter) : '';
-        // function name
-        const functionName = this.hasName(typeDetails.functionName) ? typeDetails.functionName : '';
-        // complete signature
-        return `${prefix}-${functionName}(${inputsString}):(${outputString})`;
-    }
-
-    protected printNameTypePair(pair: ParameterDetails): string {
-        const typeName = resolveTypeSelector(this.typir, pair.type).getName();
-        if (this.hasName(pair.name)) {
-            return `${pair.name}:${typeName}`;
-        } else {
-            return typeName;
-        }
-    }
-
-    enforceName(name: string | undefined, enforce: boolean) {
+    enforceName(name: string | undefined, enforce: boolean): void {
         if (enforce && this.hasName(name) === false) {
             throw new Error('a name is required');
         }

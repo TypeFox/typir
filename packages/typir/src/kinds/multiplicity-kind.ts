@@ -10,6 +10,7 @@ import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../utils/utils-type-comparison.js';
+import { assertTrue } from '../utils/utils.js';
 import { isKind, Kind } from './kind.js';
 
 export class MultiplicityType extends Type {
@@ -164,6 +165,7 @@ export class MultiplicityKind implements Kind {
 
     createMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
         // check input
+        assertTrue(this.getMultiplicityType(typeDetails) === undefined);
         if (!this.checkBounds(typeDetails.lowerBound, typeDetails.upperBound)) {
             throw new Error();
         }

@@ -11,7 +11,7 @@ import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { createKindConflict } from '../utils/utils-type-comparison.js';
-import { toArray } from '../utils/utils.js';
+import { assertTrue, toArray } from '../utils/utils.js';
 import { isKind, Kind } from './kind.js';
 
 export class BottomType extends Type {
@@ -115,6 +115,7 @@ export class BottomKind implements Kind {
     }
 
     createBottomType(typeDetails: BottomTypeDetails): BottomType {
+        assertTrue(this.getBottomType(typeDetails) === undefined);
         // create the bottom type (singleton)
         if (this.instance) {
             // note, that the given inference rules are ignored in this case!

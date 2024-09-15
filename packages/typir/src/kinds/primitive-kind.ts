@@ -11,7 +11,7 @@ import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../utils/utils-type-comparison.js';
-import { toArray } from '../utils/utils.js';
+import { assertTrue, toArray } from '../utils/utils.js';
 import { isKind, Kind } from './kind.js';
 
 export class PrimitiveType extends Type {
@@ -115,6 +115,8 @@ export class PrimitiveKind implements Kind {
     }
 
     createPrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType {
+        assertTrue(this.getPrimitiveType(typeDetails) === undefined);
+
         // create the primitive type
         const primitiveType = new PrimitiveType(this, this.calculateIdentifier(typeDetails));
         this.typir.graph.addNode(primitiveType);

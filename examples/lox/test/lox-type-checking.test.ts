@@ -59,6 +59,25 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('fun myFunction() : number { return true; }', 1);
     });
 
+    test('overloaded function: different return types are not enough', async () => {
+        await validate(`
+            fun myFunction() : boolean { return true; }
+            fun myFunction() : number { return 2; }
+        `, 1);
+    });
+    test('overloaded function: different parameter names are not enough', async () => {
+        await validate(`
+            fun myFunction(input: boolean) : boolean { return true; }
+            fun myFunction(other: boolean) : boolean { return true; }
+        `, 1);
+    });
+    test('overloaded function: but different parameter types are fine', async () => {
+        await validate(`
+            fun myFunction(input: boolean) : boolean { return true; }
+            fun myFunction(input: number) : boolean { return true; }
+        `, 0);
+    });
+
     test('use overloaded operators: +', async () => {
         await validate('var myVar : number = 2 + 3;', 0, 0);
         await validate('var myVar : string = "a" + "b";', 0, 0);

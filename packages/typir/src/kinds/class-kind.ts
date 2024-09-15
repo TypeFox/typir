@@ -334,6 +334,8 @@ export class ClassKind implements Kind {
     }
 
     createClassType<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>): ClassType {
+        assertTrue(this.getClassType(typeDetails) === undefined);
+
         // create the class type
         const classType = new ClassType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.typir.graph.addNode(classType);
