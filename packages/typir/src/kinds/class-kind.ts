@@ -140,7 +140,7 @@ export class ClassType extends Type {
                             $problem: IndexedTypeConflict,
                             expected: superType,
                             actual: subType,
-                            index: superFieldName,
+                            propertyName: superFieldName,
                             subProblems: [subTypeComparison],
                         });
                     } else {
@@ -152,7 +152,7 @@ export class ClassType extends Type {
                         $problem: IndexedTypeConflict,
                         expected: superFieldType,
                         actual: undefined,
-                        index: superFieldName,
+                        propertyName: superFieldName,
                         subProblems: []
                     });
                 }

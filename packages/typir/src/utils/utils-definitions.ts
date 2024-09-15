@@ -23,6 +23,9 @@ export type NameTypePair = {
     name: string;
     type: Type;
 }
+export function isNameTypePair(type: unknown): type is NameTypePair {
+    return typeof type === 'object' && type !== null && typeof (type as NameTypePair).name === 'string' && isType((type as NameTypePair).type);
+}
 
 // TODO this is a WIP sketch for managing the use of Types in properties/details of other Types (e.g. Types of fields of class Types)
 export interface TypeReference<T extends Type = Type> {

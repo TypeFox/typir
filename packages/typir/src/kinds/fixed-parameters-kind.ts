@@ -9,7 +9,7 @@ import { SubTypeProblem } from '../features/subtype.js';
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
-import { TypeCheckStrategy, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { TypeCheckStrategy, checkTypeArrays, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
@@ -73,7 +73,7 @@ export class FixedParameterType extends Type {
             } else {
                 // all parameter types must match, e.g. Set<String> !== Set<Boolean>
                 const conflicts: TypirProblem[] = [];
-                conflicts.push(...checkTypes(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.typir.equality.getTypeEqualityProblem(t1, t2)));
+                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.typir.equality.getTypeEqualityProblem(t1, t2), false));
                 return conflicts;
             }
         } else {
@@ -121,7 +121,7 @@ export class FixedParameterType extends Type {
         } else {
             // all parameter types must match, e.g. Set<String> !== Set<Boolean>
             const checkStrategy = createTypeCheckStrategy(this.kind.options.parameterSubtypeCheckingStrategy, this.kind.typir);
-            return checkTypes(subType.getParameterTypes(), superType.getParameterTypes(), checkStrategy);
+            return checkTypeArrays(subType.getParameterTypes(), superType.getParameterTypes(), checkStrategy, false);
         }
     }
 }

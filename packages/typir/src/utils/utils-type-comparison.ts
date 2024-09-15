@@ -9,7 +9,8 @@ import { isType, Type } from '../graph/type-node.js';
 import { Kind } from '../kinds/kind.js';
 import { Typir } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
-import { isConcreteTypirProblem, NameTypePair, TypirProblem } from './utils-definitions.js';
+import { isConcreteTypirProblem, isNameTypePair, NameTypePair, TypirProblem } from './utils-definitions.js';
+import { InferenceProblem } from '../features/inference.js';
 
 export type TypeCheckStrategy =
     'EQUAL_TYPE' | // the most strict checking
@@ -80,7 +81,9 @@ export interface IndexedTypeConflict extends TypirProblem {
     // 'undefined' means type or information is missing, 'string' is for data which are no Types
     expected: Type | undefined; // first, left
     actual: Type | undefined; // second, right
-    index: number | string;
+    // index OR name should be specified
+    propertyIndex?: number;
+    propertyName?: string;
     subProblems: TypirProblem[];
 }
 export const IndexedTypeConflict = 'IndexedTypeConflict';
@@ -88,158 +91,163 @@ export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeC
     return isConcreteTypirProblem(problem, IndexedTypeConflict);
 }
 
-export function checkNameTypePairs(left: NameTypePair[], right: NameTypePair[], checkNames: boolean, relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
+export type TypeToCheck = Type | NameTypePair | undefined | InferenceProblem[];
+
+export function checkTypes(left: TypeToCheck, right: TypeToCheck,
+    relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
-    for (let i = 0; i < left.length; i++) {
-        const subProblems = checkNameTypePair(left[i], right[i], checkNames, relationToCheck);
-        if (subProblems.length >= 1) {
-            conflicts.push({
-                $problem: IndexedTypeConflict,
-                expected: left[i].type,
-                actual: right[i].type,
-                index: `${i}-${left[i].name}`,
-                subProblems
-            });
-        } else {
-            // everything is fine
-        }
-    }
-    // existing in right, but missing in left
-    for (let i = left.length; i < right.length; i++) {
+    const leftInferenceProblems = Array.isArray(left);
+    const rightInferenceProblems = Array.isArray(right);
+    // check and report inference problems first; if both sides have inference problems, both are reported
+    if (leftInferenceProblems) {
+        // the left type is not inferrable
         conflicts.push({
             $problem: IndexedTypeConflict,
             expected: undefined,
-            actual: right[i].type,
-            index: `${i}-${right[i].name}`,
-            subProblems: []
+            actual: isType(right) ? right : undefined,
+            subProblems: left,
         });
     }
-    // existing in left, but missing in right
-    for (let i = right.length; i < left.length; i++) {
+    if (rightInferenceProblems) {
+        // the right type is not inferrable
         conflicts.push({
             $problem: IndexedTypeConflict,
-            expected: left[i].type,
+            expected: isType(left) ? left : undefined,
             actual: undefined,
-            index: `${i}-${left[i].name}`,
-            subProblems: []
+            subProblems: right,
         });
     }
-    return conflicts;
-}
+    if (leftInferenceProblems || rightInferenceProblems) {
+        return conflicts;
+    }
 
-export function checkNameTypePair(left: NameTypePair | undefined, right: NameTypePair | undefined, checkNames: boolean, relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
-    const conflicts: IndexedTypeConflict[] = [];
-    if ((left === undefined) && (right === undefined)) {
-        // everything is fine
-    } else if ((left !== undefined) && (right !== undefined)) {
+    if (left === undefined && right === undefined) {
+        // both types are missing => everything is fine
+    } else if (left !== undefined && right === undefined) {
+        // missing in the right
+        conflicts.push(createOnlyLeftConflict(left, undefined));
+    } else if (left === undefined && right !== undefined) {
+        // missing in the left
+        conflicts.push(createOnlyRightConflict(right, undefined));
+    } else if (left !== undefined && right !== undefined) {
+        // check both existing (name-)type(-pair)s with each other
+        const isLeftPair = isNameTypePair(left);
+        const isRightPair = isNameTypePair(right);
+        const leftType = isLeftPair ? left.type : left;
+        const rightType = isRightPair ? right.type : right;
+
         const subProblems: TypirProblem[] = [];
-        if (checkNames) {
+        if (isLeftPair && isRightPair && checkNamesOfNameTypePairs) {
             subProblems.push(...checkValueForConflict(left.name, right.name, 'name'));
         }
-        const relationCheckResult = relationToCheck(left.type, right.type);
+        const relationCheckResult = relationToCheck(leftType, rightType);
         if (relationCheckResult !== undefined) {
             subProblems.push(relationCheckResult);
         }
+
         if (subProblems.length >= 1) {
             conflicts.push({
                 $problem: IndexedTypeConflict,
-                expected: left.type,
-                actual: right.type,
-                index: left.name,
-                subProblems
+                expected: leftType,
+                actual: rightType,
+                propertyName: isLeftPair ? left.name : (isRightPair ? right.name : undefined),
+                subProblems: subProblems,
             });
         } else {
             // everything is fine
         }
-    } else if ((left === undefined) && (right !== undefined)) {
-        conflicts.push({
-            $problem: IndexedTypeConflict,
-            expected: undefined,
-            actual: right.type,
-            index: right.name,
-            subProblems: []
-        });
-    } else if ((left !== undefined) && (right === undefined)) {
-        conflicts.push({
-            $problem: IndexedTypeConflict,
-            expected: left.type,
-            actual: undefined,
-            index: left.name,
-            subProblems: []
-        });
     } else {
         throw new Error();
     }
     return conflicts;
 }
 
-export function checkTypes(leftTypes: Array<Type | undefined>, rightTypes: Array<Type | undefined>, relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
+export function checkTypeArrays(leftTypes: TypeToCheck[], rightTypes: TypeToCheck[],
+    relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
     for (let i = 0; i < Math.min(leftTypes.length, rightTypes.length); i++) {
-        const left = leftTypes[i];
-        const right = rightTypes[i];
-        if (left === undefined && right === undefined) {
-            // everything is fine
-        } else if (left !== undefined && right === undefined) {
-            // missing in the right
-            conflicts.push({
-                $problem: IndexedTypeConflict,
-                expected: left,
-                actual: undefined,
-                index: i,
-                subProblems: []
-            });
-        } else if (left === undefined && right !== undefined) {
-            // missing in the right
-            conflicts.push({
-                $problem: IndexedTypeConflict,
-                expected: undefined,
-                actual: right,
-                index: i,
-                subProblems: []
-            });
-        } else if (left !== undefined && right !== undefined) {
-            // check both existing types with each other
-            const relationCheckResult = relationToCheck(left!, right!);
-            if (relationCheckResult !== undefined) {
-                conflicts.push({
-                    $problem: IndexedTypeConflict,
-                    expected: left,
-                    actual: right,
-                    index: i,
-                    subProblems: [relationCheckResult]
-                });
-            } else {
-                // everything is fine
-            }
-        } else {
-            throw new Error();
-        }
+        const currentProblems = checkTypes(leftTypes[i], rightTypes[i], relationToCheck, checkNamesOfNameTypePairs);
+        currentProblems.forEach(p => p.propertyIndex = i); // add the index
+        conflicts.push(...currentProblems);
     }
     // missing in the left
     for (let i = leftTypes.length; i < rightTypes.length; i++) {
-        conflicts.push({
-            $problem: IndexedTypeConflict,
-            expected: undefined,
-            actual: rightTypes[i],
-            index: i,
-            subProblems: []
-        });
+        const right = rightTypes[i];
+        if (Array.isArray(right)) {
+            // the right type is not inferrable, while there is no left type
+            conflicts.push({
+                $problem: IndexedTypeConflict,
+                expected: undefined,
+                actual: undefined,
+                propertyIndex: i,
+                subProblems: right,
+            });
+        } else {
+            conflicts.push(createOnlyRightConflict(right, i));
+        }
     }
     // missing in the right
     for (let i = rightTypes.length; i < leftTypes.length; i++) {
-        conflicts.push({
-            $problem: IndexedTypeConflict,
-            expected: leftTypes[i],
-            actual: undefined,
-            index: i,
-            subProblems: []
-        });
+        const left = leftTypes[i];
+        if (Array.isArray(left)) {
+            // the left type is not inferrable, while there is no right type
+            conflicts.push({
+                $problem: IndexedTypeConflict,
+                expected: undefined,
+                actual: undefined,
+                propertyIndex: i,
+                subProblems: left,
+            });
+        } else {
+            conflicts.push(createOnlyLeftConflict(left, i));
+        }
     }
     return conflicts;
 }
+
+function createOnlyLeftConflict(left: Type | NameTypePair | undefined, propertyIndex: number | undefined): IndexedTypeConflict {
+    if (isNameTypePair(left)) {
+        return {
+            $problem: IndexedTypeConflict,
+            expected: left.type,
+            actual: undefined,
+            propertyName: left.name,
+            propertyIndex,
+            subProblems: []
+        };
+    } else {
+        return {
+            $problem: IndexedTypeConflict,
+            expected: left,
+            actual: undefined,
+            propertyIndex,
+            subProblems: []
+        };
+    }
+}
+function createOnlyRightConflict(right: Type | NameTypePair | undefined, propertyIndex: number | undefined): IndexedTypeConflict {
+    if (isNameTypePair(right)) {
+        return {
+            $problem: IndexedTypeConflict,
+            expected: undefined,
+            actual: right.type,
+            propertyName: right.name,
+            propertyIndex,
+            subProblems: []
+        };
+    } else {
+        return {
+            $problem: IndexedTypeConflict,
+            expected: undefined,
+            actual: right,
+            propertyIndex,
+            subProblems: []
+        };
+    }
+}
+
 
 export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, relationToCheck: (s: Type, t: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
     const targetCopy = new Map(targetFields);
@@ -259,7 +267,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                     $problem: IndexedTypeConflict,
                     expected: undefined,
                     actual: targetType,
-                    index: name,
+                    propertyName: name,
                     subProblems: []
                 });
             } else if (sourceType !== undefined && targetType === undefined) {
@@ -268,7 +276,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                     $problem: IndexedTypeConflict,
                     expected: sourceType,
                     actual: undefined,
-                    index: name,
+                    propertyName: name,
                     subProblems: []
                 });
             } else if (sourceType !== undefined && targetType !== undefined) {
@@ -280,7 +288,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                         $problem: IndexedTypeConflict,
                         expected: sourceType,
                         actual: targetType,
-                        index: name,
+                        propertyName: name,
                         subProblems: [relationCheckResult]
                     });
                 } else {
@@ -298,7 +306,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                     $problem: IndexedTypeConflict,
                     expected: sourceType,
                     actual: undefined,
-                    index: name,
+                    propertyName: name,
                     subProblems: []
                 });
             }
@@ -313,7 +321,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                 $problem: IndexedTypeConflict,
                 expected: undefined,
                 actual,
-                index,
+                propertyName: index,
                 subProblems: []
             });
         }

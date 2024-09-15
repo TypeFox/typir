@@ -62,10 +62,16 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         const left = problem.expected;
         const right = problem.actual;
         let result = '';
-        if (typeof problem.index === 'number') {
-            result = result + `At index ${problem.index}, `;
+        if (problem.propertyName) {
+            if (problem.propertyIndex) {
+                result = result + `For property '${problem.propertyName} at index ${problem.propertyIndex}', `;
+            } else {
+                result = result + `For property '${problem.propertyName}', `;
+            }
+        } else if (problem.propertyIndex) {
+            result = result + `At index ${problem.propertyIndex}, `;
         } else {
-            result = result + `For property '${problem.index}', `;
+            result = result + 'At an unknown location, ';
         }
         if (left !== undefined && right !== undefined) {
             result = result + `the types '${this.printTypeName(left)}' and '${this.printTypeName(right)}' do not match.`;
@@ -74,7 +80,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         } else if (left === undefined && right !== undefined) {
             result = result + `there is no type on the left to match with the type '${this.printTypeName(right)}' on the right.`;
         } else {
-            throw new Error();
+            result = result + 'both types are unclear.';
         }
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
@@ -115,7 +121,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     }
 
     printValidationProblem(problem: ValidationProblem, level: number = 0): string {
-        let result = `While validating ${this.printDomainElement(problem.domainElement)}, this ${problem.severity} is found: ${problem.message}`;
+        let result = `While validating ${this.printDomainElement(problem.domainElement)}, this ${problem.severity} is found: ${problem.message}`.trim();
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;

@@ -11,7 +11,7 @@ import { DefaultValidationCollector, ValidationCollector, ValidationProblem } fr
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { NameTypePair, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
-import { checkNameTypePair, checkNameTypePairs, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy, TypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { TypeCheckStrategy, checkTypeArrays, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
@@ -83,11 +83,11 @@ export class FunctionType extends Type {
                 conflicts.push(...checkValueForConflict(this.getSimpleFunctionName(), otherType.getSimpleFunctionName(), 'simple name'));
             }
             // same output?
-            conflicts.push(...checkNameTypePair(this.getOutput(), otherType.getOutput(),
-                this.kind.options.enforceOutputParameterName, (s, t) => this.kind.typir.equality.getTypeEqualityProblem(s, t)));
+            conflicts.push(...checkTypes(this.getOutput(), otherType.getOutput(),
+                (s, t) => this.kind.typir.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceOutputParameterName));
             // same input?
-            conflicts.push(...checkNameTypePairs(this.getInputs(), otherType.getInputs(),
-                this.kind.options.enforceInputParameterNames, (s, t) => this.kind.typir.equality.getTypeEqualityProblem(s, t)));
+            conflicts.push(...checkTypeArrays(this.getInputs(), otherType.getInputs(),
+                (s, t) => this.kind.typir.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames));
             return conflicts;
         } else {
             return [<TypeEqualityProblem>{
@@ -127,11 +127,11 @@ export class FunctionType extends Type {
         const conflicts: TypirProblem[] = [];
         const strategy = createTypeCheckStrategy(this.kind.options.subtypeParameterChecking, this.kind.typir);
         // output: sub type output must be assignable (which can be configured) to super type output
-        conflicts.push(...checkNameTypePair(subType.getOutput(), superType.getOutput(),
-            this.kind.options.enforceOutputParameterName, (sub, superr) => strategy(sub, superr)));
+        conflicts.push(...checkTypes(subType.getOutput(), superType.getOutput(),
+            (sub, superr) => strategy(sub, superr), this.kind.options.enforceOutputParameterName));
         // input: super type inputs must be assignable (which can be configured) to sub type inputs
-        conflicts.push(...checkNameTypePairs(subType.getInputs(), superType.getInputs(),
-            this.kind.options.enforceInputParameterNames, (sub, superr) => strategy(superr, sub)));
+        conflicts.push(...checkTypeArrays(subType.getInputs(), superType.getInputs(),
+            (sub, superr) => strategy(superr, sub), this.kind.options.enforceInputParameterNames));
         return conflicts;
     }
 
@@ -266,9 +266,10 @@ export class FunctionKind implements Kind {
             ...options
         };
 
-        // register Validations for input arguments (must be done here to support overloaded functions)
+        // register Validations for input arguments of function calls (must be done here to support overloaded functions)
+        // TODO what about the case, that multiple variants match?? after implicit conversion?!
         this.typir.validation.collector.addValidationRules(
-            (domainElement, _typir) => {
+            (domainElement, typir) => {
                 const resultAll: ValidationProblem[] = [];
                 for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
                     const resultOverloaded: ValidationProblem[] = [];
@@ -287,7 +288,6 @@ export class FunctionKind implements Kind {
                                     const expectedParameterTypes = singleFunction.functionType.getInputs();
                                     // check, that the given number of parameters is the same as the expected number of input parameters
                                     const currentProblems: ValidationProblem[] = [];
-                                    // TODO use existing helper functions for that? that are no "ValidationProblem"s, but IndexedTypeConflicts, AssignabilityProblems?
                                     const parameterLength = checkValueForConflict(expectedParameterTypes.length, inputArguments.length, 'number of input parameter values');
                                     if (parameterLength.length >= 1) {
                                         currentProblems.push({
@@ -303,30 +303,19 @@ export class FunctionKind implements Kind {
                                         for (let i = 0; i < inputArguments.length; i++) {
                                             const expectedType = expectedParameterTypes[i];
                                             const inferredType = inferredParameterTypes[i];
-                                            if (isType(inferredType)) {
-                                                const parameterComparison = typir.assignability.getAssignabilityProblem(inferredType, expectedType.type);
-                                                if (parameterComparison !== undefined) {
-                                                    // the value is not assignable to the type of the input parameter
-                                                    currentProblems.push({
-                                                        $problem: ValidationProblem,
-                                                        domainElement: inputArguments[i],
-                                                        severity: 'error',
-                                                        message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
-                                                        subProblems: [parameterComparison],
-                                                    });
-                                                } else {
-                                                    // this parameter value is fine
-                                                }
-                                            } else {
-                                                // the type of the value for the input parameter is not inferrable
+                                            const parameterProblems = checkTypes(inferredType, expectedType, createTypeCheckStrategy('ASSIGNABLE_TYPE', typir), true);
+                                            if (parameterProblems.length >= 1) {
+                                                // the value is not assignable to the type of the input parameter
+                                                // create one ValidationProblem for each problematic parameter!
                                                 currentProblems.push({
                                                     $problem: ValidationProblem,
-                                                    // Note that the node of the current parameter is chosen here, while the problem is a sub-problem of the whole function!
                                                     domainElement: inputArguments[i],
                                                     severity: 'error',
-                                                    message: `The parameter '${expectedType.name}' at index ${i} has no inferred type.`,
-                                                    subProblems: inferredType,
+                                                    message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
+                                                    subProblems: parameterProblems,
                                                 });
+                                            } else {
+                                                // this parameter value is fine
                                             }
                                         }
                                     }
@@ -493,8 +482,8 @@ export class FunctionKind implements Kind {
                 inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
                     const inputTypes = typeDetails.inputParameters.map(p => resolveTypeSelector(typir, p.type));
                     // all operands need to be assignable(! not equal) to the required types
-                    const comparisonConflicts = checkTypes(childrenTypes, inputTypes,
-                        (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2));
+                    const comparisonConflicts = checkTypeArrays(childrenTypes, inputTypes,
+                        (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2), true);
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
                         return {
