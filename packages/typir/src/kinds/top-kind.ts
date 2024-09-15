@@ -22,6 +22,10 @@ export class TopType extends Type {
         this.kind = kind;
     }
 
+    override getName(): string {
+        return this.identifier;
+    }
+
     override getUserRepresentation(): string {
         return this.identifier;
     }

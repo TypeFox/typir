@@ -55,8 +55,12 @@ export class FixedParameterType extends Type {
         return this.parameterValues.map(p => p.type);
     }
 
+    override getName(): string {
+        return `${this.kind.printSignature(this.kind.baseName, this.getParameterTypes(), ', ')}`;
+    }
+
     override getUserRepresentation(): string {
-        return this.kind.printSignature(this.kind.baseName, this.getParameterTypes());
+        return this.getName();
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
@@ -188,11 +192,11 @@ export class FixedParameterKind implements Kind {
     }
 
     calculateIdentifier(typeDetails: FixedParameterTypeDetails): string {
-        return this.printSignature(this.baseName, toArray(typeDetails.parameterTypes)); // use the signature for a unique name
+        return this.printSignature(this.baseName, toArray(typeDetails.parameterTypes), ','); // use the signature for a unique name
     }
 
-    printSignature(baseName: string, parameterTypes: Type[]): string {
-        return `${baseName}<${parameterTypes.map(p => this.typir.printer.printType(p)).join(', ')}>`;
+    printSignature(baseName: string, parameterTypes: Type[], parameterSeparator: string): string {
+        return `${baseName}<${parameterTypes.map(p => p.getName()).join(parameterSeparator)}>`;
     }
 
 }

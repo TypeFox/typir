@@ -28,7 +28,10 @@ export interface ProblemPrinter {
     printTypirProblems(problems: TypirProblem[]): string;
 
     printDomainElement(domainElement: unknown, sentenceBegin: boolean): string;
-    printType(type: Type): string;
+    /** This function should be used by other services, not type.getName(). */
+    printTypeName(type: Type): string;
+    /** This function should be used by other services, not type.getUserRepresentation(). */
+    printTypeUserRepresentation(type: Type): string;
 }
 
 export class DefaultTypeConflictPrinter implements ProblemPrinter {
@@ -65,11 +68,11 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
             result = result + `For property '${problem.index}', `;
         }
         if (left !== undefined && right !== undefined) {
-            result = result + `the types '${this.printType(left)}' and '${this.printType(right)}' do not match.`;
+            result = result + `the types '${this.printTypeName(left)}' and '${this.printTypeName(right)}' do not match.`;
         } else if (left !== undefined && right === undefined) {
-            result = result + `the type '${this.printType(left)}' on the left has no opposite type on the right to match with.`;
+            result = result + `the type '${this.printTypeName(left)}' on the left has no opposite type on the right to match with.`;
         } else if (left === undefined && right !== undefined) {
-            result = result + `there is no type on the left to match with the type '${this.printType(right)}' on the right.`;
+            result = result + `there is no type on the left to match with the type '${this.printTypeName(right)}' on the right.`;
         } else {
             throw new Error();
         }
@@ -79,21 +82,21 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     }
 
     printAssignabilityProblem(problem: AssignabilityProblem, level: number = 0): string {
-        let result = `The type '${this.printType(problem.source)}' is not assignable to the type '${this.printType(problem.target)}'.`;
+        let result = `The type '${this.printTypeName(problem.source)}' is not assignable to the type '${this.printTypeName(problem.target)}'.`;
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
     }
 
     printSubTypeProblem(problem: SubTypeProblem, level: number = 0): string {
-        let result = `The type '${this.printType(problem.superType)}' is no super-type of '${this.printType(problem.subType)}'.`;
+        let result = `The type '${this.printTypeName(problem.superType)}' is no super-type of '${this.printTypeName(problem.subType)}'.`;
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
     }
 
     printTypeEqualityProblem(problem: TypeEqualityProblem, level: number = 0): string {
-        let result = `The types '${this.printType(problem.type1)}' and '${this.printType(problem.type2)}' are not equal.`;
+        let result = `The types '${this.printTypeName(problem.type1)}' and '${this.printTypeName(problem.type2)}' are not equal.`;
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
@@ -102,7 +105,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     printInferenceProblem(problem: InferenceProblem, level: number = 0): string {
         let result = `While inferring the type for ${this.printDomainElement(problem.domainElement)}, at ${problem.location}`;
         if (problem.inferenceCandidate) {
-            result = result + ` of the type '${this.printType(problem.inferenceCandidate)}' as candidate to infer`;
+            result = result + ` of the type '${this.printTypeName(problem.inferenceCandidate)}' as candidate to infer`;
         }
         result = result + ', some problems occurred.';
         // Since Rules have no name (yet), it is not possible to print problem.rule here.
@@ -146,7 +149,11 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         return `${sentenceBegin ? 'T' : 't'}he domain element '${domainElement}'`;
     }
 
-    printType(type: Type): string {
+    printTypeName(type: Type): string {
+        return type.getName();
+    }
+
+    printTypeUserRepresentation(type: Type): string {
         return type.getUserRepresentation();
     }
 

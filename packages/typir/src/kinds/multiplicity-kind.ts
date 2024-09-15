@@ -27,8 +27,12 @@ export class MultiplicityType extends Type {
         this.upperBound = upperBound;
     }
 
-    override getUserRepresentation(): string {
+    override getName(): string {
         return this.kind.printType(this.getConstrainedType(), this.getLowerBound(), this.getUpperBound());
+    }
+
+    override getUserRepresentation(): string {
+        return this.getName();
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
@@ -188,7 +192,7 @@ export class MultiplicityKind implements Kind {
     }
 
     printType(constrainedType: Type, lowerBound: number, upperBound: number): string {
-        return `${this.typir.printer.printType(constrainedType)}${this.printRange(lowerBound, upperBound)}`;
+        return `${constrainedType.getName()}${this.printRange(lowerBound, upperBound)}`;
     }
     protected printRange(lowerBound: number, upperBound: number): string {
         if (lowerBound === upperBound || (lowerBound === 0 && upperBound === MULTIPLICITY_UNLIMITED)) {

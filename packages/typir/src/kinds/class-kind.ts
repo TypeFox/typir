@@ -59,15 +59,19 @@ export class ClassType extends Type {
         }
     }
 
+    override getName(): string {
+        return `${this.className}`;
+    }
+
     override getUserRepresentation(): string {
         // fields
         const fields: string[] = [];
         for (const field of this.getFields(false).entries()) {
-            fields.push(`${field[0]}: ${field[1].getUserRepresentation()}`); // TODO short vs long representation!! name vs identifier!
+            fields.push(`${field[0]}: ${field[1].getName()}`);
         }
         // super classes
         const superClasses = this.getDeclaredSuperClasses();
-        const extendedClasses = superClasses.length <= 0 ? '' : ` extends ${superClasses.map(c => c.getUserRepresentation()).join(', ')}`;
+        const extendedClasses = superClasses.length <= 0 ? '' : ` extends ${superClasses.map(c => c.getName()).join(', ')}`;
         // whole representation
         return `${this.className} { ${fields.join(', ')} }${extendedClasses}`;
     }

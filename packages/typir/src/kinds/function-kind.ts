@@ -50,14 +50,18 @@ export class FunctionType extends Type {
         });
     }
 
+    override getName(): string {
+        return `${this.getSimpleFunctionName}`;
+    }
+
     override getUserRepresentation(): string {
         // inputs
         const inputs = this.getInputs();
-        const inputsString = inputs.map(input => this.kind.getUserRepresentationNameTypePair(input)).join(', ');
+        const inputsString = inputs.map(input => this.kind.getNameTypePairRepresentation(input)).join(', ');
         // output
         const output = this.getOutput();
         const outputString = output
-            ? (this.kind.hasName(output.name) ? `(${this.kind.getUserRepresentationNameTypePair(output)})` : this.kind.typir.printer.printType(output.type))
+            ? (this.kind.hasName(output.name) ? `(${this.kind.getNameTypePairRepresentation(output)})` : output.type.getName())
             : undefined;
         // function name
         const simpleFunctionName = this.getSimpleFunctionName();
@@ -240,7 +244,6 @@ export class FunctionKind implements Kind {
     /** TODO Limitations
      * - Works only, if function types are defined using the createFunctionType(...) function below!
      * - How to remove function types later? How to observe this case/event? How to remove their inference rules and validations?
-     * - Improve the type graph with fast access to all types of a dedicated kind?
      */
     protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
 
@@ -330,7 +333,7 @@ export class FunctionKind implements Kind {
                                             $problem: ValidationProblem,
                                             domainElement,
                                             severity: 'error',
-                                            message: `The given operands for the function '${this.typir.printer.printType(singleFunction.functionType)}' match the expected types only partially.`,
+                                            message: `The given operands for the function '${this.typir.printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
                                             subProblems: currentProblems,
                                         });
                                     } else {
@@ -442,7 +445,7 @@ export class FunctionKind implements Kind {
                 if (returnType) {
                     return returnType;
                 } else {
-                    throw new Error(`The function ${functionName} is called, but has no output type to infer.`)
+                    throw new Error(`The function ${functionName} is called, but has no output type to infer.`);
                 }
             }
 
@@ -530,8 +533,8 @@ export class FunctionKind implements Kind {
         return new DefaultValidationCollector(this.typir);
     }
 
-    getUserRepresentationNameTypePair(pair: NameTypePair): string {
-        const typeName = this.typir.printer.printType(pair.type);
+    getNameTypePairRepresentation(pair: NameTypePair): string {
+        const typeName = pair.type.getName();
         if (this.hasName(pair.name)) {
             return `${pair.name}: ${typeName}`;
         } else {
@@ -552,7 +555,7 @@ export class FunctionKind implements Kind {
     }
 
     protected printNameTypePair(pair: ParameterDetails): string {
-        const typeName = this.typir.printer.printType(resolveTypeSelector(this.typir, pair.type));
+        const typeName = resolveTypeSelector(this.typir, pair.type).getName();
         if (this.hasName(pair.name)) {
             return `${pair.name}:${typeName}`;
         } else {

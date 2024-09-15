@@ -16,7 +16,7 @@ import { TypeEdge } from './type-edge.js';
 export abstract class Type {
     readonly kind: Kind; // => $kind: string, required for isXType() checks
     /**
-     * Identifiers must be unique and stable, since they are used as key to store types in maps.
+     * Identifiers must be unique and stable for all types known in a single Typir instance, since they are used as key to store types in maps.
      * Identifiers might have a naming schema for calculatable values.
      */
     /* Design decision for the name of this attribute
@@ -37,9 +37,20 @@ export abstract class Type {
 
 
     /**
+     * Returns a string value containing a short representation of the type to be shown to users of the type-checked elements.
+     * This value don't need to be unique for all types.
+     * This name should be quite short.
+     * Services should not call this function directly, but typir.printer.printTypeName(...) instead.
+     * @returns a short string value to show to the user
+     */
+    abstract getName(): string;
+
+    /**
      * Calculates a string value which might be shown to users of the type-checked elements.
      * This value don't need to be unique for all types.
-     * @returns a string value to show to the user
+     * This representation might be longer and show lots of details of the type.
+     * Services should not call this function directly, but typir.printer.printTypeUserRepresentation(...) instead.
+     * @returns a longer string value to show to the user
      */
     abstract getUserRepresentation(): string;
 
@@ -132,7 +143,6 @@ export abstract class Type {
     }
 }
 
-// TODO dies funktioniert mit Vererbung gar nicht richtig, oder? A extends B, funktioniert dann isA auf Instanzen von B??
 export function isType(type: unknown): type is Type {
     return typeof type === 'object' && type !== null && typeof (type as Type).identifier === 'string' && isKind((type as Type).kind);
 }

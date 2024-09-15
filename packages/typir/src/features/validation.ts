@@ -121,8 +121,8 @@ export class DefaultValidationConstraints implements ValidationConstraints {
     protected annotateType(type: Type): AnnotatedTypeAfterValidation {
         return {
             type,
-            userRepresentation: this.typir.printer.printType(type),
-            name: type.identifier,
+            userRepresentation: this.typir.printer.printTypeUserRepresentation(type),
+            name: this.typir.printer.printTypeName(type),
         };
     }
 }
