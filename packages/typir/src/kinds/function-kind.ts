@@ -156,7 +156,9 @@ export interface FunctionKindOptions {
     enforceOutputParameterName: boolean,
     /** Will be used only internally as prefix for the unique identifiers for function type names. */
     identifierPrefix: string,
-    // TODO configure the (default) type to return, if a function has no output type (e.g. "void"), default is "undefined" of TypeScript
+    /** If a function has no output type (e.g. "void" functions), this type is returned during the type inference of calls to these functions.
+     * The default value "undefined" indicates to throw an error, i.e. type inference for calls of such functions are not allowed. */
+    typeToInferForCallsOfFunctionsWithoutOutput: TypeSelector | undefined;
 }
 
 export const FunctionKindName = 'FunctionKind';
@@ -252,6 +254,7 @@ export class FunctionKind implements Kind {
             enforceInputParameterNames: false,
             enforceOutputParameterName: false,
             identifierPrefix: 'function',
+            typeToInferForCallsOfFunctionsWithoutOutput: undefined,
             // the actually overriden values:
             ...options
         };
@@ -394,8 +397,10 @@ export class FunctionKind implements Kind {
         const functionType = new FunctionType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.typir.graph.addNode(functionType);
 
-        // output parameter
-        const outputType = functionType.getOutput()?.type;
+        // output parameter for function calls
+        const outputTypeForFunctionCalls = functionType.getOutput()?.type ?? // by default, use the return type of the function ...
+            // ... if this type is missing, use the specified type for this case in the options:
+            (this.options.typeToInferForCallsOfFunctionsWithoutOutput ? resolveTypeSelector(this.typir, this.options.typeToInferForCallsOfFunctionsWithoutOutput) : undefined);
 
         // remember the new function for later in order to enable overloaded functions!
         const mapNameTypes = this.mapNameTypes;
@@ -413,9 +418,9 @@ export class FunctionKind implements Kind {
         }
         if (overloaded.overloadedFunctions.length <= 0) {
             // remember the output type of the first function
-            overloaded.sameOutputType = outputType;
+            overloaded.sameOutputType = outputTypeForFunctionCalls;
         } else {
-            if (overloaded.sameOutputType && outputType && this.typir.equality.areTypesEqual(overloaded.sameOutputType, outputType) === true) {
+            if (overloaded.sameOutputType && outputTypeForFunctionCalls && this.typir.equality.areTypesEqual(overloaded.sameOutputType, outputTypeForFunctionCalls) === true) {
                 // the output types of all overloaded functions are the same for now
             } else {
                 // there is a difference
@@ -427,12 +432,19 @@ export class FunctionKind implements Kind {
             inferenceRuleForCalls: typeDetails.inferenceRuleForCalls,
         });
 
-        if (typeDetails.inferenceRuleForCalls && outputType) {
+        if (typeDetails.inferenceRuleForCalls) {
             /** Preconditions:
              * - there is a rule which specifies how to infer the current function type
-             * - the current function has an output type/parameter, otherwise, this function could not provide any type, when it is called!
-             *   TODO sollte der dann zurückgegebene Type konfigurierbar gemacht werden? e.g. Type|undefined
+             * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
+             *   (exception: the options contain a type to return in this special case)
              */
+            function check(returnType: Type | undefined): Type {
+                if (returnType) {
+                    return returnType;
+                } else {
+                    throw new Error(`The function ${functionName} is called, but has no output type to infer.`)
+                }
+            }
 
             // register inference rule for calls of the new function
             overloaded.inference.subRules.push({
@@ -456,11 +468,11 @@ export class FunctionKind implements Kind {
                                     }
                                 } else {
                                     // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
-                                    return outputType;
+                                    return check(outputTypeForFunctionCalls);
                                 }
                             } else {
                                 // there are no operands to check
-                                return outputType; // this case occurs only, if the current function has an output type/parameter!
+                                return check(outputTypeForFunctionCalls);
                             }
                         } else {
                             // the domain element is slightly different
@@ -489,7 +501,7 @@ export class FunctionKind implements Kind {
                         // We have a dedicated validation for this case (see below), but a resulting error might be ignored by the user => return the problem during type-inference again
                     } else {
                         // matching => return the return type of the function for the case of a function call!
-                        return outputType; // this case occurs only, if the current function has an output type/parameter!
+                        return check(outputTypeForFunctionCalls); // this case occurs only, if the current function has an output type/parameter!
                     }
                 },
             });
