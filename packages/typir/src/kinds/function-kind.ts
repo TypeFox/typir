@@ -11,12 +11,13 @@ import { DefaultValidationCollector, ValidationCollector, ValidationProblem } fr
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { NameTypePair, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
-import { checkNameTypePair, checkNameTypePairs, checkTypes, checkValueForConflict, createKindConflict } from '../utils/utils-type-comparison.js';
+import { checkNameTypePair, checkNameTypePairs, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy, TypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export class FunctionType extends Type {
     override readonly kind: FunctionKind;
+
     readonly functionName: string;
     readonly outputParameter: NameTypePair | undefined;
     readonly inputParameters: NameTypePair[];
@@ -77,7 +78,7 @@ export class FunctionType extends Type {
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isFunctionType(otherType)) {
             const conflicts: TypirProblem[] = [];
-            // same name? TODO is this correct??
+            // same name? since functions with different names are different
             if (this.kind.options.enforceFunctionName) {
                 conflicts.push(...checkValueForConflict(this.getSimpleFunctionName(), otherType.getSimpleFunctionName(), 'simple name'));
             }
@@ -124,13 +125,13 @@ export class FunctionType extends Type {
 
     protected analyzeSubTypeProblems(subType: FunctionType, superType: FunctionType): TypirProblem[] {
         const conflicts: TypirProblem[] = [];
-        // TODO sub-type relationship instead of assignability relationship??
-        // output: sub type output must be assignable to super type output
+        const strategy = createTypeCheckStrategy(this.kind.options.subtypeParameterChecking, this.kind.typir);
+        // output: sub type output must be assignable (which can be configured) to super type output
         conflicts.push(...checkNameTypePair(subType.getOutput(), superType.getOutput(),
-            this.kind.options.enforceOutputParameterName, (sub, superr) => this.kind.typir.assignability.getAssignabilityProblem(sub, superr)));
-        // input: super type inputs must be assignable to sub type inputs
+            this.kind.options.enforceOutputParameterName, (sub, superr) => strategy(sub, superr)));
+        // input: super type inputs must be assignable (which can be configured) to sub type inputs
         conflicts.push(...checkNameTypePairs(subType.getInputs(), superType.getInputs(),
-            this.kind.options.enforceInputParameterNames, (sub, superr) => this.kind.typir.assignability.getAssignabilityProblem(superr, sub)));
+            this.kind.options.enforceInputParameterNames, (sub, superr) => strategy(superr, sub)));
         return conflicts;
     }
 
@@ -163,6 +164,7 @@ export interface FunctionKindOptions {
     /** If a function has no output type (e.g. "void" functions), this type is returned during the type inference of calls to these functions.
      * The default value "undefined" indicates to throw an error, i.e. type inference for calls of such functions are not allowed. */
     typeToInferForCallsOfFunctionsWithoutOutput: TypeSelector | undefined;
+    subtypeParameterChecking: TypeCheckStrategy;
 }
 
 export const FunctionKindName = 'FunctionKind';
@@ -236,6 +238,7 @@ export type InferFunctionCall<T = unknown> = {
  * - create variants of this, e.g. functions, procedures, lambdas
  * - (structural vs nominal typing? somehow realized by the three options above ...)
  * - optional parameters
+ * - parameters which are used for output AND input
  */
 export class FunctionKind implements Kind {
     readonly $name: 'FunctionKind';
@@ -258,6 +261,7 @@ export class FunctionKind implements Kind {
             enforceOutputParameterName: false,
             identifierPrefix: 'function',
             typeToInferForCallsOfFunctionsWithoutOutput: undefined,
+            subtypeParameterChecking: 'SUB_TYPE',
             // the actually overriden values:
             ...options
         };
