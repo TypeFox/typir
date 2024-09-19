@@ -7,8 +7,10 @@
 import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 
-// TODO besser durch implements Interface lösen, weil das einfacher zu erweitern ist!!
-// export type TypirProblem = ValueConflict | IndexedTypeConflict | AssignabilityProblem | SubTypeProblem | TypeEqualityProblem | InferenceProblem | ValidationProblem;
+/**
+ * Common interface of all problems/errors/messages which should be shown to users of DSLs which are type-checked with Typir.
+ * This approach makes it easier to introduce additional errors by users of Typir, compared to a union type, e.g. export type TypirProblem = ValueConflict | IndexedTypeConflict | ...
+ */
 export interface TypirProblem {
     readonly $problem: string;
 }

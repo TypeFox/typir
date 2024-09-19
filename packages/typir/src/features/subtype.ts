@@ -29,7 +29,7 @@ export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
  * Analyzes, whether there is a sub type-relationship between two types.
  *
  * The sub-type relationship might be direct or indirect (transitive).
- * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself.
+ * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself (by definition).
  *
  * In theory, the difference between sub type-relationships and super type-relationships are only switched types.
  * But in practise, the default implementation will ask both involved types (if they have different kinds),

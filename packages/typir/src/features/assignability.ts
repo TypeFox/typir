@@ -37,16 +37,22 @@ export class DefaultTypeAssignability implements TypeAssignability {
     }
 
     getAssignabilityProblem(source: Type, target: Type): AssignabilityProblem | undefined {
-        // conversion possible?
-        if (this.typir.conversion.isConvertible(source, target, 'IMPLICIT')) {
+        // 1. are both types equal?
+        if (this.typir.equality.areTypesEqual(source, target)) {
             return undefined;
         }
 
-        // allow the types kind to determine about sub-type relationships
+        // 2. implicit conversion from source to target possible?
+        if (this.typir.conversion.isImplicitExplicitConvertible(source, target)) {
+            return undefined;
+        }
+
+        // 3. is the source a sub-type of the target?
         const subTypeResult = this.typir.subtype.getSubTypeProblem(source, target);
         if (subTypeResult === undefined) {
             return undefined;
         } else {
+            // return the found sub-type issues
             return {
                 $problem: AssignabilityProblem,
                 source,

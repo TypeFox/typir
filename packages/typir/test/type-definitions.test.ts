@@ -87,7 +87,7 @@ describe('Tests for Typir', () => {
         // it is possible to define multiple sources and/or targets at the same time:
         typir.conversion.markAsConvertible([typeInt, typeInt], [typeString, typeString, typeString], 'EXPLICIT');
         // single relationships are possible as well
-        typir.conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT');
+        typir.conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT_EXPLICIT');
 
         // is assignable?
         // primitives
