@@ -35,7 +35,7 @@ export class ParameterValue {
 
 export class FixedParameterType extends Type {
     override readonly kind: FixedParameterKind;
-    readonly parameterValues: ParameterValue[];
+    readonly parameterValues: ParameterValue[] = [];
 
     constructor(kind: FixedParameterKind, identifier: string, ...typeValues: Type[]) {
         super(identifier);
