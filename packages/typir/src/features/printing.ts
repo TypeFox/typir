@@ -46,11 +46,11 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         const left = problem.firstValue;
         const right = problem.secondValue;
         if (left !== undefined && right !== undefined) {
-            result = result + `${left} and ${right} do not match.`;
+            result += `${left} and ${right} do not match.`;
         } else if (left !== undefined && right === undefined) {
-            result = result + `${left} on the left has no opposite value on the right to match.`;
+            result += `${left} on the left has no opposite value on the right to match.`;
         } else if (left === undefined && right !== undefined) {
-            result = result + `there is no value on the left to match with ${right} on the right.`;
+            result += `there is no value on the left to match with ${right} on the right.`;
         } else {
             throw new Error();
         }
@@ -64,23 +64,23 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         let result = '';
         if (problem.propertyName) {
             if (problem.propertyIndex) {
-                result = result + `For property '${problem.propertyName} at index ${problem.propertyIndex}', `;
+                result += `For property '${problem.propertyName} at index ${problem.propertyIndex}', `;
             } else {
-                result = result + `For property '${problem.propertyName}', `;
+                result += `For property '${problem.propertyName}', `;
             }
         } else if (problem.propertyIndex) {
-            result = result + `At index ${problem.propertyIndex}, `;
+            result += `At index ${problem.propertyIndex}, `;
         } else {
-            result = result + 'At an unknown location, ';
+            result += 'At an unknown location, ';
         }
         if (left !== undefined && right !== undefined) {
-            result = result + `the types '${this.printTypeName(left)}' and '${this.printTypeName(right)}' do not match.`;
+            result += `the types '${this.printTypeName(left)}' and '${this.printTypeName(right)}' do not match.`;
         } else if (left !== undefined && right === undefined) {
-            result = result + `the type '${this.printTypeName(left)}' on the left has no opposite type on the right to match with.`;
+            result += `the type '${this.printTypeName(left)}' on the left has no opposite type on the right to match with.`;
         } else if (left === undefined && right !== undefined) {
-            result = result + `there is no type on the left to match with the type '${this.printTypeName(right)}' on the right.`;
+            result += `there is no type on the left to match with the type '${this.printTypeName(right)}' on the right.`;
         } else {
-            result = result + 'both types are unclear.';
+            result += 'both types are unclear.';
         }
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
@@ -111,10 +111,10 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     printInferenceProblem(problem: InferenceProblem, level: number = 0): string {
         let result = `While inferring the type for ${this.printDomainElement(problem.domainElement)}, at ${problem.location}`;
         if (problem.inferenceCandidate) {
-            result = result + ` of the type '${this.printTypeName(problem.inferenceCandidate)}' as candidate to infer`;
+            result += ` of the type '${this.printTypeName(problem.inferenceCandidate)}' as candidate to infer`;
         }
-        result = result + ', some problems occurred.';
-        // Since Rules have no name (yet), it is not possible to print problem.rule here.
+        result += ', some problems occurred.';
+        // Since Rules have no name, it is not possible to print problem.rule here.
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
