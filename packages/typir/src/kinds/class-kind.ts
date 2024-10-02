@@ -9,11 +9,11 @@ import { InferenceProblem, InferenceRuleNotApplicable } from '../features/infere
 import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
 import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertKind, assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 import { resolveTypeSelector, TypeSelector, TypirProblem } from '../utils/utils-definitions.js';
+import { TypirServices } from '../typir.js';
 
 export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
@@ -59,13 +59,13 @@ export type InferClassLiteral<T = unknown> = {
  */
 export class ClassKind implements Kind {
     readonly $name: 'ClassKind';
-    readonly typir: Typir;
+    readonly services: TypirServices;
     readonly options: ClassKindOptions;
 
-    constructor(typir: Typir, options?: Partial<ClassKindOptions>) {
+    constructor(services: TypirServices, options?: Partial<ClassKindOptions>) {
         this.$name = 'ClassKind';
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
         this.options = {
             // the default values:
             typing: 'Nominal',
@@ -80,7 +80,7 @@ export class ClassKind implements Kind {
 
     getClassType<T1, T2>(typeDetails: ClassTypeDetails<T1, T2> | string): Type | undefined { // string for nominal typing
         const key = this.printClassType(typeof typeDetails === 'string' ? { className: typeDetails, fields: []} : typeDetails);
-        return this.typir.graph.getType(key);
+        return this.services.graph.getType(key);
     }
 
     getOrCreateClassType<T1, T2>(typeDetails: ClassTypeDetails<T1, T2>): Type {
@@ -98,17 +98,17 @@ export class ClassKind implements Kind {
 
         // create the class type
         const classType = new Type(this, this.printClassType(typeDetails));
-        this.typir.graph.addNode(classType);
+        this.services.graph.addNode(classType);
 
         // FIELDS
         // link it to all its "field types"
         for (const fieldInfos of typeDetails.fields) {
             // new edge between class and field with "semantics key"
-            const fieldType = resolveTypeSelector(this.typir, fieldInfos.type);
+            const fieldType = resolveTypeSelector(this.services, fieldInfos.type);
             const edge = new TypeEdge(classType, fieldType, FIELD_TYPE);
             // store the name of the field within the edge
             edge.properties.set(FIELD_NAME, fieldInfos.name);
-            this.typir.graph.addEdge(edge);
+            this.services.graph.addEdge(edge);
         }
         // check collisions of field names
         if (this.getFields(classType, false).size !== typeDetails.fields.length) {
@@ -124,24 +124,24 @@ export class ClassKind implements Kind {
         }
         // check cycles
         for (const superDetails of theSuperClasses) {
-            const superClass = resolveTypeSelector(this.typir, superDetails);
+            const superClass = resolveTypeSelector(this.services, superDetails);
             if (this.getAllSuperClasses(superClass, true).has(classType)) {
                 throw new Error('Circle in super-sub-class-relationships are not allowed.');
             }
         }
         // link the new class to all its super classes
         for (const superDetails of theSuperClasses) {
-            const superClass = resolveTypeSelector(this.typir, superDetails);
+            const superClass = resolveTypeSelector(this.services, superDetails);
             if (superClass.kind.$name !== classType.kind.$name) {
                 throw new Error();
             }
             const edge = new TypeEdge(classType, superClass, SUPER_CLASS);
-            this.typir.graph.addEdge(edge);
+            this.services.graph.addEdge(edge);
         }
 
         // register inference rules
         if (typeDetails.inferenceRuleForDeclaration) {
-            this.typir.inference.addInferenceRule({
+            this.services.inference.addInferenceRule({
                 inferTypeWithoutChildren(domainElement, _typir) {
                     if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
                         return classType;
@@ -162,7 +162,7 @@ export class ClassKind implements Kind {
             this.registerInferenceRule(typeDetails.inferenceRuleForReference, classKind, classType);
         }
         if (typeDetails.inferenceRuleForFieldAccess) {
-            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.inference.addInferenceRule((domainElement, _typir) => {
                 const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
                 if (result === InferenceRuleNotApplicable) {
                     return InferenceRuleNotApplicable;
@@ -190,7 +190,7 @@ export class ClassKind implements Kind {
 
     protected registerInferenceRule<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: Type): void {
         const mapListConverter = new MapListConverter();
-        this.typir.inference.addInferenceRule({
+        this.services.inference.addInferenceRule({
             inferTypeWithoutChildren(domainElement, _typir) {
                 const result = rule.filter(domainElement);
                 if (result) {
@@ -246,7 +246,7 @@ export class ClassKind implements Kind {
                 fields.push(`${fieldNUmber}:${fieldDetails.name}`);
             }
             // super classes
-            const superClasses = toArray(typeDetails.superClasses).map(selector => resolveTypeSelector(this.typir, selector));
+            const superClasses = toArray(typeDetails.superClasses).map(selector => resolveTypeSelector(this.services, selector));
             const extendedClasses = superClasses.length <= 0 ? '' : `-extends-${superClasses.map(c => c.name).join(',')}`;
             // whole representation
             return `${prefix}-${typeDetails.className}{${fields.join(',')}}${extendedClasses}`;
@@ -281,7 +281,7 @@ export class ClassKind implements Kind {
                     if (subFields.has(superFieldName)) {
                         // field is both in super and sub
                         const subFieldType = subFields.get(superFieldName)!;
-                        const checkStrategy = createTypeCheckStrategy(this.options.subtypeFieldChecking, this.typir);
+                        const checkStrategy = createTypeCheckStrategy(this.options.subtypeFieldChecking, this.services);
                         const subTypeComparison = checkStrategy(subFieldType, superFieldType);
                         if (subTypeComparison !== undefined) {
                             conflicts.push({
@@ -333,7 +333,7 @@ export class ClassKind implements Kind {
             if (this.options.typing === 'Structural') {
                 // for structural typing:
                 return checkNameTypesMap(type1.kind.getFields(type1, true), type2.kind.getFields(type2, true),
-                    (t1, t2) => this.typir.equality.getTypeEqualityProblem(t1, t2));
+                    (t1, t2) => this.services.equality.getTypeEqualityProblem(t1, t2));
             } else if (this.options.typing === 'Nominal') {
                 // for nominal typing:
                 return checkValueForConflict(type1.name, type2.name, 'name');

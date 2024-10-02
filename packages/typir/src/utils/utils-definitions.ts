@@ -10,7 +10,7 @@ import { InferenceProblem } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { ValidationProblem } from '../features/validation.js';
 import { isType, Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { ValueConflict, IndexedTypeConflict } from './utils-type-comparison.js';
 
 export type TypirProblem = ValueConflict | IndexedTypeConflict | AssignabilityProblem | SubTypeProblem | TypeEqualityProblem | InferenceProblem | ValidationProblem;
@@ -40,7 +40,7 @@ export type TypeSelector =
 // TODO this is a sketch for delaying the type selection in the future
 export type DelayedTypeSelector = TypeSelector | (() => TypeSelector);
 
-export function resolveTypeSelector(typir: Typir, selector: TypeSelector): Type {
+export function resolveTypeSelector(services: TypirServices, selector: TypeSelector): Type {
     /** TODO this is only a rough sketch:
      * - detect cycles/deadlocks during the resolving process
      * - make the resolving strategy exchangable
@@ -49,18 +49,18 @@ export function resolveTypeSelector(typir: Typir, selector: TypeSelector): Type 
     if (isType(selector)) {
         return selector;
     } else if (typeof selector === 'string') {
-        const result = typir.graph.getType(selector);
+        const result = services.graph.getType(selector);
         if (result) {
             return result;
         } else {
             throw new Error('TODO not-found problem');
         }
     } else {
-        const result = typir.inference.inferType(selector);
+        const result = services.inference.inferType(selector);
         if (isType(result)) {
             return result;
         } else {
-            throw new Error('TODO handle inference problem for ' + typir.printer.printDomainElement(selector, false));
+            throw new Error('TODO handle inference problem for ' + services.printer.printDomainElement(selector, false));
         }
     }
 }

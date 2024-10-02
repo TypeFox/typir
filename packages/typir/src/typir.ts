@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { inject, Module } from './dependency-injection.js';
 import { DefaultTypeAssignability, TypeAssignability } from './features/assignability.js';
 import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './features/caching.js';
 import { DefaultTypeConversion, TypeConversion } from './features/conversion.js';
@@ -14,7 +15,7 @@ import { DefaultTypeConflictPrinter, ProblemPrinter } from './features/printing.
 import { DefaultSubType, SubType } from './features/subtype.js';
 import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './features/validation.js';
 import { TypeGraph } from './graph/type-graph.js';
-import { Kind } from './kinds/kind.js';
+import { KindRegistry, DefaultKindRegistry } from './kinds/kind-registry.js';
 
 /**
  * Design decisions for Typir
@@ -40,12 +41,7 @@ import { Kind } from './kinds/kind.js';
  * - separate kinds for bottom and top types!
  */
 
-export class Typir {
-    // store types and kinds
-    graph: TypeGraph = new TypeGraph();
-    kinds: Map<string, Kind> = new Map(); // name of kind => kind (for an easier look-up)
-
-    // features
+export type TypirServices = {
     assignability: TypeAssignability;
     equality: TypeEquality;
     conversion: TypeConversion;
@@ -55,46 +51,37 @@ export class Typir {
         typeRelationships: TypeRelationshipCaching;
         domainElementInference: DomainElementInferenceCaching;
     };
+    graph: TypeGraph;
+    kinds: KindRegistry;
     operators: OperatorManager;
     printer: ProblemPrinter;
     validation: {
         collector: ValidationCollector;
         constraints: ValidationConstraints;
     };
+};
 
-    constructor() {
-        this.assignability = new DefaultTypeAssignability(this);
-        this.equality = new DefaultTypeEquality(this);
-        this.conversion = new DefaultTypeConversion(this);
-        this.subtype = new DefaultSubType(this);
-        this.caching = {
-            typeRelationships: new DefaultTypeRelationshipCaching(this),
-            domainElementInference: new DefaultDomainElementInferenceCaching(this), // cached inference results, intended to be used by multiple inferring instances, other services should use the central inference service nevertheless
-        };
-        this.inference = new DefaultTypeInferenceCollector(this);
-        this.operators = new DefaultOperatorManager(this);
-        this.printer = new DefaultTypeConflictPrinter(this);
-        this.validation = {
-            collector: new DefaultValidationCollector(this),
-            constraints: new DefaultValidationConstraints(this),
-        };
+export const DefaultTypirServiceModule: Module<TypirServices> = {
+    assignability: (services) => new DefaultTypeAssignability(services),
+    equality: (services) => new DefaultTypeEquality(services),
+    conversion: (services) => new DefaultTypeConversion(services),
+    graph: () =>  new TypeGraph(),
+    subtype: (services) => new DefaultSubType(services),
+    inference: (services) => new DefaultTypeInferenceCollector(services),
+    caching: {
+        typeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
+        domainElementInference: () => new DefaultDomainElementInferenceCaching()
+    },
+    operators: (services) => new DefaultOperatorManager(services),
+    kinds: () => new DefaultKindRegistry(),
+    printer: () => new DefaultTypeConflictPrinter(),
+    validation: {
+        collector: (services) => new DefaultValidationCollector(services),
+        constraints: (services) => new DefaultValidationConstraints(services),
     }
+};
 
-    // manage kinds
-    registerKind(kind: Kind): void {
-        const key = kind.$name;
-        if (this.kinds.has(key)) {
-            if (this.kinds.get(key) === kind) {
-                // that is OK
-            } else {
-                throw new Error(`duplicate kind named '${key}'`);
-            }
-        } else {
-            this.kinds.set(key, kind);
-        }
-    }
-
-    getKind(type: string): Kind | undefined {
-        return this.kinds.get(type)!;
-    }
+export function createTypirServices() {
+    return inject(DefaultTypirServiceModule);
 }
+

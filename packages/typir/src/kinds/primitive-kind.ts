@@ -7,7 +7,7 @@
 import { InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { checkValueForConflict } from '../utils/utils-type-comparison.js';
 import { assertKind, toArray } from '../utils/utils.js';
@@ -19,12 +19,12 @@ export const PrimitiveKindName = 'PrimitiveKind';
 
 export class PrimitiveKind implements Kind {
     readonly $name: 'PrimitiveKind';
-    readonly typir: Typir;
+    readonly services: TypirServices;
 
-    constructor(typir: Typir) {
+    constructor(services: TypirServices) {
         this.$name = 'PrimitiveKind';
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
     }
 
     createPrimitiveType(typeDetails: {
@@ -34,11 +34,11 @@ export class PrimitiveKind implements Kind {
     }): Type {
         // create the primitive type
         const primitiveType = new Type(this, typeDetails.primitiveName);
-        this.typir.graph.addNode(primitiveType);
+        this.services.graph.addNode(primitiveType);
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.inference.addInferenceRule((domainElement, _typir) => {
                 for (const inferenceRule of rules) {
                     if (inferenceRule(domainElement)) {
                         return primitiveType;

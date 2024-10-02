@@ -6,7 +6,7 @@
 
 import { assertUnreachable } from 'langium';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
 import { NameTypePair, TypirProblem } from './utils-definitions.js';
 
@@ -15,7 +15,7 @@ export type TypeCheckStrategy =
     'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
     'SUB_TYPE'; // more relaxed checking
 
-export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: Typir): (t1: Type, t2: Type) => TypirProblem | undefined {
+export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: TypirServices): (t1: Type, t2: Type) => TypirProblem | undefined {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
             return typir.assignability.getAssignabilityProblem // t1 === source, t2 === target

@@ -5,8 +5,9 @@
  ******************************************************************************/
 
 import { TypeEdge } from '../graph/type-edge.js';
+import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 
 /**
  * Caches relationships between types.
@@ -19,10 +20,10 @@ export interface TypeRelationshipCaching {
 export type RelationshipKind = 'PENDING' | 'UNKNOWN' | 'LINK_EXISTS' | 'NO_LINK';
 
 export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
-    protected readonly typir: Typir;
+    protected readonly graph: TypeGraph;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.graph = services.graph;
     }
 
     getRelationship(from: Type, to: Type, meaning: string, directed: boolean): { relationship: RelationshipKind, additionalData: unknown } {
@@ -54,14 +55,14 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
         if (newRelationship === undefined) {
             // un-set the relationship
             if (edge) {
-                this.typir.graph.removeEdge(edge);
+                this.graph.removeEdge(edge);
             }
             return;
         }
         if (!edge) {
             // create missing edge
             edge = new TypeEdge(from, to, meaning);
-            this.typir.graph.addEdge(edge);
+            this.graph.addEdge(edge);
         }
 
         // set/update the values of the edge
@@ -112,11 +113,9 @@ export type CachePending = 'CACHE_PENDING';
 export const CachePending = 'CACHE_PENDING';
 
 export class DefaultDomainElementInferenceCaching implements DomainElementInferenceCaching {
-    protected readonly typir: Typir;
     protected cache: Map<unknown, Type | CachePending>;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor() {
         this.initializeCache();
     }
 

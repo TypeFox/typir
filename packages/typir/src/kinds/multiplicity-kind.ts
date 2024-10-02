@@ -7,7 +7,7 @@
 import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { checkValueForConflict } from '../utils/utils-type-comparison.js';
 import { assertKind } from '../utils/utils.js';
@@ -26,13 +26,13 @@ export const MultiplicityKindName = 'MultiplicityTypeKind';
  */
 export class MultiplicityKind implements Kind {
     readonly $name: 'MultiplicityTypeKind';
-    readonly typir: Typir;
+    readonly services: TypirServices;
     readonly options: MultiplicityKindOptions;
 
-    constructor(typir: Typir, options?: Partial<MultiplicityKindOptions>) {
+    constructor(services: TypirServices, options?: Partial<MultiplicityKindOptions>) {
         this.$name = 'MultiplicityTypeKind';
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
         this.options = {
             // the default values:
             symbolForUnlimited: '*',
@@ -54,11 +54,11 @@ export class MultiplicityKind implements Kind {
         // create the type with multiplicities
         const name = this.printType(typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
         const newType = new Type(this, name);
-        this.typir.graph.addNode(newType);
+        this.services.graph.addNode(newType);
 
         // link it to the constrained type
         const edge = new TypeEdge(newType, typeDetails.constrainedType, CONSTRAINED_TYPE);
-        this.typir.graph.addEdge(edge);
+        this.services.graph.addEdge(edge);
 
         // set values (at the edge, not at the node!)
         edge.properties.set(MULTIPLICITY_LOWER, typeDetails.lowerBound);
@@ -80,7 +80,7 @@ export class MultiplicityKind implements Kind {
     }
 
     protected printType(constrainedType: Type, lowerBound: number, upperBound: number): string {
-        return `${this.typir.printer.printType(constrainedType)}${this.printRange(lowerBound, upperBound)}`;
+        return `${this.services.printer.printType(constrainedType)}${this.printRange(lowerBound, upperBound)}`;
     }
     protected printRange(lowerBound: number, upperBound: number): string {
         if (lowerBound === upperBound || (lowerBound === 0 && upperBound === MULTIPLICITY_UNLIMITED)) {
@@ -107,7 +107,7 @@ export class MultiplicityKind implements Kind {
             conflicts.push(...checkValueForConflict(superType.kind.getLowerBound(superType), subType.kind.getLowerBound(subType), 'lower bound', this.isBoundGreaterEquals));
             conflicts.push(...checkValueForConflict(superType.kind.getUpperBound(superType), subType.kind.getUpperBound(subType), 'upper bound', this.isBoundGreaterEquals));
             // check the constrained type
-            const constrainedTypeConflict = this.typir.subtype.getSubTypeProblem(subType.kind.getConstrainedType(subType), superType.kind.getConstrainedType(superType));
+            const constrainedTypeConflict = this.services.subtype.getSubTypeProblem(subType.kind.getConstrainedType(subType), superType.kind.getConstrainedType(superType));
             if (constrainedTypeConflict !== undefined) {
                 conflicts.push(constrainedTypeConflict);
             }
@@ -137,7 +137,7 @@ export class MultiplicityKind implements Kind {
             conflicts.push(...checkValueForConflict(this.getLowerBound(type1), this.getLowerBound(type2), 'lower bound'));
             conflicts.push(...checkValueForConflict(this.getUpperBound(type1), this.getUpperBound(type2), 'upper bound'));
             // check the constrained type
-            const constrainedTypeConflict = this.typir.equality.getTypeEqualityProblem(type1.kind.getConstrainedType(type1), type2.kind.getConstrainedType(type2));
+            const constrainedTypeConflict = this.services.equality.getTypeEqualityProblem(type1.kind.getConstrainedType(type1), type2.kind.getConstrainedType(type2));
             if (constrainedTypeConflict !== undefined) {
                 conflicts.push(constrainedTypeConflict);
             }
