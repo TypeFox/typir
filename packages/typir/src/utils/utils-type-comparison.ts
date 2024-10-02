@@ -25,7 +25,7 @@ export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: Typi
                 .bind(typir.equality);
         case 'SUB_TYPE':
             return typir.subtype.getSubTypeProblem // t1 === sub, t2 === super
-                .bind(typir.equality);
+                .bind(typir.subtype);
             // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
             // see https://stackoverflow.com/questions/20279484/how-to-access-the-correct-this-inside-a-callback
         default:
