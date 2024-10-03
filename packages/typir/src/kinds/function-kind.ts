@@ -162,8 +162,8 @@ export interface FunctionKindOptions {
     /** Will be used only internally as prefix for the unique identifiers for function type names. */
     identifierPrefix: string,
     /** If a function has no output type (e.g. "void" functions), this type is returned during the type inference of calls to these functions.
-     * The default value "undefined" indicates to throw an error, i.e. type inference for calls of such functions are not allowed. */
-    typeToInferForCallsOfFunctionsWithoutOutput: TypeSelector | undefined;
+     * The default value "THROW_ERROR" indicates to throw an error, i.e. type inference for calls of such functions are not allowed. */
+    typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR' | TypeSelector;
     subtypeParameterChecking: TypeCheckStrategy;
 }
 
@@ -266,7 +266,7 @@ export class FunctionKind implements Kind {
             enforceInputParameterNames: false,
             enforceOutputParameterName: false,
             identifierPrefix: 'function',
-            typeToInferForCallsOfFunctionsWithoutOutput: undefined,
+            typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR',
             subtypeParameterChecking: 'SUB_TYPE',
             // the actually overriden values:
             ...options
@@ -402,7 +402,8 @@ export class FunctionKind implements Kind {
         // output parameter for function calls
         const outputTypeForFunctionCalls = functionType.getOutput()?.type ?? // by default, use the return type of the function ...
             // ... if this type is missing, use the specified type for this case in the options:
-            (this.options.typeToInferForCallsOfFunctionsWithoutOutput ? resolveTypeSelector(this.typir, this.options.typeToInferForCallsOfFunctionsWithoutOutput) : undefined);
+            // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
+            (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR' ? undefined : resolveTypeSelector(this.typir, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
 
         // remember the new function for later in order to enable overloaded functions!
         const mapNameTypes = this.mapNameTypes;
