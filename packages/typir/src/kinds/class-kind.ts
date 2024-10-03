@@ -18,9 +18,9 @@ import { Kind, isKind } from './kind.js';
 export class ClassType extends Type {
     override readonly kind: ClassKind;
     readonly className: string;
-    readonly superClasses: ClassType[];
-    readonly subClasses: ClassType[] = [];
-    readonly fields: FieldDetails[];
+    protected readonly superClasses: ClassType[]; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
+    protected readonly subClasses: ClassType[] = [];
+    protected readonly fields: FieldDetails[];
 
     constructor(kind: ClassKind, identifier: string, typeDetails: ClassTypeDetails) {
         super(identifier);
@@ -34,18 +34,16 @@ export class ClassType extends Type {
             return cls;
         });
         // register this class as sub-class for all super-classes
-        this.superClasses.forEach(superr => superr.subClasses.push(this));
+        this.getDeclaredSuperClasses().forEach(superr => superr.subClasses.push(this));
         // check number of allowed super classes
         if (this.kind.options.maximumNumberOfSuperClasses >= 0) {
-            if (this.kind.options.maximumNumberOfSuperClasses < this.superClasses.length) {
+            if (this.kind.options.maximumNumberOfSuperClasses < this.getDeclaredSuperClasses().length) {
                 throw new Error(`Only ${this.kind.options.maximumNumberOfSuperClasses} super-classes are allowed.`);
             }
         }
         // check for cycles in sub-type-relationships
-        for (const superClass of this.superClasses) {
-            if (superClass.getAllSuperClasses(true).has(this)) {
-                throw new Error('Circle in super-sub-class-relationships are not allowed.');
-            }
+        if (this.getAllSuperClasses(false).has(this)) {
+            throw new Error(`Circles in super-sub-class-relationships are not allowed: ${this.getName()}`);
         }
 
         // fields
@@ -181,6 +179,10 @@ export class ClassType extends Type {
     }
 
     getDeclaredSubClasses(): ClassType[] {
+        /* Design decision: properties vs edges (relevant also for other types)
+        - for now, use properties, since they are often faster and are easier to implement
+        - the alternative would be: return this.getOutgoingEdges('sub-classes'); // which is easier for graph traversal algorithms
+        */
         return this.subClasses;
     }
 

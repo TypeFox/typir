@@ -155,6 +155,31 @@ describe('Explicitly test type checking for LOX', () => {
 
 });
 
+describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {
+    // note that inference problems occur here due to the order of class declarations! after fixing that issue, errors regarding cycles should occur!
+
+    test.fails('3 involved classes', async () => {
+        await validate(`
+            class MyClass1 < MyClass3 { }
+            class MyClass2 < MyClass1 { }
+            class MyClass3 < MyClass2 { }
+        `, 0);
+    });
+
+    test.fails('2 involved classes', async () => {
+        await validate(`
+            class MyClass1 < MyClass2 { }
+            class MyClass2 < MyClass1 { }
+        `, 0);
+    });
+
+    test.fails('1 involved class', async () => {
+        await validate(`
+            class MyClass1 < MyClass1 { }
+        `, 0);
+    });
+});
+
 async function validate(lox: string, errors: number, warnings: number = 0) {
     const document = await parseDocument(loxServices, lox.trim());
     const diagnostics: Diagnostic[] = await loxServices.validation.DocumentValidator.validateDocument(document);
