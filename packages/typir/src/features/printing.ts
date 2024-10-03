@@ -28,9 +28,19 @@ export interface ProblemPrinter {
     printTypirProblems(problems: TypirProblem[]): string;
 
     printDomainElement(domainElement: unknown, sentenceBegin: boolean): string;
-    /** This function should be used by other services, not type.getName(). */
+    /**
+     * This function should be used by other services, instead of using type.getName().
+     * This enables to customize the printing of type names by overriding only this implementation.
+     * @param type the type to print
+     * @returns the name of the given type
+     */
     printTypeName(type: Type): string;
-    /** This function should be used by other services, not type.getUserRepresentation(). */
+    /**
+     * This function should be used by other services, instead of using type.getUserRepresentation().
+     * This enables to customize the printing of type names by overriding only this implementation.
+     * @param type the type to print
+     * @returns the user representation of the given type
+     */
     printTypeUserRepresentation(type: Type): string;
 }
 

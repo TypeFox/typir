@@ -255,6 +255,7 @@ export class FunctionKind implements Kind {
      * - How to remove function types later? How to observe this case/event? How to remove their inference rules and validations?
      */
     protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
+    // TODO try to replace this map with calculating the required identifier for the function
 
     constructor(typir: Typir, options?: Partial<FunctionKindOptions>) {
         this.$name = FunctionKindName;

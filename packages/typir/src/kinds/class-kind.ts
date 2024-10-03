@@ -18,8 +18,9 @@ import { Kind, isKind } from './kind.js';
 export class ClassType extends Type {
     override readonly kind: ClassKind;
     readonly className: string;
-    protected readonly superClasses: ClassType[]; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
-    protected readonly subClasses: ClassType[] = [];
+    /** The super classes are readonly, since they might be used to calculate the identifier of the current class, which must be stable. */
+    protected readonly superClasses: readonly ClassType[]; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
+    protected readonly subClasses: ClassType[] = []; // additional sub classes might be added later on!
     protected readonly fields: FieldDetails[];
 
     constructor(kind: ClassKind, identifier: string, typeDetails: ClassTypeDetails) {
@@ -174,7 +175,7 @@ export class ClassType extends Type {
         }
     }
 
-    getDeclaredSuperClasses(): ClassType[] {
+    getDeclaredSuperClasses(): readonly ClassType[] {
         return this.superClasses;
     }
 

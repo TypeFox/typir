@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { assertUnreachable } from 'langium';
 import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
@@ -192,7 +193,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                 } else {
                     // no result for this inference rule => check the next inference rules
                 }
-            } else {
+            } else if (typeof rule === 'object') {
                 // more complex case with inferring the type for children
                 const ruleResult: TypeInferenceResultWithInferringChildren = rule.inferTypeWithoutChildren(domainElement, this.typir);
                 if (Array.isArray(ruleResult)) {
@@ -242,6 +243,8 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                         // no result for this inference rule => check the next inference rules
                     }
                 }
+            } else {
+                assertUnreachable(rule);
             }
         }
 
