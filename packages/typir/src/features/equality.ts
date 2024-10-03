@@ -5,11 +5,11 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
+import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
-import { CachingKind, TypeRelationshipCaching } from './caching.js';
-import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
+import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
 
 export interface TypeEqualityProblem extends TypirProblem {
     $problem: 'TypeEqualityProblem';
@@ -41,21 +41,22 @@ export class DefaultTypeEquality implements TypeEquality {
 
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined {
         const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
-        const linkData = cache.getRelationship<EqualityEdge>(type1, type2, EqualityEdge, false);
-        const linkRelationship = linkData?.cachingInformation ?? 'UNKNOWN';
+        const linkData = cache.getRelationshipBidirectional<EqualityEdge>(type1, type2, EqualityEdge);
+        const equalityCaching = linkData?.cachingInformation ?? 'UNKNOWN';
 
-        function save(relationship: CachingKind, error: TypeEqualityProblem | undefined): void {
+        function save(equalityCaching: EdgeCachingInformation, error: TypeEqualityProblem | undefined): void {
             const newEdge: EqualityEdge = {
-                $meaning: EqualityEdge,
+                $relation: EqualityEdge,
                 from: type1,
                 to: type2,
+                cachingInformation: 'LINK_EXISTS',
                 error,
             };
-            cache.setOrUpdateRelationship(newEdge, false, relationship);
+            cache.setOrUpdateBidirectionalRelationship(newEdge, equalityCaching);
         }
 
         // skip recursive checking
-        if (linkRelationship === 'PENDING') {
+        if (equalityCaching === 'PENDING') {
             /** 'undefined' should be correct here ...
              * - since this relationship will be checked earlier/higher/upper in the call stack again
              * - since this values is not cached and therefore NOT reused in the earlier call! */
@@ -63,10 +64,10 @@ export class DefaultTypeEquality implements TypeEquality {
         }
 
         // the result is already known
-        if (linkRelationship === 'LINK_EXISTS') {
+        if (equalityCaching === 'LINK_EXISTS') {
             return undefined;
         }
-        if (linkRelationship === 'NO_LINK') {
+        if (equalityCaching === 'NO_LINK') {
             return {
                 $problem: TypeEqualityProblem,
                 type1,
@@ -76,11 +77,11 @@ export class DefaultTypeEquality implements TypeEquality {
         }
 
         // do the expensive calculation now
-        if (linkRelationship === 'UNKNOWN') {
+        if (equalityCaching === 'UNKNOWN') {
             // mark the current relationship as PENDING to detect and resolve cycling checks
             save('PENDING', undefined);
 
-            // do the real calculation
+            // do the actual calculation
             const result = this.calculateEquality(type1, type2);
 
             // this allows to cache results (and to re-set the PENDING state)
@@ -91,7 +92,7 @@ export class DefaultTypeEquality implements TypeEquality {
             }
             return result;
         }
-        assertUnreachable(linkRelationship);
+        assertUnreachable(equalityCaching);
     }
 
     protected calculateEquality(type1: Type, type2: Type): TypeEqualityProblem | undefined {
@@ -107,16 +108,6 @@ export class DefaultTypeEquality implements TypeEquality {
         const result1 = type1.analyzeTypeEqualityProblems(type2);
         if (result1.length <= 0) {
             return undefined;
-        }
-        if (type1.kind.$name === type2.kind.$name) {
-            // if type1 and type2 have the same kind, there is no need to check the same kind twice
-            // TODO does this make sense?
-            return {
-                $problem: TypeEqualityProblem,
-                type1,
-                type2,
-                subProblems: result1,
-            };
         }
         // ask the 2nd type
         const result2 = type2.analyzeTypeEqualityProblems(type1);
@@ -135,11 +126,11 @@ export class DefaultTypeEquality implements TypeEquality {
 }
 
 export interface EqualityEdge extends TypeEdge {
-    readonly $meaning: 'EqualityEdge';
+    readonly $relation: 'EqualityEdge';
     readonly error: TypeEqualityProblem | undefined;
 }
 export const EqualityEdge = 'EqualityEdge';
 
 export function isEqualityEdge(edge: unknown): edge is EqualityEdge {
-    return isTypeEdge(edge) && edge.$meaning === EqualityEdge;
+    return isTypeEdge(edge) && edge.$relation === EqualityEdge;
 }

@@ -9,7 +9,7 @@ import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
 import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
-import { CachingKind, TypeRelationshipCaching } from './caching.js';
+import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
 
 export interface SubTypeProblem extends TypirProblem {
     $problem: 'SubTypeProblem';
@@ -40,6 +40,10 @@ export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
  */
 export interface SubType {
     isSubType(subType: Type, superType: Type): boolean;
+    /* TODO:
+    - no problem ==> sub-type relationship exists
+    - terminology: "no sub-type" is not a problem in general ("it is a qualified NO"), it is just a property! This is a general issue of the current design!
+    */
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined;
 }
 
@@ -56,21 +60,22 @@ export class DefaultSubType implements SubType {
 
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined {
         const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
-        const linkData = cache.getRelationship<SubTypeEdge>(subType, superType, SubTypeEdge, true);
-        const linkRelationship = linkData?.cachingInformation ?? 'UNKNOWN';
+        const linkData = cache.getRelationshipUnidirectional<SubTypeEdge>(subType, superType, SubTypeEdge);
+        const subTypeCaching = linkData?.cachingInformation ?? 'UNKNOWN';
 
-        const save = (relationship: CachingKind, error: SubTypeProblem | undefined): void => {
+        function save(subTypeCaching: EdgeCachingInformation, error: SubTypeProblem | undefined): void {
             const newEdge: SubTypeEdge = {
-                $meaning: SubTypeEdge,
+                $relation: SubTypeEdge,
                 from: subType,
                 to: superType,
+                cachingInformation: 'LINK_EXISTS',
                 error,
             };
-            cache.setOrUpdateRelationship(newEdge, true, relationship);
-        };
+            cache.setOrUpdateUnidirectionalRelationship(newEdge, subTypeCaching);
+        }
 
         // skip recursive checking
-        if (linkRelationship === 'PENDING') {
+        if (subTypeCaching === 'PENDING') {
             /** 'undefined' should be correct here ...
              * - since this relationship will be checked earlier/higher/upper in the call stack again
              * - since this values is not cached and therefore NOT reused in the earlier call! */
@@ -78,10 +83,10 @@ export class DefaultSubType implements SubType {
         }
 
         // the result is already known
-        if (linkRelationship === 'LINK_EXISTS') {
+        if (subTypeCaching === 'LINK_EXISTS') {
             return undefined;
         }
-        if (linkRelationship === 'NO_LINK') {
+        if (subTypeCaching === 'NO_LINK') {
             return {
                 $problem: SubTypeProblem,
                 superType,
@@ -91,12 +96,12 @@ export class DefaultSubType implements SubType {
         }
 
         // do the expensive calculation now
-        if (linkRelationship === 'UNKNOWN') {
+        if (subTypeCaching === 'UNKNOWN') {
             // mark the current relationship as PENDING to detect and resolve cycling checks
             save('PENDING', undefined);
 
-            // do the real calculation
-            const result = this.calculateSubType(superType, subType);
+            // do the actual calculation
+            const result = this.calculateSubType(subType, superType);
 
             // this allows to cache results (and to re-set the PENDING state)
             if (result === undefined) {
@@ -106,12 +111,12 @@ export class DefaultSubType implements SubType {
             }
             return result;
         }
-        assertUnreachable(linkRelationship);
+        assertUnreachable(subTypeCaching);
     }
 
-    protected calculateSubType(superType: Type, subType: Type): SubTypeProblem | undefined {
+    protected calculateSubType(subType: Type, superType: Type): SubTypeProblem | undefined {
         /** Approach:
-         * - delegated to the types, since they realize type-specific sub-type checking
+         * - delegate the calculation to the types, since they realize type-specific sub-type checking
          * - Therefore, it is not necessary to add special cases for TopType and BottomType here (e.g. if (isTopType(superType)) { return undefined; }).
          * - Additionally, this allows users of Typir to implement top/bottom types on their own without changing this implementation here!
          */
@@ -120,16 +125,6 @@ export class DefaultSubType implements SubType {
         const resultSub = subType.analyzeIsSubTypeOf(superType);
         if (resultSub.length <= 0) {
             return undefined;
-        }
-        // if sub type and super type have the same kind, there is no need to check the same kind twice
-        if (superType.kind.$name === subType.kind.$name) {
-            // TODO does this make sense?
-            return {
-                $problem: SubTypeProblem,
-                superType,
-                subType,
-                subProblems: resultSub,
-            };
         }
 
         // 2nd delegate to the kind of the super type
@@ -147,11 +142,11 @@ export class DefaultSubType implements SubType {
 }
 
 export interface SubTypeEdge extends TypeEdge {
-    readonly $meaning: 'SubTypeEdge';
+    readonly $relation: 'SubTypeEdge';
     readonly error: SubTypeProblem | undefined;
 }
 export const SubTypeEdge = 'SubTypeEdge';
 
 export function isSubTypeEdge(edge: unknown): edge is SubTypeEdge {
-    return isTypeEdge(edge) && edge.$meaning === SubTypeEdge;
+    return isTypeEdge(edge) && edge.$relation === SubTypeEdge;
 }

@@ -27,7 +27,7 @@ export abstract class Type {
     readonly identifier: string;
 
     // this is required only to apply graph algorithms in a generic way!
-    // $meaning is used as key
+    // $relation is used as key
     protected readonly edgesIncoming: Map<string, TypeEdge[]> = new Map();
     protected readonly edgesOutgoing: Map<string, TypeEdge[]> = new Map();
 
@@ -64,6 +64,7 @@ export abstract class Type {
     /**
      * Analyzes, whether there is a sub type-relationship between two types.
      * The difference between sub type-relationships and super type-relationships are only switched types.
+     * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself (by definition).
      *
      * @param superType the super type, while the current type is the sub type
      * @returns an empty array, if the relationship exists, otherwise some problems which might point to violations of the investigated relationship
@@ -73,6 +74,7 @@ export abstract class Type {
     /**
      * Analyzes, whether there is a super type-relationship between two types.
      * The difference between sub type-relationships and super type-relationships are only switched types.
+     * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself (by definition).
      *
      * @param subType the sub type, while the current type is super type
      * @returns an empty array, if the relationship exists, otherwise some problems which might point to violations of the investigated relationship
@@ -81,7 +83,7 @@ export abstract class Type {
 
 
     addIncomingEdge(edge: TypeEdge): void {
-        const key = edge.$meaning;
+        const key = edge.$relation;
         if (this.edgesIncoming.has(key)) {
             this.edgesIncoming.get(key)!.push(edge);
         } else {
@@ -89,7 +91,7 @@ export abstract class Type {
         }
     }
     addOutgoingEdge(edge: TypeEdge): void {
-        const key = edge.$meaning;
+        const key = edge.$relation;
         if (this.edgesOutgoing.has(key)) {
             this.edgesOutgoing.get(key)!.push(edge);
         } else {
@@ -98,7 +100,7 @@ export abstract class Type {
     }
 
     removeIncomingEdge(edge: TypeEdge): boolean {
-        const key = edge.$meaning;
+        const key = edge.$relation;
         const list = this.edgesIncoming.get(key);
         if (list) {
             const index = list.indexOf(edge);
@@ -113,7 +115,7 @@ export abstract class Type {
         return false;
     }
     removeOutgoingEdge(edge: TypeEdge): boolean {
-        const key = edge.$meaning;
+        const key = edge.$relation;
         const list = this.edgesOutgoing.get(key);
         if (list) {
             const index = list.indexOf(edge);
@@ -128,11 +130,17 @@ export abstract class Type {
         return false;
     }
 
-    getIncomingEdges<T extends TypeEdge>($meaning: T['$meaning']): T[] {
-        return this.edgesIncoming.get($meaning) as T[] ?? [];
+    getIncomingEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
+        return this.edgesIncoming.get($relation) as T[] ?? [];
     }
-    getOutgoingEdges<T extends TypeEdge>($meaning: T['$meaning']): T[] {
-        return this.edgesOutgoing.get($meaning) as T[] ?? [];
+    getOutgoingEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
+        return this.edgesOutgoing.get($relation) as T[] ?? [];
+    }
+    getEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
+        return [
+            ...this.getIncomingEdges($relation),
+            ...this.getOutgoingEdges($relation),
+        ];
     }
 
     getAllIncomingEdges(): TypeEdge[] {
@@ -140,6 +148,12 @@ export abstract class Type {
     }
     getAllOutgoingEdges(): TypeEdge[] {
         return Array.from(this.edgesOutgoing.values()).flat();
+    }
+    getAllEdges(): TypeEdge[] {
+        return [
+            ...this.getAllIncomingEdges(),
+            ...this.getAllOutgoingEdges(),
+        ];
     }
 }
 

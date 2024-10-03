@@ -120,9 +120,10 @@ export class DefaultTypeConversion implements TypeConversion {
         if (!edge) {
             // create a missing edge (with the desired mode)
             edge = {
-                $meaning: ConversionEdge,
+                $relation: ConversionEdge,
                 from,
                 to,
+                cachingInformation: 'LINK_EXISTS',
                 mode,
             };
             this.typir.graph.addEdge(edge);
@@ -204,11 +205,11 @@ export class DefaultTypeConversion implements TypeConversion {
 }
 
 export interface ConversionEdge extends TypeEdge {
-    readonly $meaning: 'ConversionEdge';
+    readonly $relation: 'ConversionEdge';
     mode: ConversionMode;
 }
 export const ConversionEdge = 'ConversionEdge';
 
 export function isConversionEdge(edge: unknown): edge is ConversionEdge {
-    return isTypeEdge(edge) && edge.$meaning === ConversionEdge;
+    return isTypeEdge(edge) && edge.$relation === ConversionEdge;
 }
