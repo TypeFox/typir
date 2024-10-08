@@ -28,8 +28,8 @@ export interface TypeEquality {
 export class DefaultTypeEquality implements TypeEquality {
     protected readonly typeRelationships: TypeRelationshipCaching;
 
-    constructor(typir: TypirServices) {
-        this.typeRelationships = typir.caching.typeRelationships;
+    constructor(services: TypirServices) {
+        this.typeRelationships = services.caching.typeRelationships;
     }
 
     areTypesEqual(type1: Type, type2: Type): boolean {

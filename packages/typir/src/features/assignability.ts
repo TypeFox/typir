@@ -29,9 +29,9 @@ export class DefaultTypeAssignability implements TypeAssignability {
     protected readonly conversion: TypeConversion;
     protected readonly subtype: SubType;
 
-    constructor(typir: TypirServices) {
-        this.conversion = typir.conversion;
-        this.subtype = typir.subtype;
+    constructor(services: TypirServices) {
+        this.conversion = services.conversion;
+        this.subtype = services.subtype;
     }
 
     isAssignable(source: Type, target: Type): boolean {
