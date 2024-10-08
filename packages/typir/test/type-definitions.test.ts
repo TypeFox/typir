@@ -12,12 +12,12 @@ import { FixedParameterKind } from '../src/kinds/fixed-parameters-kind.js';
 import { FUNCTION_MISSING_NAME, FunctionKind } from '../src/kinds/function-kind.js';
 import { MultiplicityKind } from '../src/kinds/multiplicity-kind.js';
 import { PrimitiveKind } from '../src/kinds/primitive-kind.js';
-import { Typir } from '../src/typir.js';
+import { createTypirServices } from '../src/typir.js';
 
 describe('Tests for Typir', () => {
     test('Define some types', async () => {
         // start the type system
-        const typir = new Typir();
+        const typir = createTypirServices();
 
         // reuse predefined kinds
         const primitiveKind = new PrimitiveKind(typir);

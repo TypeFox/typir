@@ -7,7 +7,7 @@
 import { InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { checkValueForConflict } from '../utils/utils-type-comparison.js';
 import { assertKind, toArray } from '../utils/utils.js';
@@ -23,14 +23,14 @@ export const TopKindName = 'TopKind';
 
 export class TopKind implements Kind {
     readonly $name: 'TopKind';
-    readonly typir: Typir;
+    readonly services: TypirServices;
     readonly options: TopKindOptions;
     protected instance: Type | undefined;
 
-    constructor(typir: Typir, options?: Partial<TopKindOptions>) {
+    constructor(services: TypirServices, options?: Partial<TopKindOptions>) {
         this.$name = 'TopKind';
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
         this.options = {
             // the default values:
             name: 'any',
@@ -50,11 +50,11 @@ export class TopKind implements Kind {
         }
         const topType = new Type(this, this.options.name);
         this.instance = topType;
-        this.typir.graph.addNode(topType);
+        this.services.graph.addNode(topType);
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.inference.addInferenceRule((domainElement, _typir) => {
                 for (const inferenceRule of rules) {
                     if (inferenceRule(domainElement)) {
                         return topType;

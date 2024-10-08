@@ -6,7 +6,7 @@
 
 import { assertUnreachable } from 'langium';
 import { Type, isType } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { checkValueForConflict } from '../utils/utils-type-comparison.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
@@ -26,10 +26,10 @@ export interface TypeEquality {
 }
 
 export class DefaultTypeEquality implements TypeEquality {
-    protected readonly typir: Typir;
+    protected readonly typeRelationships: TypeRelationshipCaching;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.typeRelationships = services.caching.typeRelationships;
     }
 
     areTypesEqual(type1: Type, type2: Type): boolean {
@@ -37,7 +37,7 @@ export class DefaultTypeEquality implements TypeEquality {
     }
 
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined {
-        const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
+        const cache: TypeRelationshipCaching = this.typeRelationships;
         const linkData = cache.getRelationship(type1, type2, EQUAL_TYPE, false);
         const linkRelationship = linkData.relationship;
 

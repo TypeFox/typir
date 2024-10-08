@@ -5,9 +5,11 @@
  ******************************************************************************/
 
 import { TypeEdge } from '../graph/type-edge.js';
+import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { toArray } from '../utils/utils.js';
+import { TypeEquality } from './equality.js';
 
 export type ConversionMode =
     'IMPLICIT' | // coercion (e.g. in "3 + 'three'" the int value 3 is implicitly converted to the string value '3')
@@ -48,10 +50,12 @@ export interface TypeConversion {
 }
 
 export class DefaultTypeConversion implements TypeConversion {
-    protected readonly typir: Typir;
+    protected readonly equality: TypeEquality;
+    protected readonly graph: TypeGraph;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.equality = services.equality;
+        this.graph = services.graph;
     }
 
     markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionMode): void {
@@ -70,7 +74,7 @@ export class DefaultTypeConversion implements TypeConversion {
         if (storeNothing) {
             if (edge) {
                 // remove an existing edge
-                this.typir.graph.removeEdge(edge);
+                this.graph.removeEdge(edge);
             } else {
                 // nothing to do
             }
@@ -78,7 +82,7 @@ export class DefaultTypeConversion implements TypeConversion {
             if (!edge) {
                 // create a missing edge
                 edge = new TypeEdge(from, to, TYPE_CONVERSION);
-                this.typir.graph.addEdge(edge);
+                this.graph.addEdge(edge);
             }
             edge.properties.set(TYPE_CONVERSION_MODE, mode);
         }
@@ -92,7 +96,7 @@ export class DefaultTypeConversion implements TypeConversion {
         }
 
         // special case: if both types are equal, no conversion is needed
-        if (this.typir.equality.areTypesEqual(from, to)) {
+        if (this.equality.areTypesEqual(from, to)) {
             return 'SELF';
         }
 

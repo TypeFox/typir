@@ -7,7 +7,7 @@
 import { SubTypeProblem } from '../features/subtype.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertKind, assertTrue, toArray } from '../utils/utils.js';
@@ -24,15 +24,15 @@ export const FixedParameterKindName = 'FixedParameterKind';
  */
 export class FixedParameterKind implements Kind {
     readonly $name: `FixedParameterKind-${string}`;
-    readonly typir: Typir;
     readonly baseName: string;
     readonly options: FixedParameterKindOptions;
     readonly parameterNames: string[];
+    readonly services: TypirServices;
 
-    constructor(typir: Typir, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
+    constructor(services: TypirServices, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
         this.$name = `FixedParameterKind-${baseName}`;
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
         this.baseName = baseName;
         this.options = {
             // the default values:
@@ -54,13 +54,13 @@ export class FixedParameterKind implements Kind {
 
         // create the class type
         const typeWithParameters = new Type(this, this.printSignature(this.baseName, theParameterTypes)); // use the signature for a unique name
-        this.typir.graph.addNode(typeWithParameters);
+        this.services.graph.addNode(typeWithParameters);
 
         // add the given types to the required fixed parameters
         assertTrue(this.parameterNames.length === theParameterTypes.length);
         for (let index = 0; index < this.parameterNames.length; index++) {
             const edge = new TypeEdge(typeWithParameters, theParameterTypes[index], FIXED_PARAMETER_TYPE);
-            this.typir.graph.addEdge(edge);
+            this.services.graph.addEdge(edge);
         }
 
         return typeWithParameters;
@@ -71,14 +71,14 @@ export class FixedParameterKind implements Kind {
         return this.printSignature(this.baseName, this.getParameterTypes(type));
     }
     protected printSignature(baseName: string, parameterTypes: Type[]): string {
-        return `${baseName}<${parameterTypes.map(p => this.typir.printer.printType(p)).join(', ')}>`;
+        return `${baseName}<${parameterTypes.map(p => this.services.printer.printType(p)).join(', ')}>`;
     }
 
     analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
         // same name, e.g. both need to be Map, Set, Array, ...
         if (isFixedParametersKind(superType.kind) && isFixedParametersKind(subType.kind) && superType.kind.baseName === subType.kind.baseName) {
             // all parameter types must match
-            const checkStrategy = createTypeCheckStrategy(this.options.subtypeParameterChecking, this.typir);
+            const checkStrategy = createTypeCheckStrategy(this.options.subtypeParameterChecking, this.services);
             return checkTypes(subType.kind.getParameterTypes(subType), superType.kind.getParameterTypes(superType), checkStrategy);
         }
         return [<SubTypeProblem>{
@@ -91,7 +91,7 @@ export class FixedParameterKind implements Kind {
     analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
         if (isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind) && type1.kind.baseName === type2.kind.baseName) {
             const conflicts: TypirProblem[] = [];
-            conflicts.push(...checkTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.typir.equality.getTypeEqualityProblem(t1, t2)));
+            conflicts.push(...checkTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.services.equality.getTypeEqualityProblem(t1, t2)));
             return conflicts;
         }
         throw new Error();

@@ -6,7 +6,6 @@
 
 import { assertUnreachable } from 'langium';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
 import { IndexedTypeConflict, ValueConflict, isIndexedTypeConflict, isValueConflict } from '../utils/utils-type-comparison.js';
 import { toArray } from '../utils/utils.js';
 import { AssignabilityProblem, isAssignabilityProblem } from './assignability.js';
@@ -33,10 +32,8 @@ export interface ProblemPrinter {
 }
 
 export class DefaultTypeConflictPrinter implements ProblemPrinter {
-    protected readonly typir: Typir;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor() {
     }
 
     printValueConflict(problem: ValueConflict, level: number = 0): string {

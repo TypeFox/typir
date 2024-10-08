@@ -6,7 +6,7 @@
 
 import { assertUnreachable } from 'langium';
 import { Type, isType } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 
@@ -26,10 +26,10 @@ export interface SubType {
 }
 
 export class DefaultSubType implements SubType {
-    protected readonly typir: Typir;
+    protected readonly typeRelationships: TypeRelationshipCaching;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.typeRelationships = services.caching.typeRelationships;
     }
 
     isSubType(subType: Type, superType: Type): boolean {
@@ -37,7 +37,7 @@ export class DefaultSubType implements SubType {
     }
 
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined {
-        const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
+        const cache: TypeRelationshipCaching = this.typeRelationships;
 
         const linkData = cache.getRelationship(subType, superType, SUB_TYPE, true);
         const linkRelationship = linkData.relationship;
