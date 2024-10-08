@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { inject, Module } from './dependency-injection.js';
+import { inject, Module } from './utils/dependency-injection.js';
 import { DefaultTypeAssignability, TypeAssignability } from './features/assignability.js';
 import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './features/caching.js';
 import { DefaultTypeConversion, TypeConversion } from './features/conversion.js';
