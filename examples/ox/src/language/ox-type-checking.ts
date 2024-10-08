@@ -4,14 +4,14 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PrimitiveKind, TypirServices, createTypirServices } from 'typir';
-import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { AstNode, AstUtils, Module, assertUnreachable, isAstNode } from 'langium';
+import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PartialTypirServices, PrimitiveKind, TypirServices, createTypirServices } from 'typir';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
+import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): TypirServices {
     // set up Typir and reuse some predefined things
-    const typir = createTypirServices();
+    const typir = createTypirServices(OxTypirModule);
     const primitiveKind = new PrimitiveKind(typir);
     const functionKind = new FunctionKind(typir);
     const operators = typir.operators;
@@ -177,17 +177,20 @@ export function createTypir(domainNodeEntry: AstNode): TypirServices {
         }
     );
 
-    // override some default behaviour ...
-    // ... print the text of the corresponding CstNode
-    class OxPrinter extends DefaultTypeConflictPrinter {
-        override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
-            if (isAstNode(domainElement)) {
-                return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
-            }
-            return super.printDomainElement(domainElement, sentenceBegin);
-        }
-    }
-    typir.printer = new OxPrinter();
-
     return typir;
 }
+
+// override some default behaviour ...
+// ... print the text of the corresponding CstNode
+class OxPrinter extends DefaultTypeConflictPrinter {
+    override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
+        if (isAstNode(domainElement)) {
+            return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
+        }
+        return super.printDomainElement(domainElement, sentenceBegin);
+    }
+}
+
+export const OxTypirModule: Module<TypirServices, PartialTypirServices> = {
+    printer: () => new OxPrinter(),
+};

@@ -4,14 +4,14 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FieldDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PrimitiveKind, TopKind, TypirServices, createTypirServices } from 'typir';
+import { AstNode, AstUtils, Module, assertUnreachable, isAstNode } from 'langium';
+import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FieldDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, createTypirServices } from 'typir';
 import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
 
 export function createTypir(domainNodeEntry: AstNode): TypirServices {
     // set up Typir and reuse some predefined things
-    const typir = createTypirServices();
+    const typir = createTypirServices(LoxTypirModule);
     const primitiveKind = new PrimitiveKind(typir);
     const functionKind = new FunctionKind(typir);
     const classKind = new ClassKind(typir, {
@@ -19,18 +19,6 @@ export function createTypir(domainNodeEntry: AstNode): TypirServices {
     });
     const anyKind = new TopKind(typir);
     const operators = typir.operators;
-
-    // override some default behaviour ...
-    // ... print the text of the corresponding CstNode
-    class OxPrinter extends DefaultTypeConflictPrinter {
-        override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
-            if (isAstNode(domainElement)) {
-                return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
-            }
-            return super.printDomainElement(domainElement, sentenceBegin);
-        }
-    }
-    typir.printer = new OxPrinter();
 
     // primitive types
     // typeBool, typeNumber and typeVoid are specific types for OX, ...
@@ -260,3 +248,18 @@ export function createTypir(domainNodeEntry: AstNode): TypirServices {
 
     return typir;
 }
+
+// override some default behaviour ...
+// ... print the text of the corresponding CstNode
+class OxPrinter extends DefaultTypeConflictPrinter {
+    override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
+        if (isAstNode(domainElement)) {
+            return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
+        }
+        return super.printDomainElement(domainElement, sentenceBegin);
+    }
+}
+
+export const LoxTypirModule: Module<TypirServices, PartialTypirServices> = {
+    printer: () => new OxPrinter(),
+};

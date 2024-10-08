@@ -42,22 +42,22 @@ import { KindRegistry, DefaultKindRegistry } from './kinds/kind-registry.js';
  */
 
 export type TypirServices = {
-    assignability: TypeAssignability;
-    equality: TypeEquality;
-    conversion: TypeConversion;
-    subtype: SubType;
-    inference: TypeInferenceCollector;
-    caching: {
-        typeRelationships: TypeRelationshipCaching;
-        domainElementInference: DomainElementInferenceCaching;
+    readonly assignability: TypeAssignability;
+    readonly equality: TypeEquality;
+    readonly conversion: TypeConversion;
+    readonly subtype: SubType;
+    readonly inference: TypeInferenceCollector;
+    readonly caching: {
+        readonly typeRelationships: TypeRelationshipCaching;
+        readonly domainElementInference: DomainElementInferenceCaching;
     };
-    graph: TypeGraph;
-    kinds: KindRegistry;
-    operators: OperatorManager;
-    printer: ProblemPrinter;
-    validation: {
-        collector: ValidationCollector;
-        constraints: ValidationConstraints;
+    readonly graph: TypeGraph;
+    readonly kinds: KindRegistry;
+    readonly operators: OperatorManager;
+    readonly printer: ProblemPrinter;
+    readonly validation: {
+        readonly collector: ValidationCollector;
+        readonly constraints: ValidationConstraints;
     };
 };
 
@@ -81,7 +81,21 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
     }
 };
 
-export function createTypirServices() {
-    return inject(DefaultTypirServiceModule);
+export function createTypirServices(customization: Module<TypirServices, PartialTypirServices> = {}): TypirServices {
+    return inject(DefaultTypirServiceModule, customization);
 }
 
+/**
+ * A deep partial type definition for services. We look into T to see whether its type definition contains
+ * any methods. If it does, it's one of our services and therefore should not be partialized.
+ * Copied from Langium.
+ */
+//eslint-disable-next-line @typescript-eslint/ban-types
+export type DeepPartial<T> = T[keyof T] extends Function ? T : {
+    [P in keyof T]?: DeepPartial<T[P]>;
+}
+
+/**
+ * Language-specific services to be partially overridden via dependency injection.
+ */
+export type PartialTypirServices = DeepPartial<TypirServices>
