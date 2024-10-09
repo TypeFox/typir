@@ -4,14 +4,88 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeEqualityProblem } from '../features/equality.js';
 import { InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
-import { Type } from '../graph/type-node.js';
+import { isType, Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
-import { checkValueForConflict } from '../utils/utils-type-comparison.js';
-import { assertKind, toArray } from '../utils/utils.js';
-import { Kind, isKind } from './kind.js';
+import { checkValueForConflict, createKindConflict } from '../utils/utils-type-comparison.js';
+import { assertTrue, toArray } from '../utils/utils.js';
+import { isKind, Kind } from './kind.js';
+
+export class PrimitiveType extends Type {
+    override readonly kind: PrimitiveKind;
+
+    constructor(kind: PrimitiveKind, identifier: string) {
+        super(identifier);
+        this.kind = kind;
+    }
+
+    override getName(): string {
+        return this.identifier;
+    }
+
+    override getUserRepresentation(): string {
+        return this.identifier;
+    }
+
+    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+        if (isPrimitiveType(otherType)) {
+            return checkValueForConflict(this.identifier, otherType.identifier, 'name');
+        } else {
+            return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
+                type1: this,
+                type2: otherType,
+                subProblems: [createKindConflict(otherType, this)],
+            }];
+        }
+    }
+
+    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
+        if (isPrimitiveType(superType)) {
+            return this.analyzeSubTypeProblems(this, superType);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType,
+                subType: this,
+                subProblems: [createKindConflict(this, superType)],
+            }];
+        }
+    }
+
+    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
+        if (isPrimitiveType(subType)) {
+            return this.analyzeSubTypeProblems(subType, this);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType: this,
+                subType,
+                subProblems: [createKindConflict(subType, this)],
+            }];
+        }
+    }
+
+    protected analyzeSubTypeProblems(subType: PrimitiveType, superType: PrimitiveType): TypirProblem[] {
+        return subType.analyzeTypeEqualityProblems(superType);
+    }
+
+}
+
+export function isPrimitiveType(type: unknown): type is PrimitiveType {
+    return isType(type) && isPrimitiveKind(type.kind);
+}
+
+
+
+export interface PrimitiveTypeDetails {
+    primitiveName: string;
+    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
+    inferenceRules?: InferPrimitiveType | InferPrimitiveType[];
+}
 
 export type InferPrimitiveType = (domainElement: unknown) => boolean;
 
@@ -22,19 +96,31 @@ export class PrimitiveKind implements Kind {
     readonly services: TypirServices;
 
     constructor(services: TypirServices) {
-        this.$name = 'PrimitiveKind';
+        this.$name = PrimitiveKindName;
         this.services = services;
         this.services.kinds.register(this);
     }
 
-    createPrimitiveType(typeDetails: {
-        primitiveName: string,
-        /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
-        inferenceRules?: InferPrimitiveType | InferPrimitiveType[]
-    }): Type {
+    getPrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.services.graph.getType(key) as PrimitiveType;
+    }
+
+    getOrCreatePrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType {
+        const result = this.getPrimitiveType(typeDetails);
+        if (result) {
+            return result;
+        }
+        return this.createPrimitiveType(typeDetails);
+    }
+
+    createPrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType {
+        assertTrue(this.getPrimitiveType(typeDetails) === undefined);
+
         // create the primitive type
-        const primitiveType = new Type(this, typeDetails.primitiveName);
+        const primitiveType = new PrimitiveType(this, this.calculateIdentifier(typeDetails));
         this.services.graph.addNode(primitiveType);
+
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
@@ -47,30 +133,12 @@ export class PrimitiveKind implements Kind {
                 return InferenceRuleNotApplicable;
             });
         }
+
         return primitiveType;
     }
 
-    getUserRepresentation(type: Type): string {
-        assertKind(type.kind, isPrimitiveKind);
-        return type.name;
-    }
-
-    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
-        if (isPrimitiveKind(superType.kind) && isPrimitiveKind(subType.kind)) {
-            return this.analyzeTypeEqualityProblems(superType, subType);
-        }
-        return [<SubTypeProblem>{
-            superType,
-            subType,
-            subProblems: checkValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
-        }];
-    }
-
-    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
-        if (isPrimitiveKind(type1.kind) && isPrimitiveKind(type2.kind)) {
-            return checkValueForConflict(type1.name, type2.name, 'name');
-        }
-        throw new Error();
+    calculateIdentifier(typeDetails: PrimitiveTypeDetails): string {
+        return typeDetails.primitiveName;
     }
 }
 

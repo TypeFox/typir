@@ -6,9 +6,10 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { TypeInferenceCollector } from './inference.js';
+import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
@@ -20,16 +21,24 @@ export interface ValidationMessageDetails {
     message: string;
 }
 
-export interface ValidationProblem extends ValidationMessageDetails {
+export interface ValidationProblem extends ValidationMessageDetails, TypirProblem {
+    $problem: 'ValidationProblem';
     subProblems?: TypirProblem[];
 }
+export const ValidationProblem = 'ValidationProblem';
 export function isValidationProblem(problem: unknown): problem is ValidationProblem {
-    return typeof problem === 'object' && problem !== null && typeof (problem as ValidationProblem).severity === 'string' && (problem as ValidationProblem).message !== undefined;
+    return isSpecificTypirProblem(problem, ValidationProblem);
 }
 
 export type ValidationRule = (domainElement: unknown, typir: TypirServices) => ValidationProblem[];
 
-export type ValidationMessageProvider = (actual: Type, expected: Type) => Partial<ValidationMessageDetails>;
+/** Annotate types after the validation with additional information in order to ease the creation of usefull messages. */
+export interface AnnotatedTypeAfterValidation {
+    type: Type;
+    userRepresentation: string;
+    name: string;
+}
+export type ValidationMessageProvider = (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails>;
 
 export interface ValidationConstraints {
     ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
@@ -46,10 +55,12 @@ export interface ValidationConstraints {
 export class DefaultValidationConstraints implements ValidationConstraints {
     protected readonly services: TypirServices;
     protected readonly inference: TypeInferenceCollector;
+    protected readonly printer: ProblemPrinter;
 
     constructor(services: TypirServices) {
         this.services = services;
         this.inference = services.inference;
+        this.printer = services.printer;
     }
 
     ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
@@ -73,30 +84,33 @@ export class DefaultValidationConstraints implements ValidationConstraints {
             const actualType = isType(domainNode) ? domainNode : this.inference.inferType(domainNode);
             const expectedType = isType(expected) ? expected : this.inference.inferType(expected);
             if (isType(actualType) && isType(expectedType)) {
-                const comparisonResult = createTypeCheckStrategy(strategy, this.services)(actualType, expectedType);
+                const strategyLogic = createTypeCheckStrategy(strategy, this.services);
+                const comparisonResult = strategyLogic(actualType, expectedType);
                 if (comparisonResult !== undefined) {
                     if (negated) {
                         // everything is fine
                     } else {
-                        const details = message(actualType, expectedType);
+                        const details = message(this.annotateType(actualType), this.annotateType(expectedType));
                         return [{
+                            $problem: ValidationProblem,
                             domainElement: details.domainElement ?? domainNode,
                             domainProperty: details.domainProperty,
                             domainIndex: details.domainIndex,
                             severity: details.severity ?? 'error',
-                            message: details.message ?? `'${actualType.name}' is ${negated ? '' : 'not '}related to '${expectedType.name}' regarding ${strategy}.`,
+                            message: details.message ?? `'${actualType.identifier}' is ${negated ? '' : 'not '}related to '${expectedType.identifier}' regarding ${strategy}.`,
                             subProblems: [comparisonResult]
                         }];
                     }
                 } else {
                     if (negated) {
-                        const details = message(actualType, expectedType);
+                        const details = message(this.annotateType(actualType), this.annotateType(expectedType));
                         return [{
+                            $problem: ValidationProblem,
                             domainElement: details.domainElement ?? domainNode,
                             domainProperty: details.domainProperty,
                             domainIndex: details.domainIndex,
                             severity: details.severity ?? 'error',
-                            message: details.message ?? `'${actualType.name}' is ${negated ? '' : 'not '}related to '${expectedType.name}' regarding ${strategy}.`,
+                            message: details.message ?? `'${actualType.identifier}' is ${negated ? '' : 'not '}related to '${expectedType.identifier}' regarding ${strategy}.`,
                             subProblems: [] // no sub-problems are available!
                         }];
                     } else {
@@ -109,7 +123,16 @@ export class DefaultValidationConstraints implements ValidationConstraints {
         }
         return [];
     }
+
+    protected annotateType(type: Type): AnnotatedTypeAfterValidation {
+        return {
+            type,
+            userRepresentation: this.printer.printTypeUserRepresentation(type),
+            name: this.printer.printTypeName(type),
+        };
+    }
 }
+
 
 export interface ValidationCollector {
     validate(domainElement: unknown): ValidationProblem[];

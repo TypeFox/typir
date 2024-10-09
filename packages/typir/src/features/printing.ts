@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from 'langium';
 import { Type } from '../graph/type-node.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 import { IndexedTypeConflict, ValueConflict, isIndexedTypeConflict, isValueConflict } from '../utils/utils-type-comparison.js';
 import { toArray } from '../utils/utils.js';
 import { AssignabilityProblem, isAssignabilityProblem } from './assignability.js';
@@ -13,7 +13,6 @@ import { TypeEqualityProblem, isTypeEqualityProblem } from './equality.js';
 import { InferenceProblem, isInferenceProblem } from './inference.js';
 import { SubTypeProblem, isSubTypeProblem } from './subtype.js';
 import { ValidationProblem, isValidationProblem } from './validation.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
 
 export interface ProblemPrinter {
     printValueConflict(problem: ValueConflict): string;
@@ -28,7 +27,20 @@ export interface ProblemPrinter {
     printTypirProblems(problems: TypirProblem[]): string;
 
     printDomainElement(domainElement: unknown, sentenceBegin: boolean): string;
-    printType(type: Type): string;
+    /**
+     * This function should be used by other services, instead of using type.getName().
+     * This enables to customize the printing of type names by overriding only this implementation.
+     * @param type the type to print
+     * @returns the name of the given type
+     */
+    printTypeName(type: Type): string;
+    /**
+     * This function should be used by other services, instead of using type.getUserRepresentation().
+     * This enables to customize the printing of type names by overriding only this implementation.
+     * @param type the type to print
+     * @returns the user representation of the given type
+     */
+    printTypeUserRepresentation(type: Type): string;
 }
 
 export class DefaultTypeConflictPrinter implements ProblemPrinter {
@@ -41,11 +53,11 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         const left = problem.firstValue;
         const right = problem.secondValue;
         if (left !== undefined && right !== undefined) {
-            result = result + `${left} and ${right} do not match.`;
+            result += `${left} and ${right} do not match.`;
         } else if (left !== undefined && right === undefined) {
-            result = result + `${left} on the left has no opposite value on the right to match.`;
+            result += `${left} on the left has no opposite value on the right to match.`;
         } else if (left === undefined && right !== undefined) {
-            result = result + `there is no value on the left to match with ${right} on the right.`;
+            result += `there is no value on the left to match with ${right} on the right.`;
         } else {
             throw new Error();
         }
@@ -57,19 +69,25 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         const left = problem.expected;
         const right = problem.actual;
         let result = '';
-        if (typeof problem.index === 'number') {
-            result = result + `At index ${problem.index}, `;
+        if (problem.propertyName) {
+            if (problem.propertyIndex) {
+                result += `For property '${problem.propertyName} at index ${problem.propertyIndex}', `;
+            } else {
+                result += `For property '${problem.propertyName}', `;
+            }
+        } else if (problem.propertyIndex) {
+            result += `At index ${problem.propertyIndex}, `;
         } else {
-            result = result + `For property '${problem.index}', `;
+            result += 'At an unknown location, ';
         }
         if (left !== undefined && right !== undefined) {
-            result = result + `the types '${this.printType(left)}' and '${this.printType(right)}' do not match.`;
+            result += `the types '${this.printTypeName(left)}' and '${this.printTypeName(right)}' do not match.`;
         } else if (left !== undefined && right === undefined) {
-            result = result + `the type '${this.printType(left)}' on the left has no opposite type on the right to match with.`;
+            result += `the type '${this.printTypeName(left)}' on the left has no opposite type on the right to match with.`;
         } else if (left === undefined && right !== undefined) {
-            result = result + `there is no type on the left to match with the type '${this.printType(right)}' on the right.`;
+            result += `there is no type on the left to match with the type '${this.printTypeName(right)}' on the right.`;
         } else {
-            throw new Error();
+            result += 'both types are unclear.';
         }
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
@@ -77,21 +95,21 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     }
 
     printAssignabilityProblem(problem: AssignabilityProblem, level: number = 0): string {
-        let result = `The type '${this.printType(problem.source)}' is not assignable to the type '${this.printType(problem.target)}'.`;
+        let result = `The type '${this.printTypeName(problem.source)}' is not assignable to the type '${this.printTypeName(problem.target)}'.`;
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
     }
 
     printSubTypeProblem(problem: SubTypeProblem, level: number = 0): string {
-        let result = `The type '${this.printType(problem.superType)}' is no super-type of '${this.printType(problem.subType)}'.`;
+        let result = `The type '${this.printTypeName(problem.superType)}' is no super-type of '${this.printTypeName(problem.subType)}'.`;
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
     }
 
     printTypeEqualityProblem(problem: TypeEqualityProblem, level: number = 0): string {
-        let result = `The types '${this.printType(problem.type1)}' and '${this.printType(problem.type2)}' are not equal.`;
+        let result = `The types '${this.printTypeName(problem.type1)}' and '${this.printTypeName(problem.type2)}' are not equal.`;
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
@@ -100,17 +118,17 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     printInferenceProblem(problem: InferenceProblem, level: number = 0): string {
         let result = `While inferring the type for ${this.printDomainElement(problem.domainElement)}, at ${problem.location}`;
         if (problem.inferenceCandidate) {
-            result = result + ` of the type '${this.printType(problem.inferenceCandidate)}' as candidate to infer`;
+            result += ` of the type '${this.printTypeName(problem.inferenceCandidate)}' as candidate to infer`;
         }
-        result = result + ', some problems occurred.';
-        // Since Rules have no name (yet), it is not possible to print problem.rule here.
+        result += ', some problems occurred.';
+        // Since Rules have no name, it is not possible to print problem.rule here.
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
     }
 
     printValidationProblem(problem: ValidationProblem, level: number = 0): string {
-        let result = `While validating ${this.printDomainElement(problem.domainElement)}, this ${problem.severity} is found: ${problem.message}`;
+        let result = `While validating ${this.printDomainElement(problem.domainElement)}, this ${problem.severity} is found: ${problem.message}`.trim();
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
@@ -132,7 +150,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         } else if (isValidationProblem(problem)) {
             return this.printValidationProblem(problem, level);
         } else {
-            assertUnreachable(problem);
+            throw new Error(`Unhandled typir problem ${problem.$problem}`);
         }
     }
 
@@ -144,7 +162,11 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         return `${sentenceBegin ? 'T' : 't'}he domain element '${domainElement}'`;
     }
 
-    printType(type: Type): string {
+    printTypeName(type: Type): string {
+        return type.getName();
+    }
+
+    printTypeUserRepresentation(type: Type): string {
         return type.getUserRepresentation();
     }
 

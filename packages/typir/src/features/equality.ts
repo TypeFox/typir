@@ -5,21 +5,24 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { Type, isType } from '../graph/type-node.js';
+import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { checkValueForConflict } from '../utils/utils-type-comparison.js';
-import { RelationshipKind, TypeRelationshipCaching } from './caching.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
+import { TypeEdge, isTypeEdge } from '../graph/type-edge.js';
 
-export interface TypeEqualityProblem {
+export interface TypeEqualityProblem extends TypirProblem {
+    $problem: 'TypeEqualityProblem';
     type1: Type;
     type2: Type;
     subProblems: TypirProblem[]; // might be empty
 }
+export const TypeEqualityProblem = 'TypeEqualityProblem';
 export function isTypeEqualityProblem(problem: unknown): problem is TypeEqualityProblem {
-    return typeof problem === 'object' && problem !== null && isType((problem as TypeEqualityProblem).type1) && isType((problem as TypeEqualityProblem).type2);
+    return isSpecificTypirProblem(problem, TypeEqualityProblem);
 }
 
+// TODO comments
 export interface TypeEquality {
     areTypesEqual(type1: Type, type2: Type): boolean;
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined;
@@ -38,15 +41,22 @@ export class DefaultTypeEquality implements TypeEquality {
 
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined {
         const cache: TypeRelationshipCaching = this.typeRelationships;
-        const linkData = cache.getRelationship(type1, type2, EQUAL_TYPE, false);
-        const linkRelationship = linkData.relationship;
+        const linkData = cache.getRelationshipBidirectional<EqualityEdge>(type1, type2, EqualityEdge);
+        const equalityCaching = linkData?.cachingInformation ?? 'UNKNOWN';
 
-        const save = (relationship: RelationshipKind, error: TypeEqualityProblem | undefined): void => {
-            cache.setRelationship(type1, type2, EQUAL_TYPE, false, relationship, error);
-        };
+        function save(equalityCaching: EdgeCachingInformation, error: TypeEqualityProblem | undefined): void {
+            const newEdge: EqualityEdge = {
+                $relation: EqualityEdge,
+                from: type1,
+                to: type2,
+                cachingInformation: 'LINK_EXISTS',
+                error,
+            };
+            cache.setOrUpdateBidirectionalRelationship(newEdge, equalityCaching);
+        }
 
         // skip recursive checking
-        if (linkRelationship === 'PENDING') {
+        if (equalityCaching === 'PENDING') {
             /** 'undefined' should be correct here ...
              * - since this relationship will be checked earlier/higher/upper in the call stack again
              * - since this values is not cached and therefore NOT reused in the earlier call! */
@@ -54,23 +64,24 @@ export class DefaultTypeEquality implements TypeEquality {
         }
 
         // the result is already known
-        if (linkRelationship === 'LINK_EXISTS') {
+        if (equalityCaching === 'LINK_EXISTS') {
             return undefined;
         }
-        if (linkRelationship === 'NO_LINK') {
+        if (equalityCaching === 'NO_LINK') {
             return {
+                $problem: TypeEqualityProblem,
                 type1,
                 type2,
-                subProblems: isTypeEqualityProblem(linkData.additionalData) ? [linkData.additionalData] : [],
+                subProblems: linkData?.error ? [linkData.error] : [],
             };
         }
 
         // do the expensive calculation now
-        if (linkRelationship === 'UNKNOWN') {
+        if (equalityCaching === 'UNKNOWN') {
             // mark the current relationship as PENDING to detect and resolve cycling checks
             save('PENDING', undefined);
 
-            // do the real logic
+            // do the actual calculation
             const result = this.calculateEquality(type1, type2);
 
             // this allows to cache results (and to re-set the PENDING state)
@@ -81,39 +92,45 @@ export class DefaultTypeEquality implements TypeEquality {
             }
             return result;
         }
-        assertUnreachable(linkRelationship);
+        assertUnreachable(equalityCaching);
     }
 
     protected calculateEquality(type1: Type, type2: Type): TypeEqualityProblem | undefined {
         if (type1 === type2) {
             return undefined;
         }
-        if (type1.name === type2.name) { // this works, since names are unique!
+        if (type1.identifier === type2.identifier) { // this works, since identifiers are unique!
             return undefined;
         }
 
-        const kindComparisonResult = checkValueForConflict(type1.kind.$name, type2.kind.$name, 'kind');
-        if (kindComparisonResult.length >= 1) {
-            // equal types must have the same kind
-            return {
-                type1,
-                type2,
-                subProblems: kindComparisonResult
-            };
-        } else {
-            // check the types: delegated to the kind
-            const kindResult = type1.kind.analyzeTypeEqualityProblems(type1, type2);
-            if (kindResult.length >= 1) {
-                return {
-                    type1,
-                    type2,
-                    subProblems: kindResult
-                };
-            } else {
-                return undefined;
-            }
+        // use the type-specific logic
+        // ask the 1st type
+        const result1 = type1.analyzeTypeEqualityProblems(type2);
+        if (result1.length <= 0) {
+            return undefined;
         }
+        // ask the 2nd type
+        const result2 = type2.analyzeTypeEqualityProblems(type1);
+        if (result2.length <= 0) {
+            return undefined;
+        }
+        // both types reported, that they are diffferent
+        return {
+            $problem: TypeEqualityProblem,
+            type1,
+            type2,
+            subProblems: [...result1, ...result2] // return the equality problems of both types
+        };
     }
+
 }
 
-const EQUAL_TYPE = 'areEqual';
+export interface EqualityEdge extends TypeEdge {
+    readonly $relation: 'EqualityEdge';
+    readonly error: TypeEqualityProblem | undefined;
+}
+export const EqualityEdge = 'EqualityEdge';
+
+export function isEqualityEdge(edge: unknown): edge is EqualityEdge {
+    return isTypeEdge(edge) && edge.$relation === EqualityEdge;
+}

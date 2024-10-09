@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { Type } from '../graph/type-node.js';
 import { Kind } from '../kinds/kind.js';
 
 export function assertTrue(condition: boolean, msg?: string): asserts condition {
@@ -31,5 +32,13 @@ export function assertKind<T extends Kind>(kind: unknown, check: (kind: unknown)
         // this is the expected case
     } else {
         throw new Error(msg ?? `'${kind}' has another kind`);
+    }
+}
+
+export function assertType<T extends Type>(type: unknown, check: (type: unknown) => type is T, msg?: string): asserts type is T {
+    if (check(type)) {
+        // this is the expected case
+    } else {
+        throw new Error(msg ?? `'${type}' has another type`);
     }
 }

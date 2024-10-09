@@ -5,9 +5,9 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, Module, assertUnreachable, isAstNode } from 'langium';
-import { ClassKind, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FieldDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, createTypirServices } from 'typir';
-import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { ClassKind, CreateFieldDetails, DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, createTypirServices } from 'typir';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
+import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isLoxProgram, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): TypirServices {
     // set up Typir and reuse some predefined things
@@ -140,7 +140,7 @@ export function createTypir(domainNodeEntry: AstNode): TypirServices {
                 superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
                 fields: node.members
                     .filter(m => isFieldMember(m)).map(f => f as FieldMember) // only Fields, no Methods
-                    .map(f => <FieldDetails>{
+                    .map(f => <CreateFieldDetails>{
                         name: f.name,
                         type: f.type, // note that type inference is used here; TODO delayed
                     }),

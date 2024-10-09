@@ -4,17 +4,140 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeEqualityProblem } from '../features/equality.js';
 import { SubTypeProblem } from '../features/subtype.js';
-import { TypeEdge } from '../graph/type-edge.js';
-import { Type } from '../graph/type-node.js';
+import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
-import { TypeCheckStrategy, checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
-import { assertKind, assertTrue, toArray } from '../utils/utils.js';
+import { TypeCheckStrategy, checkTypeArrays, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { assertTrue, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
+export class Parameter {
+    readonly name: string;
+    readonly index: number;
+
+    constructor(name: string, index: number) {
+        this.name = name;
+        this.index = index;
+    }
+}
+
+export class ParameterValue {
+    readonly parameter: Parameter;
+    readonly type: Type;
+
+    constructor(parameter: Parameter, type: Type) {
+        this.parameter = parameter;
+        this.type = type;
+    }
+}
+
+export class FixedParameterType extends Type {
+    override readonly kind: FixedParameterKind;
+    readonly parameterValues: ParameterValue[] = [];
+
+    constructor(kind: FixedParameterKind, identifier: string, ...typeValues: Type[]) {
+        super(identifier);
+        this.kind = kind;
+
+        // set the parameter values
+        assertTrue(kind.parameters.length === typeValues.length);
+        for (let i = 0; i < typeValues.length; i++) {
+            this.parameterValues.push({
+                parameter: kind.parameters[i],
+                type: typeValues[i],
+            });
+        }
+    }
+
+    getParameterTypes(): Type[] {
+        return this.parameterValues.map(p => p.type);
+    }
+
+    override getName(): string {
+        return `${this.kind.printSignature(this.kind.baseName, this.getParameterTypes(), ', ')}`;
+    }
+
+    override getUserRepresentation(): string {
+        return this.getName();
+    }
+
+    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+        if (isFixedParameterType(otherType)) {
+            // same name, e.g. both need to be Map, Set, Array, ...
+            const baseTypeCheck = checkValueForConflict(this.kind.baseName, otherType.kind.baseName, 'base type');
+            if (baseTypeCheck.length >= 1) {
+                // e.g. List<String> !== Set<String>
+                return baseTypeCheck;
+            } else {
+                // all parameter types must match, e.g. Set<String> !== Set<Boolean>
+                const conflicts: TypirProblem[] = [];
+                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.services.equality.getTypeEqualityProblem(t1, t2), false));
+                return conflicts;
+            }
+        } else {
+            return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
+                type1: this,
+                type2: otherType,
+                subProblems: [createKindConflict(this, otherType)],
+            }];
+        }
+    }
+
+    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
+        if (isFixedParameterType(superType)) {
+            return this.analyzeSubTypeProblems(this, superType);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType,
+                subType: this,
+                subProblems: [createKindConflict(this, superType)],
+            }];
+        }
+    }
+
+    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
+        if (isFixedParameterType(subType)) {
+            return this.analyzeSubTypeProblems(subType, this);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType: this,
+                subType,
+                subProblems: [createKindConflict(subType, this)],
+            }];
+        }
+    }
+
+    protected analyzeSubTypeProblems(subType: FixedParameterType, superType: FixedParameterType): TypirProblem[] {
+        // same name, e.g. both need to be Map, Set, Array, ...
+        const baseTypeCheck = checkValueForConflict(subType.kind.baseName, superType.kind.baseName, 'base type');
+        if (baseTypeCheck.length >= 1) {
+            // e.g. List<String> !== Set<String>
+            return baseTypeCheck;
+        } else {
+            // all parameter types must match, e.g. Set<String> !== Set<Boolean>
+            const checkStrategy = createTypeCheckStrategy(this.kind.options.parameterSubtypeCheckingStrategy, this.kind.services);
+            return checkTypeArrays(subType.getParameterTypes(), superType.getParameterTypes(), checkStrategy, false);
+        }
+    }
+}
+
+export function isFixedParameterType(type: unknown): type is FixedParameterType {
+    return isType(type) && isFixedParametersKind(type.kind);
+}
+
+
+
+export interface FixedParameterTypeDetails {
+    parameterTypes: Type | Type[]
+}
+
 export interface FixedParameterKindOptions {
-    subtypeParameterChecking: TypeCheckStrategy,
+    parameterSubtypeCheckingStrategy: TypeCheckStrategy,
 }
 
 export const FixedParameterKindName = 'FixedParameterKind';
@@ -24,88 +147,61 @@ export const FixedParameterKindName = 'FixedParameterKind';
  */
 export class FixedParameterKind implements Kind {
     readonly $name: `FixedParameterKind-${string}`;
+    readonly services: TypirServices;
     readonly baseName: string;
     readonly options: FixedParameterKindOptions;
-    readonly parameterNames: string[];
-    readonly services: TypirServices;
+    readonly parameters: Parameter[]; // assumption: the parameters are in the correct order!
 
-    constructor(services: TypirServices, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
-        this.$name = `FixedParameterKind-${baseName}`;
-        this.services = services;
+    constructor(typir: TypirServices, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
+        this.$name = `${FixedParameterKindName}-${baseName}`;
+        this.services = typir;
         this.services.kinds.register(this);
         this.baseName = baseName;
         this.options = {
             // the default values:
-            subtypeParameterChecking: 'EQUAL_TYPE',
+            parameterSubtypeCheckingStrategy: 'EQUAL_TYPE',
             // the actually overriden values:
             ...options
         };
-        this.parameterNames = parameterNames;
+        this.parameters = parameterNames.map((name, index) => <Parameter>{ name, index });
 
         // check input
-        assertTrue(this.parameterNames.length >= 1);
+        assertTrue(this.parameters.length >= 1);
+    }
+
+    getFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.services.graph.getType(key) as FixedParameterType;
+    }
+
+    getOrCreateFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
+        const result = this.getFixedParameterType(typeDetails);
+        if (result) {
+            return result;
+        }
+        return this.createFixedParameterType(typeDetails);
     }
 
     // the order of parameters matters!
-    createFixedParameterType(typeDetails: {
-        parameterTypes: Type | Type[]
-    }): Type {
-        const theParameterTypes = toArray(typeDetails.parameterTypes);
+    createFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
+        assertTrue(this.getFixedParameterType(typeDetails) === undefined);
 
         // create the class type
-        const typeWithParameters = new Type(this, this.printSignature(this.baseName, theParameterTypes)); // use the signature for a unique name
+        const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), ...toArray(typeDetails.parameterTypes));
         this.services.graph.addNode(typeWithParameters);
-
-        // add the given types to the required fixed parameters
-        assertTrue(this.parameterNames.length === theParameterTypes.length);
-        for (let index = 0; index < this.parameterNames.length; index++) {
-            const edge = new TypeEdge(typeWithParameters, theParameterTypes[index], FIXED_PARAMETER_TYPE);
-            this.services.graph.addEdge(edge);
-        }
 
         return typeWithParameters;
     }
 
-    getUserRepresentation(type: Type): string {
-        assertKind(type.kind, isFixedParametersKind);
-        return this.printSignature(this.baseName, this.getParameterTypes(type));
-    }
-    protected printSignature(baseName: string, parameterTypes: Type[]): string {
-        return `${baseName}<${parameterTypes.map(p => this.services.printer.printType(p)).join(', ')}>`;
+    calculateIdentifier(typeDetails: FixedParameterTypeDetails): string {
+        return this.printSignature(this.baseName, toArray(typeDetails.parameterTypes), ','); // use the signature for a unique name
     }
 
-    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
-        // same name, e.g. both need to be Map, Set, Array, ...
-        if (isFixedParametersKind(superType.kind) && isFixedParametersKind(subType.kind) && superType.kind.baseName === subType.kind.baseName) {
-            // all parameter types must match
-            const checkStrategy = createTypeCheckStrategy(this.options.subtypeParameterChecking, this.services);
-            return checkTypes(subType.kind.getParameterTypes(subType), superType.kind.getParameterTypes(superType), checkStrategy);
-        }
-        return [<SubTypeProblem>{
-            superType,
-            subType,
-            subProblems: checkValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
-        }];
+    printSignature(baseName: string, parameterTypes: Type[], parameterSeparator: string): string {
+        return `${baseName}<${parameterTypes.map(p => p.getName()).join(parameterSeparator)}>`;
     }
 
-    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
-        if (isFixedParametersKind(type1.kind) && isFixedParametersKind(type2.kind) && type1.kind.baseName === type2.kind.baseName) {
-            const conflicts: TypirProblem[] = [];
-            conflicts.push(...checkTypes(type1.kind.getParameterTypes(type1), type2.kind.getParameterTypes(type2), (t1, t2) => this.services.equality.getTypeEqualityProblem(t1, t2)));
-            return conflicts;
-        }
-        throw new Error();
-    }
-
-    getParameterTypes(fixedParameterType: Type): Type[] {
-        assertKind(fixedParameterType.kind, isFixedParametersKind);
-        const result = fixedParameterType.getOutgoingEdges(FIXED_PARAMETER_TYPE).map(edge => edge.to);
-        assertTrue(result.length === this.parameterNames.length);
-        return result;
-    }
 }
-
-const FIXED_PARAMETER_TYPE = 'hasField';
 
 export function isFixedParametersKind(kind: unknown): kind is FixedParameterKind {
     return isKind(kind) && kind.$name.startsWith('FixedParameterKind-');

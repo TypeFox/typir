@@ -4,20 +4,23 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { assertUnreachable } from 'langium';
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { DomainElementInferenceCaching } from './caching.js';
 
-export interface InferenceProblem {
+export interface InferenceProblem extends TypirProblem {
+    $problem: 'InferenceProblem';
     domainElement: unknown;
     inferenceCandidate?: Type;
     location: string;
     rule?: TypeInferenceRule; // for debugging only, since rules have no names (so far); TODO this does not really work with TypeInferenceRuleWithoutInferringChildren
     subProblems: TypirProblem[]; // might be missing or empty
 }
+export const InferenceProblem = 'InferenceProblem';
 export function isInferenceProblem(problem: unknown): problem is InferenceProblem {
-    return typeof problem === 'object' && problem !== null && typeof (problem as InferenceProblem).location === 'string' && (problem as InferenceProblem).domainElement !== undefined;
+    return isSpecificTypirProblem(problem, InferenceProblem);
 }
 
 // Type and Value to indicate, that an inference rule is intended for another case, and therefore is unable to infer a type for the current case.
@@ -108,6 +111,7 @@ export class CompositeTypeInferenceRule implements TypeInferenceRuleWithInferrin
                 return result[0];
             } else {
                 return <InferenceProblem>{
+                    $problem: InferenceProblem,
                     domainElement,
                     location: 'sub-rules for inference',
                     rule: this,
@@ -192,7 +196,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                 } else {
                     // no result for this inference rule => check the next inference rules
                 }
-            } else {
+            } else if (typeof rule === 'object') {
                 // more complex case with inferring the type for children
                 const ruleResult: TypeInferenceResultWithInferringChildren = rule.inferTypeWithoutChildren(domainElement, this.typir);
                 if (Array.isArray(ruleResult)) {
@@ -206,6 +210,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                         const child = childTypes[i];
                         if (Array.isArray(child)) {
                             childTypeProblems.push({
+                                $problem: InferenceProblem,
                                 domainElement: childElements[i],
                                 location: `child element ${i}`,
                                 rule,
@@ -215,6 +220,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                     }
                     if (childTypeProblems.length >= 1) {
                         collectedInferenceProblems.push({
+                            $problem: InferenceProblem,
                             domainElement,
                             location: 'inferring depending children',
                             rule,
@@ -240,6 +246,8 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
                         // no result for this inference rule => check the next inference rules
                     }
                 }
+            } else {
+                assertUnreachable(rule);
             }
         }
 
@@ -247,6 +255,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
         if (collectedInferenceProblems.length <= 0) {
             // document the reason, why neither a type nor inference problems are found
             collectedInferenceProblems.push({
+                $problem: InferenceProblem,
                 domainElement,
                 location: 'found no applicable inference rules',
                 subProblems: [],

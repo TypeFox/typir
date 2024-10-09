@@ -4,16 +4,19 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AssignabilityProblem } from '../features/assignability.js';
-import { TypeEqualityProblem } from '../features/equality.js';
-import { InferenceProblem } from '../features/inference.js';
-import { SubTypeProblem } from '../features/subtype.js';
-import { ValidationProblem } from '../features/validation.js';
 import { isType, Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { ValueConflict, IndexedTypeConflict } from './utils-type-comparison.js';
 
-export type TypirProblem = ValueConflict | IndexedTypeConflict | AssignabilityProblem | SubTypeProblem | TypeEqualityProblem | InferenceProblem | ValidationProblem;
+/**
+ * Common interface of all problems/errors/messages which should be shown to users of DSLs which are type-checked with Typir.
+ * This approach makes it easier to introduce additional errors by users of Typir, compared to a union type, e.g. export type TypirProblem = ValueConflict | IndexedTypeConflict | ...
+ */
+export interface TypirProblem {
+    readonly $problem: string;
+}
+export function isSpecificTypirProblem(problem: unknown, $problem: string): problem is TypirProblem {
+    return typeof problem === 'object' && problem !== null && ((problem as TypirProblem).$problem === $problem);
+}
 
 export type Types = Type | Type[];
 export type Names = string | string[];
@@ -21,6 +24,9 @@ export type Names = string | string[];
 export type NameTypePair = {
     name: string;
     type: Type;
+}
+export function isNameTypePair(type: unknown): type is NameTypePair {
+    return typeof type === 'object' && type !== null && typeof (type as NameTypePair).name === 'string' && isType((type as NameTypePair).type);
 }
 
 // TODO this is a WIP sketch for managing the use of Types in properties/details of other Types (e.g. Types of fields of class Types)

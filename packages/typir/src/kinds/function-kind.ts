@@ -4,16 +4,155 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { CompositeTypeInferenceRule, InferenceRuleNotApplicable } from '../features/inference.js';
+import { TypeEqualityProblem } from '../features/equality.js';
+import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
-import { DefaultValidationCollector, ValidationCollector, ValidationProblem } from '../features/validation.js';
-import { TypeEdge } from '../graph/type-edge.js';
+import { ValidationProblem } from '../features/validation.js';
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { NameTypePair, resolveTypeSelector, TypeSelector, TypirProblem } from '../utils/utils-definitions.js';
-import { checkNameTypePair, checkNameTypePairs, checkTypes, checkValueForConflict } from '../utils/utils-type-comparison.js';
-import { assertKind, assertTrue } from '../utils/utils.js';
+import { NameTypePair, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
+import { TypeCheckStrategy, checkTypeArrays, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { assertTrue } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
+
+export class FunctionType extends Type {
+    override readonly kind: FunctionKind;
+
+    readonly functionName: string;
+    readonly outputParameter: NameTypePair | undefined;
+    readonly inputParameters: NameTypePair[];
+
+    constructor(kind: FunctionKind, identifier: string, typeDetails: FunctionTypeDetails) {
+        super(identifier);
+        this.kind = kind;
+        this.functionName = typeDetails.functionName;
+
+        // output parameter
+        const outputType = typeDetails.outputParameter ? resolveTypeSelector(this.kind.services, typeDetails.outputParameter.type) : undefined;
+        if (typeDetails.outputParameter) {
+            assertTrue(outputType !== undefined);
+            this.kind.enforceName(typeDetails.outputParameter.name, this.kind.options.enforceOutputParameterName);
+            this.outputParameter = {
+                name: typeDetails.outputParameter.name,
+                type: outputType,
+            };
+        } else {
+            // no output parameter
+            this.outputParameter = undefined;
+        }
+
+        // input parameters
+        this.inputParameters = typeDetails.inputParameters.map(input => {
+            this.kind.enforceName(input.name, this.kind.options.enforceInputParameterNames);
+            return <NameTypePair>{
+                name: input.name,
+                type: resolveTypeSelector(this.kind.services, input.type),
+            };
+        });
+    }
+
+    override getName(): string {
+        return `${this.getSimpleFunctionName}`;
+    }
+
+    override getUserRepresentation(): string {
+        // function name
+        const simpleFunctionName = this.getSimpleFunctionName();
+        // inputs
+        const inputs = this.getInputs();
+        const inputsString = inputs.map(input => this.kind.getNameTypePairRepresentation(input)).join(', ');
+        // output
+        const output = this.getOutput();
+        const outputString = output
+            ? (this.kind.hasName(output.name) ? `(${this.kind.getNameTypePairRepresentation(output)})` : output.type.getName())
+            : undefined;
+        // complete signature
+        if (this.kind.hasName(simpleFunctionName)) {
+            const outputValue = outputString ? `: ${outputString}` : '';
+            return `${simpleFunctionName}(${inputsString})${outputValue}`;
+        } else {
+            return `(${inputsString}) => ${outputString ?? '()'}`;
+        }
+    }
+
+    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+        if (isFunctionType(otherType)) {
+            const conflicts: TypirProblem[] = [];
+            // same name? since functions with different names are different
+            if (this.kind.options.enforceFunctionName) {
+                conflicts.push(...checkValueForConflict(this.getSimpleFunctionName(), otherType.getSimpleFunctionName(), 'simple name'));
+            }
+            // same output?
+            conflicts.push(...checkTypes(this.getOutput(), otherType.getOutput(),
+                (s, t) => this.kind.services.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceOutputParameterName));
+            // same input?
+            conflicts.push(...checkTypeArrays(this.getInputs(), otherType.getInputs(),
+                (s, t) => this.kind.services.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames));
+            return conflicts;
+        } else {
+            return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
+                type1: this,
+                type2: otherType,
+                subProblems: [createKindConflict(otherType, this)],
+            }];
+        }
+    }
+
+    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
+        if (isFunctionType(superType)) {
+            return this.analyzeSubTypeProblems(this, superType);
+        }
+        return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
+            superType,
+            subType: this,
+            subProblems: [createKindConflict(this, superType)],
+        }];
+    }
+
+    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
+        if (isFunctionType(subType)) {
+            return this.analyzeSubTypeProblems(subType, this);
+        }
+        return [<SubTypeProblem>{
+            $problem: SubTypeProblem,
+            superType: this,
+            subType,
+            subProblems: [createKindConflict(subType, this)],
+        }];
+    }
+
+    protected analyzeSubTypeProblems(subType: FunctionType, superType: FunctionType): TypirProblem[] {
+        const conflicts: TypirProblem[] = [];
+        const strategy = createTypeCheckStrategy(this.kind.options.subtypeParameterChecking, this.kind.services);
+        // output: sub type output must be assignable (which can be configured) to super type output
+        conflicts.push(...checkTypes(subType.getOutput(), superType.getOutput(),
+            (sub, superr) => strategy(sub, superr), this.kind.options.enforceOutputParameterName));
+        // input: super type inputs must be assignable (which can be configured) to sub type inputs
+        conflicts.push(...checkTypeArrays(subType.getInputs(), superType.getInputs(),
+            (sub, superr) => strategy(superr, sub), this.kind.options.enforceInputParameterNames));
+        return conflicts;
+    }
+
+    getSimpleFunctionName(): string {
+        return this.functionName;
+    }
+
+    getOutput(): NameTypePair | undefined {
+        return this.outputParameter;
+    }
+
+    getInputs(): NameTypePair[] {
+        return this.inputParameters;
+    }
+}
+
+export function isFunctionType(type: unknown): type is FunctionType {
+    return isType(type) && isFunctionKind(type.kind);
+}
+
+
 
 export interface FunctionKindOptions {
     // these three options controls structural vs nominal typing somehow ...
@@ -22,7 +161,10 @@ export interface FunctionKindOptions {
     enforceOutputParameterName: boolean,
     /** Will be used only internally as prefix for the unique identifiers for function type names. */
     identifierPrefix: string,
-    // TODO configure the (default) type to return, if a function has no output type (e.g. "void"), default is "undefined" of TypeScript
+    /** If a function has no output type (e.g. "void" functions), this type is returned during the type inference of calls to these functions.
+     * The default value "THROW_ERROR" indicates to throw an error, i.e. type inference for calls of such functions are not allowed. */
+    typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR' | TypeSelector;
+    subtypeParameterChecking: TypeCheckStrategy;
 }
 
 export const FunctionKindName = 'FunctionKind';
@@ -32,11 +174,13 @@ export interface ParameterDetails {
     type: TypeSelector;
 }
 
-export interface FunctionTypeDetails<T> {
+export interface FunctionTypeDetails {
     functionName: string,
     /** The order of parameters is important! */
     outputParameter: ParameterDetails | undefined,
     inputParameters: ParameterDetails[],
+}
+export interface CreateFunctionTypeDetails<T> extends FunctionTypeDetails {
     /** for function declarations => returns the funtion type (the whole signature including all names) */
     inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
     /** for function calls => returns the return type of the function */
@@ -53,7 +197,7 @@ interface OverloadedFunctionDetails {
 }
 
 interface SingleFunctionDetails<T> {
-    functionType: Type;
+    functionType: FunctionType;
     inferenceRuleForCalls?: InferFunctionCall<T>;
 }
 
@@ -89,11 +233,18 @@ export type InferFunctionCall<T = unknown> = {
 /**
  * Represents signatures of executable code.
  *
+ * Constraints of overloaded functions:
+ * - no duplicated variants!
+ * - The names of all paramaters don't matter for functions to be unique.
+ * - a variant is uniquely identified by: function name (if available), types of input parameters; options.identifierPrefix
+ * - For overloaded functions, it is not enough to have different output types or different parameter names!
+ *
  * TODO possible Extensions:
  * - multiple output parameters
  * - create variants of this, e.g. functions, procedures, lambdas
  * - (structural vs nominal typing? somehow realized by the three options above ...)
  * - optional parameters
+ * - parameters which are used for output AND input
  */
 export class FunctionKind implements Kind {
     readonly $name: 'FunctionKind';
@@ -102,12 +253,12 @@ export class FunctionKind implements Kind {
     /** TODO Limitations
      * - Works only, if function types are defined using the createFunctionType(...) function below!
      * - How to remove function types later? How to observe this case/event? How to remove their inference rules and validations?
-     * - Improve the type graph with fast access to all types of a dedicated kind?
      */
     protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
+    // TODO try to replace this map with calculating the required identifier for the function
 
     constructor(services: TypirServices, options?: Partial<FunctionKindOptions>) {
-        this.$name = 'FunctionKind';
+        this.$name = FunctionKindName;
         this.services = services;
         this.services.kinds.register(this);
         this.options = {
@@ -116,13 +267,15 @@ export class FunctionKind implements Kind {
             enforceInputParameterNames: false,
             enforceOutputParameterName: false,
             identifierPrefix: 'function',
+            typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR',
+            subtypeParameterChecking: 'SUB_TYPE',
             // the actually overriden values:
             ...options
         };
 
-        // register Validations for input arguments (must be done here to support overloaded functions)
+        // register Validations for input arguments of function calls (must be done here to support overloaded functions)
         this.services.validation.collector.addValidationRules(
-            (domainElement, _typir) => {
+            (domainElement, typir) => {
                 const resultAll: ValidationProblem[] = [];
                 for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
                     const resultOverloaded: ValidationProblem[] = [];
@@ -138,46 +291,37 @@ export class FunctionKind implements Kind {
                                 const inputArguments = singleFunction.inferenceRuleForCalls.inputArguments(domainElement);
                                 if (inputArguments && inputArguments.length >= 1) {
                                     // partial match:
-                                    const expectedParameterTypes = this.getInputs(singleFunction.functionType);
+                                    const expectedParameterTypes = singleFunction.functionType.getInputs();
                                     // check, that the given number of parameters is the same as the expected number of input parameters
                                     const currentProblems: ValidationProblem[] = [];
-                                    // TODO use existing helper functions for that? that are no "ValidationProblem"s, but IndexedTypeConflicts, AssignabilityProblems?
                                     const parameterLength = checkValueForConflict(expectedParameterTypes.length, inputArguments.length, 'number of input parameter values');
                                     if (parameterLength.length >= 1) {
                                         currentProblems.push({
+                                            $problem: ValidationProblem,
                                             domainElement,
                                             severity: 'error',
                                             message: 'The number of given parameter values does not match the expected number of input parameters.',
-                                            subProblems: parameterLength
+                                            subProblems: parameterLength,
                                         });
                                     } else {
                                         // there are parameter values to check their types
-                                        const inferredParameterTypes = inputArguments.map(p => services.inference.inferType(p));
+                                        const inferredParameterTypes = inputArguments.map(p => typir.inference.inferType(p));
                                         for (let i = 0; i < inputArguments.length; i++) {
                                             const expectedType = expectedParameterTypes[i];
                                             const inferredType = inferredParameterTypes[i];
-                                            if (isType(inferredType)) {
-                                                const parameterComparison = services.assignability.getAssignabilityProblem(inferredType, expectedType.type);
-                                                if (parameterComparison !== undefined) {
-                                                    // the value is not assignable to the type of the input parameter
-                                                    currentProblems.push({
-                                                        domainElement: inputArguments[i],
-                                                        severity: 'error',
-                                                        message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
-                                                        subProblems: [parameterComparison],
-                                                    });
-                                                } else {
-                                                    // this parameter value is fine
-                                                }
-                                            } else {
-                                                // the type of the value for the input parameter is not inferrable
+                                            const parameterProblems = checkTypes(inferredType, expectedType, createTypeCheckStrategy('ASSIGNABLE_TYPE', typir), true);
+                                            if (parameterProblems.length >= 1) {
+                                                // the value is not assignable to the type of the input parameter
+                                                // create one ValidationProblem for each problematic parameter!
                                                 currentProblems.push({
-                                                    // Note that the node of the current parameter is chosen here, while the problem is a sub-problem of the whole function!
+                                                    $problem: ValidationProblem,
                                                     domainElement: inputArguments[i],
                                                     severity: 'error',
-                                                    message: `The parameter '${expectedType.name}' at index ${i} has no inferred type.`,
-                                                    subProblems: inferredType,
+                                                    message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
+                                                    subProblems: parameterProblems,
                                                 });
+                                            } else {
+                                                // this parameter value is fine
                                             }
                                         }
                                     }
@@ -185,9 +329,10 @@ export class FunctionKind implements Kind {
                                     if (currentProblems.length >= 1) {
                                         // some problems with parameters => this signature does not match
                                         resultOverloaded.push({
+                                            $problem: ValidationProblem,
                                             domainElement,
                                             severity: 'error',
-                                            message: `The given operands for the function '${this.services.printer.printType(singleFunction.functionType)}' match the expected types only partially.`,
+                                            message: `The given operands for the function '${this.services.printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
                                             subProblems: currentProblems,
                                         });
                                     } else {
@@ -208,6 +353,7 @@ export class FunctionKind implements Kind {
                     if (resultOverloaded.length >= 1) {
                         if (isOverloaded) {
                             resultAll.push({
+                                $problem: ValidationProblem,
                                 domainElement,
                                 severity: 'error',
                                 message: `The given operands for the overloaded function '${overloadedName}' match the expected types only partially.`,
@@ -223,12 +369,12 @@ export class FunctionKind implements Kind {
         );
     }
 
-    getFunctionType<T>(typeDetails: FunctionTypeDetails<T>): Type | undefined {
-        const key = this.printFunctionType(typeDetails);
-        return this.services.graph.getType(key);
+    getFunctionType(typeDetails: FunctionTypeDetails): FunctionType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.services.graph.getType(key) as FunctionType;
     }
 
-    getOrCreateFunctionType<T>(typeDetails: FunctionTypeDetails<T>): Type {
+    getOrCreateFunctionType<T>(typeDetails: CreateFunctionTypeDetails<T>): FunctionType {
         const result = this.getFunctionType(typeDetails);
         if (result) {
             return result;
@@ -236,41 +382,29 @@ export class FunctionKind implements Kind {
         return this.createFunctionType(typeDetails);
     }
 
-    createFunctionType<T>(typeDetails: FunctionTypeDetails<T>): Type {
-        // create the function type
+    createFunctionType<T>(typeDetails: CreateFunctionTypeDetails<T>): FunctionType {
+        const functionName = typeDetails.functionName;
+
+        // check the input
+        assertTrue(this.getFunctionType(typeDetails) === undefined); // ensures, that no duplicated functions are created!
         if (!typeDetails) {
             throw new Error('is undefined');
         }
-        const functionName = typeDetails.functionName;
+        if (typeDetails.outputParameter === undefined && typeDetails.inferenceRuleForCalls) {
+            // no output parameter => no inference rule for calling this function
+            throw new Error(`A function '${functionName}' without output parameter cannot have an inferred type, when this function is called!`);
+        }
         this.enforceName(functionName, this.options.enforceFunctionName);
-        const uniqueTypeName = this.printFunctionType(typeDetails);
-        const functionType = new Type(this, uniqueTypeName);
-        functionType.properties.set(SIMPLE_NAME, functionName);
+
+        // create the function type
+        const functionType = new FunctionType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.services.graph.addNode(functionType);
 
-        // output parameter
-        const outputType = typeDetails.outputParameter ? resolveTypeSelector(this.services, typeDetails.outputParameter.type) : undefined;
-        if (typeDetails.outputParameter) {
-            assertTrue(outputType !== undefined);
-            const edge = new TypeEdge(functionType, outputType, OUTPUT_PARAMETER);
-            this.enforceName(typeDetails.outputParameter.name, this.options.enforceOutputParameterName);
-            edge.properties.set(PARAMETER_NAME, typeDetails.outputParameter.name);
-            this.services.graph.addEdge(edge);
-        } else {
-            // no output parameter => no inference rule for calling this function
-            if (typeDetails.inferenceRuleForCalls) {
-                throw new Error(`A function '${functionName}' without output parameter cannot have an inferred type, when this function is called!`);
-            }
-        }
-
-        // input parameters
-        typeDetails.inputParameters.forEach((input, index) => {
-            const edge = new TypeEdge(functionType, resolveTypeSelector(this.services, input.type), INPUT_PARAMETER);
-            this.enforceName(input.name, this.options.enforceInputParameterNames);
-            edge.properties.set(PARAMETER_NAME, input.name);
-            edge.properties.set(PARAMETER_ORDER, index);
-            this.services.graph.addEdge(edge);
-        });
+        // output parameter for function calls
+        const outputTypeForFunctionCalls = functionType.getOutput()?.type ?? // by default, use the return type of the function ...
+            // ... if this type is missing, use the specified type for this case in the options:
+            // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
+            (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR' ? undefined : resolveTypeSelector(this.services, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
 
         // remember the new function for later in order to enable overloaded functions!
         const mapNameTypes = this.mapNameTypes;
@@ -288,9 +422,9 @@ export class FunctionKind implements Kind {
         }
         if (overloaded.overloadedFunctions.length <= 0) {
             // remember the output type of the first function
-            overloaded.sameOutputType = outputType;
+            overloaded.sameOutputType = outputTypeForFunctionCalls;
         } else {
-            if (overloaded.sameOutputType && outputType && this.services.equality.areTypesEqual(overloaded.sameOutputType, outputType) === true) {
+            if (overloaded.sameOutputType && outputTypeForFunctionCalls && this.services.equality.areTypesEqual(overloaded.sameOutputType, outputTypeForFunctionCalls) === true) {
                 // the output types of all overloaded functions are the same for now
             } else {
                 // there is a difference
@@ -302,12 +436,20 @@ export class FunctionKind implements Kind {
             inferenceRuleForCalls: typeDetails.inferenceRuleForCalls,
         });
 
-        if (typeDetails.inferenceRuleForCalls && outputType) {
+        if (typeDetails.inferenceRuleForCalls) {
             /** Preconditions:
              * - there is a rule which specifies how to infer the current function type
-             * - the current function has an output type/parameter, otherwise, this function could not provide any type, when it is called!
-             *   TODO sollte der dann zurückgegebene Type konfigurierbar gemacht werden? e.g. Type|undefined
+             * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
+             *   (exception: the options contain a type to return in this special case)
              */
+            // TODO what about the case, that multiple variants match?? after implicit conversion for example?!
+            function check(returnType: Type | undefined): Type {
+                if (returnType) {
+                    return returnType;
+                } else {
+                    throw new Error(`The function ${functionName} is called, but has no output type to infer.`);
+                }
+            }
 
             // register inference rule for calls of the new function
             overloaded.inference.subRules.push({
@@ -331,11 +473,11 @@ export class FunctionKind implements Kind {
                                     }
                                 } else {
                                     // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
-                                    return outputType;
+                                    return check(outputTypeForFunctionCalls);
                                 }
                             } else {
                                 // there are no operands to check
-                                return outputType; // this case occurs only, if the current function has an output type/parameter!
+                                return check(outputTypeForFunctionCalls);
                             }
                         } else {
                             // the domain element is slightly different
@@ -349,11 +491,12 @@ export class FunctionKind implements Kind {
                 inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
                     const inputTypes = typeDetails.inputParameters.map(p => resolveTypeSelector(typir, p.type));
                     // all operands need to be assignable(! not equal) to the required types
-                    const comparisonConflicts = checkTypes(childrenTypes, inputTypes,
-                        (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2));
+                    const comparisonConflicts = checkTypeArrays(childrenTypes, inputTypes,
+                        (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2), true);
                     if (comparisonConflicts.length >= 1) {
                         // this function type does not match, due to assignability conflicts => return them as errors
                         return {
+                            $problem: InferenceProblem,
                             domainElement,
                             inferenceCandidate: functionType,
                             location: 'input parameters',
@@ -363,7 +506,7 @@ export class FunctionKind implements Kind {
                         // We have a dedicated validation for this case (see below), but a resulting error might be ignored by the user => return the problem during type-inference again
                     } else {
                         // matching => return the return type of the function for the case of a function call!
-                        return outputType; // this case occurs only, if the current function has an output type/parameter!
+                        return check(outputTypeForFunctionCalls);
                     }
                 },
             });
@@ -384,37 +527,19 @@ export class FunctionKind implements Kind {
         return functionType;
     }
 
-    protected createValidationServiceForFunctions(): ValidationCollector {
-        return new DefaultValidationCollector(this.services);
-    }
-
-    getUserRepresentation(type: Type): string {
-        assertKind(type.kind, isFunctionKind);
-        // check input
-        if (isFunctionKind(type.kind) === false) {
-            throw new Error();
-        }
-        // inputs
-        const inputs = this.getInputs(type);
-        const inputsString = inputs.map(input => this.getUserRepresentationNameTypePair(input)).join(', ');
-        // output
-        const output = this.getOutput(type);
-        const outputString = output
-            ? (this.hasName(output.name) ? `(${this.getUserRepresentationNameTypePair(output)})` : this.services.printer.printType(output.type))
-            : undefined;
+    calculateIdentifier(typeDetails: FunctionTypeDetails): string {
+        // this schema allows to identify duplicated functions!
+        const prefix = this.options.identifierPrefix;
         // function name
-        const simpleFunctionName = this.getSimpleFunctionName(type);
+        const functionName = this.hasName(typeDetails.functionName) ? typeDetails.functionName : '';
+        // inputs
+        const inputsString = typeDetails.inputParameters.map(input => resolveTypeSelector(this.services, input.type).getName()).join(',');
         // complete signature
-        if (this.hasName(simpleFunctionName)) {
-            const outputValue = outputString ? `: ${outputString}` : '';
-            return `${simpleFunctionName}(${inputsString})${outputValue}`;
-        } else {
-            return `(${inputsString}) => ${outputString ?? '()'}`;
-        }
+        return `${prefix}-${functionName}(${inputsString})`;
     }
 
-    protected getUserRepresentationNameTypePair(pair: NameTypePair): string {
-        const typeName = this.services.printer.printType(pair.type);
+    getNameTypePairRepresentation(pair: NameTypePair): string {
+        const typeName = pair.type.getName();
         if (this.hasName(pair.name)) {
             return `${pair.name}: ${typeName}`;
         } else {
@@ -422,109 +547,19 @@ export class FunctionKind implements Kind {
         }
     }
 
-    protected printFunctionType<T>(typeDetails: FunctionTypeDetails<T>): string {
-        const prefix = this.options.identifierPrefix;
-        // inputs
-        const inputsString = typeDetails.inputParameters.map(input => this.printNameTypePair(input)).join(',');
-        // output
-        const outputString = typeDetails.outputParameter ? this.printNameTypePair(typeDetails.outputParameter) : '';
-        // function name
-        const functionName = this.hasName(typeDetails.functionName) ? typeDetails.functionName : '';
-        // complete signature
-        return `${prefix}-${functionName}(${inputsString}):(${outputString})`;
-    }
-
-    protected printNameTypePair(pair: ParameterDetails): string {
-        const typeName = this.services.printer.printType(resolveTypeSelector(this.services, pair.type));
-        if (this.hasName(pair.name)) {
-            return `${pair.name}:${typeName}`;
-        } else {
-            return typeName;
-        }
-    }
-
-    protected enforceName(name: string | undefined, enforce: boolean) {
+    enforceName(name: string | undefined, enforce: boolean): void {
         if (enforce && this.hasName(name) === false) {
             throw new Error('a name is required');
         }
     }
-    protected hasName(name: string | undefined): name is string {
+    hasName(name: string | undefined): name is string {
         return name !== undefined && name !== FUNCTION_MISSING_NAME;
     }
 
-    analyzeSubTypeProblems(subType: Type, superType: Type): TypirProblem[] {
-        if (isFunctionKind(superType.kind) && isFunctionKind(subType.kind)) {
-            const conflicts: TypirProblem[] = [];
-            // output: target parameter must be assignable to source parameter
-            conflicts.push(...checkNameTypePair(superType.kind.getOutput(superType), subType.kind.getOutput(subType),
-                this.options.enforceOutputParameterName, (s, t) => this.services.assignability.getAssignabilityProblem(t, s)));
-            // input: source parameters must be assignable to target parameters
-            conflicts.push(...checkNameTypePairs(superType.kind.getInputs(superType), subType.kind.getInputs(subType),
-                this.options.enforceInputParameterNames, (s, t) => this.services.assignability.getAssignabilityProblem(s, t)));
-            return conflicts;
-        }
-        return [<SubTypeProblem>{
-            superType,
-            subType,
-            subProblems: checkValueForConflict(superType.kind.$name, subType.kind.$name, 'kind'),
-        }];
-    }
-
-    analyzeTypeEqualityProblems(type1: Type, type2: Type): TypirProblem[] {
-        if (isFunctionKind(type1.kind) && isFunctionKind(type2.kind)) {
-            const conflicts: TypirProblem[] = [];
-            // same name? TODO is this correct??
-            if (this.options.enforceFunctionName) {
-                conflicts.push(...checkValueForConflict(type1.kind.getSimpleFunctionName(type1), type2.kind.getSimpleFunctionName(type2), 'simple name'));
-            }
-            // same output?
-            conflicts.push(...checkNameTypePair(type1.kind.getOutput(type1), type2.kind.getOutput(type2),
-                this.options.enforceOutputParameterName, (s, t) => this.services.equality.getTypeEqualityProblem(s, t)));
-            // same input?
-            conflicts.push(...checkNameTypePairs(type2.kind.getInputs(type1), type2.kind.getInputs(type2),
-                this.options.enforceInputParameterNames, (s, t) => this.services.equality.getTypeEqualityProblem(s, t)));
-            return conflicts;
-        }
-        throw new Error();
-    }
-
-    getSimpleFunctionName(functionType: Type): string {
-        assertKind(functionType.kind, isFunctionKind);
-        const name = functionType.properties.get(SIMPLE_NAME);
-        if (typeof name === 'string') {
-            return name;
-        }
-        throw new Error();
-    }
-
-    getOutput(functionType: Type): NameTypePair | undefined {
-        assertKind(functionType.kind, isFunctionKind);
-        const outs = functionType.getOutgoingEdges(OUTPUT_PARAMETER);
-        if (outs.length <= 0) {
-            return undefined;
-        } else if (outs.length === 1) {
-            return { name: outs[0].properties.get(PARAMETER_NAME) as string, type: outs[0].to };
-        } else {
-            throw new Error('too many outputs for this function');
-        }
-    }
-
-    getInputs(functionType: Type): NameTypePair[] {
-        assertKind(functionType.kind, isFunctionKind);
-        return functionType.getOutgoingEdges(INPUT_PARAMETER)
-            .sort((e1, e2) => (e2.properties.get(PARAMETER_ORDER) as number) - (e1.properties.get(PARAMETER_ORDER) as number))
-            .map(edge => <NameTypePair>{ name: edge.properties.get(PARAMETER_NAME) as string, type: edge.to });
-    }
 }
 
 // when the name is missing (e.g. for functions or their input/output parameters), use this value instead
 export const FUNCTION_MISSING_NAME = '';
-
-const OUTPUT_PARAMETER = 'isOutput';
-const INPUT_PARAMETER = 'isInput';
-const PARAMETER_NAME = 'parameterName';
-const PARAMETER_ORDER = 'parameterOrder';
-const SIMPLE_NAME = 'simpleFunctionName';
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
     return isKind(kind) && kind.$name === FunctionKindName;

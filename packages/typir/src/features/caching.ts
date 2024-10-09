@@ -8,16 +8,28 @@ import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
+import { assertTrue } from '../utils/utils.js';
 
 /**
  * Caches relationships between types.
  */
 export interface TypeRelationshipCaching {
-    getRelationship(from: Type, to: Type, meaning: string, directed: boolean): { relationship: RelationshipKind, additionalData: unknown };
-    setRelationship(from: Type, to: Type, meaning: string, directed: boolean, newRelationship: RelationshipKind | undefined, additionalData: unknown): void;
+    getRelationshipUnidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined;
+    getRelationshipBidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined;
+
+    setOrUpdateUnidirectionalRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation): T | undefined;
+    setOrUpdateBidirectionalRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation): T | undefined;
 }
 
-export type RelationshipKind = 'PENDING' | 'UNKNOWN' | 'LINK_EXISTS' | 'NO_LINK';
+export type EdgeCachingInformation =
+    /** The analysis, whether the current relationship holds, is still ongoing. */
+    'PENDING' |
+    /** It is unknown, whether the current relationship holds */
+    'UNKNOWN' |
+    /** The current relationship exists. */
+    'LINK_EXISTS' |
+    /** The current relationship does not exist. */
+    'NO_LINK';
 
 export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
     protected readonly graph: TypeGraph;
@@ -26,81 +38,72 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
         this.graph = services.graph;
     }
 
-    getRelationship(from: Type, to: Type, meaning: string, directed: boolean): { relationship: RelationshipKind, additionalData: unknown } {
-        let edge = this.getEdge(from, to, meaning);
-        if (!edge && directed === false) {
-            // in case of non-directed edges, check the opposite direction as well
-            edge = this.getEdge(to, from, meaning);
-        }
-        if (edge) {
-            const result = edge.properties.get(TYPE_CACHING_RELATIONSHIP);
-            if (result && typeof result === 'string') {
-                return {
-                    relationship: result as RelationshipKind,
-                    additionalData: edge.properties.get(TYPE_CACHING_ADDITIONAL),
-                };
-            }
-        }
-        return { relationship: 'UNKNOWN', additionalData: undefined };
+    getRelationshipUnidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined {
+        return from.getOutgoingEdges<T>($relation).find(edge => edge.to === to);
+    }
+    getRelationshipBidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined {
+        // for bidirectional edges, check outgoing and incoming edges, since the graph contains only a single edge!
+        return from.getEdges<T>($relation).find(edge => edge.to === to);
     }
 
-    setRelationship(from: Type, to: Type, meaning: string, _directed: boolean, newRelationship: RelationshipKind | undefined, additionalData: unknown = undefined): void {
-        // don't cache some values (but ensure, that PENDING is overridden/updated!)
-        if (this.storeKind(newRelationship) === false) {
-            newRelationship = undefined; // 'undefined' indicates to remove an existing edge
-        }
+    setOrUpdateUnidirectionalRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation): T | undefined {
+        return this.setOrUpdateRelationship(edgeToCache, edgeCaching, false);
+    }
+    setOrUpdateBidirectionalRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation): T | undefined {
+        return this.setOrUpdateRelationship(edgeToCache, edgeCaching, true);
+    }
 
-        // manage the edge to store the value
-        let edge = this.getEdge(from, to, meaning);
-        if (newRelationship === undefined) {
-            // un-set the relationship
+    protected setOrUpdateRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation, bidirectional: boolean): T | undefined {
+        // identify the edge to store the value
+        const edge: T | undefined = bidirectional
+            ? this.getRelationshipBidirectional(edgeToCache.from, edgeToCache.to, edgeToCache.$relation)
+            : this.getRelationshipUnidirectional(edgeToCache.from, edgeToCache.to, edgeToCache.$relation);
+
+        // don't cache some values (but ensure, that PENDING is overridden/updated!) =>  un-set the relationship
+        if (this.storeCachingInformation(edgeCaching) === false) {
             if (edge) {
                 this.graph.removeEdge(edge);
+            } else {
+                // no edge exists, no edge wanted => nothing to do
             }
-            return;
+            return undefined;
         }
+
+        // handle missing edge
         if (!edge) {
-            // create missing edge
-            edge = new TypeEdge(from, to, meaning);
-            this.graph.addEdge(edge);
+            // reuse the given edge
+            this.graph.addEdge(edgeToCache);
+            // in case of non-directed edges, check the opposite direction as well
+            return edgeToCache;
         }
 
-        // set/update the values of the edge
-        edge.properties.set(TYPE_CACHING_RELATIONSHIP, newRelationship);
-        if (this.storeAdditionalData(additionalData)) {
-            edge.properties.set(TYPE_CACHING_ADDITIONAL, additionalData);
-        } else {
-            edge.properties.delete(TYPE_CACHING_ADDITIONAL);
+        // set/update the values of the existing edge
+        edge.cachingInformation = edgeCaching;
+        assertTrue(edge.$relation === edgeToCache.$relation);
+        // update data of specific edges!
+        // Object.assign throws an error for readonly properties => it cannot be used here!
+        const propertiesToIgnore: Array<keyof TypeEdge> = ['from', 'to', '$relation', 'cachingInformation'];
+        const keys = Object.keys(edgeToCache) as Array<keyof T>;
+        for (const v of keys) {
+            if (propertiesToIgnore.includes(v as keyof TypeEdge)) {
+                // don't update these properties
+            } else {
+                edge[v] = edgeToCache[v];
+            }
         }
+        return edge as T;
     }
 
-    /** Override this function to store more or less relationships. */
-    protected storeKind(value: RelationshipKind | undefined): boolean {
-        // return value === 'PENDING' || value === 'LINK_EXISTS';
-        return value === 'PENDING';
-    }
-
-    /** Override this function to store more (or less) data like 'undefined'. */
-    protected storeAdditionalData(additionalData: unknown): boolean {
-        if (additionalData) {
-            return true;
-        }
-        return false;
-    }
-
-    protected getEdge(from: Type, to: Type, meaning: string): TypeEdge | undefined {
-        return from.getOutgoingEdges(meaning).find(edge => edge.to === to);
+    /** Override this function to store more or less relationships in the type graph. */
+    protected storeCachingInformation(value: EdgeCachingInformation | undefined): boolean {
+        return value === 'PENDING' || value === 'LINK_EXISTS';
     }
 }
-
-const TYPE_CACHING_RELATIONSHIP = 'TypeRelationshipCaching_Kind';
-const TYPE_CACHING_ADDITIONAL = 'TypeRelationshipCaching_Additional';
 
 
 /**
  * Domain element-to-Type caching for type inference.
  */
-
 export interface DomainElementInferenceCaching {
     cacheSet(domainElement: unknown, type: Type): void;
     cacheGet(domainElement: unknown): Type | undefined;

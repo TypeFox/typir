@@ -36,11 +36,6 @@ import { KindRegistry, DefaultKindRegistry } from './kinds/kind-registry.js';
  *     - Cycles at instances/objects: Parent used as Child?!
  */
 
-/** TODO missing things
- * - support dedicated inference rules for all kinds
- * - separate kinds for bottom and top types!
- */
-
 export type TypirServices = {
     readonly assignability: TypeAssignability;
     readonly equality: TypeEquality;

@@ -7,11 +7,6 @@ false; // Not *not* false.
 1234;  // An integer.
 12.34; // A decimal number.
 
-// Strings
-// "I am a string";
-// "";    // The empty string.
-// "123"; // This is a string, not a number.
-
 // variables
 var n: number = 12;
 var b: boolean = true;

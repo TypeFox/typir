@@ -59,6 +59,25 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('fun myFunction() : number { return true; }', 1);
     });
 
+    test('overloaded function: different return types are not enough', async () => {
+        await validate(`
+            fun myFunction() : boolean { return true; }
+            fun myFunction() : number { return 2; }
+        `, 1);
+    });
+    test('overloaded function: different parameter names are not enough', async () => {
+        await validate(`
+            fun myFunction(input: boolean) : boolean { return true; }
+            fun myFunction(other: boolean) : boolean { return true; }
+        `, 1);
+    });
+    test('overloaded function: but different parameter types are fine', async () => {
+        await validate(`
+            fun myFunction(input: boolean) : boolean { return true; }
+            fun myFunction(input: number) : boolean { return true; }
+        `, 0);
+    });
+
     test('use overloaded operators: +', async () => {
         await validate('var myVar : number = 2 + 3;', 0, 0);
         await validate('var myVar : string = "a" + "b";', 0, 0);
@@ -134,6 +153,31 @@ describe('Explicitly test type checking for LOX', () => {
         `, 2);
     });
 
+});
+
+describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {
+    // note that inference problems occur here due to the order of class declarations! after fixing that issue, errors regarding cycles should occur!
+
+    test.fails('3 involved classes', async () => {
+        await validate(`
+            class MyClass1 < MyClass3 { }
+            class MyClass2 < MyClass1 { }
+            class MyClass3 < MyClass2 { }
+        `, 0);
+    });
+
+    test.fails('2 involved classes', async () => {
+        await validate(`
+            class MyClass1 < MyClass2 { }
+            class MyClass2 < MyClass1 { }
+        `, 0);
+    });
+
+    test.fails('1 involved class', async () => {
+        await validate(`
+            class MyClass1 < MyClass1 { }
+        `, 0);
+    });
 });
 
 async function validate(lox: string, errors: number, warnings: number = 0) {

@@ -23,8 +23,8 @@ describe('Tests for Typir', () => {
         const primitiveKind = new PrimitiveKind(typir);
         const multiplicityKind = new MultiplicityKind(typir, { symbolForUnlimited: '*' });
         const classKind = new ClassKind(typir, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' });
-        const listKind = new FixedParameterKind(typir, 'List', { subtypeParameterChecking: 'EQUAL_TYPE' }, 'entry');
-        const mapKind = new FixedParameterKind(typir, 'Map', { subtypeParameterChecking: 'EQUAL_TYPE' }, 'key', 'value');
+        const listKind = new FixedParameterKind(typir, 'List', { parameterSubtypeCheckingStrategy: 'EQUAL_TYPE' }, 'entry');
+        const mapKind = new FixedParameterKind(typir, 'Map', { parameterSubtypeCheckingStrategy: 'EQUAL_TYPE' }, 'key', 'value');
         const functionKind = new FunctionKind(typir);
 
         // create some primitive types
@@ -34,7 +34,7 @@ describe('Tests for Typir', () => {
         const typeBoolean = primitiveKind.createPrimitiveType({ primitiveName: 'Boolean' });
 
         // create class type Person with 1 firstName and 1..2 lastNames and a age properties
-        const typeOneOrTwoStrings = multiplicityKind.createMultiplicityForType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
+        const typeOneOrTwoStrings = multiplicityKind.createMultiplicityType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
         const typePerson = classKind.createClassType({
             className: 'Person',
             fields: [
@@ -87,7 +87,7 @@ describe('Tests for Typir', () => {
         // it is possible to define multiple sources and/or targets at the same time:
         typir.conversion.markAsConvertible([typeInt, typeInt], [typeString, typeString, typeString], 'EXPLICIT');
         // single relationships are possible as well
-        typir.conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT');
+        typir.conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT_EXPLICIT');
 
         // is assignable?
         // primitives

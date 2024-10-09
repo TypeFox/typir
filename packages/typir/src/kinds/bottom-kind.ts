@@ -14,10 +14,10 @@ import { createKindConflict } from '../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../utils/utils.js';
 import { isKind, Kind } from './kind.js';
 
-export class TopType extends Type {
-    override readonly kind: TopKind;
+export class BottomType extends Type {
+    override readonly kind: BottomKind;
 
-    constructor(kind: TopKind, identifier: string) {
+    constructor(kind: BottomKind, identifier: string) {
         super(identifier);
         this.kind = kind;
     }
@@ -31,100 +31,99 @@ export class TopType extends Type {
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
-        if (isTopType(otherType)) {
+        if (isBottomType(otherType)) {
             return [];
         } else {
             return [<TypeEqualityProblem>{
                 $problem: TypeEqualityProblem,
                 type1: this,
                 type2: otherType,
-                subProblems: [createKindConflict(otherType, this)],
+                subProblems: [createKindConflict(this, otherType)],
             }];
         }
     }
 
-    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isTopType(superType)) {
-            // special case by definition: TopType is sub-type of TopType
+    override analyzeIsSubTypeOf(_superType: Type): TypirProblem[] {
+        // a BottomType is the sub type of all types!
+        return [];
+    }
+
+    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
+        if (isBottomType(subType)) {
+            // special case by definition: BottomType is sub-type of BottomType
             return [];
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
-                superType,
-                subType: this,
-                subProblems: [createKindConflict(superType, this)],
+                superType: this,
+                subType: subType,
+                subProblems: [createKindConflict(this, subType)],
             }];
         }
     }
 
-    override analyzeIsSuperTypeOf(_subType: Type): TypirProblem[] {
-        // a TopType is the super type of all types!
-        return [];
-    }
-
 }
 
-export function isTopType(type: unknown): type is TopType {
-    return isType(type) && isTopKind(type.kind);
+export function isBottomType(type: unknown): type is BottomType {
+    return isType(type) && isBottomKind(type.kind);
 }
 
 
 
-export interface TopTypeDetails {
+export interface BottomTypeDetails {
     /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
-    inferenceRules?: InferTopType | InferTopType[]
+    inferenceRules?: InferBottomType | InferBottomType[]
 }
 
-export interface TopKindOptions {
+export interface BottomKindOptions {
     name: string;
 }
 
-export type InferTopType = (domainElement: unknown) => boolean;
+export type InferBottomType = (domainElement: unknown) => boolean;
 
-export const TopKindName = 'TopKind';
+export const BottomKindName = 'BottomKind';
 
-export class TopKind implements Kind {
-    readonly $name: 'TopKind';
+export class BottomKind implements Kind {
+    readonly $name: 'BottomKind';
     readonly services: TypirServices;
-    readonly options: TopKindOptions;
-    protected instance: TopType | undefined;
+    readonly options: BottomKindOptions;
+    protected instance: BottomType | undefined;
 
-    constructor(services: TypirServices, options?: Partial<TopKindOptions>) {
-        this.$name = TopKindName;
+    constructor(services: TypirServices, options?: Partial<BottomKindOptions>) {
+        this.$name = BottomKindName;
         this.services = services;
         this.services.kinds.register(this);
         this.options = {
             // the default values:
-            name: 'any',
+            name: 'never',
             // the actually overriden values:
             ...options
         };
     }
 
-    getTopType(typeDetails: TopTypeDetails): TopType | undefined {
+    getBottomType(typeDetails: BottomTypeDetails): BottomType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as TopType;
+        return this.services.graph.getType(key) as BottomType;
     }
 
-    getOrCreateTopType(typeDetails: TopTypeDetails): TopType {
-        const result = this.getTopType(typeDetails);
+    getOrCreateBottomType(typeDetails: BottomTypeDetails): BottomType {
+        const result = this.getBottomType(typeDetails);
         if (result) {
             return result;
         }
-        return this.createTopType(typeDetails);
+        return this.createBottomType(typeDetails);
     }
 
-    createTopType(typeDetails: TopTypeDetails): TopType {
-        assertTrue(this.getTopType(typeDetails) === undefined);
-
-        // create the top type (singleton)
+    createBottomType(typeDetails: BottomTypeDetails): BottomType {
+        assertTrue(this.getBottomType(typeDetails) === undefined);
+        // create the bottom type (singleton)
         if (this.instance) {
             // note, that the given inference rules are ignored in this case!
             return this.instance;
         }
-        const topType = new TopType(this, this.calculateIdentifier(typeDetails));
-        this.instance = topType;
-        this.services.graph.addNode(topType);
+        const bottomType = new BottomType(this, this.calculateIdentifier(typeDetails));
+        this.instance = bottomType;
+        this.services.graph.addNode(bottomType);
 
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         const rules = toArray(typeDetails.inferenceRules);
@@ -132,22 +131,22 @@ export class TopKind implements Kind {
             this.services.inference.addInferenceRule((domainElement, _typir) => {
                 for (const inferenceRule of rules) {
                     if (inferenceRule(domainElement)) {
-                        return topType;
+                        return bottomType;
                     }
                 }
                 return InferenceRuleNotApplicable;
             });
         }
 
-        return topType;
+        return bottomType;
     }
 
-    calculateIdentifier(_typeDetails: TopTypeDetails): string {
+    calculateIdentifier(_typeDetails: BottomTypeDetails): string {
         return this.options.name;
     }
 
 }
 
-export function isTopKind(kind: unknown): kind is TopKind {
-    return isKind(kind) && kind.$name === TopKindName;
+export function isBottomKind(kind: unknown): kind is BottomKind {
+    return isKind(kind) && kind.$name === BottomKindName;
 }
