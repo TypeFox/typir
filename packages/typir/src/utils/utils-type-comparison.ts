@@ -9,7 +9,7 @@ import { isType, Type } from '../graph/type-node.js';
 import { Kind } from '../kinds/kind.js';
 import { Typir } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
-import { isConcreteTypirProblem, isNameTypePair, NameTypePair, TypirProblem } from './utils-definitions.js';
+import { isSpecificTypirProblem, isNameTypePair, NameTypePair, TypirProblem } from './utils-definitions.js';
 import { InferenceProblem } from '../features/inference.js';
 
 export type TypeCheckStrategy =
@@ -44,7 +44,7 @@ export interface ValueConflict extends TypirProblem {
 }
 export const ValueConflict = 'ValueConflict';
 export function isValueConflict(problem: unknown): problem is ValueConflict {
-    return isConcreteTypirProblem(problem, ValueConflict);
+    return isSpecificTypirProblem(problem, ValueConflict);
 }
 
 export function checkValueForConflict<T>(first: T, second: T, location: string,
@@ -88,7 +88,7 @@ export interface IndexedTypeConflict extends TypirProblem {
 }
 export const IndexedTypeConflict = 'IndexedTypeConflict';
 export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeConflict {
-    return isConcreteTypirProblem(problem, IndexedTypeConflict);
+    return isSpecificTypirProblem(problem, IndexedTypeConflict);
 }
 
 export type TypeToCheck = Type | NameTypePair | undefined | InferenceProblem[];

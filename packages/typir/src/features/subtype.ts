@@ -8,7 +8,7 @@ import { assertUnreachable } from 'langium';
 import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
 
 export interface SubTypeProblem extends TypirProblem {
@@ -20,7 +20,7 @@ export interface SubTypeProblem extends TypirProblem {
 }
 export const SubTypeProblem = 'SubTypeProblem';
 export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
-    return isConcreteTypirProblem(problem, SubTypeProblem);
+    return isSpecificTypirProblem(problem, SubTypeProblem);
 }
 
 // TODO new feature: allow to mark arbitrary types with a sub-type edge! (similar to conversion!)

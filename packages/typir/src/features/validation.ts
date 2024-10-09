@@ -6,7 +6,7 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
@@ -25,7 +25,7 @@ export interface ValidationProblem extends ValidationMessageDetails, TypirProble
 }
 export const ValidationProblem = 'ValidationProblem';
 export function isValidationProblem(problem: unknown): problem is ValidationProblem {
-    return isConcreteTypirProblem(problem, ValidationProblem);
+    return isSpecificTypirProblem(problem, ValidationProblem);
 }
 
 export type ValidationRule = (domainElement: unknown, typir: Typir) => ValidationProblem[];

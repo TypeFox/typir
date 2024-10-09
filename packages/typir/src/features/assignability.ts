@@ -6,7 +6,7 @@
 
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 
 export interface AssignabilityProblem extends TypirProblem {
     $problem: 'AssignabilityProblem';
@@ -16,7 +16,7 @@ export interface AssignabilityProblem extends TypirProblem {
 }
 export const AssignabilityProblem = 'AssignabilityProblem';
 export function isAssignabilityProblem(problem: unknown): problem is AssignabilityProblem {
-    return isConcreteTypirProblem(problem, AssignabilityProblem);
+    return isSpecificTypirProblem(problem, AssignabilityProblem);
 }
 
 export interface TypeAssignability {

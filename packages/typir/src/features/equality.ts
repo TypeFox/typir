@@ -8,7 +8,7 @@ import { assertUnreachable } from 'langium';
 import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
 
 export interface TypeEqualityProblem extends TypirProblem {
@@ -19,7 +19,7 @@ export interface TypeEqualityProblem extends TypirProblem {
 }
 export const TypeEqualityProblem = 'TypeEqualityProblem';
 export function isTypeEqualityProblem(problem: unknown): problem is TypeEqualityProblem {
-    return isConcreteTypirProblem(problem, TypeEqualityProblem);
+    return isSpecificTypirProblem(problem, TypeEqualityProblem);
 }
 
 // TODO comments

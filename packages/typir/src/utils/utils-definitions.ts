@@ -14,7 +14,7 @@ import { Typir } from '../typir.js';
 export interface TypirProblem {
     readonly $problem: string;
 }
-export function isConcreteTypirProblem(problem: unknown, $problem: string): problem is TypirProblem {
+export function isSpecificTypirProblem(problem: unknown, $problem: string): problem is TypirProblem {
     return typeof problem === 'object' && problem !== null && ((problem as TypirProblem).$problem === $problem);
 }
 

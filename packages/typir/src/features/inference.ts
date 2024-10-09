@@ -7,7 +7,7 @@
 import { assertUnreachable } from 'langium';
 import { isType, Type } from '../graph/type-node.js';
 import { Typir } from '../typir.js';
-import { isConcreteTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 
 export interface InferenceProblem extends TypirProblem {
     $problem: 'InferenceProblem';
@@ -19,7 +19,7 @@ export interface InferenceProblem extends TypirProblem {
 }
 export const InferenceProblem = 'InferenceProblem';
 export function isInferenceProblem(problem: unknown): problem is InferenceProblem {
-    return isConcreteTypirProblem(problem, InferenceProblem);
+    return isSpecificTypirProblem(problem, InferenceProblem);
 }
 
 // Type and Value to indicate, that an inference rule is intended for another case, and therefore is unable to infer a type for the current case.
