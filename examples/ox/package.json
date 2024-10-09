@@ -28,13 +28,13 @@
     },
     "dependencies": {
         "commander": "~11.0.0",
-        "langium": "~3.0.0",
+        "langium": "^3.2.0",
+        "typir": "~0.0.1",
         "vscode-languageclient": "~9.0.1",
-        "vscode-languageserver": "~9.0.1",
-        "typir": "~0.0.1"
+        "vscode-languageserver": "~9.0.1"
     },
     "devDependencies": {
-        "langium-cli": "~3.0.0"
+        "langium-cli": "^3.2.0"
     },
     "files": [
         "bin",
@@ -54,7 +54,9 @@
                     "Ox",
                     "ox"
                 ],
-                "extensions": [".ox"],
+                "extensions": [
+                    ".ox"
+                ],
                 "configuration": "./language-configuration.json"
             }
         ],
