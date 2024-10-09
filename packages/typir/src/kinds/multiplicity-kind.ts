@@ -7,7 +7,7 @@
 import { TypeEqualityProblem } from '../features/equality.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { isType, Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../utils/utils-type-comparison.js';
 import { assertTrue } from '../utils/utils.js';
@@ -43,7 +43,7 @@ export class MultiplicityType extends Type {
             conflicts.push(...checkValueForConflict(this.getLowerBound(), this.getLowerBound(), 'lower bound'));
             conflicts.push(...checkValueForConflict(this.getUpperBound(), this.getUpperBound(), 'upper bound'));
             // check the constrained type
-            const constrainedTypeConflict = this.kind.typir.equality.getTypeEqualityProblem(this.getConstrainedType(), this.getConstrainedType());
+            const constrainedTypeConflict = this.kind.services.equality.getTypeEqualityProblem(this.getConstrainedType(), this.getConstrainedType());
             if (constrainedTypeConflict !== undefined) {
                 conflicts.push(constrainedTypeConflict);
             }
@@ -90,7 +90,7 @@ export class MultiplicityType extends Type {
         conflicts.push(...checkValueForConflict(subType.getLowerBound(), superType.getLowerBound(), 'lower bound', this.kind.isBoundGreaterEquals));
         conflicts.push(...checkValueForConflict(subType.getUpperBound(), superType.getUpperBound(), 'upper bound', this.kind.isBoundGreaterEquals));
         // check the constrained type
-        const constrainedTypeConflict = this.kind.typir.subtype.getSubTypeProblem(subType.getConstrainedType(), superType.getConstrainedType());
+        const constrainedTypeConflict = this.kind.services.subtype.getSubTypeProblem(subType.getConstrainedType(), superType.getConstrainedType());
         if (constrainedTypeConflict !== undefined) {
             conflicts.push(constrainedTypeConflict);
         }
@@ -135,13 +135,13 @@ export const MultiplicityKindName = 'MultiplicityTypeKind';
  */
 export class MultiplicityKind implements Kind {
     readonly $name: 'MultiplicityTypeKind';
-    readonly typir: Typir;
+    readonly services: TypirServices;
     readonly options: MultiplicityKindOptions;
 
-    constructor(typir: Typir, options?: Partial<MultiplicityKindOptions>) {
+    constructor(services: TypirServices, options?: Partial<MultiplicityKindOptions>) {
         this.$name = MultiplicityKindName;
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
         this.options = {
             // the default values:
             symbolForUnlimited: '*',
@@ -152,7 +152,7 @@ export class MultiplicityKind implements Kind {
 
     getMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.typir.graph.getType(key) as MultiplicityType;
+        return this.services.graph.getType(key) as MultiplicityType;
     }
 
     getOrCreateMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
@@ -172,7 +172,7 @@ export class MultiplicityKind implements Kind {
 
         // create the type with multiplicities
         const newType = new MultiplicityType(this, this.calculateIdentifier(typeDetails), typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
-        this.typir.graph.addNode(newType);
+        this.services.graph.addNode(newType);
 
         return newType;
     }

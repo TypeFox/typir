@@ -7,7 +7,7 @@
 import { TypeEqualityProblem } from '../features/equality.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { Type, isType } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, checkTypeArrays, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../utils/utils.js';
@@ -73,7 +73,7 @@ export class FixedParameterType extends Type {
             } else {
                 // all parameter types must match, e.g. Set<String> !== Set<Boolean>
                 const conflicts: TypirProblem[] = [];
-                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.typir.equality.getTypeEqualityProblem(t1, t2), false));
+                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.services.equality.getTypeEqualityProblem(t1, t2), false));
                 return conflicts;
             }
         } else {
@@ -120,7 +120,7 @@ export class FixedParameterType extends Type {
             return baseTypeCheck;
         } else {
             // all parameter types must match, e.g. Set<String> !== Set<Boolean>
-            const checkStrategy = createTypeCheckStrategy(this.kind.options.parameterSubtypeCheckingStrategy, this.kind.typir);
+            const checkStrategy = createTypeCheckStrategy(this.kind.options.parameterSubtypeCheckingStrategy, this.kind.services);
             return checkTypeArrays(subType.getParameterTypes(), superType.getParameterTypes(), checkStrategy, false);
         }
     }
@@ -147,15 +147,15 @@ export const FixedParameterKindName = 'FixedParameterKind';
  */
 export class FixedParameterKind implements Kind {
     readonly $name: `FixedParameterKind-${string}`;
-    readonly typir: Typir;
+    readonly services: TypirServices;
     readonly baseName: string;
     readonly options: FixedParameterKindOptions;
     readonly parameters: Parameter[]; // assumption: the parameters are in the correct order!
 
-    constructor(typir: Typir, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
+    constructor(typir: TypirServices, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
         this.$name = `${FixedParameterKindName}-${baseName}`;
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = typir;
+        this.services.kinds.register(this);
         this.baseName = baseName;
         this.options = {
             // the default values:
@@ -171,7 +171,7 @@ export class FixedParameterKind implements Kind {
 
     getFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.typir.graph.getType(key) as FixedParameterType;
+        return this.services.graph.getType(key) as FixedParameterType;
     }
 
     getOrCreateFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
@@ -188,7 +188,7 @@ export class FixedParameterKind implements Kind {
 
         // create the class type
         const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), ...toArray(typeDetails.parameterTypes));
-        this.typir.graph.addNode(typeWithParameters);
+        this.services.graph.addNode(typeWithParameters);
 
         return typeWithParameters;
     }

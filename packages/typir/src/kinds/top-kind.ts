@@ -8,7 +8,7 @@ import { TypeEqualityProblem } from '../features/equality.js';
 import { InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { isType, Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { createKindConflict } from '../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../utils/utils.js';
@@ -85,14 +85,14 @@ export const TopKindName = 'TopKind';
 
 export class TopKind implements Kind {
     readonly $name: 'TopKind';
-    readonly typir: Typir;
+    readonly services: TypirServices;
     readonly options: TopKindOptions;
     protected instance: TopType | undefined;
 
-    constructor(typir: Typir, options?: Partial<TopKindOptions>) {
+    constructor(services: TypirServices, options?: Partial<TopKindOptions>) {
         this.$name = TopKindName;
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
         this.options = {
             // the default values:
             name: 'any',
@@ -103,7 +103,7 @@ export class TopKind implements Kind {
 
     getTopType(typeDetails: TopTypeDetails): TopType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.typir.graph.getType(key) as TopType;
+        return this.services.graph.getType(key) as TopType;
     }
 
     getOrCreateTopType(typeDetails: TopTypeDetails): TopType {
@@ -124,12 +124,12 @@ export class TopKind implements Kind {
         }
         const topType = new TopType(this, this.calculateIdentifier(typeDetails));
         this.instance = topType;
-        this.typir.graph.addNode(topType);
+        this.services.graph.addNode(topType);
 
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.inference.addInferenceRule((domainElement, _typir) => {
                 for (const inferenceRule of rules) {
                     if (inferenceRule(domainElement)) {
                         return topType;

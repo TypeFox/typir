@@ -5,8 +5,11 @@
  ******************************************************************************/
 
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { TypeConversion } from './conversion.js';
+import { TypeEquality } from './equality.js';
+import { SubType } from './subtype.js';
 
 export interface AssignabilityProblem extends TypirProblem {
     $problem: 'AssignabilityProblem';
@@ -26,10 +29,14 @@ export interface TypeAssignability {
 }
 
 export class DefaultTypeAssignability implements TypeAssignability {
-    protected readonly typir: Typir;
+    protected readonly conversion: TypeConversion;
+    protected readonly subtype: SubType;
+    protected readonly equality: TypeEquality;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.conversion = services.conversion;
+        this.subtype = services.subtype;
+        this.equality = services.equality;
     }
 
     isAssignable(source: Type, target: Type): boolean {
@@ -38,17 +45,17 @@ export class DefaultTypeAssignability implements TypeAssignability {
 
     getAssignabilityProblem(source: Type, target: Type): AssignabilityProblem | undefined {
         // 1. are both types equal?
-        if (this.typir.equality.areTypesEqual(source, target)) {
+        if (this.equality.areTypesEqual(source, target)) {
             return undefined;
         }
 
         // 2. implicit conversion from source to target possible?
-        if (this.typir.conversion.isImplicitExplicitConvertible(source, target)) {
+        if (this.conversion.isImplicitExplicitConvertible(source, target)) {
             return undefined;
         }
 
         // 3. is the source a sub-type of the target?
-        const subTypeResult = this.typir.subtype.getSubTypeProblem(source, target);
+        const subTypeResult = this.subtype.getSubTypeProblem(source, target);
         if (subTypeResult === undefined) {
             return undefined;
         } else {

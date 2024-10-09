@@ -4,14 +4,14 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, assertUnreachable, isAstNode } from 'langium';
-import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PrimitiveKind, Typir } from 'typir';
-import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { AstNode, AstUtils, Module, assertUnreachable, isAstNode } from 'langium';
+import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PartialTypirServices, PrimitiveKind, TypirServices, createTypirServices } from 'typir';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
+import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
-export function createTypir(domainNodeEntry: AstNode): Typir {
+export function createTypir(domainNodeEntry: AstNode): TypirServices {
     // set up Typir and reuse some predefined things
-    const typir = new Typir();
+    const typir = createTypirServices(OxTypirModule);
     const primitiveKind = new PrimitiveKind(typir);
     const functionKind = new FunctionKind(typir);
     const operators = typir.operators;
@@ -147,7 +147,7 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
     // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
     // TODO selector API + gleiche Diskussion für Inference Rules
     typir.validation.collector.addValidationRules(
-        (node: unknown, typir: Typir) => {
+        (node: unknown, typir: TypirServices) => {
             if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
                 return typir.validation.constraints.ensureNodeIsAssignable(node.condition, typeBool,
                     () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", domainProperty: 'condition' });
@@ -179,17 +179,20 @@ export function createTypir(domainNodeEntry: AstNode): Typir {
         }
     );
 
-    // override some default behaviour ...
-    // ... print the text of the corresponding CstNode
-    class OxPrinter extends DefaultTypeConflictPrinter {
-        override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
-            if (isAstNode(domainElement)) {
-                return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
-            }
-            return super.printDomainElement(domainElement, sentenceBegin);
-        }
-    }
-    typir.printer = new OxPrinter(typir);
-
     return typir;
 }
+
+// override some default behaviour ...
+// ... print the text of the corresponding CstNode
+class OxPrinter extends DefaultTypeConflictPrinter {
+    override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
+        if (isAstNode(domainElement)) {
+            return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
+        }
+        return super.printDomainElement(domainElement, sentenceBegin);
+    }
+}
+
+export const OxTypirModule: Module<TypirServices, PartialTypirServices> = {
+    printer: () => new OxPrinter(),
+};

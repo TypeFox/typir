@@ -8,7 +8,7 @@ import { TypeEqualityProblem } from '../features/equality.js';
 import { InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { isType, Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { createKindConflict } from '../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../utils/utils.js';
@@ -85,14 +85,14 @@ export const BottomKindName = 'BottomKind';
 
 export class BottomKind implements Kind {
     readonly $name: 'BottomKind';
-    readonly typir: Typir;
+    readonly services: TypirServices;
     readonly options: BottomKindOptions;
     protected instance: BottomType | undefined;
 
-    constructor(typir: Typir, options?: Partial<BottomKindOptions>) {
+    constructor(services: TypirServices, options?: Partial<BottomKindOptions>) {
         this.$name = BottomKindName;
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
         this.options = {
             // the default values:
             name: 'never',
@@ -103,7 +103,7 @@ export class BottomKind implements Kind {
 
     getBottomType(typeDetails: BottomTypeDetails): BottomType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.typir.graph.getType(key) as BottomType;
+        return this.services.graph.getType(key) as BottomType;
     }
 
     getOrCreateBottomType(typeDetails: BottomTypeDetails): BottomType {
@@ -123,12 +123,12 @@ export class BottomKind implements Kind {
         }
         const bottomType = new BottomType(this, this.calculateIdentifier(typeDetails));
         this.instance = bottomType;
-        this.typir.graph.addNode(bottomType);
+        this.services.graph.addNode(bottomType);
 
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.inference.addInferenceRule((domainElement, _typir) => {
                 for (const inferenceRule of rules) {
                     if (inferenceRule(domainElement)) {
                         return bottomType;

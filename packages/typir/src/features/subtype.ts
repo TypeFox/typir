@@ -5,11 +5,11 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
+import { TypeEdge, isTypeEdge } from '../graph/type-edge.js';
 
 export interface SubTypeProblem extends TypirProblem {
     $problem: 'SubTypeProblem';
@@ -48,10 +48,10 @@ export interface SubType {
 }
 
 export class DefaultSubType implements SubType {
-    protected readonly typir: Typir;
+    protected readonly typeRelationships: TypeRelationshipCaching;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.typeRelationships = services.caching.typeRelationships;
     }
 
     isSubType(subType: Type, superType: Type): boolean {
@@ -59,7 +59,7 @@ export class DefaultSubType implements SubType {
     }
 
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined {
-        const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
+        const cache: TypeRelationshipCaching = this.typeRelationships;
         const linkData = cache.getRelationshipUnidirectional<SubTypeEdge>(subType, superType, SubTypeEdge);
         const subTypeCaching = linkData?.cachingInformation ?? 'UNKNOWN';
 

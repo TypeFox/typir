@@ -6,7 +6,7 @@
 
 import { Type } from '../graph/type-node.js';
 import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName, isFunctionKind } from '../kinds/function-kind.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { NameTypePair, Types } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
 
@@ -92,10 +92,10 @@ export interface OperatorManager {
  * All operands are mandatory.
  */
 export class DefaultOperatorManager implements OperatorManager {
-    protected readonly typir: Typir;
+    protected readonly services: TypirServices;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.services = services;
     }
 
     createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): Types {
@@ -153,8 +153,8 @@ export class DefaultOperatorManager implements OperatorManager {
         // define/register the wanted operator as "special" function
 
         // ensure, that Typir uses the predefined 'function' kind
-        const kind = this.typir.getKind(FunctionKindName);
-        const functionKind = isFunctionKind(kind) ? kind : new FunctionKind(this.typir);
+        const kind = this.services.kinds.get(FunctionKindName);
+        const functionKind = isFunctionKind(kind) ? kind : new FunctionKind(this.services);
 
         // create the operator as type of kind 'function'
         const newOperatorType = functionKind.createFunctionType({

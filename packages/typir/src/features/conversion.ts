@@ -5,9 +5,11 @@
  ******************************************************************************/
 
 import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
+import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { toArray } from '../utils/utils.js';
+import { TypeEquality } from './equality.js';
 
 /**
  * Describes the possible conversion modes.
@@ -99,10 +101,12 @@ export interface TypeConversion {
  * - Store only EXPLICIT and IMPLICIT relationships, since this is not required, missing edges means NONE/SELF.
  */
 export class DefaultTypeConversion implements TypeConversion {
-    protected readonly typir: Typir;
+    protected readonly equality: TypeEquality;
+    protected readonly graph: TypeGraph;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.equality = services.equality;
+        this.graph = services.graph;
     }
 
     markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionModeForSpecification): void {
@@ -126,7 +130,7 @@ export class DefaultTypeConversion implements TypeConversion {
                 cachingInformation: 'LINK_EXISTS',
                 mode,
             };
-            this.typir.graph.addEdge(edge);
+            this.graph.addEdge(edge);
         } else {
             // update the mode
             edge.mode = mode;
@@ -160,7 +164,7 @@ export class DefaultTypeConversion implements TypeConversion {
         }
 
         // special case: if both types are equal, no conversion is needed (often this check is quite fast)
-        if (this.typir.equality.areTypesEqual(from, to)) {
+        if (this.equality.areTypesEqual(from, to)) {
             return 'SELF';
         }
 

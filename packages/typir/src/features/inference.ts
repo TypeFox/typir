@@ -5,9 +5,10 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { isType, Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { Type, isType } from '../graph/type-node.js';
+import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { DomainElementInferenceCaching } from './caching.js';
 
 export interface InferenceProblem extends TypirProblem {
     $problem: 'InferenceProblem';
@@ -50,7 +51,7 @@ type TypeInferenceResultWithInferringChildren =
 export type TypeInferenceRule = TypeInferenceRuleWithoutInferringChildren | TypeInferenceRuleWithInferringChildren;
 
 /** Usual inference rule which don't depend on children's types. */
-export type TypeInferenceRuleWithoutInferringChildren = (domainElement: unknown, typir: Typir) => TypeInferenceResultWithoutInferringChildren;
+export type TypeInferenceRuleWithoutInferringChildren = (domainElement: unknown, typir: TypirServices) => TypeInferenceResultWithoutInferringChildren;
 
 /**
  * Inference rule which requires for the type inference of the given parent to take the types of its children into account.
@@ -64,7 +65,7 @@ export interface TypeInferenceRuleWithInferringChildren {
      * @returns Only in the case, that children elements are return,
      * the other function will be called for step 2, otherwise, it is skipped.
      */
-    inferTypeWithoutChildren(domainElement: unknown, typir: Typir): TypeInferenceResultWithInferringChildren;
+    inferTypeWithoutChildren(domainElement: unknown, typir: TypirServices): TypeInferenceResultWithInferringChildren;
 
     /**
      * 2nd step is to finally decide about the inferred type.
@@ -77,7 +78,7 @@ export interface TypeInferenceRuleWithInferringChildren {
      * @param typir the current Typir instance
      * @returns the finally inferred type or a problem, why this inference rule is finally not applicable
      */
-    inferTypeWithChildrensTypes(domainElement: unknown, childrenTypes: Array<Type | undefined>, typir: Typir): Type | InferenceProblem
+    inferTypeWithChildrensTypes(domainElement: unknown, childrenTypes: Array<Type | undefined>, typir: TypirServices): Type | InferenceProblem
 }
 
 /**
@@ -89,7 +90,7 @@ export interface TypeInferenceRuleWithInferringChildren {
 export class CompositeTypeInferenceRule implements TypeInferenceRuleWithInferringChildren {
     readonly subRules: TypeInferenceRule[] = [];
 
-    inferTypeWithoutChildren(domainElement: unknown, typir: Typir): TypeInferenceResultWithInferringChildren {
+    inferTypeWithoutChildren(domainElement: unknown, typir: TypirServices): TypeInferenceResultWithInferringChildren {
         class FunctionInference extends DefaultTypeInferenceCollector {
             // do not check "pending" (again), since it is already checked by the "parent" DefaultTypeInferenceCollector!
             override pendingGet(_domainElement: unknown): boolean {
@@ -120,7 +121,7 @@ export class CompositeTypeInferenceRule implements TypeInferenceRuleWithInferrin
         }
     }
 
-    inferTypeWithChildrensTypes(_domainElement: unknown, _childrenTypes: Array<Type | undefined>, _typir: Typir): Type | InferenceProblem {
+    inferTypeWithChildrensTypes(_domainElement: unknown, _childrenTypes: Array<Type | undefined>, _typir: TypirServices): Type | InferenceProblem {
         throw new Error('This function will not be called.');
     }
 }
@@ -147,10 +148,12 @@ export interface TypeInferenceCollector {
 
 export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
     protected readonly inferenceRules: TypeInferenceRule[] = [];
-    protected readonly typir: Typir;
+    protected readonly domainElementInference: DomainElementInferenceCaching;
+    protected readonly typir: TypirServices;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.typir = services;
+        this.domainElementInference = services.caching.domainElementInference;
     }
 
     inferType(domainElement: unknown): Type | InferenceProblem[] {
@@ -284,20 +287,20 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
     /* By default, the central cache of Typir is used. */
 
     protected cacheSet(domainElement: unknown, type: Type): void {
-        this.typir.caching.domainElementInference.cacheSet(domainElement, type);
+        this.domainElementInference.cacheSet(domainElement, type);
     }
 
     protected cacheGet(domainElement: unknown): Type | undefined {
-        return this.typir.caching.domainElementInference.cacheGet(domainElement);
+        return this.domainElementInference.cacheGet(domainElement);
     }
 
     protected pendingSet(domainElement: unknown): void {
-        this.typir.caching.domainElementInference.pendingSet(domainElement);
+        this.domainElementInference.pendingSet(domainElement);
     }
     protected pendingClear(domainElement: unknown): void {
-        this.typir.caching.domainElementInference.pendingClear(domainElement);
+        this.domainElementInference.pendingClear(domainElement);
     }
     protected pendingGet(domainElement: unknown): boolean {
-        return this.typir.caching.domainElementInference.pendingGet(domainElement);
+        return this.domainElementInference.pendingGet(domainElement);
     }
 }

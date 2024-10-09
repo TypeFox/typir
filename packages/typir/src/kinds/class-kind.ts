@@ -9,11 +9,11 @@ import { TypeEqualityProblem } from '../features/equality.js';
 import { InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { Type, isType } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
 import { TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
 import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
+import { TypirServices } from '../typir.js';
 
 export class ClassType extends Type {
     override readonly kind: ClassKind;
@@ -30,7 +30,7 @@ export class ClassType extends Type {
 
         // resolve the super classes
         this.superClasses = toArray(typeDetails.superClasses).map(superr => {
-            const cls = resolveTypeSelector(this.kind.typir, superr);
+            const cls = resolveTypeSelector(this.kind.services, superr);
             assertType(cls, isClassType);
             return cls;
         });
@@ -50,7 +50,7 @@ export class ClassType extends Type {
         // fields
         this.fields = typeDetails.fields.map(field => <FieldDetails>{
             name: field.name,
-            type: resolveTypeSelector(this.kind.typir, field.type),
+            type: resolveTypeSelector(this.kind.services, field.type),
         });
         // check collisions of field names
         if (this.getFields(false).size !== typeDetails.fields.length) {
@@ -80,7 +80,7 @@ export class ClassType extends Type {
             if (this.kind.options.typing === 'Structural') {
                 // for structural typing:
                 return checkNameTypesMap(this.getFields(true), otherType.getFields(true), // including fields of super-classes
-                    (t1, t2) => this.kind.typir.equality.getTypeEqualityProblem(t1, t2));
+                    (t1, t2) => this.kind.services.equality.getTypeEqualityProblem(t1, t2));
             } else if (this.kind.options.typing === 'Nominal') {
                 // for nominal typing:
                 return checkValueForConflict(this.identifier, otherType.identifier, 'name');
@@ -132,7 +132,7 @@ export class ClassType extends Type {
                 if (subFields.has(superFieldName)) {
                     // field is both in super and sub
                     const subFieldType = subFields.get(superFieldName)!;
-                    const checkStrategy = createTypeCheckStrategy(this.kind.options.subtypeFieldChecking, this.kind.typir);
+                    const checkStrategy = createTypeCheckStrategy(this.kind.options.subtypeFieldChecking, this.kind.services);
                     const subTypeComparison = checkStrategy(subFieldType, superFieldType);
                     if (subTypeComparison !== undefined) {
                         conflicts.push({
@@ -304,13 +304,13 @@ export type InferClassLiteral<T = unknown> = {
  */
 export class ClassKind implements Kind {
     readonly $name: 'ClassKind';
-    readonly typir: Typir;
+    readonly services: TypirServices;
     readonly options: ClassKindOptions;
 
-    constructor(typir: Typir, options?: Partial<ClassKindOptions>) {
+    constructor(services: TypirServices, options?: Partial<ClassKindOptions>) {
         this.$name = ClassKindName;
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
         this.options = {
             // the default values:
             typing: 'Nominal',
@@ -325,7 +325,7 @@ export class ClassKind implements Kind {
 
     getClassType(typeDetails: ClassTypeDetails | string): ClassType | undefined { // string for nominal typing
         const key = this.calculateIdentifier(typeof typeDetails === 'string' ? { className: typeDetails, fields: []} : typeDetails);
-        return this.typir.graph.getType(key) as ClassType;
+        return this.services.graph.getType(key) as ClassType;
     }
 
     getOrCreateClassType<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>): ClassType {
@@ -341,11 +341,11 @@ export class ClassKind implements Kind {
 
         // create the class type
         const classType = new ClassType(this, this.calculateIdentifier(typeDetails), typeDetails);
-        this.typir.graph.addNode(classType);
+        this.services.graph.addNode(classType);
 
         // register inference rules
         if (typeDetails.inferenceRuleForDeclaration) {
-            this.typir.inference.addInferenceRule({
+            this.services.inference.addInferenceRule({
                 inferTypeWithoutChildren(domainElement, _typir) {
                     if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
                         return classType;
@@ -366,7 +366,7 @@ export class ClassKind implements Kind {
             this.registerInferenceRule(typeDetails.inferenceRuleForReference, this, classType);
         }
         if (typeDetails.inferenceRuleForFieldAccess) {
-            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.inference.addInferenceRule((domainElement, _typir) => {
                 const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
                 if (result === InferenceRuleNotApplicable) {
                     return InferenceRuleNotApplicable;
@@ -395,7 +395,7 @@ export class ClassKind implements Kind {
 
     protected registerInferenceRule<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): void {
         const mapListConverter = new MapListConverter();
-        this.typir.inference.addInferenceRule({
+        this.services.inference.addInferenceRule({
             inferTypeWithoutChildren(domainElement, _typir) {
                 const result = rule.filter(domainElement);
                 if (result) {
@@ -457,7 +457,7 @@ export class ClassKind implements Kind {
             }
             // super classes
             const superClasses = toArray(typeDetails.superClasses).map(selector => {
-                const type = resolveTypeSelector(this.typir, selector);
+                const type = resolveTypeSelector(this.services, selector);
                 assertType(type, isClassType);
                 return type;
             });

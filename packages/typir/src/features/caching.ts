@@ -5,8 +5,9 @@
  ******************************************************************************/
 
 import { TypeEdge } from '../graph/type-edge.js';
+import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
 
 /**
@@ -31,10 +32,10 @@ export type EdgeCachingInformation =
     'NO_LINK';
 
 export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
-    protected readonly typir: Typir;
+    protected readonly graph: TypeGraph;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.graph = services.graph;
     }
 
     getRelationshipUnidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined {
@@ -61,7 +62,7 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
         // don't cache some values (but ensure, that PENDING is overridden/updated!) =>  un-set the relationship
         if (this.storeCachingInformation(edgeCaching) === false) {
             if (edge) {
-                this.typir.graph.removeEdge(edge);
+                this.graph.removeEdge(edge);
             } else {
                 // no edge exists, no edge wanted => nothing to do
             }
@@ -71,7 +72,7 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
         // handle missing edge
         if (!edge) {
             // reuse the given edge
-            this.typir.graph.addEdge(edgeToCache);
+            this.graph.addEdge(edgeToCache);
             // in case of non-directed edges, check the opposite direction as well
             return edgeToCache;
         }
@@ -115,11 +116,9 @@ export type CachePending = 'CACHE_PENDING';
 export const CachePending = 'CACHE_PENDING';
 
 export class DefaultDomainElementInferenceCaching implements DomainElementInferenceCaching {
-    protected readonly typir: Typir;
     protected cache: Map<unknown, Type | CachePending>;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor() {
         this.initializeCache();
     }
 

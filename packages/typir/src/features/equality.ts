@@ -5,11 +5,11 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { Type } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
+import { TypeEdge, isTypeEdge } from '../graph/type-edge.js';
 
 export interface TypeEqualityProblem extends TypirProblem {
     $problem: 'TypeEqualityProblem';
@@ -29,10 +29,10 @@ export interface TypeEquality {
 }
 
 export class DefaultTypeEquality implements TypeEquality {
-    protected readonly typir: Typir;
+    protected readonly typeRelationships: TypeRelationshipCaching;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.typeRelationships = services.caching.typeRelationships;
     }
 
     areTypesEqual(type1: Type, type2: Type): boolean {
@@ -40,7 +40,7 @@ export class DefaultTypeEquality implements TypeEquality {
     }
 
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined {
-        const cache: TypeRelationshipCaching = this.typir.caching.typeRelationships;
+        const cache: TypeRelationshipCaching = this.typeRelationships;
         const linkData = cache.getRelationshipBidirectional<EqualityEdge>(type1, type2, EqualityEdge);
         const equalityCaching = linkData?.cachingInformation ?? 'UNKNOWN';
 

@@ -5,9 +5,11 @@
  ******************************************************************************/
 
 import { Type, isType } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { TypeInferenceCollector } from './inference.js';
+import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
@@ -28,7 +30,7 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
     return isSpecificTypirProblem(problem, ValidationProblem);
 }
 
-export type ValidationRule = (domainElement: unknown, typir: Typir) => ValidationProblem[];
+export type ValidationRule = (domainElement: unknown, typir: TypirServices) => ValidationProblem[];
 
 /** Annotate types after the validation with additional information in order to ease the creation of usefull messages. */
 export interface AnnotatedTypeAfterValidation {
@@ -51,10 +53,14 @@ export interface ValidationConstraints {
 }
 
 export class DefaultValidationConstraints implements ValidationConstraints {
-    protected readonly typir: Typir;
+    protected readonly services: TypirServices;
+    protected readonly inference: TypeInferenceCollector;
+    protected readonly printer: ProblemPrinter;
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.services = services;
+        this.inference = services.inference;
+        this.printer = services.printer;
     }
 
     ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
@@ -75,10 +81,10 @@ export class DefaultValidationConstraints implements ValidationConstraints {
     ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean,
         message: ValidationMessageProvider): ValidationProblem[] {
         if (domainNode !== undefined && expected !== undefined) {
-            const actualType = isType(domainNode) ? domainNode : this.typir.inference.inferType(domainNode);
-            const expectedType = isType(expected) ? expected : this.typir.inference.inferType(expected);
+            const actualType = isType(domainNode) ? domainNode : this.inference.inferType(domainNode);
+            const expectedType = isType(expected) ? expected : this.inference.inferType(expected);
             if (isType(actualType) && isType(expectedType)) {
-                const strategyLogic = createTypeCheckStrategy(strategy, this.typir);
+                const strategyLogic = createTypeCheckStrategy(strategy, this.services);
                 const comparisonResult = strategyLogic(actualType, expectedType);
                 if (comparisonResult !== undefined) {
                     if (negated) {
@@ -121,8 +127,8 @@ export class DefaultValidationConstraints implements ValidationConstraints {
     protected annotateType(type: Type): AnnotatedTypeAfterValidation {
         return {
             type,
-            userRepresentation: this.typir.printer.printTypeUserRepresentation(type),
-            name: this.typir.printer.printTypeName(type),
+            userRepresentation: this.printer.printTypeUserRepresentation(type),
+            name: this.printer.printTypeName(type),
         };
     }
 }
@@ -134,17 +140,17 @@ export interface ValidationCollector {
 }
 
 export class DefaultValidationCollector implements ValidationCollector {
-    protected readonly typir: Typir;
+    protected readonly services: TypirServices;
     readonly validationRules: ValidationRule[] = [];
 
-    constructor(typir: Typir) {
-        this.typir = typir;
+    constructor(services: TypirServices) {
+        this.services = services;
     }
 
     validate(domainElement: unknown): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
         for (const rule of this.validationRules) {
-            problems.push(...rule(domainElement, this.typir));
+            problems.push(...rule(domainElement, this.services));
         }
         return problems;
     }

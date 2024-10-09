@@ -9,7 +9,7 @@ import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicabl
 import { SubTypeProblem } from '../features/subtype.js';
 import { ValidationProblem } from '../features/validation.js';
 import { Type, isType } from '../graph/type-node.js';
-import { Typir } from '../typir.js';
+import { TypirServices } from '../typir.js';
 import { NameTypePair, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, checkTypeArrays, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue } from '../utils/utils.js';
@@ -28,7 +28,7 @@ export class FunctionType extends Type {
         this.functionName = typeDetails.functionName;
 
         // output parameter
-        const outputType = typeDetails.outputParameter ? resolveTypeSelector(this.kind.typir, typeDetails.outputParameter.type) : undefined;
+        const outputType = typeDetails.outputParameter ? resolveTypeSelector(this.kind.services, typeDetails.outputParameter.type) : undefined;
         if (typeDetails.outputParameter) {
             assertTrue(outputType !== undefined);
             this.kind.enforceName(typeDetails.outputParameter.name, this.kind.options.enforceOutputParameterName);
@@ -46,7 +46,7 @@ export class FunctionType extends Type {
             this.kind.enforceName(input.name, this.kind.options.enforceInputParameterNames);
             return <NameTypePair>{
                 name: input.name,
-                type: resolveTypeSelector(this.kind.typir, input.type),
+                type: resolveTypeSelector(this.kind.services, input.type),
             };
         });
     }
@@ -84,10 +84,10 @@ export class FunctionType extends Type {
             }
             // same output?
             conflicts.push(...checkTypes(this.getOutput(), otherType.getOutput(),
-                (s, t) => this.kind.typir.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceOutputParameterName));
+                (s, t) => this.kind.services.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceOutputParameterName));
             // same input?
             conflicts.push(...checkTypeArrays(this.getInputs(), otherType.getInputs(),
-                (s, t) => this.kind.typir.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames));
+                (s, t) => this.kind.services.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames));
             return conflicts;
         } else {
             return [<TypeEqualityProblem>{
@@ -125,7 +125,7 @@ export class FunctionType extends Type {
 
     protected analyzeSubTypeProblems(subType: FunctionType, superType: FunctionType): TypirProblem[] {
         const conflicts: TypirProblem[] = [];
-        const strategy = createTypeCheckStrategy(this.kind.options.subtypeParameterChecking, this.kind.typir);
+        const strategy = createTypeCheckStrategy(this.kind.options.subtypeParameterChecking, this.kind.services);
         // output: sub type output must be assignable (which can be configured) to super type output
         conflicts.push(...checkTypes(subType.getOutput(), superType.getOutput(),
             (sub, superr) => strategy(sub, superr), this.kind.options.enforceOutputParameterName));
@@ -248,7 +248,7 @@ export type InferFunctionCall<T = unknown> = {
  */
 export class FunctionKind implements Kind {
     readonly $name: 'FunctionKind';
-    readonly typir: Typir;
+    readonly services: TypirServices;
     readonly options: FunctionKindOptions;
     /** TODO Limitations
      * - Works only, if function types are defined using the createFunctionType(...) function below!
@@ -257,10 +257,10 @@ export class FunctionKind implements Kind {
     protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
     // TODO try to replace this map with calculating the required identifier for the function
 
-    constructor(typir: Typir, options?: Partial<FunctionKindOptions>) {
+    constructor(services: TypirServices, options?: Partial<FunctionKindOptions>) {
         this.$name = FunctionKindName;
-        this.typir = typir;
-        this.typir.registerKind(this);
+        this.services = services;
+        this.services.kinds.register(this);
         this.options = {
             // the default values:
             enforceFunctionName: false,
@@ -274,7 +274,7 @@ export class FunctionKind implements Kind {
         };
 
         // register Validations for input arguments of function calls (must be done here to support overloaded functions)
-        this.typir.validation.collector.addValidationRules(
+        this.services.validation.collector.addValidationRules(
             (domainElement, typir) => {
                 const resultAll: ValidationProblem[] = [];
                 for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
@@ -332,7 +332,7 @@ export class FunctionKind implements Kind {
                                             $problem: ValidationProblem,
                                             domainElement,
                                             severity: 'error',
-                                            message: `The given operands for the function '${this.typir.printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
+                                            message: `The given operands for the function '${this.services.printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
                                             subProblems: currentProblems,
                                         });
                                     } else {
@@ -371,7 +371,7 @@ export class FunctionKind implements Kind {
 
     getFunctionType(typeDetails: FunctionTypeDetails): FunctionType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.typir.graph.getType(key) as FunctionType;
+        return this.services.graph.getType(key) as FunctionType;
     }
 
     getOrCreateFunctionType<T>(typeDetails: CreateFunctionTypeDetails<T>): FunctionType {
@@ -398,13 +398,13 @@ export class FunctionKind implements Kind {
 
         // create the function type
         const functionType = new FunctionType(this, this.calculateIdentifier(typeDetails), typeDetails);
-        this.typir.graph.addNode(functionType);
+        this.services.graph.addNode(functionType);
 
         // output parameter for function calls
         const outputTypeForFunctionCalls = functionType.getOutput()?.type ?? // by default, use the return type of the function ...
             // ... if this type is missing, use the specified type for this case in the options:
             // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
-            (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR' ? undefined : resolveTypeSelector(this.typir, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
+            (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR' ? undefined : resolveTypeSelector(this.services, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
 
         // remember the new function for later in order to enable overloaded functions!
         const mapNameTypes = this.mapNameTypes;
@@ -418,13 +418,13 @@ export class FunctionKind implements Kind {
                 sameOutputType: undefined,
             };
             mapNameTypes.set(functionName, overloaded);
-            this.typir.inference.addInferenceRule(overloaded.inference);
+            this.services.inference.addInferenceRule(overloaded.inference);
         }
         if (overloaded.overloadedFunctions.length <= 0) {
             // remember the output type of the first function
             overloaded.sameOutputType = outputTypeForFunctionCalls;
         } else {
-            if (overloaded.sameOutputType && outputTypeForFunctionCalls && this.typir.equality.areTypesEqual(overloaded.sameOutputType, outputTypeForFunctionCalls) === true) {
+            if (overloaded.sameOutputType && outputTypeForFunctionCalls && this.services.equality.areTypesEqual(overloaded.sameOutputType, outputTypeForFunctionCalls) === true) {
                 // the output types of all overloaded functions are the same for now
             } else {
                 // there is a difference
@@ -515,7 +515,7 @@ export class FunctionKind implements Kind {
         // register inference rule for the declaration of the new function
         // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
         if (typeDetails.inferenceRuleForDeclaration) {
-            this.typir.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.inference.addInferenceRule((domainElement, _typir) => {
                 if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
                     return functionType;
                 } else {
@@ -533,7 +533,7 @@ export class FunctionKind implements Kind {
         // function name
         const functionName = this.hasName(typeDetails.functionName) ? typeDetails.functionName : '';
         // inputs
-        const inputsString = typeDetails.inputParameters.map(input => resolveTypeSelector(this.typir, input.type).getName()).join(',');
+        const inputsString = typeDetails.inputParameters.map(input => resolveTypeSelector(this.services, input.type).getName()).join(',');
         // complete signature
         return `${prefix}-${functionName}(${inputsString})`;
     }
