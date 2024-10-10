@@ -4,14 +4,15 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, Module, assertUnreachable, isAstNode } from 'langium';
-import { DefaultTypeConflictPrinter, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PartialTypirServices, PrimitiveKind, TypirServices, createTypirServices } from 'typir';
+import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
+import { FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, ParameterDetails, PartialTypirServices, PrimitiveKind, TypirServices, createTypirServices } from 'typir';
+import { TypirLangiumModule } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isOxProgram, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export function createTypir(domainNodeEntry: AstNode): TypirServices {
     // set up Typir and reuse some predefined things
-    const typir = createTypirServices(OxTypirModule);
+    const typir = createTypirServices(TypirLangiumModule, OxTypirModule);
     const primitiveKind = new PrimitiveKind(typir);
     const functionKind = new FunctionKind(typir);
     const operators = typir.operators;
@@ -182,17 +183,6 @@ export function createTypir(domainNodeEntry: AstNode): TypirServices {
     return typir;
 }
 
-// override some default behaviour ...
-// ... print the text of the corresponding CstNode
-class OxPrinter extends DefaultTypeConflictPrinter {
-    override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
-        if (isAstNode(domainElement)) {
-            return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
-        }
-        return super.printDomainElement(domainElement, sentenceBegin);
-    }
-}
-
 export const OxTypirModule: Module<TypirServices, PartialTypirServices> = {
-    printer: () => new OxPrinter(),
+    // for OX, no specific configurations are required
 };

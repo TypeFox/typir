@@ -76,8 +76,11 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
     }
 };
 
-export function createTypirServices(customization: Module<TypirServices, PartialTypirServices> = {}): TypirServices {
-    return inject(DefaultTypirServiceModule, customization);
+export function createTypirServices(
+    customization1: Module<TypirServices, PartialTypirServices> = {},
+    customization2: Module<TypirServices, PartialTypirServices> = {}
+): TypirServices {
+    return inject(DefaultTypirServiceModule, customization1, customization2);
 }
 
 /**
