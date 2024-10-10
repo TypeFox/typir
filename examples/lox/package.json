@@ -13,8 +13,8 @@
         "vscode": "^1.67.0"
     },
     "volta": {
-        "node": "18.17.1",
-        "npm": "9.6.7"
+        "node": "18.20.4",
+        "npm": "10.7.0"
     },
     "scripts": {
         "build": "tsc -b tsconfig.json && node esbuild.mjs",
