@@ -136,19 +136,15 @@ export class DefaultTypeConversion implements TypeConversion {
             edge.mode = mode;
         }
 
-        // check, that the new edges did not introduce cycles
-        this.checkForCycles(mode);
-    }
-
-    protected checkForCycles(mode: ConversionModeForSpecification): void {
         if (mode === 'IMPLICIT_EXPLICIT') {
-            this.checkForCyclesLogic(mode);
-        } else {
-            // all other modes allow cycles
+            /* check that the new edges did not introduce cycles
+             * if it did, the from node will be reachable via a cycle path
+             */
+            const hasIntroducedCycle = this.existsEdgePath(from, from, mode);
+            if (hasIntroducedCycle) {
+                throw new Error('Adding the conversion from ' + from.identifier + ' to ' + to.identifier + ' has introduced a cycle ot the type graph.');
+            }
         }
-    }
-    protected checkForCyclesLogic(_mode: ConversionModeForSpecification): void {
-        // TODO check for cycles and throw an Error in case of found cycles
     }
 
     protected isTransitive(mode: ConversionModeForSpecification): boolean {
@@ -180,9 +176,45 @@ export class DefaultTypeConversion implements TypeConversion {
         return 'NONE';
     }
 
-    protected isTransitivelyConvertable(_from: Type, _to: Type, _mode: ConversionModeForSpecification): boolean {
-        // TODO calculate transitive relationship
+    protected existsEdgePath(from: Type, to: Type, mode: ConversionModeForSpecification): boolean {
+        const visited: Set<Type> = new Set();
+        const stack: Type[] = [from];
+
+        while (stack.length > 0) {
+            const current = stack.pop()!;
+            visited.add(current);
+
+            const outgoingEdges = current.getOutgoingEdges<ConversionEdge>(ConversionEdge);
+            for (const edge of outgoingEdges) {
+                if (edge.mode === mode) {
+                    if (edge.to === to) {
+                        /* It was possible to reach our goal type using this path.
+                         * Base case that also catches the case in which start and end are the same
+                         * (is there a cycle?). Therefore it is allowed to have been "visited".
+                         * True will only be returned if there is a real path (cycle) made up of edges
+                         */
+                        return true;
+                    }
+                    if (!visited.has(edge.to)) {
+                        /* The target node of this edge has not been visited before and is also not our goal node
+                         * Add it to the stack and investigate this path later.
+                         */
+                        stack.push(edge.to);
+                    }
+                }
+            }
+        }
+
+        // Fall through means that we could not reach the goal type
         return false;
+    }
+
+    protected isTransitivelyConvertable(from: Type, to: Type, mode: ConversionModeForSpecification): boolean {
+        if (from === to) {
+            return true;
+        } else {
+            return(this.existsEdgePath(from, to, mode));
+        }
     }
 
     isImplicitExplicitConvertible(from: Type, to: Type): boolean {
