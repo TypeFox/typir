@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationChecks, AstNode, ValidationAcceptor } from 'langium';
+import { AstNode, ValidationAcceptor, ValidationChecks } from 'langium';
 import { LangiumServices } from 'langium/lsp';
 import { TypirServices } from 'typir';
 import { LangiumServicesForTypirBinding } from '../typir-langium.js';

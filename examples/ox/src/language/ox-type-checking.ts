@@ -26,7 +26,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         this.operators = this.typir.operators;
     }
 
-    initialize(): void {
+    onInitialize(): void {
         // define primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
         const typeBool = this.primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRules: [
@@ -163,13 +163,13 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         );
     }
 
-    deriveTypeDeclarationsFromAstNode(domainElement: AstNode): void {
+    onNewAstNode(domainElement: AstNode): void {
         // define function types
         // they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
         if (isFunctionDeclaration(domainElement)) {
             const functionName = domainElement.name;
             // define function type
-            this.functionKind.createFunctionType({
+            this.functionKind.getOrCreateFunctionType({ // TODO check for duplicates!
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
                 outputParameter: { name: FUNCTION_MISSING_NAME, type: domainElement.returnType },

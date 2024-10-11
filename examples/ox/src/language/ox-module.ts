@@ -6,7 +6,7 @@
 
 import { Module, inject } from 'langium';
 import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, PartialLangiumServices, createDefaultModule, createDefaultSharedModule } from 'langium/lsp';
-import { LangiumServicesForTypirBinding, createLangiumModuleForTypirBinding, registerTypirValidationChecks } from 'typir-langium';
+import { LangiumServicesForTypirBinding, createLangiumModuleForTypirBinding, initializeLangiumTypirServices } from 'typir-langium';
 import { OxGeneratedModule, OxGeneratedSharedModule } from './generated/module.js';
 import { createOxTypirModule } from './ox-type-checking.js';
 import { OxValidator, registerValidationChecks } from './ox-validator.js';
@@ -69,6 +69,6 @@ export function createOxServices(context: DefaultSharedModuleContext): {
     );
     shared.ServiceRegistry.register(Ox);
     registerValidationChecks(Ox);
-    registerTypirValidationChecks(Ox);
+    initializeLangiumTypirServices(Ox);
     return { shared, Ox };
 }

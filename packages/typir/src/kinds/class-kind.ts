@@ -337,7 +337,7 @@ export class ClassKind implements Kind {
     }
 
     createClassType<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>): ClassType {
-        assertTrue(this.getClassType(typeDetails) === undefined);
+        assertTrue(this.getClassType(typeDetails) === undefined, `${typeDetails.className}`);
 
         // create the class type
         const classType = new ClassType(this, this.calculateIdentifier(typeDetails), typeDetails);

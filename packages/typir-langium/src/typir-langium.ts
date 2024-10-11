@@ -4,12 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { LangiumSharedServices } from 'langium/lsp';
+import { LangiumServices, LangiumSharedServices } from 'langium/lsp';
 import { DeepPartial, DefaultTypirServiceModule, Module, TypirServices } from 'typir';
 import { LangiumDomainElementInferenceCaching, LangiumTypeRelationshipCaching } from './features/langium-caching.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
 import { IncompleteLangiumTypeCreator, LangiumTypeCreator } from './features/langium-type-creator.js';
-import { LangiumTypirValidator } from './features/langium-validation.js';
+import { LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
 
 /**
  * Additional Typir-Langium services to manage the Typir services
@@ -42,4 +42,17 @@ export function createLangiumModuleForTypirBinding(langiumServices: LangiumShare
         TypeValidation: (typirServices) => new LangiumTypirValidator(typirServices),
         TypeCreator: (typirServices) => new IncompleteLangiumTypeCreator(typirServices, langiumServices),
     };
+}
+
+export function initializeLangiumTypirServices(services: LangiumServices & LangiumServicesForTypirBinding): void {
+    // register the type-related validations of Typir at the Langium validation registry
+    registerTypirValidationChecks(services);
+
+    // initialize the type creation (this is not done automatically by dependency injection!)
+    services.TypeCreator.triggerInitialization();
+    // TODO why does the following not work?
+    // services.shared.lsp.LanguageServer.onInitialized(_params => {
+    //     services.TypeCreator.triggerInitialization();
+    // });
+
 }

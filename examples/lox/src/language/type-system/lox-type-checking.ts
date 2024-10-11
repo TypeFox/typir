@@ -32,7 +32,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             this.operators = this.typir.operators;
     }
 
-    initialize(): void {
+    onInitialize(): void {
         // primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
         const typeBool = this.primitiveKind.createPrimitiveType({ primitiveName: 'boolean',
@@ -120,9 +120,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 if (isClass(ref)) {
                     return InferenceRuleNotApplicable; // not required anymore
                 } else if (isClassMember(ref)) {
-                    return undefined!; //TODO
+                    return InferenceRuleNotApplicable!; // TODO
                 } else if (isMethodMember(ref)) {
-                    return undefined!; //TODO
+                    return InferenceRuleNotApplicable!; // TODO
                 } else if (isVariableDeclaration(ref)) {
                     // use variables inside expressions!
                     return ref.type!;
@@ -195,14 +195,14 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         );
     }
 
-    deriveTypeDeclarationsFromAstNode(node: AstNode): void {
+    onNewAstNode(node: AstNode): void {
         // define types which are declared by the users of LOX => investigate the current AST
 
         // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
-            this.functionKind.createFunctionType({
+            this.functionKind.getOrCreateFunctionType({ // TODO check for duplicates!
                 functionName,
                 outputParameter: { name: FUNCTION_MISSING_NAME, type: node.returnType },
                 inputParameters: node.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
@@ -232,7 +232,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         // class types (nominal typing):
         if (isClass(node)) {
             const className = node.name;
-            this.classKind.createClassType({
+            this.classKind.getOrCreateClassType({ // TODO check for duplicates!
                 className,
                 superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
                 fields: node.members

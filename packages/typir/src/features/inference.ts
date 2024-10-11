@@ -182,13 +182,21 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector {
         return result;
     }
 
+    protected checkForError(domainElement: unknown): void {
+        if (domainElement === undefined || domainElement === null) {
+            throw new Error('Element must be not undefined/null!');
+        }
+    }
+
     protected inferTypeLogic(domainElement: unknown): Type | InferenceProblem[] {
+        this.checkForError(domainElement);
         // otherwise, check all rules
         const collectedInferenceProblems: InferenceProblem[] = [];
         for (const rule of this.inferenceRules) {
             if (typeof rule === 'function') {
                 // simple case without type inference for children
                 const ruleResult: TypeInferenceResultWithoutInferringChildren = rule(domainElement, this.typir);
+                this.checkForError(ruleResult);
                 const checkResult = this.inferTypeLogicWithoutChildren(ruleResult, collectedInferenceProblems);
                 if (checkResult) {
                     // this inference rule was applicable and produced a final result

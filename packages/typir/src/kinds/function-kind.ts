@@ -386,7 +386,7 @@ export class FunctionKind implements Kind {
         const functionName = typeDetails.functionName;
 
         // check the input
-        assertTrue(this.getFunctionType(typeDetails) === undefined); // ensures, that no duplicated functions are created!
+        assertTrue(this.getFunctionType(typeDetails) === undefined, `${functionName}`); // ensures, that no duplicated functions are created!
         if (!typeDetails) {
             throw new Error('is undefined');
         }

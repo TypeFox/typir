@@ -7,17 +7,19 @@
 import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
 import { Type, TypeEdge, TypeGraph, TypeGraphListener, TypirServices } from 'typir';
-import { getDocumentKeyForDocument } from '../utils/typir-langium-utils.js';
+import { getDocumentKeyForDocument, getDocumentKeyForURI } from '../utils/typir-langium-utils.js';
 
 export interface LangiumTypeCreator {
+    triggerInitialization(): void;
+
     /**
      * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules.
      * This method will be executed once before the 1st added/updated/removed domain element.
      */
-    initialize(): void;
+    onInitialize(): void;
 
     /** React on updates of the AST in order to add/remove corresponding types from the type system, e.g. user-definied functions. */
-    deriveTypeDeclarationsFromAstNode(domainElement: unknown): void;
+    onNewAstNode(domainElement: unknown): void;
 }
 
 export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, TypeGraphListener {
@@ -28,6 +30,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
 
     constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
         this.typeGraph = typirServices.graph;
+        // for new and updated documents
         langiumServices.workspace.DocumentBuilder.onBuildPhase(DocumentState.IndexedReferences, async (documents, cancelToken) => {
             for (const document of documents) {
                 await interruptAndCheck(cancelToken);
@@ -36,33 +39,41 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
                 this.processedDocument(document);
             }
         });
+        // for deleted documents
+        langiumServices.workspace.DocumentBuilder.onUpdate((_changed, deleted) => {
+            deleted.map(del => getDocumentKeyForURI(del)).forEach(del => this.processDeletedDocument(del));
+        });
         this.typeGraph.addListener(this);
     }
 
-    abstract initialize(): void;
+    abstract onInitialize(): void;
 
-    abstract deriveTypeDeclarationsFromAstNode(_domainElement: AstNode): void;
+    abstract onNewAstNode(_domainElement: AstNode): void;
 
-    protected ensureInitialization() {
+    triggerInitialization() {
         if (!this.initialized) {
-            this.initialize();
+            this.onInitialize();
             this.initialized = true;
         }
     }
 
     protected processedDocument(document: LangiumDocument): void {
-        this.ensureInitialization();
+        this.triggerInitialization();
         this.currentDocumentKey = getDocumentKeyForDocument(document);
 
         // remove all types which were associated with the current document
-        (this.documentTypesMap.get(this.currentDocumentKey) ?? [])
-            .forEach(typeToRemove => this.typeGraph.removeNode(typeToRemove));
+        this.processDeletedDocument(this.currentDocumentKey);
 
         // create all types for this document
         AstUtils.streamAst(document.parseResult.value)
-            .forEach((node: AstNode) => this.deriveTypeDeclarationsFromAstNode(node));
+            .forEach((node: AstNode) => this.onNewAstNode(node));
 
         this.currentDocumentKey = '';
+    }
+
+    protected processDeletedDocument(documentKey: string): void {
+        (this.documentTypesMap.get(documentKey) ?? [])
+            .forEach(typeToRemove => this.typeGraph.removeNode(typeToRemove));
     }
 
     addedType(newType: Type): void {
@@ -92,10 +103,13 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
 }
 
 export class IncompleteLangiumTypeCreator extends AbstractLangiumTypeCreator {
-    override initialize(): void {
+    constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
+        super(typirServices, langiumServices);
+    }
+    override onInitialize(): void {
         throw new Error('This method needs to be implemented!');
     }
-    override deriveTypeDeclarationsFromAstNode(_domainElement: AstNode): void {
+    override onNewAstNode(_domainElement: AstNode): void {
         throw new Error('This method needs to be implemented!');
     }
 }

@@ -6,12 +6,15 @@
 
 import { EmptyFileSystem } from 'langium';
 import { parseDocument } from 'langium/test';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
 import { DiagnosticSeverity } from 'vscode-languageserver-types';
 import { createLoxServices } from '../src/language/lox-module.js';
+import { deleteAllDocuments } from 'typir-langium';
 
 const loxServices = createLoxServices(EmptyFileSystem).Lox;
+
+afterEach(async () => await deleteAllDocuments(loxServices));
 
 describe('Explicitly test type checking for LOX', () => {
 
@@ -52,11 +55,11 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('var myVar : void;', 1);
     });
 
-    test('function: return value and return type', async () => {
-        await validate('fun myFunction() : boolean { return true; }', 0);
-        await validate('fun myFunction() : boolean { return 2; }', 1);
-        await validate('fun myFunction() : number { return 2; }', 0);
-        await validate('fun myFunction() : number { return true; }', 1);
+    test('function: return value and return type must match', async () => {
+        await validate('fun myFunction1() : boolean { return true; }', 0);
+        await validate('fun myFunction2() : boolean { return 2; }', 1);
+        await validate('fun myFunction3() : number { return 2; }', 0);
+        await validate('fun myFunction4() : number { return true; }', 1);
     });
 
     test('overloaded function: different return types are not enough', async () => {
@@ -65,6 +68,7 @@ describe('Explicitly test type checking for LOX', () => {
             fun myFunction() : number { return 2; }
         `, 1);
     });
+    // TODO: how to test this, Error vs Checking+Warning
     test('overloaded function: different parameter names are not enough', async () => {
         await validate(`
             fun myFunction(input: boolean) : boolean { return true; }
@@ -96,20 +100,26 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('var myVar : number = 2 + (2 * false);', 1);
     });
 
-    test('Class literals', async () => {
-        await validate(`
-            class MyClass { name: string age: number }
-            var v1 = MyClass(); // constructor call
-        `, 0);
-        await validate(`
-            class MyClass { name: string age: number }
-            var v1: MyClass = MyClass(); // constructor call
-        `, 0);
-        await validate(`
-            class MyClass1 {}
-            class MyClass2 {}
-            var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
-        `, 0, 1);
+    describe('Class literals', () => {
+        test('Class literals 1', async () => {
+            await validate(`
+                class MyClass { name: string age: number }
+                var v1 = MyClass(); // constructor call
+            `, 0);
+        });
+        test('Class literals 2', async () => {
+            await validate(`
+                class MyClass { name: string age: number }
+                var v1: MyClass = MyClass(); // constructor call
+            `, 0);
+        });
+        test('Class literals 3', async () => {
+            await validate(`
+                class MyClass1 {}
+                class MyClass2 {}
+                var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
+            `, 0, 1);
+        });
     });
 
     test('Class inheritance for assignments', async () => {
