@@ -16,7 +16,6 @@ import { DefaultSubType, SubType } from './features/subtype.js';
 import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './features/validation.js';
 import { TypeGraph } from './graph/type-graph.js';
 import { KindRegistry, DefaultKindRegistry } from './kinds/kind-registry.js';
-import { NoTypesCreator, TypeCreator } from './features/type-creation.js';
 
 /**
  * Design decisions for Typir
@@ -55,7 +54,6 @@ export type TypirServices = {
         readonly collector: ValidationCollector;
         readonly constraints: ValidationConstraints;
     };
-    readonly typeCreator: TypeCreator;
 };
 
 export const DefaultTypirServiceModule: Module<TypirServices> = {
@@ -76,7 +74,6 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
         collector: (services) => new DefaultValidationCollector(services),
         constraints: (services) => new DefaultValidationConstraints(services),
     },
-    typeCreator: () => new NoTypesCreator(),
 };
 
 export function createTypirServices(

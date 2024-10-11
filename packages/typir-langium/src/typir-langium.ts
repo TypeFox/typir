@@ -4,39 +4,42 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Module, PartialTypirServices, TypirServices, createTypirServices } from 'typir';
-import { LangiumProblemPrinter } from './features/langium-printing.js';
-import { LangiumTypirValidator } from './features/langium-validation.js';
-import { LangiumDomainElementInferenceCaching, LangiumTypeRelationshipCaching } from './features/langium-caching.js';
 import { LangiumSharedServices } from 'langium/lsp';
+import { DeepPartial, DefaultTypirServiceModule, Module, TypirServices } from 'typir';
+import { LangiumDomainElementInferenceCaching, LangiumTypeRelationshipCaching } from './features/langium-caching.js';
+import { LangiumProblemPrinter } from './features/langium-printing.js';
+import { IncompleteLangiumTypeCreator, LangiumTypeCreator } from './features/langium-type-creator.js';
+import { LangiumTypirValidator } from './features/langium-validation.js';
+
+/**
+ * Additional Typir-Langium services to manage the Typir services
+ * in order to be used e.g. for scoping/linking in Langium.
+ */
+export type TypirLangiumServices = {
+    readonly TypeValidation: LangiumTypirValidator,
+    readonly TypeCreator: LangiumTypeCreator,
+}
+
+export type LangiumServicesForTypirBinding = TypirServices & TypirLangiumServices
+
+export type PartialTypirLangiumServices = DeepPartial<LangiumServicesForTypirBinding>
 
 /**
  * Contains all customizations of Typir to simplify type checking for DSLs developed with Langium,
  * the language workbench for textual domain-specific languages (DSLs) in the web (https://langium.org/).
  */
-export function createTypirLangiumModule(langiumServices: LangiumSharedServices): Module<TypirServices, PartialTypirServices> {
+export function createLangiumModuleForTypirBinding(langiumServices: LangiumSharedServices): Module<LangiumServicesForTypirBinding> {
     return {
+        // use all core Typir services:
+        ...DefaultTypirServiceModule,
+        // replace some of the core Typir default implementations for Langium:
         printer: () => new LangiumProblemPrinter(),
         caching: {
-            typeRelationships: (services) => new LangiumTypeRelationshipCaching(services),
+            typeRelationships: (typirServices) => new LangiumTypeRelationshipCaching(typirServices),
             domainElementInference: () => new LangiumDomainElementInferenceCaching(langiumServices),
-        }
+        },
+        // provide implementations for the additional services for the Typir-Langium-binding:
+        TypeValidation: (typirServices) => new LangiumTypirValidator(typirServices),
+        TypeCreator: (typirServices) => new IncompleteLangiumTypeCreator(typirServices, langiumServices),
     };
 }
-
-
-/** Additional Langium services to manage the Typir services/instance */
-export type LangiumServicesForTypirBinding = {
-    Typir: TypirServices,
-    TypeValidation: LangiumTypirValidator,
-}
-
-/** The implementations for the additional Langium services of the Typir binding */
-export function createLangiumModuleForTypirBinding(langiumServices: LangiumSharedServices, typirServices: Module<TypirServices, PartialTypirServices>): Module<LangiumServicesForTypirBinding> {
-    return {
-        Typir: () => createTypirServices(createTypirLangiumModule(langiumServices), typirServices), // TODO reset state during updates!
-        TypeValidation: (services) => new LangiumTypirValidator(services),
-    };
-}
-
-// TODO irgendwie ist das zirkulär geworden!

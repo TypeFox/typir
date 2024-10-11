@@ -34,7 +34,7 @@ export class LangiumTypirValidator {
     protected readonly services: TypirServices;
 
     constructor(services: LangiumServicesForTypirBinding) {
-        this.services = services.Typir;
+        this.services = services;
     }
 
     /**

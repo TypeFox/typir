@@ -4,9 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-export * from './typir-langium.js';
-export * from './features/langium-caching.js';
-export * from './features/langium-printing.js';
-export * from './features/langium-type-creator.js';
-export * from './features/langium-validation.js';
-export * from './utils/typir-langium-utils.js';
+import { AstNode, AstUtils, LangiumDocument } from 'langium';
+
+export function getDocumentKeyForDocument(document: LangiumDocument): string {
+    return document.uri.toString();
+}
+
+export function getDocumentKey(node: AstNode): string {
+    return getDocumentKeyForDocument(AstUtils.getDocument(node));
+}

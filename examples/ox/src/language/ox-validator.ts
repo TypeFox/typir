@@ -5,9 +5,8 @@
  ******************************************************************************/
 
 import { AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
-import { OxProgram, isFunctionDeclaration, type OxAstType, type ReturnStatement } from './generated/ast.js';
+import { isFunctionDeclaration, type OxAstType, type ReturnStatement } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
-import { createTypir } from './ox-type-checking.js';
 
 /**
  * Register custom validation checks.
@@ -17,32 +16,17 @@ export function registerValidationChecks(services: OxServices) {
     const validator = services.validation.OxValidator;
     const checks: ValidationChecks<OxAstType> = {
         ReturnStatement: validator.checkReturnTypeIsCorrect,
-        OxProgram: validator.checkTypingProblemsWithTypir
     };
     registry.register(checks, validator);
 }
 
 /**
- * Implementation of custom validations.
+ * Implementation of custom validations on the syntactic level (which can be checked without using Typir).
+ * Validations on type level are done by Typir.
  */
 export class OxValidator {
 
-    checkTypingProblemsWithTypir(node: OxProgram, accept: ValidationAcceptor) {
-        // executes all checks, which are directly derived from the current Typir configuration,
-        // i.e. arguments fit to parameters for function calls (including operands for operators)
-        const typir = createTypir(node);
-        AstUtils.streamAllContents(node).forEach(node => {
-            // print all found problems for each AST node
-            const typeProblems = typir.validation.collector.validate(node);
-            for (const problem of typeProblems) {
-                const message = typir.printer.printValidationProblem(problem);
-                accept(problem.severity, message, { node, property: problem.domainProperty, index: problem.domainIndex });
-            }
-        });
-    }
-
     checkReturnTypeIsCorrect(node: ReturnStatement, accept: ValidationAcceptor) {
-        // these checks are done here, since these issues already influence the syntactic level (which can be checked without using Typir)
         const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
         if (functionDeclaration) {
             if (functionDeclaration.returnType.primitive === 'void') {

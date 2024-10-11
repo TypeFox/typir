@@ -5,8 +5,9 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
-import { FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TypirServices } from 'typir';
-import { AbstractLangiumTypeCreator } from 'typir-langium';
+import { LangiumSharedServices } from 'langium/lsp';
+import { FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PrimitiveKind, TypirServices } from 'typir';
+import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
@@ -16,9 +17,9 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly functionKind: FunctionKind;
     protected readonly operators: OperatorManager;
 
-    constructor(services: TypirServices) {
-        super();
-        this.typir = services;
+    constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
+        super(typirServices, langiumServices);
+        this.typir = typirServices;
 
         this.primitiveKind = new PrimitiveKind(this.typir);
         this.functionKind = new FunctionKind(this.typir);
@@ -162,8 +163,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         );
     }
 
-    override addedDomainElement(domainElement: AstNode): void {
-        super.addedDomainElement(domainElement);
+    deriveTypeDeclarationsFromAstNode(domainElement: AstNode): void {
         // define function types
         // they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
         if (isFunctionDeclaration(domainElement)) {
@@ -187,16 +187,15 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                     // TODO does OX support overloaded function declarations? add a scope provider for that ...
                 }
             });
+            // TODO remove inference rules for these functions as well!!
         }
     }
-
-    // TODO handle remove/delete/invalid case!
 }
 
 
-export function createOxTypirModule(): Module<TypirServices, PartialTypirServices> {
+export function createOxTypirModule(langiumServices: LangiumSharedServices): Module<LangiumServicesForTypirBinding, PartialTypirLangiumServices> {
     return {
-        // for OX, no specific configurations are required
-        typeCreator: (services) => new OxTypeCreator(services),
+        // specific configurations for OX
+        TypeCreator: (typirServices) => new OxTypeCreator(typirServices, langiumServices),
     };
 }

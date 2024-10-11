@@ -13,7 +13,6 @@ export * from './features/inference.js';
 export * from './features/operator.js';
 export * from './features/printing.js';
 export * from './features/subtype.js';
-export * from './features/type-creation.js';
 export * from './features/validation.js';
 export * from './graph/type-edge.js';
 export * from './graph/type-graph.js';
