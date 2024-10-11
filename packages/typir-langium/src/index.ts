@@ -5,4 +5,7 @@
  ******************************************************************************/
 
 export * from './typir-langium.js';
+export * from './features/langium-caching.js';
 export * from './features/langium-printing.js';
+export * from './features/langium-type-creator.js';
+export * from './features/langium-validation.js';

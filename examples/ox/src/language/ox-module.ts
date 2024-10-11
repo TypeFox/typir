@@ -5,9 +5,11 @@
  ******************************************************************************/
 
 import { Module, inject } from 'langium';
-import { LangiumServices, PartialLangiumServices, DefaultSharedModuleContext, LangiumSharedServices, createDefaultSharedModule, createDefaultModule } from 'langium/lsp';
+import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, PartialLangiumServices, createDefaultModule, createDefaultSharedModule } from 'langium/lsp';
+import { LangiumServicesForTypirBinding, createLangiumModuleForTypirBinding, registerTypirValidationChecks } from 'typir-langium';
 import { OxGeneratedModule, OxGeneratedSharedModule } from './generated/module.js';
 import { OxValidator, registerValidationChecks } from './ox-validator.js';
+import { createOxTypirModule } from './ox-type-checking.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -22,7 +24,7 @@ export type OxAddedServices = {
  * Union of Langium default services and your custom services - use this as constructor parameter
  * of custom service classes.
  */
-export type OxServices = LangiumServices & OxAddedServices
+export type OxServices = LangiumServices & OxAddedServices & LangiumServicesForTypirBinding
 
 /**
  * Dependency injection module that overrides Langium default services and contributes the
@@ -61,9 +63,11 @@ export function createOxServices(context: DefaultSharedModuleContext): {
     const Ox = inject(
         createDefaultModule({ shared }),
         OxGeneratedModule,
-        OxModule
+        createLangiumModuleForTypirBinding(shared, createOxTypirModule()),
+        OxModule,
     );
     shared.ServiceRegistry.register(Ox);
     registerValidationChecks(Ox);
+    registerTypirValidationChecks(Ox);
     return { shared, Ox };
 }
