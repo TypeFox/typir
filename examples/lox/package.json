@@ -27,15 +27,15 @@
         "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\""
     },
     "dependencies": {
-        "commander": "~11.0.0",
-        "langium": "^3.2.0",
+        "commander": "~12.1.0",
+        "langium": "~3.2.0",
         "typir": "~0.0.1",
-        "vscode": "^1.1.37",
         "vscode-languageclient": "~9.0.1",
         "vscode-languageserver": "~9.0.1"
     },
     "devDependencies": {
-        "langium-cli": "^3.2.0"
+        "@types/vscode": "~1.94.0",
+        "langium-cli": "~3.2.0"
     },
     "files": [
         "bin",
