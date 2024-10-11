@@ -19,8 +19,8 @@
     "node": ">= 18.0.0"
   },
   "volta": {
-    "node": "18.17.1",
-    "npm": "9.6.7"
+    "node": "18.20.4",
+    "npm": "10.7.0"
   },
   "keywords": [
     "typesystem",
@@ -50,7 +50,7 @@
   },
   "bugs": "https://github.com/TypeFox/typir/issues",
   "dependencies": {
-    "langium": "^3.2.0",
+    "langium": "~3.2.0",
     "typir": "~0.0.1"
   }
 }
