@@ -9,6 +9,8 @@ import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module
 import { LoxScopeProvider } from './lox-scope.js';
 import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
 import { DefaultSharedModuleContext, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
+import { createLangiumModuleForTypirBinding } from 'typir-langium';
+import { createLoxTypirModule } from './type-system/lox-type-checking.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -66,7 +68,9 @@ export function createLoxServices(context: DefaultSharedModuleContext): {
     const Lox = inject(
         createDefaultCoreModule({ shared }),
         LoxGeneratedModule,
-        LoxModule
+        createLangiumModuleForTypirBinding(shared),
+        LoxModule,
+        createLoxTypirModule(shared),
     );
     shared.ServiceRegistry.register(Lox);
     return { shared, Lox };

@@ -4,14 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, AstUtils, ValidationAcceptor, ValidationChecks, ValidationRegistry } from 'langium';
-import { BinaryExpression, Class, ExpressionBlock, FunctionDeclaration, isReturnStatement, LoxAstType, LoxProgram, MethodMember, TypeReference, UnaryExpression, VariableDeclaration } from './generated/ast.js';
+import { AstNode, ValidationAcceptor, ValidationChecks, ValidationRegistry } from 'langium';
+import { BinaryExpression, LoxAstType, VariableDeclaration } from './generated/ast.js';
 import type { LoxServices } from './lox-module.js';
-import { isAssignable } from './type-system/assignment.js';
-import { isVoidType, TypeDescription, typeToString } from './type-system/descriptions.js';
+import { TypeDescription } from './type-system/descriptions.js';
 import { inferType } from './type-system/infer.js';
 import { isLegalOperation } from './type-system/operator.js';
-import { createTypir } from './type-system/lox-type-checking.js';
 
 /**
  * Registry for validation checks.
@@ -23,30 +21,16 @@ export class LoxValidationRegistry extends ValidationRegistry {
         const checks: ValidationChecks<LoxAstType> = {
             BinaryExpression: validator.checkBinaryOperationAllowed,
             VariableDeclaration: validator.checkVariableDeclaration,
-            LoxProgram: validator.checkTypingProblemsWithTypir,
         };
         this.register(checks, validator);
     }
 }
 
 /**
- * Implementation of custom validations.
+ * Implementation of custom validations on the syntactic level (which can be checked without using Typir).
+ * Validations on type level are done by Typir.
  */
 export class LoxValidator {
-
-    checkTypingProblemsWithTypir(node: LoxProgram, accept: ValidationAcceptor) {
-        // executes all checks, which are directly derived from the current Typir configuration,
-        // i.e. arguments fit to parameters for function calls (including operands for operators)
-        const typir = createTypir(node);
-        AstUtils.streamAllContents(node).forEach(node => {
-            // print all found problems for each AST node
-            const typeProblems = typir.validation.collector.validate(node);
-            for (const problem of typeProblems) {
-                const message = typir.printer.printValidationProblem(problem);
-                accept(problem.severity, message, { node, property: problem.domainProperty, index: problem.domainIndex });
-            }
-        });
-    }
 
     checkVariableDeclaration(decl: VariableDeclaration, accept: ValidationAcceptor): void {
         if (!decl.type && !decl.value) {
