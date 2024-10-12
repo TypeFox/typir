@@ -5,8 +5,8 @@
  ******************************************************************************/
 
 import { LangiumServices, LangiumSharedServices } from 'langium/lsp';
-import { DeepPartial, DefaultTypirServiceModule, Module, TypirServices } from 'typir';
-import { LangiumDomainElementInferenceCaching, LangiumTypeRelationshipCaching } from './features/langium-caching.js';
+import { DeepPartial, DefaultTypeRelationshipCaching, DefaultTypirServiceModule, Module, TypirServices } from 'typir';
+import { LangiumDomainElementInferenceCaching } from './features/langium-caching.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
 import { IncompleteLangiumTypeCreator, LangiumTypeCreator } from './features/langium-type-creator.js';
 import { LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
@@ -35,7 +35,7 @@ export function createLangiumModuleForTypirBinding(langiumServices: LangiumShare
         // replace some of the core Typir default implementations for Langium:
         printer: () => new LangiumProblemPrinter(),
         caching: {
-            typeRelationships: (typirServices) => new LangiumTypeRelationshipCaching(typirServices),
+            typeRelationships: (services) => new DefaultTypeRelationshipCaching(services), // this is the same implementation as in core Typir, since all edges of removed types are removed as well
             domainElementInference: () => new LangiumDomainElementInferenceCaching(langiumServices),
         },
         // provide implementations for the additional services for the Typir-Langium-binding:

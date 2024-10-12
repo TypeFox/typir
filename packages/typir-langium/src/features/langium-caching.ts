@@ -6,19 +6,8 @@
 
 import { AstNode, ContextCache, Disposable, DocumentState, LangiumSharedCoreServices, URI } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { CachePending, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, EdgeCachingInformation, Type } from 'typir';
+import { CachePending, DomainElementInferenceCaching, Type } from 'typir';
 import { getDocumentKey } from '../utils/typir-langium-utils.js';
-
-// cache Type relationships
-export class LangiumTypeRelationshipCaching extends DefaultTypeRelationshipCaching {
-
-    protected override storeCachingInformation(value: EdgeCachingInformation | undefined): boolean {
-        // TODO for now, don't cache values, since they need to be reset for updates of Langium documents otherwise!
-        return value === 'PENDING';
-    }
-
-}
-
 
 // cache AstNodes
 export class LangiumDomainElementInferenceCaching implements DomainElementInferenceCaching {

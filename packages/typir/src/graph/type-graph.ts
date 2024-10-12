@@ -43,6 +43,7 @@ export class TypeGraph {
     }
 
     /**
+     * When removing a type/node, all its edges (incoming and outgoing) are removed as well.
      * Design decision:
      * This is the central API call to remove a type from the type system in case that it is no longer valid/existing/needed.
      * It is not required to directly inform the kind of the removed type yourself, since the kind itself will take care of removed types.
