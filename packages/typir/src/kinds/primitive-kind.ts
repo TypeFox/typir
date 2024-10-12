@@ -131,7 +131,7 @@ export class PrimitiveKind implements Kind {
                     }
                 }
                 return InferenceRuleNotApplicable;
-            });
+            }, primitiveType);
         }
 
         return primitiveType;

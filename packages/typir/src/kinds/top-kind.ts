@@ -136,7 +136,7 @@ export class TopKind implements Kind {
                     }
                 }
                 return InferenceRuleNotApplicable;
-            });
+            }, topType);
         }
 
         return topType;

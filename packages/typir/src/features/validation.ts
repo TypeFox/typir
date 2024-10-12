@@ -6,7 +6,7 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { TypeInferenceCollector } from './inference.js';
 import { ProblemPrinter } from './printing.js';

@@ -357,7 +357,7 @@ export class ClassKind implements Kind {
                     // TODO check values for fields for nominal typing!
                     return classType;
                 },
-            });
+            }, classType);
         }
         if (typeDetails.inferenceRuleForLiteral) {
             this.registerInferenceRule(typeDetails.inferenceRuleForLiteral, this, classType);
@@ -387,7 +387,7 @@ export class ClassKind implements Kind {
                 } else {
                     return result; // do the type inference for this element instead
                 }
-            });
+            }, classType);
         }
 
         return classType;
@@ -440,7 +440,7 @@ export class ClassKind implements Kind {
                     return classType;
                 }
             },
-        });
+        }, classType);
     }
 
     calculateIdentifier(typeDetails: ClassTypeDetails): string {

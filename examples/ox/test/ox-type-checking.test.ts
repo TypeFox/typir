@@ -97,9 +97,16 @@ describe('Explicitly test type checking for OX', () => {
         await validate('fun myFunction4() : number { return true; }', 1);
     });
 
-    test.fails('function: the same function name twice (even in different files) is not allowed in Typir', async () => {
+    test('function: the same function name twice (in the same file) is not allowed in Typir', async () => {
+        await validate(`
+            fun myFunction() : boolean { return true; }
+            fun myFunction() : boolean { return false; }
+        `, 2); // both functions should be marked as "duplicate"
+    });
+
+    test('function: the same function name twice (even in different files) is not allowed in Typir', async () => {
         await validate('fun myFunction() : boolean { return true; }', 0);
-        await validate('fun myFunction() : boolean { return 2; }', 1);
+        await validate('fun myFunction() : boolean { return false; }', 2); // now, both functions should be marked as "duplicate"
     });
 
     test('use overloaded operators', async () => {

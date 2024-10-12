@@ -30,26 +30,35 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
 
     constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
         this.typeGraph = typirServices.graph;
+
         // for new and updated documents
         langiumServices.workspace.DocumentBuilder.onBuildPhase(DocumentState.IndexedReferences, async (documents, cancelToken) => {
             for (const document of documents) {
                 await interruptAndCheck(cancelToken);
 
                 // notify Typir about each contained node of the processed document
-                this.processedDocument(document);
+                this.handleProcessedDocument(document);
             }
         });
         // for deleted documents
         langiumServices.workspace.DocumentBuilder.onUpdate((_changed, deleted) => {
-            deleted.map(del => getDocumentKeyForURI(del)).forEach(del => this.processDeletedDocument(del));
+            deleted
+                .map(del => getDocumentKeyForURI(del))
+                .forEach(del => this.handleDeletedDocument(del));
         });
+
+        // get informed about added/removed types
         this.typeGraph.addListener(this);
     }
 
     abstract onInitialize(): void;
 
-    abstract onNewAstNode(_domainElement: AstNode): void;
+    abstract onNewAstNode(domainElement: AstNode): void;
 
+    /**
+     * Starts the initialization.
+     * If this method is called multiple times, the initialization is done only once.
+     */
     triggerInitialization() {
         if (!this.initialized) {
             this.onInitialize();
@@ -57,12 +66,12 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
         }
     }
 
-    protected processedDocument(document: LangiumDocument): void {
+    protected handleProcessedDocument(document: LangiumDocument): void {
         this.triggerInitialization();
-        this.currentDocumentKey = getDocumentKeyForDocument(document);
+        this.currentDocumentKey = getDocumentKeyForDocument(document); // remember the key in order to map newly created types to the current document
 
         // remove all types which were associated with the current document
-        this.processDeletedDocument(this.currentDocumentKey);
+        this.handleDeletedDocument(this.currentDocumentKey);
 
         // create all types for this document
         AstUtils.streamAst(document.parseResult.value)
@@ -71,8 +80,9 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
         this.currentDocumentKey = '';
     }
 
-    protected processDeletedDocument(documentKey: string): void {
+    protected handleDeletedDocument(documentKey: string): void {
         (this.documentTypesMap.get(documentKey) ?? [])
+            // this is the central way to remove types from the type systems, there is no need to inform the kinds
             .forEach(typeToRemove => this.typeGraph.removeNode(typeToRemove));
     }
 

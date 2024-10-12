@@ -68,7 +68,6 @@ describe('Explicitly test type checking for LOX', () => {
             fun myFunction() : number { return 2; }
         `, 1);
     });
-    // TODO: how to test this, Error vs Checking+Warning
     test('overloaded function: different parameter names are not enough', async () => {
         await validate(`
             fun myFunction(input: boolean) : boolean { return true; }

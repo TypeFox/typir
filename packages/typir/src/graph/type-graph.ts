@@ -23,6 +23,11 @@ export class TypeGraph {
 
     protected readonly listeners: TypeGraphListener[] = [];
 
+    /**
+     * Usually this method is called by kinds after creating a a corresponding type.
+     * Therefore it is usually not needed to call this method in an other context.
+     * @param type the new type
+     */
     addNode(type: Type): void {
         const key = type.identifier;
         if (this.nodes.has(key)) {
@@ -37,6 +42,12 @@ export class TypeGraph {
         }
     }
 
+    /**
+     * Design decision:
+     * This is the central API call to remove a type from the type system in case that it is no longer valid/existing/needed.
+     * It is not required to directly inform the kind of the removed type yourself, since the kind itself will take care of removed types.
+     * @param type the type to remove
+     */
     removeNode(type: Type): void {
         const key = type.identifier;
         // remove all edges which are connected to the type to remove

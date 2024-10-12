@@ -8,6 +8,8 @@ import { TypeEqualityProblem } from '../features/equality.js';
 import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { ValidationProblem } from '../features/validation.js';
+import { TypeEdge } from '../graph/type-edge.js';
+import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { NameTypePair, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
@@ -246,7 +248,7 @@ export type InferFunctionCall<T = unknown> = {
  * - optional parameters
  * - parameters which are used for output AND input
  */
-export class FunctionKind implements Kind {
+export class FunctionKind implements Kind, TypeGraphListener {
     readonly $name: 'FunctionKind';
     readonly services: TypirServices;
     readonly options: FunctionKindOptions;
@@ -414,7 +416,7 @@ export class FunctionKind implements Kind {
         } else {
             overloaded = {
                 overloadedFunctions: [],
-                inference: new CompositeTypeInferenceRule(),
+                inference: new CompositeTypeInferenceRule(this.services),
                 sameOutputType: undefined,
             };
             mapNameTypes.set(functionName, overloaded);
@@ -452,7 +454,7 @@ export class FunctionKind implements Kind {
             }
 
             // register inference rule for calls of the new function
-            overloaded.inference.subRules.push({
+            overloaded.inference.addInferenceRule({
                 inferTypeWithoutChildren(domainElement, _typir) {
                     const result = typeDetails.inferenceRuleForCalls!.filter(domainElement);
                     if (result) {
@@ -509,7 +511,7 @@ export class FunctionKind implements Kind {
                         return check(outputTypeForFunctionCalls);
                     }
                 },
-            });
+            }, functionType);
         }
 
         // register inference rule for the declaration of the new function
@@ -521,11 +523,38 @@ export class FunctionKind implements Kind {
                 } else {
                     return InferenceRuleNotApplicable;
                 }
-            });
+            }, functionType);
         }
 
         return functionType;
     }
+
+
+    /* Get informed about deleted types in order to remove inference rules which are bound to them. */
+
+    addedType(_newType: Type): void {
+        // do nothing
+    }
+    removedType(type: Type): void {
+        if (isFunctionType(type)) {
+            const overloads = this.mapNameTypes.get(type.functionName);
+            if (overloads) {
+                // remove the current function
+                const index = overloads.overloadedFunctions.findIndex(o => o.functionType === type);
+                if (index >= 0) {
+                    overloads.overloadedFunctions.splice(index, 1);
+                }
+                // its inference rule is removed by the CompositeTypeInferenceRule => nothing to do here
+            }
+        }
+    }
+    addedEdge(_edge: TypeEdge): void {
+        // do nothing
+    }
+    removedEdge(_edge: TypeEdge): void {
+        // do nothing
+    }
+
 
     calculateIdentifier(typeDetails: FunctionTypeDetails): string {
         // this schema allows to identify duplicated functions!

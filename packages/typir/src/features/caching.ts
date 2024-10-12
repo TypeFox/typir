@@ -123,7 +123,6 @@ export class DefaultDomainElementInferenceCaching implements DomainElementInfere
     }
 
     protected initializeCache() {
-        // TODO reset cache for updated Langium documents!
         this.cache = new Map();
     }
 

@@ -135,7 +135,7 @@ export class BottomKind implements Kind {
                     }
                 }
                 return InferenceRuleNotApplicable;
-            });
+            }, bottomType);
         }
 
         return bottomType;
