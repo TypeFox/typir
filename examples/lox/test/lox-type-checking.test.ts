@@ -162,6 +162,18 @@ describe('Explicitly test type checking for LOX', () => {
         `, 2);
     });
 
+    test('Classes must be unique by name', async () => {
+        await validate(`
+            class MyClass1 { }
+            class MyClass1 { }
+        `, 2);
+        await validate(`
+            class MyClass2 { }
+            class MyClass2 { }
+            class MyClass2 { }
+        `, 3);
+    });
+
 });
 
 describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {

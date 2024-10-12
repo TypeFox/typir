@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { ClassKind, CreateFieldDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, UniqueFunctionValidation } from 'typir';
+import { ClassKind, CreateFieldDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
@@ -58,7 +58,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 (node: unknown) => isReturnStatement(node) && node.value === undefined
             ] });
         const typeNil = this.primitiveKind.createPrimitiveType({ primitiveName: 'nil',
-            inferenceRules: isNilLiteral }); // TODO for what is this used?
+            inferenceRules: isNilLiteral }); // for what is this used in LOX?
         const typeAny = this.anyKind.createTopType({});
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
@@ -83,12 +83,6 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             { left: typeNumber, right: typeString, return: typeString },
             { left: typeString, right: typeNumber, return: typeString },
         ], inferenceRule: binaryInferenceRule });
-
-        // TODO design decision: overload with the lowest number of conversions wins!
-        // TODO remove this later, it is not required for LOX!
-        // TODO is it possible to skip one of these options?? probably not ...
-        // TODO docu/guide: this vs operator combinations
-        // typir.conversion.markAsConvertible(typeNumber, typeString, 'IMPLICIT'); // var my1: string = 42;
 
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
@@ -130,7 +124,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     // use parameters inside expressions
                     return ref.type;
                 } else if (isFunctionDeclaration(ref)) {
-                    // there is already an inference rule for function calls (see above for FunctionDeclaration)!
+                    // there is already an inference rule for function calls
                     return InferenceRuleNotApplicable;
                 } else if (ref === undefined) {
                     return InferenceRuleNotApplicable;
@@ -173,7 +167,6 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                         message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left}' with type '${expected.name}'`,
                         domainProperty: 'value' });
                 }
-                // TODO Idee: Validierung für Langium-binding an AstTypen hängen wie es standardmäßig in Langium gemacht wird => ist auch performanter => dafür API hier anpassen/umbauen
                 if (isBinaryExpression(node) && (node.operator === '==' || node.operator === '!=')) {
                     return typir.validation.constraints.ensureNodeIsEquals(node.left, node.right, (actual, expected) => <ValidationMessageDetails>{
                         message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
@@ -194,8 +187,11 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             }
         );
 
-        // validate unique function declarations
-        this.typir.validation.collector.addValidationRulesWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
+        // validate unique declarations
+        this.typir.validation.collector.addValidationRulesWithBeforeAndAfter(
+            new UniqueFunctionValidation(this.typir, isFunctionDeclaration),
+            new UniqueClassValidation(this.typir, isClass),
+        );
     }
 
     onNewAstNode(node: AstNode): void {

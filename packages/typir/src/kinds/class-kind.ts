@@ -8,12 +8,13 @@ import { assertUnreachable } from 'langium';
 import { TypeEqualityProblem } from '../features/equality.js';
 import { InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
+import { ValidationProblem, ValidationRuleWithBeforeAfter } from '../features/validation.js';
 import { Type, isType } from '../graph/type-node.js';
+import { TypirServices } from '../typir.js';
 import { TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
 import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
-import { TypirServices } from '../typir.js';
 
 export class ClassType extends Type {
     override readonly kind: ClassKind;
@@ -480,4 +481,72 @@ export class ClassKind implements Kind {
 
 export function isClassKind(kind: unknown): kind is ClassKind {
     return isKind(kind) && kind.$name === ClassKindName;
+}
+
+
+/**
+ * Predefined validation to produce errors, if the same class is declared more than once.
+ * This is often relevant for nominally typed classes.
+ */
+export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
+    protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
+    protected readonly services: TypirServices;
+    protected readonly isRelevant: (domainElement: unknown) => boolean; // using this check improves performance a lot
+
+    constructor(services: TypirServices, isRelevant: (domainElement: unknown) => boolean) {
+        this.services = services;
+        this.isRelevant = isRelevant;
+    }
+
+    beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        this.foundDeclarations.clear();
+        return [];
+    }
+
+    validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
+        if (this.isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
+            const type = this.services.inference.inferType(domainElement);
+            if (isClassType(type)) {
+                // register domain elements which have ClassTypes with a key for their uniques
+                const key = this.calculateClassKey(type);
+                let entries = this.foundDeclarations.get(key);
+                if (!entries) {
+                    entries = [];
+                    this.foundDeclarations.set(key, entries);
+                }
+                entries.push(domainElement);
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Calculates a key for a class which encodes its unique properties, i.e. duplicate classes have the same key.
+     * This key is used to identify duplicated classes.
+     * Override this method to change the properties which make a class unique.
+     * @param clas the current class type
+     * @returns a string key
+     */
+    protected calculateClassKey(clas: ClassType): string {
+        return `${clas.className}`;
+    }
+
+    afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        const result: ValidationProblem[] = [];
+        for (const [key, classes] of this.foundDeclarations.entries()) {
+            if (classes.length >= 2) {
+                for (const clas of classes) {
+                    result.push({
+                        $problem: ValidationProblem,
+                        domainElement: clas,
+                        severity: 'error',
+                        message: `Declared classes need to be unique (${key}).`,
+                    });
+                }
+            }
+        }
+
+        this.foundDeclarations.clear();
+        return result;
+    }
 }

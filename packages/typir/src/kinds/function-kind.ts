@@ -252,9 +252,8 @@ export class FunctionKind implements Kind, TypeGraphListener {
     readonly $name: 'FunctionKind';
     readonly services: TypirServices;
     readonly options: FunctionKindOptions;
-    /** TODO Limitations
+    /** Limitations
      * - Works only, if function types are defined using the createFunctionType(...) function below!
-     * - How to remove function types later? How to observe this case/event? How to remove their inference rules and validations?
      */
     protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
     // TODO try to replace this map with calculating the required identifier for the function
@@ -452,7 +451,6 @@ export class FunctionKind implements Kind, TypeGraphListener {
              * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
              *   (exception: the options contain a type to return in this special case)
              */
-            // TODO what about the case, that multiple variants match?? after implicit conversion for example?!
             function check(returnType: Type | undefined): Type {
                 if (returnType) {
                     return returnType;
@@ -462,6 +460,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
             }
 
             // register inference rule for calls of the new function
+            // TODO what about the case, that multiple variants match?? after implicit conversion for example?! => overload with the lowest number of conversions wins!
             overloaded.inference.addInferenceRule({
                 inferTypeWithoutChildren(domainElement, _typir) {
                     const result = typeDetails.inferenceRuleForCalls!.filter(domainElement);
@@ -610,10 +609,13 @@ export function isFunctionKind(kind: unknown): kind is FunctionKind {
 }
 
 
+/**
+ * Predefined validation to produce errors, if the same function is declared more than once.
+ */
 export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
     protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
     protected readonly services: TypirServices;
-    protected readonly isRelevant: (domainElement: unknown) => boolean;
+    protected readonly isRelevant: (domainElement: unknown) => boolean; // using this check improves performance a lot
 
     constructor(services: TypirServices, isRelevant: (domainElement: unknown) => boolean) {
         this.services = services;
@@ -626,7 +628,7 @@ export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
     }
 
     validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
-        if (this.isRelevant(domainElement)) {
+        if (this.isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
             const type = this.services.inference.inferType(domainElement);
             if (isFunctionType(type)) {
                 // register domain elements which have FunctionTypes with a key for their uniques
@@ -642,20 +644,27 @@ export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
         return [];
     }
 
+    /**
+     * Calculates a key for a function which encodes its unique properties, i.e. duplicate functions have the same key.
+     * This key is used to identify duplicated functions.
+     * Override this method to change the properties which make a function unique.
+     * @param func the current function type
+     * @returns a string key
+     */
     protected calculateFunctionKey(func: FunctionType): string {
         return `${func.functionName}(${func.getInputs().map(param => param.type.identifier)})`;
     }
 
     afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
         const result: ValidationProblem[] = [];
-        for (const [identifier, functions] of this.foundDeclarations.entries()) {
+        for (const [key, functions] of this.foundDeclarations.entries()) {
             if (functions.length >= 2) {
                 for (const func of functions) {
                     result.push({
                         $problem: ValidationProblem,
                         domainElement: func,
                         severity: 'error',
-                        message: `Declared functions need to be unique (${identifier}).`,
+                        message: `Declared functions need to be unique (${key}).`,
                     });
                 }
             }
@@ -664,5 +673,4 @@ export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
         this.foundDeclarations.clear();
         return result;
     }
-
 }

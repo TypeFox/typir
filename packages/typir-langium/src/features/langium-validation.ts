@@ -13,21 +13,29 @@ export function registerTypirValidationChecks(services: LangiumServices & Langiu
     const registry = services.validation.ValidationRegistry;
     const validator = services.TypeValidation;
     const checks: ValidationChecks<object> = {
-        AstNode: validator.checkTypingProblemsWithTypir, // TODO checking each node is not performant, improve the API!
+        AstNode: validator.checkTypingProblemsWithTypir, // checking each node is not performant, improve the API, see below!
     };
     registry.register(checks, validator);
 }
 
 /*
 * TODO validation with Typir for Langium
+*
+* What to validate:
 * - Is it possible to infer a type at all? Type vs undefined
 * - Does the inferred type fit to the environment? => "type checking" (expected: unknown|Type, actual: unknown|Type)
-* - provide service to cache Typir in the background; but ensure, that internal caches of Typir need to be cleared, if a document was changed
 * - possible Quick-fixes ...
 *     - for wrong type of variable declaration
 *     - to add missing explicit type conversion
-* - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // use this signature for Langium?
 * - no validation of parents, when their children already have some problems/warnings
+*
+* Improved Validation API for Langium:
+* - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // use this signature for Langium?
+* - register validations for AST node $types (similar as Langium does it) => this is much more performant
+* - [<VariableDeclaration>{ selector: isVariableDeclaration, result: domainElement => domainElement.type }, <BinaryExpression>{}]      Array<InferenceRule<T>>
+* - discriminator rule: $type '$VariableDeclaration' + record / "Sprungtabelle" for the Langium-binding (or both in core)? for improved performance (?)
+* - alternativ discriminator rule: unknown => string; AstNode => node.$type; Vorsicht mit Sub-Typen (Vollständigkeit+Updates, no abstract types)!
+* Apply the same ideas for InferenceRules as well!
 */
 
 export class LangiumTypirValidator {

@@ -122,13 +122,8 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
             }
             return InferenceRuleNotApplicable;
         });
-        // TODO: [<VariableDeclaration>{ selector: isVariableDeclaration, result: domainElement => domainElement.type }, <BinaryExpression>{}]      Array<InferenceRule<T>>
-        // discriminator rule: $type '$VariableDeclaration' + record / "Sprungtabelle" for the Langium-binding (or both in core)? for improved performance (?)
-        // alternativ discriminator rule: unknown => string; AstNode => node.$type; Vorsicht mit Sub-Typen (Vollständigkeit+Updates, no abstract types)!
-        // später realisieren
 
         // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
-        // TODO selector API + gleiche Diskussion für Inference Rules
         this.typir.validation.collector.addValidationRules(
             (node: unknown, typir: TypirServices) => {
                 if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
