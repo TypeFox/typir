@@ -32,6 +32,12 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
 
 export type ValidationRule = (domainElement: unknown, typir: TypirServices) => ValidationProblem[];
 
+export interface ValidationRuleWithBeforeAfter {
+    beforeValidation(domainRoot: unknown, typir: TypirServices): ValidationProblem[]
+    validation: ValidationRule
+    afterValidation(domainRoot: unknown, typir: TypirServices): ValidationProblem[]
+}
+
 /** Annotate types after the validation with additional information in order to ease the creation of usefull messages. */
 export interface AnnotatedTypeAfterValidation {
     type: Type;
@@ -135,16 +141,29 @@ export class DefaultValidationConstraints implements ValidationConstraints {
 
 
 export interface ValidationCollector {
+    validateBefore(domainRoot: unknown): ValidationProblem[];
     validate(domainElement: unknown): ValidationProblem[];
+    validateAfter(domainRoot: unknown): ValidationProblem[];
+
     addValidationRules(...rules: ValidationRule[]): void;
+    addValidationRulesWithBeforeAndAfter(...rules: ValidationRuleWithBeforeAfter[]): void;
 }
 
 export class DefaultValidationCollector implements ValidationCollector {
     protected readonly services: TypirServices;
     readonly validationRules: ValidationRule[] = [];
+    readonly validationRulesBeforeAfter: ValidationRuleWithBeforeAfter[] = [];
 
     constructor(services: TypirServices) {
         this.services = services;
+    }
+
+    validateBefore(domainRoot: unknown): ValidationProblem[] {
+        const problems: ValidationProblem[] = [];
+        for (const rule of this.validationRulesBeforeAfter) {
+            problems.push(...rule.beforeValidation(domainRoot, this.services));
+        }
+        return problems;
     }
 
     validate(domainElement: unknown): ValidationProblem[] {
@@ -152,10 +171,25 @@ export class DefaultValidationCollector implements ValidationCollector {
         for (const rule of this.validationRules) {
             problems.push(...rule(domainElement, this.services));
         }
+        for (const rule of this.validationRulesBeforeAfter) {
+            problems.push(...rule.validation(domainElement, this.services));
+        }
+        return problems;
+    }
+
+    validateAfter(domainRoot: unknown): ValidationProblem[] {
+        const problems: ValidationProblem[] = [];
+        for (const rule of this.validationRulesBeforeAfter) {
+            problems.push(...rule.afterValidation(domainRoot, this.services));
+        }
         return problems;
     }
 
     addValidationRules(...rules: ValidationRule[]): void {
         this.validationRules.push(...rules);
+    }
+
+    addValidationRulesWithBeforeAndAfter(...rules: ValidationRuleWithBeforeAfter[]): void {
+        this.validationRulesBeforeAfter.push(...rules);
     }
 }

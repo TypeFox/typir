@@ -107,9 +107,10 @@ export class BottomKind implements Kind {
     }
 
     getOrCreateBottomType(typeDetails: BottomTypeDetails): BottomType {
-        const result = this.getBottomType(typeDetails);
-        if (result) {
-            return result;
+        const bottomType = this.getBottomType(typeDetails);
+        if (bottomType) {
+            this.registerInferenceRules(typeDetails, bottomType);
+            return bottomType;
         }
         return this.createBottomType(typeDetails);
     }
@@ -126,6 +127,12 @@ export class BottomKind implements Kind {
         this.services.graph.addNode(bottomType);
 
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
+        this.registerInferenceRules(typeDetails, bottomType);
+
+        return bottomType;
+    }
+
+    protected registerInferenceRules(typeDetails: BottomTypeDetails, bottomType: BottomType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
             this.services.inference.addInferenceRule((domainElement, _typir) => {
@@ -137,8 +144,6 @@ export class BottomKind implements Kind {
                 return InferenceRuleNotApplicable;
             }, bottomType);
         }
-
-        return bottomType;
     }
 
     calculateIdentifier(_typeDetails: BottomTypeDetails): string {

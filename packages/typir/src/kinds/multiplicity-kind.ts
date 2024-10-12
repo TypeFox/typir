@@ -156,9 +156,10 @@ export class MultiplicityKind implements Kind {
     }
 
     getOrCreateMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
-        const result = this.getMultiplicityType(typeDetails);
-        if (result) {
-            return result;
+        const typeWithMultiplicity = this.getMultiplicityType(typeDetails);
+        if (typeWithMultiplicity) {
+            this.registerInferenceRules(typeDetails, typeWithMultiplicity);
+            return typeWithMultiplicity;
         }
         return this.createMultiplicityType(typeDetails);
     }
@@ -171,10 +172,16 @@ export class MultiplicityKind implements Kind {
         }
 
         // create the type with multiplicities
-        const newType = new MultiplicityType(this, this.calculateIdentifier(typeDetails), typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
-        this.services.graph.addNode(newType);
+        const typeWithMultiplicity = new MultiplicityType(this, this.calculateIdentifier(typeDetails), typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
+        this.services.graph.addNode(typeWithMultiplicity);
 
-        return newType;
+        this.registerInferenceRules(typeDetails, typeWithMultiplicity);
+
+        return typeWithMultiplicity;
+    }
+
+    protected registerInferenceRules(_typeDetails: MultiplicityTypeDetails, _typeWithMultiplicity: MultiplicityType): void {
+        // TODO
     }
 
     calculateIdentifier(typeDetails: MultiplicityTypeDetails): string {

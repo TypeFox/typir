@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { ClassKind, CreateFieldDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices } from 'typir';
+import { ClassKind, CreateFieldDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
@@ -193,6 +193,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 return [];
             }
         );
+
+        // validate unique function declarations
+        this.typir.validation.collector.addValidationRulesWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
     }
 
     onNewAstNode(node: AstNode): void {
@@ -202,7 +205,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
-            this.functionKind.getOrCreateFunctionType({ // TODO check for duplicates!
+            this.functionKind.getOrCreateFunctionType({
                 functionName,
                 outputParameter: { name: FUNCTION_MISSING_NAME, type: node.returnType },
                 inputParameters: node.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),

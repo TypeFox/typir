@@ -7,7 +7,7 @@
 import { TypeEqualityProblem } from '../features/equality.js';
 import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
-import { ValidationProblem } from '../features/validation.js';
+import { ValidationProblem, ValidationRuleWithBeforeAfter } from '../features/validation.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type, isType } from '../graph/type-node.js';
@@ -377,9 +377,11 @@ export class FunctionKind implements Kind, TypeGraphListener {
     }
 
     getOrCreateFunctionType<T>(typeDetails: CreateFunctionTypeDetails<T>): FunctionType {
-        const result = this.getFunctionType(typeDetails);
-        if (result) {
-            return result;
+        const functionType = this.getFunctionType(typeDetails);
+        if (functionType) {
+            // register the additional inference rules for the same type!
+            this.registerInferenceRules(typeDetails, functionType);
+            return functionType;
         }
         return this.createFunctionType(typeDetails);
     }
@@ -403,14 +405,10 @@ export class FunctionKind implements Kind, TypeGraphListener {
         this.services.graph.addNode(functionType);
 
         // output parameter for function calls
-        const outputTypeForFunctionCalls = functionType.getOutput()?.type ?? // by default, use the return type of the function ...
-            // ... if this type is missing, use the specified type for this case in the options:
-            // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
-            (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR' ? undefined : resolveTypeSelector(this.services, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
+        const outputTypeForFunctionCalls = this.getOtputTypeForFunctionCalls(functionType);
 
         // remember the new function for later in order to enable overloaded functions!
-        const mapNameTypes = this.mapNameTypes;
-        let overloaded = mapNameTypes.get(functionName);
+        let overloaded = this.mapNameTypes.get(functionName);
         if (overloaded) {
             // do nothing
         } else {
@@ -419,7 +417,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
                 inference: new CompositeTypeInferenceRule(this.services),
                 sameOutputType: undefined,
             };
-            mapNameTypes.set(functionName, overloaded);
+            this.mapNameTypes.set(functionName, overloaded);
             this.services.inference.addInferenceRule(overloaded.inference);
         }
         if (overloaded.overloadedFunctions.length <= 0) {
@@ -438,6 +436,16 @@ export class FunctionKind implements Kind, TypeGraphListener {
             inferenceRuleForCalls: typeDetails.inferenceRuleForCalls,
         });
 
+        this.registerInferenceRules(typeDetails, functionType);
+
+        return functionType;
+    }
+
+    protected registerInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, functionType: FunctionType): void {
+        const functionName = typeDetails.functionName;
+        const mapNameTypes = this.mapNameTypes;
+        const overloaded = mapNameTypes.get(functionName)!;
+        const outputTypeForFunctionCalls = this.getOtputTypeForFunctionCalls(functionType);
         if (typeDetails.inferenceRuleForCalls) {
             /** Preconditions:
              * - there is a rule which specifies how to infer the current function type
@@ -525,8 +533,15 @@ export class FunctionKind implements Kind, TypeGraphListener {
                 }
             }, functionType);
         }
+    }
 
-        return functionType;
+    protected getOtputTypeForFunctionCalls(functionType: FunctionType): Type | undefined {
+        return functionType.getOutput()?.type ?? // by default, use the return type of the function ...
+            // ... if this type is missing, use the specified type for this case in the options:
+            // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
+            (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR'
+                ? undefined
+                : resolveTypeSelector(this.services, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
     }
 
 
@@ -592,4 +607,62 @@ export const FUNCTION_MISSING_NAME = '';
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
     return isKind(kind) && kind.$name === FunctionKindName;
+}
+
+
+export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
+    protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
+    protected readonly services: TypirServices;
+    protected readonly isRelevant: (domainElement: unknown) => boolean;
+
+    constructor(services: TypirServices, isRelevant: (domainElement: unknown) => boolean) {
+        this.services = services;
+        this.isRelevant = isRelevant;
+    }
+
+    beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        this.foundDeclarations.clear();
+        return [];
+    }
+
+    validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
+        if (this.isRelevant(domainElement)) {
+            const type = this.services.inference.inferType(domainElement);
+            if (isFunctionType(type)) {
+                // register domain elements which have FunctionTypes with a key for their uniques
+                const key = this.calculateFunctionKey(type);
+                let entries = this.foundDeclarations.get(key);
+                if (!entries) {
+                    entries = [];
+                    this.foundDeclarations.set(key, entries);
+                }
+                entries.push(domainElement);
+            }
+        }
+        return [];
+    }
+
+    protected calculateFunctionKey(func: FunctionType): string {
+        return `${func.functionName}(${func.getInputs().map(param => param.type.identifier)})`;
+    }
+
+    afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        const result: ValidationProblem[] = [];
+        for (const [identifier, functions] of this.foundDeclarations.entries()) {
+            if (functions.length >= 2) {
+                for (const func of functions) {
+                    result.push({
+                        $problem: ValidationProblem,
+                        domainElement: func,
+                        severity: 'error',
+                        message: `Declared functions need to be unique (${identifier}).`,
+                    });
+                }
+            }
+        }
+
+        this.foundDeclarations.clear();
+        return result;
+    }
+
 }

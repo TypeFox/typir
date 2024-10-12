@@ -329,9 +329,10 @@ export class ClassKind implements Kind {
     }
 
     getOrCreateClassType<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>): ClassType {
-        const result = this.getClassType(typeDetails);
-        if (result) {
-            return result;
+        const classType = this.getClassType(typeDetails);
+        if (classType) {
+            this.registerInferenceRules(typeDetails, classType);
+            return classType;
         }
         return this.createClassType(typeDetails);
     }
@@ -344,6 +345,12 @@ export class ClassKind implements Kind {
         this.services.graph.addNode(classType);
 
         // register inference rules
+        this.registerInferenceRules<T1, T2>(typeDetails, classType);
+
+        return classType;
+    }
+
+    protected registerInferenceRules<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>, classType: ClassType) {
         if (typeDetails.inferenceRuleForDeclaration) {
             this.services.inference.addInferenceRule({
                 inferTypeWithoutChildren(domainElement, _typir) {
@@ -360,10 +367,10 @@ export class ClassKind implements Kind {
             }, classType);
         }
         if (typeDetails.inferenceRuleForLiteral) {
-            this.registerInferenceRule(typeDetails.inferenceRuleForLiteral, this, classType);
+            this.registerInferenceRuleForLiteral(typeDetails.inferenceRuleForLiteral, this, classType);
         }
         if (typeDetails.inferenceRuleForReference) {
-            this.registerInferenceRule(typeDetails.inferenceRuleForReference, this, classType);
+            this.registerInferenceRuleForLiteral(typeDetails.inferenceRuleForReference, this, classType);
         }
         if (typeDetails.inferenceRuleForFieldAccess) {
             this.services.inference.addInferenceRule((domainElement, _typir) => {
@@ -389,11 +396,9 @@ export class ClassKind implements Kind {
                 }
             }, classType);
         }
-
-        return classType;
     }
 
-    protected registerInferenceRule<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): void {
+    protected registerInferenceRuleForLiteral<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): void {
         const mapListConverter = new MapListConverter();
         this.services.inference.addInferenceRule({
             inferTypeWithoutChildren(domainElement, _typir) {

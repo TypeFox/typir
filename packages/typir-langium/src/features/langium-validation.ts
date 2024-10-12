@@ -4,9 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, ValidationAcceptor, ValidationChecks } from 'langium';
+import { AstNode, AstUtils, ValidationAcceptor, ValidationChecks } from 'langium';
 import { LangiumServices } from 'langium/lsp';
-import { TypirServices } from 'typir';
+import { TypirServices, ValidationProblem } from 'typir';
 import { LangiumServicesForTypirBinding } from '../typir-langium.js';
 
 export function registerTypirValidationChecks(services: LangiumServices & LangiumServicesForTypirBinding) {
@@ -44,12 +44,23 @@ export class LangiumTypirValidator {
      * @param accept receives the found validation hints
      */
     checkTypingProblemsWithTypir(node: AstNode, accept: ValidationAcceptor) {
-        const typeProblems = this.services.validation.collector.validate(node);
+        // TODO use the new validation registry API in Langium v3.3 instead!
+        if (node.$container === undefined) {
+            this.report(this.services.validation.collector.validateBefore(node), node, accept);
+
+            AstUtils.streamAst(node).forEach(child => {
+                this.report(this.services.validation.collector.validate(child), child, accept);
+            });
+
+            this.report(this.services.validation.collector.validateAfter(node), node, accept);
+        }
+    }
+
+    protected report(problems: ValidationProblem[], node: AstNode, accept: ValidationAcceptor): void {
         // print all found problems for the given AST node
-        for (const problem of typeProblems) {
+        for (const problem of problems) {
             const message = this.services.printer.printValidationProblem(problem);
             accept(problem.severity, message, { node, property: problem.domainProperty, index: problem.domainIndex });
         }
     }
-
 }

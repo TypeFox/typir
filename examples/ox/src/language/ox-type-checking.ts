@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PrimitiveKind, TypirServices } from 'typir';
+import { FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PrimitiveKind, TypirServices, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
@@ -161,6 +161,9 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 return [];
             }
         );
+
+        // check for unique function declarations
+        this.typir.validation.collector.addValidationRulesWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
     }
 
     onNewAstNode(domainElement: AstNode): void {
@@ -169,25 +172,24 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         if (isFunctionDeclaration(domainElement)) {
             const functionName = domainElement.name;
             // define function type
-            this.functionKind.getOrCreateFunctionType({ // TODO check for duplicates!
+            this.functionKind.getOrCreateFunctionType({
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
                 outputParameter: { name: FUNCTION_MISSING_NAME, type: domainElement.returnType },
                 inputParameters: domainElement.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
                 // inference rule for function declaration:
-                inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === domainElement, // only the current function declaration matches!
+                inferenceRuleForDeclaration: (node: unknown) => node === domainElement, // only the current function declaration matches!
                 /** inference rule for funtion calls:
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
                  * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
                  * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
                 inferenceRuleForCalls: {
                     filter: isMemberCall,
-                    matching: (domainElement: MemberCall) => isFunctionDeclaration(domainElement.element.ref) && domainElement.element.ref.name === functionName,
-                    inputArguments: (domainElement: MemberCall) => domainElement.arguments
+                    matching: (call: MemberCall) => isFunctionDeclaration(call.element.ref) && call.element.ref.name === functionName,
+                    inputArguments: (call: MemberCall) => call.arguments
                     // TODO does OX support overloaded function declarations? add a scope provider for that ...
                 }
             });
-            // TODO remove inference rules for these functions as well!!
         }
     }
 }

@@ -66,13 +66,13 @@ describe('Explicitly test type checking for LOX', () => {
         await validate(`
             fun myFunction() : boolean { return true; }
             fun myFunction() : number { return 2; }
-        `, 1);
+        `, 2);
     });
     test('overloaded function: different parameter names are not enough', async () => {
         await validate(`
             fun myFunction(input: boolean) : boolean { return true; }
             fun myFunction(other: boolean) : boolean { return true; }
-        `, 1);
+        `, 2);
     });
     test('overloaded function: but different parameter types are fine', async () => {
         await validate(`
@@ -140,7 +140,7 @@ describe('Explicitly test type checking for LOX', () => {
             class MyClass1 {}
             class MyClass2 < MyClass1 {}
         `, 0);
-        // switching the order of super and sub class works in Langium, but not in Typir at the moment
+        // switching the order of super and sub class works in Langium, but not in Typir at the moment, TODO warum nicht mehr??
         await validate(`
             class MyClass2 < MyClass1 {}
             class MyClass1 {}
