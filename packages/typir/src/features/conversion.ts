@@ -142,7 +142,7 @@ export class DefaultTypeConversion implements TypeConversion {
              */
             const hasIntroducedCycle = this.existsEdgePath(from, from, mode);
             if (hasIntroducedCycle) {
-                throw new Error('Adding the conversion from ' + from.identifier + ' to ' + to.identifier + ' has introduced a cycle ot the type graph.');
+                throw new Error(`Adding the conversion from ${from.identifier} to ${to.identifier} with mode ${mode} has introduced a cycle in the type graph.`);
             }
         }
     }
