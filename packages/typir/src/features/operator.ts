@@ -105,7 +105,7 @@ export class DefaultOperatorManager implements OperatorManager {
             result.push(this.createGenericOperator({
                 name: typeDetails.name,
                 outputType: signature.return,
-                inferenceRule: typeDetails.inferenceRule, // TODO zu oft ??
+                inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
                 inputParameter: [
                     { name: 'operand', type: signature.operand },
                 ]
@@ -121,7 +121,7 @@ export class DefaultOperatorManager implements OperatorManager {
             result.push(this.createGenericOperator({
                 name: typeDetails.name,
                 outputType: signature.return,
-                inferenceRule: typeDetails.inferenceRule, // TODO zu oft ??
+                inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
                 inputParameter: [
                     { name: 'left', type: signature.left},
                     { name: 'right', type: signature.right}
@@ -138,7 +138,7 @@ export class DefaultOperatorManager implements OperatorManager {
             result.push(this.createGenericOperator({
                 name: typeDetails.name,
                 outputType: signature.return,
-                inferenceRule: typeDetails.inferenceRule, // TODO zu oft ??
+                inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
                 inputParameter: [
                     { name: 'first', type: signature.first },
                     { name: 'second', type: signature.second },

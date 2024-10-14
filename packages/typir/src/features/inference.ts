@@ -305,7 +305,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
  * If one of the child rules returns a type, this type is the result of the composite rule.
  * Otherwise, all problems of all child rules are returned.
  */
-// TODO this design looks a bit ugly ..., but "implements TypeInferenceRuleWithoutInferringChildren" does not work, since it is a function ...
+// This design looks a bit ugly ..., but "implements TypeInferenceRuleWithoutInferringChildren" does not work, since it is a function ...
 export class CompositeTypeInferenceRule extends DefaultTypeInferenceCollector implements TypeInferenceRuleWithInferringChildren {
 
     // do not check "pending" (again), since it is already checked by the "parent" DefaultTypeInferenceCollector!

@@ -44,6 +44,15 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('var myResult: boolean; myResult = 2 < 3;', 0);
     });
 
+    test('overloaded operator "+"', async () => {
+        await validate('var myResult: number = 1 + 2;', 0);
+        await validate('var myResult: string = "a" + "b";', 0);
+        await validate('var myResult: string = "a" + 2;', 0);
+        await validate('var myResult: string = 1 + "b";', 0);
+        await validate('var myResult: string = true + "b";', 1);
+        await validate('var myResult: string = "a" + false;', 1);
+    });
+
     test('boolean in conditions', async () => {
         await validate('if ( true ) {}', 0);
         await validate('if ( 3 ) {}', 1);

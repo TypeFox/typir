@@ -164,11 +164,11 @@ export class ClassType extends Type {
             const allSub = subType.getAllSuperClasses(true);
             const globalResult: TypirProblem[] = [];
             for (const oneSub of allSub) {
-                const localResult = checkValueForConflict(superType.identifier, oneSub.identifier, 'name'); // TODO use equals instead??
-                if (localResult.length <= 0) {
+                const localResult = this.kind.services.equality.getTypeEqualityProblem(superType, oneSub);
+                if (localResult === undefined) {
                     return []; // class is found in the class hierarchy
                 }
-                globalResult.push(...localResult); // return all conflicts, TODO: is that too much??
+                globalResult.push(localResult); // return all conflicts, is that too much?
             }
             return globalResult;
         } else {
