@@ -143,7 +143,7 @@ describe('Explicitly test type checking for LOX', () => {
         `, 1);
     });
 
-    test.fails('Class inheritance and the order of type definitions', async () => {
+    test('Class inheritance and the order of type definitions', async () => {
         // the "normal" case: 1st super class, 2nd sub class
         await validate(`
             class MyClass1 {}
