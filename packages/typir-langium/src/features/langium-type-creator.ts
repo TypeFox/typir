@@ -9,7 +9,7 @@ import { LangiumSharedServices } from 'langium/lsp';
 import { Type, TypeEdge, TypeGraph, TypeGraphListener, TypirServices } from 'typir';
 import { getDocumentKeyForDocument, getDocumentKeyForURI } from '../utils/typir-langium-utils.js';
 
-export interface LangiumTypeCreator {
+export interface LangiumTypeCreator { // TODO Registry instead?
     triggerInitialization(): void;
 
     /**
@@ -44,7 +44,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
         langiumServices.workspace.DocumentBuilder.onUpdate((_changed, deleted) => {
             deleted
                 .map(del => getDocumentKeyForURI(del))
-                .forEach(del => this.handleDeletedDocument(del));
+                .forEach(del => this.invalidateTypesOfDocument(del));
         });
 
         // get informed about added/removed types
@@ -70,20 +70,27 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
         this.triggerInitialization();
         this.currentDocumentKey = getDocumentKeyForDocument(document); // remember the key in order to map newly created types to the current document
 
-        // remove all types which were associated with the current document
-        this.handleDeletedDocument(this.currentDocumentKey);
+        // For a NEW document, this is called, but nothing happens.
+        // For an UPDATED document, Langium deletes the whole previous AST and creates a complete new AST.
+        // Therefore all types which were created for such (now invalid) AstNodes and therefore associated with the current document need to be removed.
+        this.invalidateTypesOfDocument(this.currentDocumentKey);
 
         // create all types for this document
         AstUtils.streamAst(document.parseResult.value)
             .forEach((node: AstNode) => this.onNewAstNode(node));
 
-        this.currentDocumentKey = '';
+        this.currentDocumentKey = ''; // reset the key, newly created types will be associated with no document now
     }
 
-    protected handleDeletedDocument(documentKey: string): void {
-        (this.documentTypesMap.get(documentKey) ?? [])
+    protected invalidateTypesOfDocument(documentKey: string): void {
+        // grab all types which were created for the document
+        (this.documentTypesMap.get(documentKey)
+            // there are no types, if the document is new or if no types were created for the previous document version
+            ?? [])
             // this is the central way to remove types from the type systems, there is no need to inform the kinds
             .forEach(typeToRemove => this.typeGraph.removeNode(typeToRemove));
+        // remove the deleted types from the map
+        this.documentTypesMap.delete(documentKey);
     }
 
     addedType(newType: Type): void {
@@ -102,24 +109,24 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
     }
 
     removedType(_type: Type): void {
-        // do nothing
+        // since this type creator actively removes types from the type graph itself, there is no need to react on removed types
     }
     addedEdge(_edge: TypeEdge): void {
-        // do nothing
+        // this type creator does not care about edges => do nothing
     }
     removedEdge(_edge: TypeEdge): void {
-        // do nothing
+        // this type creator does not care about edges => do nothing
     }
 }
 
-export class IncompleteLangiumTypeCreator extends AbstractLangiumTypeCreator {
+export class PlaceholderLangiumTypeCreator extends AbstractLangiumTypeCreator {
     constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
         super(typirServices, langiumServices);
     }
     override onInitialize(): void {
-        throw new Error('This method needs to be implemented!');
+        throw new Error('This method needs to be implemented! Extend the AbstractLangiumTypeCreator and register it in the Typir module: TypeCreator: (typirServices) => new MyLangiumTypeCreator(typirServices, langiumServices)');
     }
     override onNewAstNode(_domainElement: AstNode): void {
-        throw new Error('This method needs to be implemented!');
+        throw new Error('This method needs to be implemented! Extend the AbstractLangiumTypeCreator and register it in the Typir module: TypeCreator: (typirServices) => new MyLangiumTypeCreator(typirServices, langiumServices)');
     }
 }

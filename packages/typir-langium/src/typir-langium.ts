@@ -8,7 +8,7 @@ import { LangiumServices, LangiumSharedServices } from 'langium/lsp';
 import { DeepPartial, DefaultTypeRelationshipCaching, DefaultTypirServiceModule, Module, TypirServices } from 'typir';
 import { LangiumDomainElementInferenceCaching } from './features/langium-caching.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
-import { IncompleteLangiumTypeCreator, LangiumTypeCreator } from './features/langium-type-creator.js';
+import { PlaceholderLangiumTypeCreator, LangiumTypeCreator } from './features/langium-type-creator.js';
 import { LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
 
 /**
@@ -40,7 +40,7 @@ export function createLangiumModuleForTypirBinding(langiumServices: LangiumShare
         },
         // provide implementations for the additional services for the Typir-Langium-binding:
         TypeValidation: (typirServices) => new LangiumTypirValidator(typirServices),
-        TypeCreator: (typirServices) => new IncompleteLangiumTypeCreator(typirServices, langiumServices),
+        TypeCreator: (typirServices) => new PlaceholderLangiumTypeCreator(typirServices, langiumServices),
     };
 }
 
@@ -50,9 +50,10 @@ export function initializeLangiumTypirServices(services: LangiumServices & Langi
 
     // initialize the type creation (this is not done automatically by dependency injection!)
     services.TypeCreator.triggerInitialization();
-    // TODO why does the following not work?
+    // TODO This does not work, if there is no Language Server used, e.g. in test cases!
     // services.shared.lsp.LanguageServer.onInitialized(_params => {
     //     services.TypeCreator.triggerInitialization();
     // });
-
+    // maybe using services.shared.workspace.WorkspaceManager.initializeWorkspace/loadAdditionalDocuments
+    // another idea is to use eagerLoad(inject(...)) when creating the services
 }

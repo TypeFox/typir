@@ -50,7 +50,7 @@ export class LangiumDomainElementInferenceCaching implements DomainElementInfere
 }
 
 
-// TODO this is copied from Langium, since the introducing PR #1659 will be included in the upcoming Langium version 3.3 (+ PR #1712), after realising v3.3 this class can be removed completely!
+// TODO this is copied from Langium, since the introducing PR #1659 will be included in the upcoming Langium version 3.3 (+ PR #1712), after releasing v3.3 this class can be removed completely!
 /**
  * Every key/value pair in this cache is scoped to a document.
  * If this document is changed or deleted, all associated key/value pairs are deleted.

@@ -404,7 +404,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
         this.services.graph.addNode(functionType);
 
         // output parameter for function calls
-        const outputTypeForFunctionCalls = this.getOtputTypeForFunctionCalls(functionType);
+        const outputTypeForFunctionCalls = this.getOutputTypeForFunctionCalls(functionType);
 
         // remember the new function for later in order to enable overloaded functions!
         let overloaded = this.mapNameTypes.get(functionName);
@@ -444,7 +444,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
         const functionName = typeDetails.functionName;
         const mapNameTypes = this.mapNameTypes;
         const overloaded = mapNameTypes.get(functionName)!;
-        const outputTypeForFunctionCalls = this.getOtputTypeForFunctionCalls(functionType);
+        const outputTypeForFunctionCalls = this.getOutputTypeForFunctionCalls(functionType);
         if (typeDetails.inferenceRuleForCalls) {
             /** Preconditions:
              * - there is a rule which specifies how to infer the current function type
@@ -534,7 +534,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
         }
     }
 
-    protected getOtputTypeForFunctionCalls(functionType: FunctionType): Type | undefined {
+    protected getOutputTypeForFunctionCalls(functionType: FunctionType): Type | undefined {
         return functionType.getOutput()?.type ?? // by default, use the return type of the function ...
             // ... if this type is missing, use the specified type for this case in the options:
             // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!

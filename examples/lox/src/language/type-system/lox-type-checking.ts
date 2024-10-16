@@ -58,7 +58,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 (node: unknown) => isReturnStatement(node) && node.value === undefined
             ] });
         const typeNil = this.primitiveKind.createPrimitiveType({ primitiveName: 'nil',
-            inferenceRules: isNilLiteral }); // for what is this used in LOX?
+            inferenceRules: isNilLiteral }); // From "Crafting Interpreters" no value, like null in other languages. Uninitialised variables default to nil. When the execution reaches the end of the block of a function body without hitting a return, nil is implicitly returned.
         const typeAny = this.anyKind.createTopType({});
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
@@ -135,12 +135,13 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             // ... variable declarations
             if (isVariableDeclaration(domainElement)) {
                 if (domainElement.type) {
+                    // the user declared this variable with a type
                     return domainElement.type;
                 } else if (domainElement.value) {
-                    // the type might be null; no type declared => do type inference of the assigned value instead!
+                    // the didn't declared a type for this variable => do type inference of the assigned value instead!
                     return domainElement.value;
                 } else {
-                    return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the "usual LOX validator" for this case
+                    return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
                 }
             }
             return InferenceRuleNotApplicable;

@@ -100,7 +100,7 @@ export interface TypeInferenceCollector {
      * When inferring the type for an element, all registered inference rules are checked until the first match.
      * @param rule a new inference rule
      * @param boundToType an optional type, if the new inference rule is dedicated for exactly this type.
-     * If the given type is removed from the type system, this rule will be removed as well.
+     * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
     addInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
 }
