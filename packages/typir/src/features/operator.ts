@@ -151,10 +151,7 @@ export class DefaultOperatorManager implements OperatorManager {
 
     createGenericOperator<T>(typeDetails: GenericOperatorDetails<T>): Type {
         // define/register the wanted operator as "special" function
-
-        // ensure, that Typir uses the predefined 'function' kind
-        const kind = this.services.kinds.get(FunctionKindName);
-        const functionKind = isFunctionKind(kind) ? kind : new FunctionKind(this.services);
+        const functionKind = this.getFunctionKind();
 
         // create the operator as type of kind 'function'
         const newOperatorType = functionKind.createFunctionType({
@@ -174,5 +171,11 @@ export class DefaultOperatorManager implements OperatorManager {
         });
 
         return newOperatorType;
+    }
+
+    protected getFunctionKind(): FunctionKind {
+        // ensure, that Typir uses the predefined 'function' kind
+        const kind = this.services.kinds.get(FunctionKindName);
+        return isFunctionKind(kind) ? kind : new FunctionKind(this.services);
     }
 }

@@ -183,6 +183,46 @@ describe('Explicitly test type checking for LOX', () => {
         `, 3);
     });
 
+    test('Class methods: OK', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return 123;
+            }
+        }
+        var v1: MyClass1 = MyClass1();
+        var v2: number = v1.method1(456);
+    `, 0));
+
+    test('Class methods: wrong return value', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return true;
+            }
+        }
+        var v1: MyClass1 = MyClass1();
+        var v2: number = v1.method1(456);
+    `, 1));
+
+    test('Class methods: method return type does not fit to variable type', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return 123;
+            }
+        }
+        var v1: MyClass1 = MyClass1();
+        var v2: boolean = v1.method1(456);
+    `, 1));
+
+    test('Class methods: value for input parameter does not fit to the type of the input parameter', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return 123;
+            }
+        }
+        var v1: MyClass1 = MyClass1();
+        var v2: number = v1.method1(true);
+    `, 1));
+
 });
 
 describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {

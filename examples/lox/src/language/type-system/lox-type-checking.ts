@@ -6,10 +6,10 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { ClassKind, CreateFieldDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation } from 'typir';
+import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
-import { BinaryExpression, FieldMember, MemberCall, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { BinaryExpression, FieldMember, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 export class LoxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: TypirServices;
@@ -176,11 +176,11 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                         severity: 'warning' });
                 }
                 if (isReturnStatement(node)) {
-                    const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
-                    if (functionDeclaration && functionDeclaration.returnType.primitive && functionDeclaration.returnType.primitive !== 'void' && node.value) {
-                        // the return value must fit to the return type of the function
-                        return typir.validation.constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType, (actual, expected) => <ValidationMessageDetails>{
-                            message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${functionDeclaration.name}' with return type '${expected.name}'.`,
+                    const callableDeclaration: FunctionDeclaration | MethodMember | undefined = AstUtils.getContainerOfType(node, node => isFunctionDeclaration(node) || isMethodMember(node));
+                    if (callableDeclaration && callableDeclaration.returnType.primitive && callableDeclaration.returnType.primitive !== 'void' && node.value) {
+                        // the return value must fit to the return type of the function / method
+                        return typir.validation.constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, (actual, expected) => <ValidationMessageDetails>{
+                            message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
                             domainProperty: 'value' });
                     }
                 }
@@ -202,22 +202,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         if (isFunctionDeclaration(node)) {
             const functionName = node.name;
             // define function type
-            this.functionKind.getOrCreateFunctionType({
-                functionName,
-                outputParameter: { name: FUNCTION_MISSING_NAME, type: node.returnType },
-                inputParameters: node.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
-                // inference rule for function declaration:
-                inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function declaration matches!
-                /** inference rule for funtion calls:
-                 * - inferring of overloaded functions works only, if the actual arguments have the expected types!
-                 * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
-                 * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
-                inferenceRuleForCalls: {
-                    filter: isMemberCall,
-                    matching: (domainElement: MemberCall) => isFunctionDeclaration(domainElement.element?.ref) && domainElement.element!.ref.name === functionName,
-                    inputArguments: (domainElement: MemberCall) => domainElement.arguments
-                },
-            });
+            this.functionKind.getOrCreateFunctionType(createFunctionDetails(node)); // this logic is reused for methods of classes, since the LOX grammar defines them very similar
         }
 
         // TODO support lambda (type references)!
@@ -232,15 +217,18 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         // class types (nominal typing):
         if (isClass(node)) {
             const className = node.name;
-            this.classKind.getOrCreateClassType({ // TODO check for duplicates!
+            this.classKind.getOrCreateClassType({
                 className,
                 superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
                 fields: node.members
-                    .filter(m => isFieldMember(m)).map(f => f as FieldMember) // only Fields, no Methods
+                    .filter(isFieldMember) // only Fields, no Methods
                     .map(f => <CreateFieldDetails>{
                         name: f.name,
                         type: f.type, // note that type inference is used here; TODO delayed
                     }),
+                methods: node.members
+                    .filter(isMethodMember) // only Methods, no Fields
+                    .map(member => createFunctionDetails(member)), // same logic as for functions, since the LOX grammar defines them very similar
                 // inference rule for declaration
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node,
                 // inference ruleS(?) for objects/class literals conforming to the current class
@@ -262,6 +250,26 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
     }
 }
 
+function createFunctionDetails(node: FunctionDeclaration | MethodMember): CreateFunctionTypeDetails<MemberCall> {
+    const callableName = node.name;
+    return {
+        functionName: callableName,
+        outputParameter: { name: FUNCTION_MISSING_NAME, type: node.returnType },
+        inputParameters: node.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
+        // inference rule for function declaration:
+        inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function/method declaration matches!
+        /** inference rule for funtion/method calls:
+         * - inferring of overloaded functions works only, if the actual arguments have the expected types!
+         * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
+         * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
+        inferenceRuleForCalls: {
+            filter: isMemberCall,
+            matching: (domainElement: MemberCall) => (isFunctionDeclaration(domainElement.element?.ref) || isMethodMember(domainElement.element?.ref))
+                && domainElement.element!.ref.name === callableName,
+            inputArguments: (domainElement: MemberCall) => domainElement.arguments
+        },
+    };
+}
 
 export function createLoxTypirModule(langiumServices: LangiumSharedServices): Module<LangiumServicesForTypirBinding, PartialTypirLangiumServices> {
     return {
