@@ -6,11 +6,14 @@
 
 import { EmptyFileSystem } from 'langium';
 import { parseDocument } from 'langium/test';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
 import { createOxServices } from '../src/language/ox-module.js';
+import { deleteAllDocuments } from 'typir-langium';
 
 const oxServices = createOxServices(EmptyFileSystem).Ox;
+
+afterEach(async () => await deleteAllDocuments(oxServices));
 
 describe('Explicitly test type checking for OX', () => {
 
@@ -88,10 +91,22 @@ describe('Explicitly test type checking for OX', () => {
     });
 
     test('function: return value and return type', async () => {
+        await validate('fun myFunction1() : boolean { return true; }', 0);
+        await validate('fun myFunction2() : boolean { return 2; }', 1);
+        await validate('fun myFunction3() : number { return 2; }', 0);
+        await validate('fun myFunction4() : number { return true; }', 1);
+    });
+
+    test('function: the same function name twice (in the same file) is not allowed in Typir', async () => {
+        await validate(`
+            fun myFunction() : boolean { return true; }
+            fun myFunction() : boolean { return false; }
+        `, 2); // both functions should be marked as "duplicate"
+    });
+
+    test.fails('function: the same function name twice (even in different files) is not allowed in Typir', async () => {
         await validate('fun myFunction() : boolean { return true; }', 0);
-        await validate('fun myFunction() : boolean { return 2; }', 1);
-        await validate('fun myFunction() : number { return 2; }', 0);
-        await validate('fun myFunction() : number { return true; }', 1);
+        await validate('fun myFunction() : boolean { return false; }', 2); // now, both functions should be marked as "duplicate"
     });
 
     test('use overloaded operators', async () => {

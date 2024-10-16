@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { inject, Module } from './utils/dependency-injection.js';
 import { DefaultTypeAssignability, TypeAssignability } from './features/assignability.js';
 import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './features/caching.js';
 import { DefaultTypeConversion, TypeConversion } from './features/conversion.js';
@@ -15,7 +14,8 @@ import { DefaultTypeConflictPrinter, ProblemPrinter } from './features/printing.
 import { DefaultSubType, SubType } from './features/subtype.js';
 import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './features/validation.js';
 import { TypeGraph } from './graph/type-graph.js';
-import { KindRegistry, DefaultKindRegistry } from './kinds/kind-registry.js';
+import { DefaultKindRegistry, KindRegistry } from './kinds/kind-registry.js';
+import { inject, Module } from './utils/dependency-injection.js';
 
 /**
  * Design decisions for Typir
@@ -73,11 +73,20 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
     validation: {
         collector: (services) => new DefaultValidationCollector(services),
         constraints: (services) => new DefaultValidationConstraints(services),
-    }
+    },
 };
 
-export function createTypirServices(customization: Module<TypirServices, PartialTypirServices> = {}): TypirServices {
-    return inject(DefaultTypirServiceModule, customization);
+/**
+ * Creates the TypirServices with the default module containing the default implements for Typir, which might be exchanged by the given optional customized modules.
+ * @param customization1 optional Typir module with customizations
+ * @param customization2 optional Typir module with customizations
+ * @returns a Typir instance, i.e. the TypirServices with implementations
+ */
+export function createTypirServices(
+    customization1: Module<TypirServices, PartialTypirServices> = {},
+    customization2: Module<TypirServices, PartialTypirServices> = {}
+): TypirServices {
+    return inject(DefaultTypirServiceModule, customization1, customization2);
 }
 
 /**

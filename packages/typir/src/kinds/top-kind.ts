@@ -107,9 +107,10 @@ export class TopKind implements Kind {
     }
 
     getOrCreateTopType(typeDetails: TopTypeDetails): TopType {
-        const result = this.getTopType(typeDetails);
-        if (result) {
-            return result;
+        const topType = this.getTopType(typeDetails);
+        if (topType) {
+            this.registerInferenceRules(typeDetails, topType);
+            return topType;
         }
         return this.createTopType(typeDetails);
     }
@@ -126,7 +127,13 @@ export class TopKind implements Kind {
         this.instance = topType;
         this.services.graph.addNode(topType);
 
-        // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
+        this.registerInferenceRules(typeDetails, topType);
+
+        return topType;
+    }
+
+    /** Register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small). */
+    protected registerInferenceRules(typeDetails: TopTypeDetails, topType: TopType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
             this.services.inference.addInferenceRule((domainElement, _typir) => {
@@ -136,10 +143,8 @@ export class TopKind implements Kind {
                     }
                 }
                 return InferenceRuleNotApplicable;
-            });
+            }, topType);
         }
-
-        return topType;
     }
 
     calculateIdentifier(_typeDetails: TopTypeDetails): string {

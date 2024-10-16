@@ -8,12 +8,13 @@ import { assertUnreachable } from 'langium';
 import { TypeEqualityProblem } from '../features/equality.js';
 import { InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
+import { ValidationProblem, ValidationRuleWithBeforeAfter } from '../features/validation.js';
 import { Type, isType } from '../graph/type-node.js';
+import { TypirServices } from '../typir.js';
 import { TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
 import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
-import { TypirServices } from '../typir.js';
 
 export class ClassType extends Type {
     override readonly kind: ClassKind;
@@ -163,11 +164,11 @@ export class ClassType extends Type {
             const allSub = subType.getAllSuperClasses(true);
             const globalResult: TypirProblem[] = [];
             for (const oneSub of allSub) {
-                const localResult = checkValueForConflict(superType.identifier, oneSub.identifier, 'name'); // TODO use equals instead??
-                if (localResult.length <= 0) {
+                const localResult = this.kind.services.equality.getTypeEqualityProblem(superType, oneSub);
+                if (localResult === undefined) {
                     return []; // class is found in the class hierarchy
                 }
-                globalResult.push(...localResult); // return all conflicts, TODO: is that too much??
+                globalResult.push(localResult); // return all conflicts, is that too much?
             }
             return globalResult;
         } else {
@@ -329,21 +330,28 @@ export class ClassKind implements Kind {
     }
 
     getOrCreateClassType<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>): ClassType {
-        const result = this.getClassType(typeDetails);
-        if (result) {
-            return result;
+        const classType = this.getClassType(typeDetails);
+        if (classType) {
+            this.registerInferenceRules(typeDetails, classType);
+            return classType;
         }
         return this.createClassType(typeDetails);
     }
 
     createClassType<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>): ClassType {
-        assertTrue(this.getClassType(typeDetails) === undefined);
+        assertTrue(this.getClassType(typeDetails) === undefined, `${typeDetails.className}`);
 
         // create the class type
         const classType = new ClassType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.services.graph.addNode(classType);
 
         // register inference rules
+        this.registerInferenceRules<T1, T2>(typeDetails, classType);
+
+        return classType;
+    }
+
+    protected registerInferenceRules<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>, classType: ClassType) {
         if (typeDetails.inferenceRuleForDeclaration) {
             this.services.inference.addInferenceRule({
                 inferTypeWithoutChildren(domainElement, _typir) {
@@ -357,13 +365,13 @@ export class ClassKind implements Kind {
                     // TODO check values for fields for nominal typing!
                     return classType;
                 },
-            });
+            }, classType);
         }
         if (typeDetails.inferenceRuleForLiteral) {
-            this.registerInferenceRule(typeDetails.inferenceRuleForLiteral, this, classType);
+            this.registerInferenceRuleForLiteral(typeDetails.inferenceRuleForLiteral, this, classType);
         }
         if (typeDetails.inferenceRuleForReference) {
-            this.registerInferenceRule(typeDetails.inferenceRuleForReference, this, classType);
+            this.registerInferenceRuleForLiteral(typeDetails.inferenceRuleForReference, this, classType);
         }
         if (typeDetails.inferenceRuleForFieldAccess) {
             this.services.inference.addInferenceRule((domainElement, _typir) => {
@@ -387,13 +395,11 @@ export class ClassKind implements Kind {
                 } else {
                     return result; // do the type inference for this element instead
                 }
-            });
+            }, classType);
         }
-
-        return classType;
     }
 
-    protected registerInferenceRule<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): void {
+    protected registerInferenceRuleForLiteral<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): void {
         const mapListConverter = new MapListConverter();
         this.services.inference.addInferenceRule({
             inferTypeWithoutChildren(domainElement, _typir) {
@@ -440,7 +446,7 @@ export class ClassKind implements Kind {
                     return classType;
                 }
             },
-        });
+        }, classType);
     }
 
     calculateIdentifier(typeDetails: ClassTypeDetails): string {
@@ -475,4 +481,72 @@ export class ClassKind implements Kind {
 
 export function isClassKind(kind: unknown): kind is ClassKind {
     return isKind(kind) && kind.$name === ClassKindName;
+}
+
+
+/**
+ * Predefined validation to produce errors, if the same class is declared more than once.
+ * This is often relevant for nominally typed classes.
+ */
+export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
+    protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
+    protected readonly services: TypirServices;
+    protected readonly isRelevant: (domainElement: unknown) => boolean; // using this check improves performance a lot
+
+    constructor(services: TypirServices, isRelevant: (domainElement: unknown) => boolean) {
+        this.services = services;
+        this.isRelevant = isRelevant;
+    }
+
+    beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        this.foundDeclarations.clear();
+        return [];
+    }
+
+    validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
+        if (this.isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
+            const type = this.services.inference.inferType(domainElement);
+            if (isClassType(type)) {
+                // register domain elements which have ClassTypes with a key for their uniques
+                const key = this.calculateClassKey(type);
+                let entries = this.foundDeclarations.get(key);
+                if (!entries) {
+                    entries = [];
+                    this.foundDeclarations.set(key, entries);
+                }
+                entries.push(domainElement);
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Calculates a key for a class which encodes its unique properties, i.e. duplicate classes have the same key.
+     * This key is used to identify duplicated classes.
+     * Override this method to change the properties which make a class unique.
+     * @param clas the current class type
+     * @returns a string key
+     */
+    protected calculateClassKey(clas: ClassType): string {
+        return `${clas.className}`;
+    }
+
+    afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        const result: ValidationProblem[] = [];
+        for (const [key, classes] of this.foundDeclarations.entries()) {
+            if (classes.length >= 2) {
+                for (const clas of classes) {
+                    result.push({
+                        $problem: ValidationProblem,
+                        domainElement: clas,
+                        severity: 'error',
+                        message: `Declared classes need to be unique (${key}).`,
+                    });
+                }
+            }
+        }
+
+        this.foundDeclarations.clear();
+        return result;
+    }
 }

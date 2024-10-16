@@ -7,7 +7,9 @@
 import { TypeEqualityProblem } from '../features/equality.js';
 import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
-import { ValidationProblem } from '../features/validation.js';
+import { ValidationProblem, ValidationRuleWithBeforeAfter } from '../features/validation.js';
+import { TypeEdge } from '../graph/type-edge.js';
+import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { NameTypePair, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
@@ -246,13 +248,12 @@ export type InferFunctionCall<T = unknown> = {
  * - optional parameters
  * - parameters which are used for output AND input
  */
-export class FunctionKind implements Kind {
+export class FunctionKind implements Kind, TypeGraphListener {
     readonly $name: 'FunctionKind';
     readonly services: TypirServices;
     readonly options: FunctionKindOptions;
-    /** TODO Limitations
+    /** Limitations
      * - Works only, if function types are defined using the createFunctionType(...) function below!
-     * - How to remove function types later? How to observe this case/event? How to remove their inference rules and validations?
      */
     protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
     // TODO try to replace this map with calculating the required identifier for the function
@@ -375,9 +376,11 @@ export class FunctionKind implements Kind {
     }
 
     getOrCreateFunctionType<T>(typeDetails: CreateFunctionTypeDetails<T>): FunctionType {
-        const result = this.getFunctionType(typeDetails);
-        if (result) {
-            return result;
+        const functionType = this.getFunctionType(typeDetails);
+        if (functionType) {
+            // register the additional inference rules for the same type!
+            this.registerInferenceRules(typeDetails, functionType);
+            return functionType;
         }
         return this.createFunctionType(typeDetails);
     }
@@ -386,7 +389,7 @@ export class FunctionKind implements Kind {
         const functionName = typeDetails.functionName;
 
         // check the input
-        assertTrue(this.getFunctionType(typeDetails) === undefined); // ensures, that no duplicated functions are created!
+        assertTrue(this.getFunctionType(typeDetails) === undefined, `${functionName}`); // ensures, that no duplicated functions are created!
         if (!typeDetails) {
             throw new Error('is undefined');
         }
@@ -401,23 +404,19 @@ export class FunctionKind implements Kind {
         this.services.graph.addNode(functionType);
 
         // output parameter for function calls
-        const outputTypeForFunctionCalls = functionType.getOutput()?.type ?? // by default, use the return type of the function ...
-            // ... if this type is missing, use the specified type for this case in the options:
-            // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
-            (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR' ? undefined : resolveTypeSelector(this.services, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
+        const outputTypeForFunctionCalls = this.getOutputTypeForFunctionCalls(functionType);
 
         // remember the new function for later in order to enable overloaded functions!
-        const mapNameTypes = this.mapNameTypes;
-        let overloaded = mapNameTypes.get(functionName);
+        let overloaded = this.mapNameTypes.get(functionName);
         if (overloaded) {
             // do nothing
         } else {
             overloaded = {
                 overloadedFunctions: [],
-                inference: new CompositeTypeInferenceRule(),
+                inference: new CompositeTypeInferenceRule(this.services),
                 sameOutputType: undefined,
             };
-            mapNameTypes.set(functionName, overloaded);
+            this.mapNameTypes.set(functionName, overloaded);
             this.services.inference.addInferenceRule(overloaded.inference);
         }
         if (overloaded.overloadedFunctions.length <= 0) {
@@ -436,13 +435,22 @@ export class FunctionKind implements Kind {
             inferenceRuleForCalls: typeDetails.inferenceRuleForCalls,
         });
 
+        this.registerInferenceRules(typeDetails, functionType);
+
+        return functionType;
+    }
+
+    protected registerInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, functionType: FunctionType): void {
+        const functionName = typeDetails.functionName;
+        const mapNameTypes = this.mapNameTypes;
+        const overloaded = mapNameTypes.get(functionName)!;
+        const outputTypeForFunctionCalls = this.getOutputTypeForFunctionCalls(functionType);
         if (typeDetails.inferenceRuleForCalls) {
             /** Preconditions:
              * - there is a rule which specifies how to infer the current function type
              * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
              *   (exception: the options contain a type to return in this special case)
              */
-            // TODO what about the case, that multiple variants match?? after implicit conversion for example?!
             function check(returnType: Type | undefined): Type {
                 if (returnType) {
                     return returnType;
@@ -452,7 +460,8 @@ export class FunctionKind implements Kind {
             }
 
             // register inference rule for calls of the new function
-            overloaded.inference.subRules.push({
+            // TODO what about the case, that multiple variants match?? after implicit conversion for example?! => overload with the lowest number of conversions wins!
+            overloaded.inference.addInferenceRule({
                 inferTypeWithoutChildren(domainElement, _typir) {
                     const result = typeDetails.inferenceRuleForCalls!.filter(domainElement);
                     if (result) {
@@ -509,7 +518,7 @@ export class FunctionKind implements Kind {
                         return check(outputTypeForFunctionCalls);
                     }
                 },
-            });
+            }, functionType);
         }
 
         // register inference rule for the declaration of the new function
@@ -521,11 +530,45 @@ export class FunctionKind implements Kind {
                 } else {
                     return InferenceRuleNotApplicable;
                 }
-            });
+            }, functionType);
         }
-
-        return functionType;
     }
+
+    protected getOutputTypeForFunctionCalls(functionType: FunctionType): Type | undefined {
+        return functionType.getOutput()?.type ?? // by default, use the return type of the function ...
+            // ... if this type is missing, use the specified type for this case in the options:
+            // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
+            (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR'
+                ? undefined
+                : resolveTypeSelector(this.services, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
+    }
+
+
+    /* Get informed about deleted types in order to remove inference rules which are bound to them. */
+
+    addedType(_newType: Type): void {
+        // do nothing
+    }
+    removedType(type: Type): void {
+        if (isFunctionType(type)) {
+            const overloads = this.mapNameTypes.get(type.functionName);
+            if (overloads) {
+                // remove the current function
+                const index = overloads.overloadedFunctions.findIndex(o => o.functionType === type);
+                if (index >= 0) {
+                    overloads.overloadedFunctions.splice(index, 1);
+                }
+                // its inference rule is removed by the CompositeTypeInferenceRule => nothing to do here
+            }
+        }
+    }
+    addedEdge(_edge: TypeEdge): void {
+        // do nothing
+    }
+    removedEdge(_edge: TypeEdge): void {
+        // do nothing
+    }
+
 
     calculateIdentifier(typeDetails: FunctionTypeDetails): string {
         // this schema allows to identify duplicated functions!
@@ -563,4 +606,71 @@ export const FUNCTION_MISSING_NAME = '';
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
     return isKind(kind) && kind.$name === FunctionKindName;
+}
+
+
+/**
+ * Predefined validation to produce errors, if the same function is declared more than once.
+ */
+export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
+    protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
+    protected readonly services: TypirServices;
+    protected readonly isRelevant: (domainElement: unknown) => boolean; // using this check improves performance a lot
+
+    constructor(services: TypirServices, isRelevant: (domainElement: unknown) => boolean) {
+        this.services = services;
+        this.isRelevant = isRelevant;
+    }
+
+    beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        this.foundDeclarations.clear();
+        return [];
+    }
+
+    validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
+        if (this.isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
+            const type = this.services.inference.inferType(domainElement);
+            if (isFunctionType(type)) {
+                // register domain elements which have FunctionTypes with a key for their uniques
+                const key = this.calculateFunctionKey(type);
+                let entries = this.foundDeclarations.get(key);
+                if (!entries) {
+                    entries = [];
+                    this.foundDeclarations.set(key, entries);
+                }
+                entries.push(domainElement);
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Calculates a key for a function which encodes its unique properties, i.e. duplicate functions have the same key.
+     * This key is used to identify duplicated functions.
+     * Override this method to change the properties which make a function unique.
+     * @param func the current function type
+     * @returns a string key
+     */
+    protected calculateFunctionKey(func: FunctionType): string {
+        return `${func.functionName}(${func.getInputs().map(param => param.type.identifier)})`;
+    }
+
+    afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        const result: ValidationProblem[] = [];
+        for (const [key, functions] of this.foundDeclarations.entries()) {
+            if (functions.length >= 2) {
+                for (const func of functions) {
+                    result.push({
+                        $problem: ValidationProblem,
+                        domainElement: func,
+                        severity: 'error',
+                        message: `Declared functions need to be unique (${key}).`,
+                    });
+                }
+            }
+        }
+
+        this.foundDeclarations.clear();
+        return result;
+    }
 }

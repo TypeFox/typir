@@ -1,7 +1,7 @@
 {
-  "name": "typir",
+  "name": "typir-langium",
   "version": "0.0.1",
-  "description": "General purpose type checking library",
+  "description": "Typir binding for Langium",
   "homepage": "https://typir.org",
   "author": {
     "name": "TypeFox",
@@ -46,7 +46,11 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/TypeFox/typir/",
-    "directory": "packages/typir"
+    "directory": "packages/typir-langium"
   },
-  "bugs": "https://github.com/TypeFox/typir/issues"
+  "bugs": "https://github.com/TypeFox/typir/issues",
+  "dependencies": {
+    "langium": "~3.2.0",
+    "typir": "~0.0.1"
+  }
 }

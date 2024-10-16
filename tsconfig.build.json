@@ -3,6 +3,8 @@
     "references": [
         { "path": "packages/typir/tsconfig.src.json" },
         { "path": "packages/typir/tsconfig.test.json" },
+        { "path": "packages/typir-langium/tsconfig.src.json" },
+        { "path": "packages/typir-langium/tsconfig.test.json" },
         { "path": "examples/lox/tsconfig.src.json" },
         { "path": "examples/lox/tsconfig.test.json" },
         { "path": "examples/ox/tsconfig.src.json" },

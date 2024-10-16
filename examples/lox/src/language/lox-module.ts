@@ -8,7 +8,10 @@ import { DefaultSharedCoreModuleContext, LangiumCoreServices, LangiumSharedCoreS
 import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module.js';
 import { LoxScopeProvider } from './lox-scope.js';
 import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
-import { DefaultSharedModuleContext, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
+import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
+import { createLangiumModuleForTypirBinding, initializeLangiumTypirServices, LangiumServicesForTypirBinding } from 'typir-langium';
+import { createLoxTypirModule } from './type-system/lox-type-checking.js';
+import { registerValidationChecks } from 'langium/grammar';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -23,7 +26,7 @@ export type LoxAddedServices = {
  * Union of Langium default services and your custom services - use this as constructor parameter
  * of custom service classes.
  */
-export type LoxServices = LangiumCoreServices & LoxAddedServices
+export type LoxServices = LangiumServices & LoxAddedServices & LangiumServicesForTypirBinding
 
 /**
  * Dependency injection module that overrides Langium default services and contributes the
@@ -66,8 +69,11 @@ export function createLoxServices(context: DefaultSharedModuleContext): {
     const Lox = inject(
         createDefaultCoreModule({ shared }),
         LoxGeneratedModule,
-        LoxModule
+        createLangiumModuleForTypirBinding(shared),
+        LoxModule,
+        createLoxTypirModule(shared),
     );
     shared.ServiceRegistry.register(Lox);
+    initializeLangiumTypirServices(Lox);
     return { shared, Lox };
 }

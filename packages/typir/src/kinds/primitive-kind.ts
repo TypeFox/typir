@@ -107,9 +107,10 @@ export class PrimitiveKind implements Kind {
     }
 
     getOrCreatePrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType {
-        const result = this.getPrimitiveType(typeDetails);
-        if (result) {
-            return result;
+        const primitiveType = this.getPrimitiveType(typeDetails);
+        if (primitiveType) {
+            this.registerInferenceRules(typeDetails, primitiveType);
+            return primitiveType;
         }
         return this.createPrimitiveType(typeDetails);
     }
@@ -121,7 +122,13 @@ export class PrimitiveKind implements Kind {
         const primitiveType = new PrimitiveType(this, this.calculateIdentifier(typeDetails));
         this.services.graph.addNode(primitiveType);
 
-        // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
+        this.registerInferenceRules(typeDetails, primitiveType);
+
+        return primitiveType;
+    }
+
+    /** Register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small). */
+    protected registerInferenceRules(typeDetails: PrimitiveTypeDetails, primitiveType: PrimitiveType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
             this.services.inference.addInferenceRule((domainElement, _typir) => {
@@ -131,10 +138,8 @@ export class PrimitiveKind implements Kind {
                     }
                 }
                 return InferenceRuleNotApplicable;
-            });
+            }, primitiveType);
         }
-
-        return primitiveType;
     }
 
     calculateIdentifier(typeDetails: PrimitiveTypeDetails): string {

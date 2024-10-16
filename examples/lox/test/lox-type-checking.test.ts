@@ -6,12 +6,15 @@
 
 import { EmptyFileSystem } from 'langium';
 import { parseDocument } from 'langium/test';
-import { describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
 import { DiagnosticSeverity } from 'vscode-languageserver-types';
 import { createLoxServices } from '../src/language/lox-module.js';
+import { deleteAllDocuments } from 'typir-langium';
 
 const loxServices = createLoxServices(EmptyFileSystem).Lox;
+
+afterEach(async () => await deleteAllDocuments(loxServices));
 
 describe('Explicitly test type checking for LOX', () => {
 
@@ -41,6 +44,15 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('var myResult: boolean; myResult = 2 < 3;', 0);
     });
 
+    test('overloaded operator "+"', async () => {
+        await validate('var myResult: number = 1 + 2;', 0);
+        await validate('var myResult: string = "a" + "b";', 0);
+        await validate('var myResult: string = "a" + 2;', 0);
+        await validate('var myResult: string = 1 + "b";', 0);
+        await validate('var myResult: string = true + "b";', 1);
+        await validate('var myResult: string = "a" + false;', 1);
+    });
+
     test('boolean in conditions', async () => {
         await validate('if ( true ) {}', 0);
         await validate('if ( 3 ) {}', 1);
@@ -52,24 +64,24 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('var myVar : void;', 1);
     });
 
-    test('function: return value and return type', async () => {
-        await validate('fun myFunction() : boolean { return true; }', 0);
-        await validate('fun myFunction() : boolean { return 2; }', 1);
-        await validate('fun myFunction() : number { return 2; }', 0);
-        await validate('fun myFunction() : number { return true; }', 1);
+    test('function: return value and return type must match', async () => {
+        await validate('fun myFunction1() : boolean { return true; }', 0);
+        await validate('fun myFunction2() : boolean { return 2; }', 1);
+        await validate('fun myFunction3() : number { return 2; }', 0);
+        await validate('fun myFunction4() : number { return true; }', 1);
     });
 
     test('overloaded function: different return types are not enough', async () => {
         await validate(`
             fun myFunction() : boolean { return true; }
             fun myFunction() : number { return 2; }
-        `, 1);
+        `, 2);
     });
     test('overloaded function: different parameter names are not enough', async () => {
         await validate(`
             fun myFunction(input: boolean) : boolean { return true; }
             fun myFunction(other: boolean) : boolean { return true; }
-        `, 1);
+        `, 2);
     });
     test('overloaded function: but different parameter types are fine', async () => {
         await validate(`
@@ -96,20 +108,26 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('var myVar : number = 2 + (2 * false);', 1);
     });
 
-    test('Class literals', async () => {
-        await validate(`
-            class MyClass { name: string age: number }
-            var v1 = MyClass(); // constructor call
-        `, 0);
-        await validate(`
-            class MyClass { name: string age: number }
-            var v1: MyClass = MyClass(); // constructor call
-        `, 0);
-        await validate(`
-            class MyClass1 {}
-            class MyClass2 {}
-            var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
-        `, 0, 1);
+    describe('Class literals', () => {
+        test('Class literals 1', async () => {
+            await validate(`
+                class MyClass { name: string age: number }
+                var v1 = MyClass(); // constructor call
+            `, 0);
+        });
+        test('Class literals 2', async () => {
+            await validate(`
+                class MyClass { name: string age: number }
+                var v1: MyClass = MyClass(); // constructor call
+            `, 0);
+        });
+        test('Class literals 3', async () => {
+            await validate(`
+                class MyClass1 {}
+                class MyClass2 {}
+                var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
+            `, 0, 1);
+        });
     });
 
     test('Class inheritance for assignments', async () => {
@@ -125,13 +143,13 @@ describe('Explicitly test type checking for LOX', () => {
         `, 1);
     });
 
-    test.fails('Class inheritance and the order of type definitions', async () => {
+    test('Class inheritance and the order of type definitions', async () => {
         // the "normal" case: 1st super class, 2nd sub class
         await validate(`
             class MyClass1 {}
             class MyClass2 < MyClass1 {}
         `, 0);
-        // switching the order of super and sub class works in Langium, but not in Typir at the moment
+        // switching the order of super and sub class works in Langium, but not in Typir at the moment, TODO warum nicht mehr??
         await validate(`
             class MyClass2 < MyClass1 {}
             class MyClass1 {}
@@ -151,6 +169,18 @@ describe('Explicitly test type checking for LOX', () => {
             v1.name = 42;
             v1.age = "Bob";
         `, 2);
+    });
+
+    test('Classes must be unique by name', async () => {
+        await validate(`
+            class MyClass1 { }
+            class MyClass1 { }
+        `, 2);
+        await validate(`
+            class MyClass2 { }
+            class MyClass2 { }
+            class MyClass2 { }
+        `, 3);
     });
 
 });

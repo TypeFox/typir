@@ -175,9 +175,10 @@ export class FixedParameterKind implements Kind {
     }
 
     getOrCreateFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
-        const result = this.getFixedParameterType(typeDetails);
-        if (result) {
-            return result;
+        const typeWithParameters = this.getFixedParameterType(typeDetails);
+        if (typeWithParameters) {
+            this.registerInferenceRules(typeDetails, typeWithParameters);
+            return typeWithParameters;
         }
         return this.createFixedParameterType(typeDetails);
     }
@@ -190,7 +191,13 @@ export class FixedParameterKind implements Kind {
         const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), ...toArray(typeDetails.parameterTypes));
         this.services.graph.addNode(typeWithParameters);
 
+        this.registerInferenceRules(typeDetails, typeWithParameters);
+
         return typeWithParameters;
+    }
+
+    protected registerInferenceRules(_typeDetails: FixedParameterTypeDetails, _typeWithParameters: FixedParameterType): void {
+        // TODO
     }
 
     calculateIdentifier(typeDetails: FixedParameterTypeDetails): string {

@@ -6,7 +6,7 @@
     "lib": ["ESNext", "WebWorker"]
   },
   "references": [{
-      "path": "../../packages/typir/tsconfig.src.json"
+    "path": "../../packages/typir-langium/tsconfig.src.json"
   }],
   "include": [
     "src/**/*"
