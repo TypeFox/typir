@@ -223,6 +223,17 @@ describe('Explicitly test type checking for LOX', () => {
         var v2: number = v1.method1(true);
     `, 1));
 
+    test('Class methods: methods are not distinguishable', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return 123;
+            }
+            method1(another: number): boolean {
+                return true;
+            }
+        }
+    `, 2)); // both methods need to be marked
+
 });
 
 describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {

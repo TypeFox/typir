@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation } from 'typir';
+import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, FieldMember, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
@@ -188,11 +188,14 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             }
         );
 
-        // validate unique declarations
-        this.typir.validation.collector.addValidationRulesWithBeforeAndAfter(
-            new UniqueFunctionValidation(this.typir, isFunctionDeclaration),
-            new UniqueClassValidation(this.typir, isClass),
-        );
+        // check for unique function declarations
+        this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
+        // check for unique class declarations
+        this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueClassValidation(this.typir, isClass));
+        // check for unique method declarations
+        this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueMethodValidation(this.typir,
+            (node) => isMethodMember(node), // MethodMembers could have other $containers?
+            (method, _type) => method.$container));
     }
 
     onNewAstNode(node: AstNode): void {

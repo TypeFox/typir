@@ -14,7 +14,7 @@ import { TypirServices } from '../typir.js';
 import { TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
 import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../utils/utils.js';
-import { CreateFunctionTypeDetails, FunctionKind, FunctionKindName, FunctionType, isFunctionKind } from './function-kind.js';
+import { CreateFunctionTypeDetails, FunctionKind, FunctionKindName, FunctionType, isFunctionKind, isFunctionType } from './function-kind.js';
 import { Kind, isKind } from './kind.js';
 
 export class ClassType extends Type {
@@ -584,6 +584,83 @@ export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
                         domainElement: clas,
                         severity: 'error',
                         message: `Declared classes need to be unique (${key}).`,
+                    });
+                }
+            }
+        }
+
+        this.foundDeclarations.clear();
+        return result;
+    }
+}
+
+/**
+ * Predefined validation to produce errors, if inside a class the same method is declared more than once.
+ */
+export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter {
+    protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
+    protected readonly services: TypirServices;
+    /** Determines domain elements which represent declared methods, improves performance a lot. */
+    protected readonly isMethodDeclaration: (domainElement: unknown) => domainElement is T;
+    /** Determines the corresponding domain element of the class declaration, so that Typir can infer its ClassType */
+    protected readonly getClassOfMethod: (domainElement: T, methodType: FunctionType) => unknown;
+
+    constructor(services: TypirServices,
+        isMethodDeclaration: (domainElement: unknown) => domainElement is T,
+        getClassOfMethod: (domainElement: T, methodType: FunctionType) => unknown) {
+        this.services = services;
+        this.isMethodDeclaration = isMethodDeclaration;
+        this.getClassOfMethod = getClassOfMethod;
+    }
+
+    beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        this.foundDeclarations.clear();
+        return [];
+    }
+
+    validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
+        if (this.isMethodDeclaration(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
+            const methodType = this.services.inference.inferType(domainElement);
+            if (isFunctionType(methodType)) {
+                const classDeclaration = this.getClassOfMethod(domainElement, methodType);
+                const classType = this.services.inference.inferType(classDeclaration);
+                if (isClassType(classType)) {
+                    const key = this.calculateMethodKey(classType, methodType);
+                    let entries = this.foundDeclarations.get(key);
+                    if (!entries) {
+                        entries = [];
+                        this.foundDeclarations.set(key, entries);
+                    }
+                    entries.push(domainElement);
+                }
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Calculates a key for a method which encodes its unique properties, i.e. duplicate methods have the same key.
+     * Additionally, the class of the method needs to be represented in the key as well.
+     * This key is used to identify duplicated methods.
+     * Override this method to change the properties which make a method unique.
+     * @param clas the current class type
+     * @param func the current function type
+     * @returns a string key
+     */
+    protected calculateMethodKey(clas: ClassType, func: FunctionType): string {
+        return `${clas.identifier}.${func.functionName}(${func.getInputs().map(param => param.type.identifier)})`;
+    }
+
+    afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        const result: ValidationProblem[] = [];
+        for (const [key, methods] of this.foundDeclarations.entries()) {
+            if (methods.length >= 2) {
+                for (const method of methods) {
+                    result.push({
+                        $problem: ValidationProblem,
+                        domainElement: method,
+                        severity: 'error',
+                        message: `Declared methods need to be unique (${key}).`,
                     });
                 }
             }
