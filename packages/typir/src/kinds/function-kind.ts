@@ -275,7 +275,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
         };
 
         // register Validations for input arguments of function calls (must be done here to support overloaded functions)
-        this.services.validation.collector.addValidationRules(
+        this.services.validation.collector.addValidationRule(
             (domainElement, typir) => {
                 const resultAll: ValidationProblem[] = [];
                 for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {

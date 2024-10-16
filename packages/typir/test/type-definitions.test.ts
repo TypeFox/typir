@@ -41,14 +41,18 @@ describe('Tests for Typir', () => {
                 { name: 'firstName', type: typeString },
                 { name: 'lastName', type: typeOneOrTwoStrings },
                 { name: 'age', type: typeInt }
-            ]});
+            ],
+            methods: [],
+        });
         console.log(typePerson.getUserRepresentation());
         const typeStudent = classKind.createClassType({
             className: 'Student',
             superClasses: typePerson, // a Student is a special Person
             fields: [
                 { name: 'studentNumber', type: typeInt }
-            ]});
+            ],
+            methods: []
+        });
 
         // create some more types
         const typeListInt = listKind.createFixedParameterType({ parameterTypes: typeInt });

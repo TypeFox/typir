@@ -124,7 +124,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         });
 
         // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
-        this.typir.validation.collector.addValidationRules(
+        this.typir.validation.collector.addValidationRule(
             (node: unknown, typir: TypirServices) => {
                 if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
                     return typir.validation.constraints.ensureNodeIsAssignable(node.condition, typeBool,
@@ -158,7 +158,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         );
 
         // check for unique function declarations
-        this.typir.validation.collector.addValidationRulesWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
+        this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
     }
 
     onNewAstNode(domainElement: AstNode): void {

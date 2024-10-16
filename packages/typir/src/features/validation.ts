@@ -4,6 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeEdge } from '../graph/type-edge.js';
+import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
@@ -145,51 +147,101 @@ export interface ValidationCollector {
     validate(domainElement: unknown): ValidationProblem[];
     validateAfter(domainRoot: unknown): ValidationProblem[];
 
-    addValidationRules(...rules: ValidationRule[]): void;
-    addValidationRulesWithBeforeAndAfter(...rules: ValidationRuleWithBeforeAfter[]): void;
+    /**
+     * Registers a validation rule.
+     * @param rule a new validation rule
+     * @param boundToType an optional type, if the new validation rule is dedicated for exactly this type.
+     * If the given type is removed from the type system, this rule will be automatically removed as well.
+     */
+    addValidationRule(rule: ValidationRule, boundToType?: Type): void;
+    /**
+     * Registers a validation rule which will be called once before and once after the whole validation.
+     * @param rule a new validation rule
+     * @param boundToType an optional type, if the new validation rule is dedicated for exactly this type.
+     * If the given type is removed from the type system, this rule will be automatically removed as well.
+     */
+    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void;
 }
 
-export class DefaultValidationCollector implements ValidationCollector {
+export class DefaultValidationCollector implements ValidationCollector, TypeGraphListener {
     protected readonly services: TypirServices;
-    readonly validationRules: ValidationRule[] = [];
-    readonly validationRulesBeforeAfter: ValidationRuleWithBeforeAfter[] = [];
+    protected readonly validationRules: Map<string, ValidationRule[]> = new Map(); // type identifier (otherwise '') -> validation rules
+    protected readonly validationRulesBeforeAfter: Map<string, ValidationRuleWithBeforeAfter[]> = new Map(); // type identifier (otherwise '') -> validation rules
 
     constructor(services: TypirServices) {
         this.services = services;
+        this.services.graph.addListener(this);
     }
 
     validateBefore(domainRoot: unknown): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
-        for (const rule of this.validationRulesBeforeAfter) {
-            problems.push(...rule.beforeValidation(domainRoot, this.services));
+        for (const rules of this.validationRulesBeforeAfter.values()) {
+            for (const rule of rules) {
+                problems.push(...rule.beforeValidation(domainRoot, this.services));
+            }
         }
         return problems;
     }
 
     validate(domainElement: unknown): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
-        for (const rule of this.validationRules) {
-            problems.push(...rule(domainElement, this.services));
+        for (const rules of this.validationRules.values()) {
+            for (const rule of rules) {
+                problems.push(...rule(domainElement, this.services));
+            }
         }
-        for (const rule of this.validationRulesBeforeAfter) {
-            problems.push(...rule.validation(domainElement, this.services));
+        for (const rules of this.validationRulesBeforeAfter.values()) {
+            for (const rule of rules) {
+                problems.push(...rule.validation(domainElement, this.services));
+            }
         }
         return problems;
     }
 
     validateAfter(domainRoot: unknown): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
-        for (const rule of this.validationRulesBeforeAfter) {
-            problems.push(...rule.afterValidation(domainRoot, this.services));
+        for (const rules of this.validationRulesBeforeAfter.values()) {
+            for (const rule of rules) {
+                problems.push(...rule.afterValidation(domainRoot, this.services));
+            }
         }
         return problems;
     }
 
-    addValidationRules(...rules: ValidationRule[]): void {
-        this.validationRules.push(...rules);
+    addValidationRule(rule: ValidationRule, boundToType?: Type): void {
+        const key = boundToType?.identifier ?? '';
+        let rules = this.validationRules.get(key);
+        if (!rules) {
+            rules = [];
+            this.validationRules.set(key, rules);
+        }
+        rules.push(rule);
     }
 
-    addValidationRulesWithBeforeAndAfter(...rules: ValidationRuleWithBeforeAfter[]): void {
-        this.validationRulesBeforeAfter.push(...rules);
+    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void {
+        const key = boundToType?.identifier ?? '';
+        let rules = this.validationRulesBeforeAfter.get(key);
+        if (!rules) {
+            rules = [];
+            this.validationRulesBeforeAfter.set(key, rules);
+        }
+        rules.push(rule);
+    }
+
+
+    /* Get informed about deleted types in order to remove validation rules which are bound to them. */
+
+    addedType(_newType: Type): void {
+        // do nothing
+    }
+    removedType(type: Type): void {
+        this.validationRules.delete(type.identifier);
+        this.validationRulesBeforeAfter.delete(type.identifier);
+    }
+    addedEdge(_edge: TypeEdge): void {
+        // do nothing
+    }
+    removedEdge(_edge: TypeEdge): void {
+        // do nothing
     }
 }

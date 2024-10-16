@@ -148,7 +148,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         });
 
         // some explicit validations for typing issues with Typir (replaces corresponding functions in the OxValidator!)
-        this.typir.validation.collector.addValidationRules(
+        this.typir.validation.collector.addValidationRule(
             (node: unknown, typir: TypirServices) => {
                 if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
                     return typir.validation.constraints.ensureNodeIsAssignable(node.condition, typeBool,
