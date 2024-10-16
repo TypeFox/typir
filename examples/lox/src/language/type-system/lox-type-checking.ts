@@ -119,7 +119,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     return InferenceRuleNotApplicable!; // TODO
                 } else if (isVariableDeclaration(ref)) {
                     // use variables inside expressions!
-                    return ref.type!;
+                    return ref; // infer the Typir type from the variable, see the case below
                 } else if (isParameter(ref)) {
                     // use parameters inside expressions
                     return ref.type;
