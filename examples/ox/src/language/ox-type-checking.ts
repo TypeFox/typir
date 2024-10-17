@@ -9,7 +9,7 @@ import { LangiumSharedServices } from 'langium/lsp';
 import { FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PrimitiveKind, TypirServices, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
-import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export class OxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: TypirServices;
@@ -99,7 +99,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 const ref = domainElement.element.ref;
                 if (isVariableDeclaration(ref)) {
                     // use variables inside expressions!
-                    return ref.type;
+                    return ref;
                 } else if (isParameter(ref)) {
                     // use parameters inside expressions
                     return ref.type;
@@ -110,6 +110,18 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                     return InferenceRuleNotApplicable;
                 } else {
                     assertUnreachable(ref);
+                }
+            }
+            // ... variable declarations
+            if (isVariableDeclaration(domainElement)) {
+                if (domainElement.type) {
+                    // the user declared this variable with a type
+                    return domainElement.type;
+                } else if (domainElement.value) {
+                    // the didn't declared a type for this variable => do type inference of the assigned value instead!
+                    return domainElement.value;
+                } else {
+                    return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
                 }
             }
             return InferenceRuleNotApplicable;
