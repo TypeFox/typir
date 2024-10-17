@@ -108,6 +108,62 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('var myVar : number = 2 + (2 * false);', 1);
     });
 
+    test('Variables without explicit type: assignment', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            max = min;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign expression to var without type', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            var sum = min + max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign expression to var with type', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            var sum : number = min + max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign var again with expression of overloaded operator +', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            max = min + max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign var again with expression of overloaded operator -', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            max = min - max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign var again with expression of not overloaded operator *', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            max = min * max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: used in function', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            var average = (min + max) / 2;
+        `, 0);
+    });
+
     describe('Class literals', () => {
         test('Class literals 1', async () => {
             await validate(`
