@@ -126,14 +126,6 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
             }
             return InferenceRuleNotApplicable;
         });
-        // it is up to the user of Typir, how to structure the inference rules!
-        this.typir.inference.addInferenceRule((domainElement, _typir) => {
-            // ... and for variable declarations
-            if (isVariableDeclaration(domainElement)) {
-                return domainElement.type;
-            }
-            return InferenceRuleNotApplicable;
-        });
 
         // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
         this.typir.validation.collector.addValidationRule(
