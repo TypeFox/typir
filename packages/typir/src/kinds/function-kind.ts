@@ -54,7 +54,7 @@ export class FunctionType extends Type {
     }
 
     override getName(): string {
-        return `${this.getSimpleFunctionName}`;
+        return `${this.getSimpleFunctionName()}`;
     }
 
     override getUserRepresentation(): string {
