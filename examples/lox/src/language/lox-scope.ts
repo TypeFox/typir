@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { DefaultScopeProvider, EMPTY_SCOPE, AstUtils, ReferenceInfo, Scope, LangiumCoreServices } from "langium";
-import { Class, isClass, MemberCall } from "./generated/ast.js";
-import { isClassType } from "./type-system/descriptions.js";
-import { getClassChain, inferType } from "./type-system/infer.js";
+import { DefaultScopeProvider, EMPTY_SCOPE, AstUtils, ReferenceInfo, Scope, LangiumCoreServices } from 'langium';
+import { Class, isClass, MemberCall } from './generated/ast.js';
+import { isClassType } from './type-system/descriptions.js';
+import { getClassChain, inferType } from './type-system/infer.js';
 
 export class LoxScopeProvider extends DefaultScopeProvider {
 

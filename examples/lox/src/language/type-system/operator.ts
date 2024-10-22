@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeDescription } from "./descriptions.js";
+import { TypeDescription } from './descriptions.js';
 
 export function isLegalOperation(operator: string, left: TypeDescription, right?: TypeDescription): boolean {
     if (operator === '+') {
@@ -12,7 +12,7 @@ export function isLegalOperation(operator: string, left: TypeDescription, right?
             return left.$type === 'number';
         }
         return (left.$type === 'number' || left.$type === 'string')
-            && (right.$type === 'number' || right.$type === 'string')
+            && (right.$type === 'number' || right.$type === 'string');
     } else if (['-', '/', '*', '%', '<', '<=', '>', '>='].includes(operator)) {
         if (!right) {
             return left.$type === 'number';

@@ -6,11 +6,12 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PartialTypirServices, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation } from 'typir';
+import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
-import { BinaryExpression, FieldMember, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 export class LoxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: TypirServices;
     protected readonly primitiveKind: PrimitiveKind;
@@ -29,7 +30,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             typing: 'Nominal',
         });
         this.anyKind = new TopKind(this.typir);
-            this.operators = this.typir.operators;
+        this.operators = this.typir.operators;
     }
 
     onInitialize(): void {
@@ -114,9 +115,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 if (isClass(ref)) {
                     return InferenceRuleNotApplicable; // not required anymore
                 } else if (isClassMember(ref)) {
-                    return InferenceRuleNotApplicable!; // TODO
+                    return InferenceRuleNotApplicable; // TODO
                 } else if (isMethodMember(ref)) {
-                    return InferenceRuleNotApplicable!; // TODO
+                    return InferenceRuleNotApplicable; // TODO
                 } else if (isVariableDeclaration(ref)) {
                     // use variables inside expressions!
                     return ref; // infer the Typir type from the variable, see the case below
@@ -203,8 +204,6 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
         if (isFunctionDeclaration(node)) {
-            const functionName = node.name;
-            // define function type
             this.functionKind.getOrCreateFunctionType(createFunctionDetails(node)); // this logic is reused for methods of classes, since the LOX grammar defines them very similar
         }
 

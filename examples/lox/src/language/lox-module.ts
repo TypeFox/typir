@@ -4,14 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { DefaultSharedCoreModuleContext, LangiumCoreServices, LangiumSharedCoreServices, Module, PartialLangiumCoreServices, createDefaultCoreModule, createDefaultSharedCoreModule, inject } from 'langium';
+import { Module, PartialLangiumCoreServices, createDefaultCoreModule, inject } from 'langium';
+import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
+import { LangiumServicesForTypirBinding, createLangiumModuleForTypirBinding, initializeLangiumTypirServices } from 'typir-langium';
 import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module.js';
 import { LoxScopeProvider } from './lox-scope.js';
 import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
-import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
-import { createLangiumModuleForTypirBinding, initializeLangiumTypirServices, LangiumServicesForTypirBinding } from 'typir-langium';
 import { createLoxTypirModule } from './type-system/lox-type-checking.js';
-import { registerValidationChecks } from 'langium/grammar';
 
 /**
  * Declaration of custom services - add your own service classes here.

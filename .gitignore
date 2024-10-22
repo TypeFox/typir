@@ -3,9 +3,10 @@
 .vscode-test/
 coverage/
 dist/
+bin/
 lib/
 out/
 node_modules/
 *.vsix
 *.tsbuildinfo
-generated/
+/**/generated/

@@ -3,8 +3,8 @@
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
-import { isClassType, isFunctionType, isNilType, TypeDescription } from "./descriptions.js";
-import { getClassChain } from "./infer.js";
+import { isClassType, isFunctionType, isNilType, TypeDescription } from './descriptions.js';
+import { getClassChain } from './infer.js';
 
 export function isAssignable(from: TypeDescription, to: TypeDescription): boolean {
     if (isClassType(from)) {

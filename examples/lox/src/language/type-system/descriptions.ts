@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode } from "langium";
-import { BooleanLiteral, Class, NumberLiteral, StringLiteral } from "../generated/ast.js"
+import { AstNode } from 'langium';
+import { BooleanLiteral, Class, NumberLiteral, StringLiteral } from '../generated/ast.js';
 
 export type TypeDescription =
     | NilTypeDescription
@@ -18,83 +18,83 @@ export type TypeDescription =
     | ErrorType;
 
 export interface NilTypeDescription {
-    readonly $type: "nil"
+    readonly $type: 'nil'
 }
 
 export function createNilType(): NilTypeDescription {
     return {
-        $type: "nil"
+        $type: 'nil'
     };
 }
 
 export function isNilType(item: TypeDescription): item is NilTypeDescription {
-    return item.$type === "nil";
+    return item.$type === 'nil';
 }
 
 export interface VoidTypeDescription {
-    readonly $type: "void"
+    readonly $type: 'void'
 }
 
 export function createVoidType(): VoidTypeDescription {
     return {
-        $type: "void"
-    }
+        $type: 'void'
+    };
 }
 
 export function isVoidType(item: TypeDescription): item is VoidTypeDescription {
-    return item.$type === "void";
+    return item.$type === 'void';
 }
 
 export interface BooleanTypeDescription {
-    readonly $type: "boolean"
+    readonly $type: 'boolean'
     readonly literal?: BooleanLiteral
 }
 
 export function createBooleanType(literal?: BooleanLiteral): BooleanTypeDescription {
     return {
-        $type: "boolean",
+        $type: 'boolean',
         literal
     };
 }
 
 export function isBooleanType(item: TypeDescription): item is BooleanTypeDescription {
-    return item.$type === "boolean";
+    return item.$type === 'boolean';
 }
 
 export interface StringTypeDescription {
-    readonly $type: "string"
+    readonly $type: 'string'
     readonly literal?: StringLiteral
 }
 
 export function createStringType(literal?: StringLiteral): StringTypeDescription {
     return {
-        $type: "string",
+        $type: 'string',
         literal
     };
 }
 
 export function isStringType(item: TypeDescription): item is StringTypeDescription {
-    return item.$type === "string";
+    return item.$type === 'string';
 }
 
 export interface NumberTypeDescription {
-    readonly $type: "number",
+    readonly $type: 'number',
     readonly literal?: NumberLiteral
 }
 
 export function createNumberType(literal?: NumberLiteral): NumberTypeDescription {
     return {
-        $type: "number",
+        $type: 'number',
         literal
     };
 }
 
 export function isNumberType(item: TypeDescription): item is NumberTypeDescription {
-    return item.$type === "number";
+    return item.$type === 'number';
 }
 
 export interface FunctionTypeDescription {
-    readonly $type: "function"
+    readonly $type: 'function'
     readonly returnType: TypeDescription
     readonly parameters: FunctionParameter[]
 }
@@ -106,48 +106,48 @@ export interface FunctionParameter {
 
 export function createFunctionType(returnType: TypeDescription, parameters: FunctionParameter[]): FunctionTypeDescription {
     return {
-        $type: "function",
+        $type: 'function',
         parameters,
         returnType
     };
 }
 
 export function isFunctionType(item: TypeDescription): item is FunctionTypeDescription {
-    return item.$type === "function";
+    return item.$type === 'function';
 }
 
 export interface ClassTypeDescription {
-    readonly $type: "class"
+    readonly $type: 'class'
     readonly literal: Class
 }
 
 export function createClassType(literal: Class): ClassTypeDescription {
     return {
-        $type: "class",
+        $type: 'class',
         literal
     };
 }
 
 export function isClassType(item: TypeDescription): item is ClassTypeDescription {
-    return item.$type === "class";
+    return item.$type === 'class';
 }
 
 export interface ErrorType {
-    readonly $type: "error"
+    readonly $type: 'error'
     readonly source?: AstNode
     readonly message: string
 }
 
 export function createErrorType(message: string, source?: AstNode): ErrorType {
     return {
-        $type: "error",
+        $type: 'error',
         message,
         source
     };
 }
 
 export function isErrorType(item: TypeDescription): item is ErrorType {
-    return item.$type === "error";
+    return item.$type === 'error';
 }
 
 export function typeToString(item: TypeDescription): string {

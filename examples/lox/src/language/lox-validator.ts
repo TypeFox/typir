@@ -4,12 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, ValidationAcceptor, ValidationChecks, ValidationRegistry } from 'langium';
-import { BinaryExpression, LoxAstType, VariableDeclaration } from './generated/ast.js';
+import { ValidationAcceptor, ValidationChecks, ValidationRegistry } from 'langium';
+import { LoxAstType, VariableDeclaration } from './generated/ast.js';
 import type { LoxServices } from './lox-module.js';
-import { TypeDescription } from './type-system/descriptions.js';
-import { inferType } from './type-system/infer.js';
-import { isLegalOperation } from './type-system/operator.js';
 
 /**
  * Registry for validation checks.
@@ -19,7 +16,6 @@ export class LoxValidationRegistry extends ValidationRegistry {
         super(services);
         const validator = services.validation.LoxValidator;
         const checks: ValidationChecks<LoxAstType> = {
-            BinaryExpression: validator.checkBinaryOperationAllowed,
             VariableDeclaration: validator.checkVariableDeclaration,
         };
         this.register(checks, validator);
@@ -39,35 +35,6 @@ export class LoxValidator {
                 property: 'name'
             });
         }
-    }
-
-    checkBinaryOperationAllowed(binary: BinaryExpression, accept: ValidationAcceptor): void {
-        const map = this.getTypeCache();
-        const left = inferType(binary.left, map);
-        const right = inferType(binary.right, map);
-        if (!isLegalOperation(binary.operator, left, right)) {
-            // accept('error', `Cannot perform operation '${binary.operator}' on values of type '${typeToString(left)}' and '${typeToString(right)}'.`, {
-            //     node: binary
-            // })
-        } else if (binary.operator === '=') {
-            // if (!isAssignable(right, left)) {
-            //     accept('error', `Type '${typeToString(right)}' is not assignable to type '${typeToString(left)}'.`, {
-            //         node: binary,
-            //         property: 'right'
-            //     })
-            // }
-        } else if (['==', '!='].includes(binary.operator)) {
-            // if (!isAssignable(right, left)) {
-            //     accept('warning', `This comparison will always return '${binary.operator === '==' ? 'false' : 'true'}' as types '${typeToString(left)}' and '${typeToString(right)}' are not compatible.`, {
-            //         node: binary,
-            //         property: 'operator'
-            //     });
-            // }
-        }
-    }
-
-    private getTypeCache(): Map<AstNode, TypeDescription> {
-        return new Map();
     }
 
 }
