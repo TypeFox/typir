@@ -9,7 +9,7 @@ import { LangiumSharedServices } from 'langium/lsp';
 import { FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PrimitiveKind, TypirServices, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
-import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export class OxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: TypirServices;
@@ -104,8 +104,8 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                     // use parameters inside expressions
                     return ref.type;
                 } else if (isFunctionDeclaration(ref)) {
-                    // there is already an inference rule for function calls (see above for FunctionDeclaration)!
-                    return 'N/A'; // as an alternative: use 'InferenceRuleNotApplicable' instead, what should we recommend?
+                    // there is already an inference rule for function calls (see below for FunctionDeclaration)!
+                    return InferenceRuleNotApplicable;
                 } else if (ref === undefined) {
                     return InferenceRuleNotApplicable;
                 } else {
