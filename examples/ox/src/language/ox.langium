@@ -4,19 +4,19 @@ entry OxProgram:
     elements+=OxElement*;
 
 OxElement:
-    Block | 
+    Block |
     IfStatement |
     WhileStatement |
     ForStatement |
     FunctionDeclaration |
-    VariableDeclaration ';' | 
+    VariableDeclaration ';' |
     AssignmentStatement ';' |
-    PrintStatement ';' | 
-    ReturnStatement ';' | 
+    PrintStatement ';' |
+    ReturnStatement ';' |
     Expression ';'
 ;
 
-IfStatement: 
+IfStatement:
     'if' '(' condition=Expression ')' block=Block
     ('else' elseBlock=Block)?
 ;
