@@ -12,6 +12,10 @@
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}/examples/ox",
                 "${workspaceFolder}/examples/ox/examples"
+            ],
+            "sourceMaps": true,
+            "outFiles": [
+              "${workspaceFolder}/examples/ox/out/**/*.js"
             ]
         },
         {
@@ -21,6 +25,10 @@
             "args": [
                 "--extensionDevelopmentPath=${workspaceFolder}/examples/lox",
                 "${workspaceFolder}/examples/lox/examples"
+            ],
+            "sourceMaps": true,
+            "outFiles": [
+              "${workspaceFolder}/examples/lox/out/**/*.js"
             ]
         },
         {

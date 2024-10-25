@@ -317,6 +317,81 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
     });
 });
 
+describe('LOX', () => {
+    test('complete with difficult order of classes', async () => await validate(`
+        class SuperClass {
+            a: number
+        }
+
+        class SubClass < SuperClass {
+            // Nested class
+            nested: NestedClass
+        }
+
+        class NestedClass {
+            field: string
+            method(): string {
+                return "execute this";
+            }
+        }
+
+        // Constructor call
+        var x = SubClass();
+        // Assigning nil to a class type
+        var nilTest = SubClass();
+        nilTest = nil;
+
+        // Accessing members of a class
+        var value = x.nested.method() + "wasd";
+        print value;
+
+        // Accessing members of a super class
+        var superValue = x.a;
+        print superValue;
+
+        // Assigning a subclass to a super class
+        var superType: SuperClass = x;
+        print superType.a;
+    `, 0));
+
+    test('complete with easy order of classes', async () => await validate(`
+        class SuperClass {
+            a: number
+        }
+
+        class NestedClass {
+            field: string
+            method(): string {
+                return "execute this";
+            }
+        }
+
+        class SubClass < SuperClass {
+            // Nested class
+            nested: NestedClass
+        }
+
+
+        // Constructor call
+        var x = SubClass();
+        // Assigning nil to a class type
+        var nilTest = SubClass();
+        nilTest = nil;
+
+        // Accessing members of a class
+        var value = x.nested.method() + "wasd";
+        print value;
+
+        // Accessing members of a super class
+        var superValue = x.a;
+        print superValue;
+
+        // Assigning a subclass to a super class
+        var superType: SuperClass = x;
+        print superType.a;
+    `, 0));
+});
+
 async function validate(lox: string, errors: number, warnings: number = 0) {
     const document = await parseDocument(loxServices, lox.trim());
     const diagnostics: Diagnostic[] = await loxServices.validation.DocumentValidator.validateDocument(document);

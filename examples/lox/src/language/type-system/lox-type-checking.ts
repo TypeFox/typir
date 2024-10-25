@@ -106,7 +106,6 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         this.operators.createUnaryOperator({ name: '!', signature: { operand: typeBool, return: typeBool }, inferenceRule: unaryInferenceRule });
         this.operators.createUnaryOperator({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
 
-
         // additional inference rules for ...
         this.typir.inference.addInferenceRule((domainElement: unknown) => {
             // ... member calls
@@ -166,7 +165,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 }
                 if (isBinaryExpression(node) && node.operator === '=') {
                     return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{
-                        message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left}' with type '${expected.name}'`,
+                        message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left.$cstNode?.text}' with type '${expected.name}'`,
                         domainProperty: 'value' });
                 }
                 if (isBinaryExpression(node) && (node.operator === '==' || node.operator === '!=')) {
@@ -219,7 +218,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         // class types (nominal typing):
         if (isClass(node)) {
             const className = node.name;
-            this.classKind.getOrCreateClassType({
+            const classType = this.classKind.getOrCreateClassType({
                 className,
                 superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
                 fields: node.members
@@ -248,6 +247,11 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element!.ref.$container === node
                     ? domainElement.element!.ref.name : 'N/A', // as an alternative, use 'InferenceRuleNotApplicable' instead, what should we recommend?
             });
+
+            // TODO conversion 'nil' to classes ('anyClass')!
+            // any class !== all classes; here we want to say, that 'nil' is assignable to each concrete Class type!
+            // this.typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateAnyClassType({}), 'IMPLICIT_EXPLICIT');
+            this.typir.conversion.markAsConvertible(this.primitiveKind.getPrimitiveType({ primitiveName: 'nil' })!, classType, 'IMPLICIT_EXPLICIT');
         }
     }
 }

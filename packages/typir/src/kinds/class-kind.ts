@@ -326,6 +326,7 @@ export type InferClassLiteral<T = unknown> = {
     inputValuesForFields: (domainElement: T) => Map<string, unknown>; // simple field name (including inherited fields) => value for this field! TODO implement that, [] for nominal typing
 };
 
+
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
  * Fields have exactly one type and no multiplicity (which can be realized with a type of kind 'MultiplicityKind').
@@ -519,6 +520,16 @@ export class ClassKind implements Kind {
         return isFunctionKind(kind) ? kind : new FunctionKind(this.services);
     }
 
+    getOrCreateAnyClassType(typeDetails: AnyClassTypeDetails): AnyClassType {
+        return this.getAnyClassKind().getOrCreateAnyClassType(typeDetails);
+    }
+
+    getAnyClassKind(): AnyClassKind {
+        // ensure, that Typir uses the predefined 'function' kind
+        const kind = this.services.kinds.get(AnyClassKindName);
+        return isAnyClassKind(kind) ? kind : new AnyClassKind(this.services);
+    }
+
 }
 
 export function isClassKind(kind: unknown): kind is ClassKind {
@@ -669,4 +680,156 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
         this.foundDeclarations.clear();
         return result;
     }
+}
+
+
+// TODO for the review: which name is better? AnyClassType vs TopClassType?
+export class AnyClassType extends Type {
+    override readonly kind: AnyClassKind;
+
+    constructor(kind: AnyClassKind, identifier: string) {
+        super(identifier);
+        this.kind = kind;
+    }
+
+    override getName(): string {
+        return this.identifier;
+    }
+
+    override getUserRepresentation(): string {
+        return this.identifier;
+    }
+
+    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+        if (isAnyClassType(otherType)) {
+            return [];
+        } else {
+            return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
+                type1: this,
+                type2: otherType,
+                subProblems: [createKindConflict(otherType, this)],
+            }];
+        }
+    }
+
+    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
+        if (isAnyClassType(superType)) {
+            // special case by definition: AnyClassType is sub-type of AnyClassType
+            return [];
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType,
+                subType: this,
+                subProblems: [createKindConflict(superType, this)],
+            }];
+        }
+    }
+
+    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
+        // an AnyClassType is the super type of all ClassTypes!
+        if (isClassType(subType)) {
+            return [];
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType: this,
+                subType,
+                subProblems: [createKindConflict(this, subType)],
+            }];
+        }
+    }
+
+}
+
+export function isAnyClassType(type: unknown): type is AnyClassType {
+    return isType(type) && isAnyClassKind(type.kind);
+}
+
+
+export interface AnyClassTypeDetails {
+    inferenceRules?: InferAnyClassType | InferAnyClassType[]
+}
+
+export type InferAnyClassType = (domainElement: unknown) => boolean;
+
+export interface AnyClassKindOptions {
+    name: string;
+}
+
+export const AnyClassKindName = 'AnyClassKind';
+
+export class AnyClassKind implements Kind {
+    readonly $name: 'AnyClassKind';
+    readonly services: TypirServices;
+    readonly options: AnyClassKindOptions;
+    protected instance: AnyClassType | undefined;
+
+    constructor(services: TypirServices, options?: Partial<AnyClassKindOptions>) {
+        this.$name = AnyClassKindName;
+        this.services = services;
+        this.services.kinds.register(this);
+        this.options = {
+            // the default values:
+            name: 'AnyClass',
+            // the actually overriden values:
+            ...options
+        };
+    }
+
+    getAnyClassType(typeDetails: AnyClassTypeDetails): AnyClassType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.services.graph.getType(key) as AnyClassType;
+    }
+
+    getOrCreateAnyClassType(typeDetails: AnyClassTypeDetails): AnyClassType {
+        const topType = this.getAnyClassType(typeDetails);
+        if (topType) {
+            this.registerInferenceRules(typeDetails, topType);
+            return topType;
+        }
+        return this.createAnyClassType(typeDetails);
+    }
+
+    createAnyClassType(typeDetails: AnyClassTypeDetails): AnyClassType {
+        assertTrue(this.getAnyClassType(typeDetails) === undefined);
+
+        // create the top type (singleton)
+        if (this.instance) {
+            // note, that the given inference rules are ignored in this case!
+            return this.instance;
+        }
+        const topType = new AnyClassType(this, this.calculateIdentifier(typeDetails));
+        this.instance = topType;
+        this.services.graph.addNode(topType);
+
+        this.registerInferenceRules(typeDetails, topType);
+
+        return topType;
+    }
+
+    /** Register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small). */
+    protected registerInferenceRules(typeDetails: AnyClassTypeDetails, topType: AnyClassType) {
+        const rules = toArray(typeDetails.inferenceRules);
+        if (rules.length >= 1) {
+            this.services.inference.addInferenceRule((domainElement, _typir) => {
+                for (const inferenceRule of rules) {
+                    if (inferenceRule(domainElement)) {
+                        return topType;
+                    }
+                }
+                return InferenceRuleNotApplicable;
+            }, topType);
+        }
+    }
+
+    calculateIdentifier(_typeDetails: AnyClassTypeDetails): string {
+        return this.options.name;
+    }
+
+}
+
+export function isAnyClassKind(kind: unknown): kind is AnyClassKind {
+    return isKind(kind) && kind.$name === AnyClassKindName;
 }
