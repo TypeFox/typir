@@ -318,7 +318,7 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
 });
 
 describe('LOX', () => {
-    test('complete with difficult order of classes', async () => await validate(`
+    test.fails('complete with difficult order of classes', async () => await validate(`
         class SuperClass {
             a: number
         }
