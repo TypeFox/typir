@@ -318,7 +318,8 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
 });
 
 describe('LOX', () => {
-    test.fails('complete with difficult order of classes', async () => await validate(`
+    // this test case will work after having the support for cyclic type definitions, since it will solve also issues with topological order of type definitions
+    test.todo('complete with difficult order of classes', async () => await validate(`
         class SuperClass {
             a: number
         }

@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type } from '../graph/type-node.js';
-import { FUNCTION_MISSING_NAME, FunctionKind, FunctionKindName, isFunctionKind } from '../kinds/function-kind.js';
+import { FunctionKind, FunctionKindName, isFunctionKind, NO_PARAMETER_NAME } from '../kinds/function-kind.js';
 import { TypirServices } from '../typir.js';
 import { NameTypePair, Types } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
@@ -156,7 +156,7 @@ export class DefaultOperatorManager implements OperatorManager {
         // create the operator as type of kind 'function'
         const newOperatorType = functionKind.createFunctionType({
             functionName: typeDetails.name,
-            outputParameter: { name: FUNCTION_MISSING_NAME, type: typeDetails.outputType },
+            outputParameter: { name: NO_PARAMETER_NAME, type: typeDetails.outputType },
             inputParameters: typeDetails.inputParameter,
             inferenceRuleForDeclaration: undefined, // operators have no declaration in the code => no inference rule for the operator declaration!
             inferenceRuleForCalls: typeDetails.inferenceRule // but infer the operator when the operator is called!

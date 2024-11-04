@@ -520,14 +520,14 @@ export class ClassKind implements Kind {
         return isFunctionKind(kind) ? kind : new FunctionKind(this.services);
     }
 
-    getOrCreateAnyClassType(typeDetails: AnyClassTypeDetails): AnyClassType {
-        return this.getAnyClassKind().getOrCreateAnyClassType(typeDetails);
+    getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
+        return this.getTopClassKind().getOrCreateTopClassType(typeDetails);
     }
 
-    getAnyClassKind(): AnyClassKind {
-        // ensure, that Typir uses the predefined 'function' kind
-        const kind = this.services.kinds.get(AnyClassKindName);
-        return isAnyClassKind(kind) ? kind : new AnyClassKind(this.services);
+    getTopClassKind(): TopClassKind {
+        // ensure, that Typir uses the predefined 'TopClass' kind
+        const kind = this.services.kinds.get(TopClassKindName);
+        return isTopClassKind(kind) ? kind : new TopClassKind(this.services);
     }
 
 }
@@ -683,11 +683,10 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
 }
 
 
-// TODO for the review: which name is better? AnyClassType vs TopClassType?
-export class AnyClassType extends Type {
-    override readonly kind: AnyClassKind;
+export class TopClassType extends Type {
+    override readonly kind: TopClassKind;
 
-    constructor(kind: AnyClassKind, identifier: string) {
+    constructor(kind: TopClassKind, identifier: string) {
         super(identifier);
         this.kind = kind;
     }
@@ -701,7 +700,7 @@ export class AnyClassType extends Type {
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
-        if (isAnyClassType(otherType)) {
+        if (isTopClassType(otherType)) {
             return [];
         } else {
             return [<TypeEqualityProblem>{
@@ -714,8 +713,8 @@ export class AnyClassType extends Type {
     }
 
     override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isAnyClassType(superType)) {
-            // special case by definition: AnyClassType is sub-type of AnyClassType
+        if (isTopClassType(superType)) {
+            // special case by definition: TopClassType is sub-type of TopClassType
             return [];
         } else {
             return [<SubTypeProblem>{
@@ -728,7 +727,7 @@ export class AnyClassType extends Type {
     }
 
     override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
-        // an AnyClassType is the super type of all ClassTypes!
+        // an TopClassType is the super type of all ClassTypes!
         if (isClassType(subType)) {
             return [];
         } else {
@@ -743,64 +742,64 @@ export class AnyClassType extends Type {
 
 }
 
-export function isAnyClassType(type: unknown): type is AnyClassType {
-    return isType(type) && isAnyClassKind(type.kind);
+export function isTopClassType(type: unknown): type is TopClassType {
+    return isType(type) && isTopClassKind(type.kind);
 }
 
 
-export interface AnyClassTypeDetails {
-    inferenceRules?: InferAnyClassType | InferAnyClassType[]
+export interface TopClassTypeDetails {
+    inferenceRules?: InferTopClassType | InferTopClassType[]
 }
 
-export type InferAnyClassType = (domainElement: unknown) => boolean;
+export type InferTopClassType = (domainElement: unknown) => boolean;
 
-export interface AnyClassKindOptions {
+export interface TopClassKindOptions {
     name: string;
 }
 
-export const AnyClassKindName = 'AnyClassKind';
+export const TopClassKindName = 'TopClassKind';
 
-export class AnyClassKind implements Kind {
-    readonly $name: 'AnyClassKind';
+export class TopClassKind implements Kind {
+    readonly $name: 'TopClassKind';
     readonly services: TypirServices;
-    readonly options: AnyClassKindOptions;
-    protected instance: AnyClassType | undefined;
+    readonly options: TopClassKindOptions;
+    protected instance: TopClassType | undefined;
 
-    constructor(services: TypirServices, options?: Partial<AnyClassKindOptions>) {
-        this.$name = AnyClassKindName;
+    constructor(services: TypirServices, options?: Partial<TopClassKindOptions>) {
+        this.$name = TopClassKindName;
         this.services = services;
         this.services.kinds.register(this);
         this.options = {
             // the default values:
-            name: 'AnyClass',
+            name: 'TopClass',
             // the actually overriden values:
             ...options
         };
     }
 
-    getAnyClassType(typeDetails: AnyClassTypeDetails): AnyClassType | undefined {
+    getTopClassType(typeDetails: TopClassTypeDetails): TopClassType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as AnyClassType;
+        return this.services.graph.getType(key) as TopClassType;
     }
 
-    getOrCreateAnyClassType(typeDetails: AnyClassTypeDetails): AnyClassType {
-        const topType = this.getAnyClassType(typeDetails);
+    getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
+        const topType = this.getTopClassType(typeDetails);
         if (topType) {
             this.registerInferenceRules(typeDetails, topType);
             return topType;
         }
-        return this.createAnyClassType(typeDetails);
+        return this.createTopClassType(typeDetails);
     }
 
-    createAnyClassType(typeDetails: AnyClassTypeDetails): AnyClassType {
-        assertTrue(this.getAnyClassType(typeDetails) === undefined);
+    createTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
+        assertTrue(this.getTopClassType(typeDetails) === undefined);
 
         // create the top type (singleton)
         if (this.instance) {
             // note, that the given inference rules are ignored in this case!
             return this.instance;
         }
-        const topType = new AnyClassType(this, this.calculateIdentifier(typeDetails));
+        const topType = new TopClassType(this, this.calculateIdentifier(typeDetails));
         this.instance = topType;
         this.services.graph.addNode(topType);
 
@@ -810,7 +809,7 @@ export class AnyClassKind implements Kind {
     }
 
     /** Register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small). */
-    protected registerInferenceRules(typeDetails: AnyClassTypeDetails, topType: AnyClassType) {
+    protected registerInferenceRules(typeDetails: TopClassTypeDetails, topType: TopClassType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
             this.services.inference.addInferenceRule((domainElement, _typir) => {
@@ -824,12 +823,12 @@ export class AnyClassKind implements Kind {
         }
     }
 
-    calculateIdentifier(_typeDetails: AnyClassTypeDetails): string {
+    calculateIdentifier(_typeDetails: TopClassTypeDetails): string {
         return this.options.name;
     }
 
 }
 
-export function isAnyClassKind(kind: unknown): kind is AnyClassKind {
-    return isKind(kind) && kind.$name === AnyClassKindName;
+export function isTopClassKind(kind: unknown): kind is TopClassKind {
+    return isKind(kind) && kind.$name === TopClassKindName;
 }

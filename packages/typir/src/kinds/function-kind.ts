@@ -33,7 +33,7 @@ export class FunctionType extends Type {
         const outputType = typeDetails.outputParameter ? resolveTypeSelector(this.kind.services, typeDetails.outputParameter.type) : undefined;
         if (typeDetails.outputParameter) {
             assertTrue(outputType !== undefined);
-            this.kind.enforceName(typeDetails.outputParameter.name, this.kind.options.enforceOutputParameterName);
+            this.kind.enforceParameterName(typeDetails.outputParameter.name, this.kind.options.enforceOutputParameterName);
             this.outputParameter = {
                 name: typeDetails.outputParameter.name,
                 type: outputType,
@@ -45,7 +45,7 @@ export class FunctionType extends Type {
 
         // input parameters
         this.inputParameters = typeDetails.inputParameters.map(input => {
-            this.kind.enforceName(input.name, this.kind.options.enforceInputParameterNames);
+            this.kind.enforceParameterName(input.name, this.kind.options.enforceInputParameterNames);
             return <NameTypePair>{
                 name: input.name,
                 type: resolveTypeSelector(this.kind.services, input.type),
@@ -62,14 +62,14 @@ export class FunctionType extends Type {
         const simpleFunctionName = this.getSimpleFunctionName();
         // inputs
         const inputs = this.getInputs();
-        const inputsString = inputs.map(input => this.kind.getNameTypePairRepresentation(input)).join(', ');
+        const inputsString = inputs.map(input => this.kind.getParameterRepresentation(input)).join(', ');
         // output
         const output = this.getOutput();
         const outputString = output
-            ? (this.kind.hasName(output.name) ? `(${this.kind.getNameTypePairRepresentation(output)})` : output.type.getName())
+            ? (this.kind.hasParameterName(output.name) ? `(${this.kind.getParameterRepresentation(output)})` : output.type.getName())
             : undefined;
         // complete signature
-        if (this.kind.hasName(simpleFunctionName)) {
+        if (this.kind.hasFunctionName(simpleFunctionName)) {
             const outputValue = outputString ? `: ${outputString}` : '';
             return `${simpleFunctionName}(${inputsString})${outputValue}`;
         } else {
@@ -397,7 +397,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
             // no output parameter => no inference rule for calling this function
             throw new Error(`A function '${functionName}' without output parameter cannot have an inferred type, when this function is called!`);
         }
-        this.enforceName(functionName, this.options.enforceFunctionName);
+        this.enforceFunctionName(functionName, this.options.enforceFunctionName);
 
         // create the function type
         const functionType = new FunctionType(this, this.calculateIdentifier(typeDetails), typeDetails);
@@ -574,35 +574,45 @@ export class FunctionKind implements Kind, TypeGraphListener {
         // this schema allows to identify duplicated functions!
         const prefix = this.options.identifierPrefix;
         // function name
-        const functionName = this.hasName(typeDetails.functionName) ? typeDetails.functionName : '';
+        const functionName = this.hasFunctionName(typeDetails.functionName) ? typeDetails.functionName : '';
         // inputs
         const inputsString = typeDetails.inputParameters.map(input => resolveTypeSelector(this.services, input.type).getName()).join(',');
         // complete signature
         return `${prefix}-${functionName}(${inputsString})`;
     }
 
-    getNameTypePairRepresentation(pair: NameTypePair): string {
-        const typeName = pair.type.getName();
-        if (this.hasName(pair.name)) {
-            return `${pair.name}: ${typeName}`;
+    getParameterRepresentation(parameter: NameTypePair): string {
+        const typeName = parameter.type.getName();
+        if (this.hasParameterName(parameter.name)) {
+            return `${parameter.name}: ${typeName}`;
         } else {
             return typeName;
         }
     }
 
-    enforceName(name: string | undefined, enforce: boolean): void {
-        if (enforce && this.hasName(name) === false) {
-            throw new Error('a name is required');
+    enforceFunctionName(name: string | undefined, enforce: boolean): void {
+        if (enforce && this.hasFunctionName(name) === false) {
+            throw new Error('A name for the function is required.');
         }
     }
-    hasName(name: string | undefined): name is string {
-        return name !== undefined && name !== FUNCTION_MISSING_NAME;
+    hasFunctionName(name: string | undefined): name is string {
+        return name !== undefined && name !== NO_FUNCTION_NAME;
+    }
+
+    enforceParameterName(name: string | undefined, enforce: boolean): void {
+        if (enforce && this.hasParameterName(name) === false) {
+            throw new Error('A name for the parameter is required.');
+        }
+    }
+    hasParameterName(name: string | undefined): name is string {
+        return name !== undefined && name !== NO_PARAMETER_NAME;
     }
 
 }
 
-// when the name is missing (e.g. for functions or their input/output parameters), use this value instead
-export const FUNCTION_MISSING_NAME = '';
+// when the name is missing (e.g. for functions or their input/output parameters), use these values instead
+export const NO_FUNCTION_NAME = '';
+export const NO_PARAMETER_NAME = '';
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
     return isKind(kind) && kind.$name === FunctionKindName;

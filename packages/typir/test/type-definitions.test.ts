@@ -9,7 +9,7 @@ import { describe, expect, test } from 'vitest';
 import { AssignabilityProblem } from '../src/features/assignability.js';
 import { ClassKind } from '../src/kinds/class-kind.js';
 import { FixedParameterKind } from '../src/kinds/fixed-parameters-kind.js';
-import { FUNCTION_MISSING_NAME, FunctionKind } from '../src/kinds/function-kind.js';
+import { FunctionKind, NO_PARAMETER_NAME } from '../src/kinds/function-kind.js';
 import { MultiplicityKind } from '../src/kinds/multiplicity-kind.js';
 import { PrimitiveKind } from '../src/kinds/primitive-kind.js';
 import { createTypirServices } from '../src/typir.js';
@@ -60,7 +60,7 @@ describe('Tests for Typir', () => {
         const typeMapStringPerson = mapKind.createFixedParameterType({ parameterTypes: [typeString, typePerson] });
         const typeFunctionStringLength = functionKind.createFunctionType({
             functionName: 'length',
-            outputParameter: { name: FUNCTION_MISSING_NAME, type: typeInt },
+            outputParameter: { name: NO_PARAMETER_NAME, type: typeInt },
             inputParameters: [{ name: 'value', type: typeString }]
         });
 

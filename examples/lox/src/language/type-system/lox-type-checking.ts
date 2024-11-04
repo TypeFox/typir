@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation } from 'typir';
+import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, OperatorManager, ParameterDetails, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
@@ -248,9 +248,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     ? domainElement.element!.ref.name : 'N/A', // as an alternative, use 'InferenceRuleNotApplicable' instead, what should we recommend?
             });
 
-            // TODO conversion 'nil' to classes ('anyClass')!
+            // TODO conversion 'nil' to classes ('TopClass')!
             // any class !== all classes; here we want to say, that 'nil' is assignable to each concrete Class type!
-            // this.typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateAnyClassType({}), 'IMPLICIT_EXPLICIT');
+            // this.typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateTopClassType({}), 'IMPLICIT_EXPLICIT');
             this.typir.conversion.markAsConvertible(this.primitiveKind.getPrimitiveType({ primitiveName: 'nil' })!, classType, 'IMPLICIT_EXPLICIT');
         }
     }
@@ -260,7 +260,7 @@ function createFunctionDetails(node: FunctionDeclaration | MethodMember): Create
     const callableName = node.name;
     return {
         functionName: callableName,
-        outputParameter: { name: FUNCTION_MISSING_NAME, type: node.returnType },
+        outputParameter: { name: NO_PARAMETER_NAME, type: node.returnType },
         inputParameters: node.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
         // inference rule for function declaration:
         inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function/method declaration matches!
