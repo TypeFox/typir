@@ -109,12 +109,12 @@ export interface TypeInferenceCollector {
 export class DefaultTypeInferenceCollector implements TypeInferenceCollector, TypeGraphListener {
     protected readonly inferenceRules: Map<string, TypeInferenceRule[]> = new Map(); // type identifier (otherwise '') -> inference rules
     protected readonly domainElementInference: DomainElementInferenceCaching;
-    protected readonly typir: TypirServices;
+    protected readonly services: TypirServices;
 
     constructor(services: TypirServices) {
-        this.typir = services;
+        this.services = services;
         this.domainElementInference = services.caching.domainElementInference;
-        this.typir.graph.addListener(this);
+        this.services.graph.addListener(this);
     }
 
     addInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void {
@@ -167,7 +167,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
             for (const rule of rules) {
                 if (typeof rule === 'function') {
                     // simple case without type inference for children
-                    const ruleResult: TypeInferenceResultWithoutInferringChildren = rule(domainElement, this.typir);
+                    const ruleResult: TypeInferenceResultWithoutInferringChildren = rule(domainElement, this.services);
                     this.checkForError(ruleResult);
                     const checkResult = this.inferTypeLogicWithoutChildren(ruleResult, collectedInferenceProblems);
                     if (checkResult) {
@@ -178,12 +178,12 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                     }
                 } else if (typeof rule === 'object') {
                     // more complex case with inferring the type for children
-                    const ruleResult: TypeInferenceResultWithInferringChildren = rule.inferTypeWithoutChildren(domainElement, this.typir);
+                    const ruleResult: TypeInferenceResultWithInferringChildren = rule.inferTypeWithoutChildren(domainElement, this.services);
                     if (Array.isArray(ruleResult)) {
                         // this rule might match => continue applying this rule
                         // resolve the requested child types
                         const childElements = ruleResult;
-                        const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.inferType(child));
+                        const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.services.inference.inferType(child));
                         // check, whether inferring the children resulted in some other inference problems
                         const childTypeProblems: InferenceProblem[] = [];
                         for (let i = 0; i < childTypes.length; i++) {
@@ -208,7 +208,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                             });
                         } else {
                             // the types of all children are successfully inferred
-                            const finalInferenceResult = rule.inferTypeWithChildrensTypes(domainElement, childTypes as Type[], this.typir);
+                            const finalInferenceResult = rule.inferTypeWithChildrensTypes(domainElement, childTypes as Type[], this.services);
                             if (isType(finalInferenceResult)) {
                                 // type is inferred!
                                 return finalInferenceResult;

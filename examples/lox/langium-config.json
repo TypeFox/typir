@@ -5,7 +5,7 @@
         "grammar": "src/language/lox.langium",
         "fileExtensions": [".lox"],
         "textMate": {
-            "out": "syntaxes/lox.tmLanguage.json"
+            "out": "./syntaxes/lox.tmLanguage.json"
         }
     }],
     "out": "src/language/generated"

@@ -14,6 +14,7 @@ import { TypirServices } from '../typir.js';
 import { TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
 import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../utils/utils.js';
+import { CreateFunctionTypeDetails, FunctionKind, FunctionKindName, FunctionType, isFunctionKind, isFunctionType } from './function-kind.js';
 import { Kind, isKind } from './kind.js';
 
 export class ClassType extends Type {
@@ -23,6 +24,7 @@ export class ClassType extends Type {
     protected readonly superClasses: readonly ClassType[]; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
     protected readonly subClasses: ClassType[] = []; // additional sub classes might be added later on!
     protected readonly fields: FieldDetails[];
+    protected readonly methods: MethodDetails[];
 
     constructor(kind: ClassKind, identifier: string, typeDetails: ClassTypeDetails) {
         super(identifier);
@@ -57,6 +59,15 @@ export class ClassType extends Type {
         if (this.getFields(false).size !== typeDetails.fields.length) {
             throw new Error('field names must be unique!');
         }
+
+        // methods
+        this.methods = typeDetails.methods.map(method => {
+            const methodType = this.kind.getFunctionKind().getOrCreateFunctionType(method);
+            return <MethodDetails>{
+                type: methodType,
+            };
+        });
+        // TODO check uniqueness??
     }
 
     override getName(): string {
@@ -247,6 +258,21 @@ export class ClassType extends Type {
         });
         return result;
     }
+
+    getMethods(withSuperClassMethods: boolean): FunctionType[] {
+        // own methods
+        const result: FunctionType[] = this.methods.map(m => m.type);
+        // methods of super classes
+        if (withSuperClassMethods) {
+            for (const superClass of this.getDeclaredSuperClasses()) {
+                for (const superMethod of superClass.getMethods(true)) {
+                    result.push(superMethod);
+                }
+            }
+        }
+        return result;
+    }
+
 }
 
 export function isClassType(type: unknown): type is ClassType {
@@ -275,18 +301,22 @@ export interface CreateFieldDetails {
     type: TypeSelector;
 }
 
-export interface ClassTypeDetails {
+export interface MethodDetails {
+    type: FunctionType;
+    // methods might have some more properties in the future
+}
+
+export interface ClassTypeDetails<T = unknown> {
     className: string,
     superClasses?: TypeSelector | TypeSelector[],
     fields: CreateFieldDetails[],
-    // TODO methods
+    methods: Array<CreateFunctionTypeDetails<T>>, // all details of functions can be configured for methods as well, in particular, inference rules for function/method calls!
 }
-export interface CreateClassTypeDetails<T1 = unknown, T2 = unknown> extends ClassTypeDetails { // TODO the generics look very bad!
+export interface CreateClassTypeDetails<T = unknown, T1 = unknown, T2 = unknown> extends ClassTypeDetails<T> { // TODO the generics look very bad!
     inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // TODO what is the purpose for this? what is the difference to literals?
     inferenceRuleForLiteral?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
     inferenceRuleForReference?: InferClassLiteral<T2>,
     inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | InferenceRuleNotApplicable, // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
-    // TODO inference rule for method calls
 }
 
 // TODO nominal vs structural typing ??
@@ -295,6 +325,7 @@ export type InferClassLiteral<T = unknown> = {
     matching: (domainElement: T) => boolean;
     inputValuesForFields: (domainElement: T) => Map<string, unknown>; // simple field name (including inherited fields) => value for this field! TODO implement that, [] for nominal typing
 };
+
 
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
@@ -324,12 +355,12 @@ export class ClassKind implements Kind {
         assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
 
-    getClassType(typeDetails: ClassTypeDetails | string): ClassType | undefined { // string for nominal typing
-        const key = this.calculateIdentifier(typeof typeDetails === 'string' ? { className: typeDetails, fields: []} : typeDetails);
+    getClassType<T>(typeDetails: ClassTypeDetails<T> | string): ClassType | undefined { // string for nominal typing
+        const key = this.calculateIdentifier(typeof typeDetails === 'string' ? { className: typeDetails, fields: [], methods: [] } : typeDetails);
         return this.services.graph.getType(key) as ClassType;
     }
 
-    getOrCreateClassType<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>): ClassType {
+    getOrCreateClassType<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): ClassType {
         const classType = this.getClassType(typeDetails);
         if (classType) {
             this.registerInferenceRules(typeDetails, classType);
@@ -338,20 +369,20 @@ export class ClassKind implements Kind {
         return this.createClassType(typeDetails);
     }
 
-    createClassType<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>): ClassType {
+    createClassType<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): ClassType {
         assertTrue(this.getClassType(typeDetails) === undefined, `${typeDetails.className}`);
 
         // create the class type
-        const classType = new ClassType(this, this.calculateIdentifier(typeDetails), typeDetails);
+        const classType = new ClassType(this, this.calculateIdentifier(typeDetails), typeDetails as CreateClassTypeDetails);
         this.services.graph.addNode(classType);
 
         // register inference rules
-        this.registerInferenceRules<T1, T2>(typeDetails, classType);
+        this.registerInferenceRules<T, T1, T2>(typeDetails, classType);
 
         return classType;
     }
 
-    protected registerInferenceRules<T1, T2>(typeDetails: CreateClassTypeDetails<T1, T2>, classType: ClassType) {
+    protected registerInferenceRules<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>, classType: ClassType) {
         if (typeDetails.inferenceRuleForDeclaration) {
             this.services.inference.addInferenceRule({
                 inferTypeWithoutChildren(domainElement, _typir) {
@@ -449,17 +480,23 @@ export class ClassKind implements Kind {
         }, classType);
     }
 
-    calculateIdentifier(typeDetails: ClassTypeDetails): string {
+    calculateIdentifier<T>(typeDetails: ClassTypeDetails<T>): string {
         return this.printClassType(typeDetails);
     }
 
-    protected printClassType(typeDetails: ClassTypeDetails): string {
+    protected printClassType<T>(typeDetails: ClassTypeDetails<T>): string {
         const prefix = this.options.identifierPrefix;
         if (this.options.typing === 'Structural') {
             // fields
             const fields: string[] = [];
             for (const [fieldNUmber, fieldDetails] of typeDetails.fields.entries()) {
                 fields.push(`${fieldNUmber}:${fieldDetails.name}`);
+            }
+            // methods
+            const methods: string[] = [];
+            for (const method of typeDetails.methods) {
+                const methodType = this.getFunctionKind().getOrCreateFunctionType(method);
+                methods.push(methodType.identifier); // TODO is ".identifier" too strict here?
             }
             // super classes
             const superClasses = toArray(typeDetails.superClasses).map(selector => {
@@ -469,12 +506,28 @@ export class ClassKind implements Kind {
             });
             const extendedClasses = superClasses.length <= 0 ? '' : `-extends-${superClasses.map(c => c.identifier).join(',')}`;
             // whole representation
-            return `${prefix}-${typeDetails.className}{${fields.join(',')}}${extendedClasses}`;
+            return `${prefix}-${typeDetails.className}{${fields.join(',')}}{${methods.join(',')}}${extendedClasses}`;
         } else if (this.options.typing === 'Nominal') {
             return `${prefix}-${typeDetails.className}`;
         } else {
             assertUnreachable(this.options.typing);
         }
+    }
+
+    getFunctionKind(): FunctionKind {
+        // ensure, that Typir uses the predefined 'function' kind
+        const kind = this.services.kinds.get(FunctionKindName);
+        return isFunctionKind(kind) ? kind : new FunctionKind(this.services);
+    }
+
+    getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
+        return this.getTopClassKind().getOrCreateTopClassType(typeDetails);
+    }
+
+    getTopClassKind(): TopClassKind {
+        // ensure, that Typir uses the predefined 'TopClass' kind
+        const kind = this.services.kinds.get(TopClassKindName);
+        return isTopClassKind(kind) ? kind : new TopClassKind(this.services);
     }
 
 }
@@ -528,6 +581,7 @@ export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
      * @returns a string key
      */
     protected calculateClassKey(clas: ClassType): string {
+        // usually duplicated classes are critical only for nominal typing, therefore the classname is used as default implementation here
         return `${clas.className}`;
     }
 
@@ -549,4 +603,232 @@ export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
         this.foundDeclarations.clear();
         return result;
     }
+}
+
+/**
+ * Predefined validation to produce errors, if inside a class the same method is declared more than once.
+ */
+export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter {
+    protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
+    protected readonly services: TypirServices;
+    /** Determines domain elements which represent declared methods, improves performance a lot. */
+    protected readonly isMethodDeclaration: (domainElement: unknown) => domainElement is T;
+    /** Determines the corresponding domain element of the class declaration, so that Typir can infer its ClassType */
+    protected readonly getClassOfMethod: (domainElement: T, methodType: FunctionType) => unknown;
+
+    constructor(services: TypirServices,
+        isMethodDeclaration: (domainElement: unknown) => domainElement is T,
+        getClassOfMethod: (domainElement: T, methodType: FunctionType) => unknown) {
+        this.services = services;
+        this.isMethodDeclaration = isMethodDeclaration;
+        this.getClassOfMethod = getClassOfMethod;
+    }
+
+    beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        this.foundDeclarations.clear();
+        return [];
+    }
+
+    validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
+        if (this.isMethodDeclaration(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
+            const methodType = this.services.inference.inferType(domainElement);
+            if (isFunctionType(methodType)) {
+                const classDeclaration = this.getClassOfMethod(domainElement, methodType);
+                const classType = this.services.inference.inferType(classDeclaration);
+                if (isClassType(classType)) {
+                    const key = this.calculateMethodKey(classType, methodType);
+                    let entries = this.foundDeclarations.get(key);
+                    if (!entries) {
+                        entries = [];
+                        this.foundDeclarations.set(key, entries);
+                    }
+                    entries.push(domainElement);
+                }
+            }
+        }
+        return [];
+    }
+
+    /**
+     * Calculates a key for a method which encodes its unique properties, i.e. duplicate methods have the same key.
+     * Additionally, the class of the method needs to be represented in the key as well.
+     * This key is used to identify duplicated methods.
+     * Override this method to change the properties which make a method unique.
+     * @param clas the current class type
+     * @param func the current function type
+     * @returns a string key
+     */
+    protected calculateMethodKey(clas: ClassType, func: FunctionType): string {
+        return `${clas.identifier}.${func.functionName}(${func.getInputs().map(param => param.type.identifier)})`;
+    }
+
+    afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+        const result: ValidationProblem[] = [];
+        for (const [key, methods] of this.foundDeclarations.entries()) {
+            if (methods.length >= 2) {
+                for (const method of methods) {
+                    result.push({
+                        $problem: ValidationProblem,
+                        domainElement: method,
+                        severity: 'error',
+                        message: `Declared methods need to be unique (${key}).`,
+                    });
+                }
+            }
+        }
+
+        this.foundDeclarations.clear();
+        return result;
+    }
+}
+
+
+export class TopClassType extends Type {
+    override readonly kind: TopClassKind;
+
+    constructor(kind: TopClassKind, identifier: string) {
+        super(identifier);
+        this.kind = kind;
+    }
+
+    override getName(): string {
+        return this.identifier;
+    }
+
+    override getUserRepresentation(): string {
+        return this.identifier;
+    }
+
+    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+        if (isTopClassType(otherType)) {
+            return [];
+        } else {
+            return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
+                type1: this,
+                type2: otherType,
+                subProblems: [createKindConflict(otherType, this)],
+            }];
+        }
+    }
+
+    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
+        if (isTopClassType(superType)) {
+            // special case by definition: TopClassType is sub-type of TopClassType
+            return [];
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType,
+                subType: this,
+                subProblems: [createKindConflict(superType, this)],
+            }];
+        }
+    }
+
+    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
+        // an TopClassType is the super type of all ClassTypes!
+        if (isClassType(subType)) {
+            return [];
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                superType: this,
+                subType,
+                subProblems: [createKindConflict(this, subType)],
+            }];
+        }
+    }
+
+}
+
+export function isTopClassType(type: unknown): type is TopClassType {
+    return isType(type) && isTopClassKind(type.kind);
+}
+
+
+export interface TopClassTypeDetails {
+    inferenceRules?: InferTopClassType | InferTopClassType[]
+}
+
+export type InferTopClassType = (domainElement: unknown) => boolean;
+
+export interface TopClassKindOptions {
+    name: string;
+}
+
+export const TopClassKindName = 'TopClassKind';
+
+export class TopClassKind implements Kind {
+    readonly $name: 'TopClassKind';
+    readonly services: TypirServices;
+    readonly options: TopClassKindOptions;
+    protected instance: TopClassType | undefined;
+
+    constructor(services: TypirServices, options?: Partial<TopClassKindOptions>) {
+        this.$name = TopClassKindName;
+        this.services = services;
+        this.services.kinds.register(this);
+        this.options = {
+            // the default values:
+            name: 'TopClass',
+            // the actually overriden values:
+            ...options
+        };
+    }
+
+    getTopClassType(typeDetails: TopClassTypeDetails): TopClassType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.services.graph.getType(key) as TopClassType;
+    }
+
+    getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
+        const topType = this.getTopClassType(typeDetails);
+        if (topType) {
+            this.registerInferenceRules(typeDetails, topType);
+            return topType;
+        }
+        return this.createTopClassType(typeDetails);
+    }
+
+    createTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
+        assertTrue(this.getTopClassType(typeDetails) === undefined);
+
+        // create the top type (singleton)
+        if (this.instance) {
+            // note, that the given inference rules are ignored in this case!
+            return this.instance;
+        }
+        const topType = new TopClassType(this, this.calculateIdentifier(typeDetails));
+        this.instance = topType;
+        this.services.graph.addNode(topType);
+
+        this.registerInferenceRules(typeDetails, topType);
+
+        return topType;
+    }
+
+    /** Register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small). */
+    protected registerInferenceRules(typeDetails: TopClassTypeDetails, topType: TopClassType) {
+        const rules = toArray(typeDetails.inferenceRules);
+        if (rules.length >= 1) {
+            this.services.inference.addInferenceRule((domainElement, _typir) => {
+                for (const inferenceRule of rules) {
+                    if (inferenceRule(domainElement)) {
+                        return topType;
+                    }
+                }
+                return InferenceRuleNotApplicable;
+            }, topType);
+        }
+    }
+
+    calculateIdentifier(_typeDetails: TopClassTypeDetails): string {
+        return this.options.name;
+    }
+
+}
+
+export function isTopClassKind(kind: unknown): kind is TopClassKind {
+    return isKind(kind) && kind.$name === TopClassKindName;
 }

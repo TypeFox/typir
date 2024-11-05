@@ -108,6 +108,62 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('var myVar : number = 2 + (2 * false);', 1);
     });
 
+    test('Variables without explicit type: assignment', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            max = min;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign expression to var without type', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            var sum = min + max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign expression to var with type', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            var sum : number = min + max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign var again with expression of overloaded operator +', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            max = min + max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign var again with expression of overloaded operator -', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            max = min - max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: assign var again with expression of not overloaded operator *', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            max = min * max;
+        `, 0);
+    });
+
+    test('Variables without explicit type: used in function', async () => {
+        await validate(`
+            var min = 14;
+            var max = 22;
+            var average = (min + max) / 2;
+        `, 0);
+    });
+
     describe('Class literals', () => {
         test('Class literals 1', async () => {
             await validate(`
@@ -183,6 +239,57 @@ describe('Explicitly test type checking for LOX', () => {
         `, 3);
     });
 
+    test('Class methods: OK', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return 123;
+            }
+        }
+        var v1: MyClass1 = MyClass1();
+        var v2: number = v1.method1(456);
+    `, 0));
+
+    test('Class methods: wrong return value', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return true;
+            }
+        }
+        var v1: MyClass1 = MyClass1();
+        var v2: number = v1.method1(456);
+    `, 1));
+
+    test('Class methods: method return type does not fit to variable type', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return 123;
+            }
+        }
+        var v1: MyClass1 = MyClass1();
+        var v2: boolean = v1.method1(456);
+    `, 1));
+
+    test('Class methods: value for input parameter does not fit to the type of the input parameter', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return 123;
+            }
+        }
+        var v1: MyClass1 = MyClass1();
+        var v2: number = v1.method1(true);
+    `, 1));
+
+    test('Class methods: methods are not distinguishable', async () => await validate(`
+        class MyClass1 {
+            method1(input: number): number {
+                return 123;
+            }
+            method1(another: number): boolean {
+                return true;
+            }
+        }
+    `, 2)); // both methods need to be marked
+
 });
 
 describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {
@@ -208,6 +315,82 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
             class MyClass1 < MyClass1 { }
         `, 0);
     });
+});
+
+describe('LOX', () => {
+    // this test case will work after having the support for cyclic type definitions, since it will solve also issues with topological order of type definitions
+    test.todo('complete with difficult order of classes', async () => await validate(`
+        class SuperClass {
+            a: number
+        }
+
+        class SubClass < SuperClass {
+            // Nested class
+            nested: NestedClass
+        }
+
+        class NestedClass {
+            field: string
+            method(): string {
+                return "execute this";
+            }
+        }
+
+        // Constructor call
+        var x = SubClass();
+        // Assigning nil to a class type
+        var nilTest = SubClass();
+        nilTest = nil;
+
+        // Accessing members of a class
+        var value = x.nested.method() + "wasd";
+        print value;
+
+        // Accessing members of a super class
+        var superValue = x.a;
+        print superValue;
+
+        // Assigning a subclass to a super class
+        var superType: SuperClass = x;
+        print superType.a;
+    `, 0));
+
+    test('complete with easy order of classes', async () => await validate(`
+        class SuperClass {
+            a: number
+        }
+
+        class NestedClass {
+            field: string
+            method(): string {
+                return "execute this";
+            }
+        }
+
+        class SubClass < SuperClass {
+            // Nested class
+            nested: NestedClass
+        }
+
+
+        // Constructor call
+        var x = SubClass();
+        // Assigning nil to a class type
+        var nilTest = SubClass();
+        nilTest = nil;
+
+        // Accessing members of a class
+        var value = x.nested.method() + "wasd";
+        print value;
+
+        // Accessing members of a super class
+        var superValue = x.a;
+        print superValue;
+
+        // Assigning a subclass to a super class
+        var superType: SuperClass = x;
+        print superType.a;
+    `, 0));
 });
 
 async function validate(lox: string, errors: number, warnings: number = 0) {

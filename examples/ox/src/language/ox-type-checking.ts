@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { FUNCTION_MISSING_NAME, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, OperatorManager, ParameterDetails, PrimitiveKind, TypirServices, UniqueFunctionValidation } from 'typir';
+import { FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, OperatorManager, ParameterDetails, PrimitiveKind, TypirServices, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
@@ -99,32 +99,36 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 const ref = domainElement.element.ref;
                 if (isVariableDeclaration(ref)) {
                     // use variables inside expressions!
-                    return ref.type;
+                    return ref;
                 } else if (isParameter(ref)) {
                     // use parameters inside expressions
                     return ref.type;
                 } else if (isFunctionDeclaration(ref)) {
-                    // there is already an inference rule for function calls (see above for FunctionDeclaration)!
-                    return 'N/A'; // as an alternative: use 'InferenceRuleNotApplicable' instead, what should we recommend?
+                    // there is already an inference rule for function calls (see below for FunctionDeclaration)!
+                    return InferenceRuleNotApplicable;
                 } else if (ref === undefined) {
                     return InferenceRuleNotApplicable;
                 } else {
                     assertUnreachable(ref);
                 }
             }
-            return InferenceRuleNotApplicable;
-        });
-        // it is up to the user of Typir, how to structure the inference rules!
-        this.typir.inference.addInferenceRule((domainElement, _typir) => {
-            // ... and for variable declarations
+            // ... variable declarations
             if (isVariableDeclaration(domainElement)) {
-                return domainElement.type;
+                if (domainElement.type) {
+                    // the user declared this variable with a type
+                    return domainElement.type;
+                } else if (domainElement.value) {
+                    // the didn't declared a type for this variable => do type inference of the assigned value instead!
+                    return domainElement.value;
+                } else {
+                    return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
+                }
             }
             return InferenceRuleNotApplicable;
         });
 
         // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
-        this.typir.validation.collector.addValidationRules(
+        this.typir.validation.collector.addValidationRule(
             (node: unknown, typir: TypirServices) => {
                 if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
                     return typir.validation.constraints.ensureNodeIsAssignable(node.condition, typeBool,
@@ -158,7 +162,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         );
 
         // check for unique function declarations
-        this.typir.validation.collector.addValidationRulesWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
+        this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
     }
 
     onNewAstNode(domainElement: AstNode): void {
@@ -170,7 +174,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
             this.functionKind.getOrCreateFunctionType({
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
-                outputParameter: { name: FUNCTION_MISSING_NAME, type: domainElement.returnType },
+                outputParameter: { name: NO_PARAMETER_NAME, type: domainElement.returnType },
                 inputParameters: domainElement.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
                 // inference rule for function declaration:
                 inferenceRuleForDeclaration: (node: unknown) => node === domainElement, // only the current function declaration matches!

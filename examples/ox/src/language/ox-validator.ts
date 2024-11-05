@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
-import { isFunctionDeclaration, type OxAstType, type ReturnStatement } from './generated/ast.js';
+import { isFunctionDeclaration, isVariableDeclaration, OxElement, VariableDeclaration, type OxAstType, type ReturnStatement } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
 
 /**
@@ -16,6 +16,8 @@ export function registerValidationChecks(services: OxServices) {
     const validator = services.validation.OxValidator;
     const checks: ValidationChecks<OxAstType> = {
         ReturnStatement: validator.checkReturnTypeIsCorrect,
+        OxProgram: validator.checkUniqueVariableNames,
+        Block: validator.checkUniqueVariableNames,
     };
     registry.register(checks, validator);
 }
@@ -43,6 +45,31 @@ export class OxValidator {
                 } else {
                     // missing return value
                     accept('error', `The function '${functionDeclaration.name}' has '${functionDeclaration.returnType.primitive}' as return type. Therefore, this return statement must return value.`, { node });
+                }
+            }
+        }
+    }
+
+    checkUniqueVariableNames(block: { elements: OxElement[]}, accept: ValidationAcceptor): void {
+        const variables: Map<string, VariableDeclaration[]> = new Map();
+        for (const v of block.elements) {
+            if (isVariableDeclaration(v)) {
+                const key = v.name;
+                let entries = variables.get(key);
+                if (!entries) {
+                    entries = [];
+                    variables.set(key, entries);
+                }
+                entries.push(v);
+            }
+        }
+        for (const [name, vars] of variables.entries()) {
+            if (vars.length >= 2) {
+                for (const v of vars) {
+                    accept('error', 'Variables need to have unique names: ' + name, {
+                        node: v,
+                        property: 'name'
+                    });
                 }
             }
         }
