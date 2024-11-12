@@ -6,6 +6,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { TypeInferenceCollectorListener, TypeInferenceRule } from '../features/inference.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { isType, Type, TypeInitializationState, TypeStateListener } from '../graph/type-node.js';
@@ -173,8 +174,8 @@ export class WaitingForInvalidTypeReferences<T extends Type = Type> {
 
         // register to get updates for the relevant TypeReferences
         this.waitForRefsInvalid.forEach(ref => {
-            ref.addReactionOnTypeIdentified(this.listeningForNextState, false);
-            ref.addReactionOnTypeUnresolved(this.listeningForReset, false);
+            ref.addReactionOnTypeIdentified(() => this.listeningForNextState(), false);
+            ref.addReactionOnTypeUnresolved(() => this.listeningForReset(), false);
         });
     }
 
@@ -193,11 +194,11 @@ export class WaitingForInvalidTypeReferences<T extends Type = Type> {
         }
     }
 
-    protected listeningForNextState(_reference: TypeReference<T>, _type: T): void {
+    protected listeningForNextState(): void {
         this.counterInvalid--;
     }
 
-    protected listeningForReset(_reference: TypeReference<T>, _type: T): void {
+    protected listeningForReset(): void {
         this.counterInvalid++;
         if (this.isFulfilled()) {
             this.listeners.forEach(listener => listener(this));
@@ -221,7 +222,7 @@ export type TypeReferenceListener<T extends Type = Type> = (reference: TypeRefer
  * The internal logic of a TypeReference is independent from the kind of the type to resolve.
  * A TypeReference takes care of the lifecycle of the types.
  */
-export class TypeReference<T extends Type = Type> implements TypeGraphListener, TypeStateListener {
+export class TypeReference<T extends Type = Type> implements TypeGraphListener, TypeStateListener, TypeInferenceCollectorListener {
     protected readonly selector: TypeSelector;
     protected readonly services: TypirServices;
     protected resolvedType: T | undefined = undefined;
@@ -251,12 +252,14 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
                 type.addListener(this, false);
             }
         });
-        // TODO react on new inference rules
+        // react on new inference rules
+        this.services.inference.addListener(this);
     }
 
     protected stopResolving(): void {
         // it is not required to listen to new types anymore, since the type is already resolved/found
         this.services.graph.removeListener(this);
+        this.services.inference.removeListener(this);
     }
 
     getState(): TypeInitializationState | undefined {
@@ -390,6 +393,14 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
     }
     removedEdge(_edge: TypeEdge): void {
         // only types are relevant
+    }
+
+    addedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
+        // after adding a new inference rule, try to resolve the type
+        this.resolve();
+    }
+    removedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
+        // empty
     }
 
     switchedToIdentifiable(type: Type): void {

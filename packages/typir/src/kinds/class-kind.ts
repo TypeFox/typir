@@ -45,7 +45,7 @@ export class ClassType extends Type {
             superRef.addReactionOnTypeUnresolved((_ref, superType) => {
                 // if the superType gets invalid, de-register this class as sub-class of the super-class
                 superType.subClasses.splice(superType.subClasses.indexOf(this), 1);
-            }, true);
+            }, false);
             return superRef;
         });
 
@@ -75,21 +75,23 @@ export class ClassType extends Type {
 
         // calculate the Identifier, based on the resolved type references
         // const all: Array<TypeReference<Type | FunctionType>> = [];
-        const all: Array<TypeReference<Type>> = [];
-        all.push(...refFields);
-        all.push(...(refMethods as unknown as Array<TypeReference<Type>>)); // TODO dirty hack?!
+        const fieldsAndMethods: Array<TypeReference<Type>> = [];
+        fieldsAndMethods.push(...refFields);
+        fieldsAndMethods.push(...(refMethods as unknown as Array<TypeReference<Type>>)); // TODO dirty hack?!
         // all.push(...refMethods); // does not work
 
         this.completeInitialization({
             preconditionsForInitialization: {
-                refsToBeIdentified: all,
+                refsToBeIdentified: fieldsAndMethods,
             },
             preconditionsForCompletion: {
                 refsToBeCompleted: this.superClasses as unknown as Array<TypeReference<Type>>,
             },
+            referencesRelevantForInvalidation: [...fieldsAndMethods, ...(this.superClasses as unknown as Array<TypeReference<Type>>)],
             onIdentification: () => {
-                this.identifier = this.kind.calculateIdentifier(typeDetails);
-                // TODO identifier erst hier berechnen?! registering??
+                // the identifier is calculated now
+                this.identifier = this.kind.calculateIdentifier(typeDetails); // TODO it is still not nice, that the type resolving is done again, since the TypeReferences here are not reused
+                // the registration of the type in the type graph is done by the TypeInitializer
             },
             onCompletion: () => {
                 // when all super classes are completely available, do the following checks:
@@ -438,8 +440,7 @@ export class ClassKind implements Kind {
             // nominal typing
             return new TypeReference(typeDetails, this.services);
         } else {
-            // structural typing
-            // TODO does this case occur in practise?
+            // structural typing (does this case occur in practise?)
             return new TypeReference(() => this.calculateIdentifier(typeDetails), this.services);
         }
     }
@@ -452,8 +453,6 @@ export class ClassKind implements Kind {
      * @returns an initializer which creates and returns the new class type, when all depending types are resolved
      */
     createClassType<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): TypeInitializer<ClassType> {
-        // assertTrue(this.getClassType(typeDetails) === undefined, `The class '${typeDetails.className}' already exists!`); // ensures, that no duplicated classes are created!
-
         return new ClassTypeInitializer(this.services, this, typeDetails);
     }
 
@@ -463,6 +462,7 @@ export class ClassKind implements Kind {
 
     /**
      * TODO
+     * If some types for the properties of the class are missing, an exception will be thrown.
      *
      * Design decisions:
      * - This method is part of the ClassKind and not part of ClassType, since the ClassKind requires it for 'getClassType'!
@@ -471,7 +471,7 @@ export class ClassKind implements Kind {
      * @param typeDetails the details
      * @returns the new identifier
      */
-    calculateIdentifier<T>(typeDetails: ClassTypeDetails<T>): string { // TODO kann keinen Identifier liefern, wenn noch nicht resolved!
+    calculateIdentifier<T>(typeDetails: ClassTypeDetails<T>): string {
         // purpose of identifier: distinguish different types; NOT: not uniquely overloaded types
         const prefix = this.getIdentifierPrefix();
         if (this.options.typing === 'Structural') {
@@ -542,6 +542,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
 
         // create the class type
         const classType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
+        // TODO erst nach Herausfiltern im Initializer darf der Type selbst sich registrieren!
         if (kind.options.typing === 'Structural') {
             // TODO Vorsicht Inference rules werden by default an den Identifier gebunden (ebenso Validations)!
             this.services.graph.addNode(classType, kind.getIdentifierPrefix() + typeDetails.className);
@@ -551,17 +552,16 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         classType.addListener(this, true); // trigger directly, if some initialization states are already reached!
     }
 
-    switchedToIdentifiable(type: Type): void {
+    switchedToIdentifiable(classType: Type): void {
         // TODO Vorsicht, dass hier nicht 2x derselbe Type angefangen wird zu erstellen und dann zwei Typen auf ihre Vervollständigung warten!
         // 2x TypeResolver erstellen, beide müssen später denselben ClassType zurückliefern!
         // bei Node { children: Node[] } muss der Zyklus erkannt und behandelt werden!!
-        this.producedType(type as ClassType);
+        this.producedType(classType as ClassType);
+        registerInferenceRules<T, T1, T2>(this.services, this.typeDetails, this.kind, classType as ClassType);
     }
 
     switchedToCompleted(classType: Type): void {
         // register inference rules
-        // TODO or can this be done already after having the identifier?
-        registerInferenceRules<T, T1, T2>(this.services, this.typeDetails, this.kind, classType as ClassType);
         classType.removeListener(this); // the work of this initializer is done now
     }
 

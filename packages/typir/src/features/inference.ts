@@ -84,6 +84,11 @@ export interface TypeInferenceRuleWithInferringChildren {
 }
 
 
+export interface TypeInferenceCollectorListener {
+    addedInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
+    removedInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
+}
+
 /**
  * Collects an arbitrary number of inference rules
  * and allows to infer a type for a given domain element.
@@ -103,6 +108,9 @@ export interface TypeInferenceCollector {
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
     addInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
+
+    addListener(listener: TypeInferenceCollectorListener): void;
+    removeListener(listener: TypeInferenceCollectorListener): void;
 }
 
 
@@ -110,6 +118,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
     protected readonly inferenceRules: Map<string, TypeInferenceRule[]> = new Map(); // type identifier (otherwise '') -> inference rules
     protected readonly domainElementInference: DomainElementInferenceCaching;
     protected readonly services: TypirServices;
+    protected readonly listeners: TypeInferenceCollectorListener[] = [];
 
     constructor(services: TypirServices) {
         this.services = services;
@@ -125,6 +134,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
             this.inferenceRules.set(key, rules);
         }
         rules.push(rule);
+        this.listeners.forEach(listener => listener.addedInferenceRule(rule, boundToType));
     }
 
     protected getBoundToTypeKey(boundToType?: Type): string {
@@ -266,13 +276,29 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
     }
 
 
+    addListener(listener: TypeInferenceCollectorListener): void {
+        this.listeners.push(listener);
+    }
+    removeListener(listener: TypeInferenceCollectorListener): void {
+        const index = this.listeners.indexOf(listener);
+        if (index >= 0) {
+            this.listeners.splice(index, 1);
+        }
+    }
+
+
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
 
     addedType(_newType: Type, _key: string): void {
         // do nothing
     }
     removedType(type: Type, _key: string): void {
-        this.inferenceRules.delete(this.getBoundToTypeKey(type));
+        const key = this.getBoundToTypeKey(type);
+        const rulesToRemove = this.inferenceRules.get(key);
+        // remove the inference rules associated to the deleted type
+        this.inferenceRules.delete(key);
+        // inform listeners about removed inference rules
+        (rulesToRemove ?? []).forEach(rule => this.listeners.forEach(listener => listener.removedInferenceRule(rule, type)));
     }
     addedEdge(_edge: TypeEdge): void {
         // do nothing

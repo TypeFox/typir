@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { isClassType } from '../kinds/class-kind.js';
 import { Kind, isKind } from '../kinds/kind.js';
 import { TypeReference, TypirProblem, WaitingForInvalidTypeReferences, WaitingForResolvedTypeReferences } from '../utils/utils-definitions.js';
 import { assertTrue, assertUnreachable } from '../utils/utils.js';
@@ -166,7 +167,7 @@ export abstract class Type {
             preconditions.preconditionsForCompletion?.refsToBeIdentified,
             preconditions.preconditionsForCompletion?.refsToBeCompleted,
         );
-        // completed --> invalid, TODO wie genau wird das realisiert?? triggert jetzt schon!!
+        // completed --> invalid
         const init3 = new WaitingForInvalidTypeReferences(
             preconditions.referencesRelevantForInvalidation ?? [],
         );
@@ -177,17 +178,25 @@ export abstract class Type {
         this.onInvalidation = preconditions.onInvalidation ?? (() => {});
 
         // specify the transitions between the states:
-        init1.addListener(() => this.switchFromInvalidToIdentifiable(), true);
+        init1.addListener(() => {
+            this.switchFromInvalidToIdentifiable();
+            if (init2.isFulfilled()) {
+                // this is required to ensure the stric order Identifiable --> Completed, since 'init2' might already be triggered
+                this.switchFromIdentifiableToCompleted();
+            }
+        }, true);
         init2.addListener(() => {
             if (init1.isFulfilled()) {
                 this.switchFromIdentifiableToCompleted();
             } else {
-                // TODO ??
+                // switching will be done later by 'init1' in order to conform to the stric order Identifiable --> Completed
             }
-        }, true);
-        init3.addListener(() => this.switchFromCompleteOrIdentifiableToInvalid(), false); // no initial trigger!
-        // TODO noch sicherstellen, dass keine Phasen übersprungen werden??
-        // TODO trigger start??
+        }, false); // not required, since init1 will switch to Completed as well!
+        init3.addListener(() => {
+            if (this.isNotInState('Invalid')) {
+                this.switchFromCompleteOrIdentifiableToInvalid();
+            }
+        }, false); // no initial trigger!
     }
 
     protected onIdentification: () => void; // typical use cases: calculate the identifier
