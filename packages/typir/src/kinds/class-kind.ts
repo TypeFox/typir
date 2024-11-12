@@ -9,65 +9,105 @@ import { TypeEqualityProblem } from '../features/equality.js';
 import { InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { ValidationProblem, ValidationRuleWithBeforeAfter } from '../features/validation.js';
-import { Type, isType } from '../graph/type-node.js';
+import { Type, TypeStateListener, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
+import { TypeReference, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
 import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../utils/utils.js';
 import { CreateFunctionTypeDetails, FunctionKind, FunctionKindName, FunctionType, isFunctionKind, isFunctionType } from './function-kind.js';
 import { Kind, isKind } from './kind.js';
+import { TypeInitializer } from '../utils/type-initialization.js';
 
+// TODO irgendwann die Dateien auseinander ziehen und Packages einführen!
+
+// TODO wenn die Initialisierung von ClassType abgeschlossen ist, sollte darüber aktiv benachrichtigt werden!
 export class ClassType extends Type {
     override readonly kind: ClassKind;
     readonly className: string;
     /** The super classes are readonly, since they might be used to calculate the identifier of the current class, which must be stable. */
-    protected readonly superClasses: readonly ClassType[]; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
+    protected superClasses: Array<TypeReference<ClassType>>; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
     protected readonly subClasses: ClassType[] = []; // additional sub classes might be added later on!
-    protected readonly fields: FieldDetails[];
-    protected readonly methods: MethodDetails[];
+    protected readonly fields: Map<string, FieldDetails> = new Map(); // unordered
+    protected methods: MethodDetails[]; // unordered
 
-    constructor(kind: ClassKind, identifier: string, typeDetails: ClassTypeDetails) {
-        super(identifier);
+    constructor(kind: ClassKind, typeDetails: ClassTypeDetails) {
+        super(undefined);
         this.kind = kind;
         this.className = typeDetails.className;
 
         // resolve the super classes
         this.superClasses = toArray(typeDetails.superClasses).map(superr => {
-            const cls = resolveTypeSelector(this.kind.services, superr);
-            assertType(cls, isClassType);
-            return cls;
+            const superRef = new TypeReference<ClassType>(superr, kind.services);
+            superRef.addReactionOnTypeCompleted((_ref, superType) => {
+                // after the super-class is complete, register this class as sub-class for that super-class
+                superType.subClasses.push(this);
+            }, true);
+            superRef.addReactionOnTypeUnresolved((_ref, superType) => {
+                // if the superType gets invalid, de-register this class as sub-class of the super-class
+                superType.subClasses.splice(superType.subClasses.indexOf(this), 1);
+            }, true);
+            return superRef;
         });
-        // register this class as sub-class for all super-classes
-        this.getDeclaredSuperClasses().forEach(superr => superr.subClasses.push(this));
-        // check number of allowed super classes
-        if (this.kind.options.maximumNumberOfSuperClasses >= 0) {
-            if (this.kind.options.maximumNumberOfSuperClasses < this.getDeclaredSuperClasses().length) {
-                throw new Error(`Only ${this.kind.options.maximumNumberOfSuperClasses} super-classes are allowed.`);
-            }
-        }
-        // check for cycles in sub-type-relationships
-        if (this.getAllSuperClasses(false).has(this)) {
-            throw new Error(`Circles in super-sub-class-relationships are not allowed: ${this.getName()}`);
-        }
 
-        // fields
-        this.fields = typeDetails.fields.map(field => <FieldDetails>{
-            name: field.name,
-            type: resolveTypeSelector(this.kind.services, field.type),
-        });
-        // check collisions of field names
-        if (this.getFields(false).size !== typeDetails.fields.length) {
-            throw new Error('field names must be unique!');
-        }
+        // resolve fields
+        typeDetails.fields
+            .map(field => <FieldDetails>{
+                name: field.name,
+                type: new TypeReference(field.type, kind.services),
+            })
+            .forEach(field => {
+                if (this.fields.has(field.name)) {
+                    // check collisions of field names
+                    throw new Error(`The field name '${field.name}' is not unique for class '${this.className}'.`);
+                } else {
+                    this.fields.set(field.name, field);
+                }
+            });
+        const refFields: TypeReference[] = [];
+        [...this.fields.values()].forEach(f => refFields.push(f.type));
 
-        // methods
-        this.methods = typeDetails.methods.map(method => {
-            const methodType = this.kind.getFunctionKind().getOrCreateFunctionType(method);
-            return <MethodDetails>{
-                type: methodType,
-            };
+        // resolve methods
+        this.methods = typeDetails.methods.map(method => <MethodDetails>{
+            type: new TypeReference(kind.getMethodKind().createFunctionType(method), kind.services),
         });
-        // TODO check uniqueness??
+        const refMethods = this.methods.map(m => m.type);
+        // the uniqueness of methods can be checked with the predefined UniqueMethodValidation below
+
+        // calculate the Identifier, based on the resolved type references
+        // const all: Array<TypeReference<Type | FunctionType>> = [];
+        const all: Array<TypeReference<Type>> = [];
+        all.push(...refFields);
+        all.push(...(refMethods as unknown as Array<TypeReference<Type>>)); // TODO dirty hack?!
+        // all.push(...refMethods); // does not work
+
+        this.completeInitialization({
+            preconditionsForInitialization: {
+                refsToBeIdentified: all,
+            },
+            preconditionsForCompletion: {
+                refsToBeCompleted: this.superClasses as unknown as Array<TypeReference<Type>>,
+            },
+            onIdentification: () => {
+                this.identifier = this.kind.calculateIdentifier(typeDetails);
+                // TODO identifier erst hier berechnen?! registering??
+            },
+            onCompletion: () => {
+                // when all super classes are completely available, do the following checks:
+                // check number of allowed super classes
+                if (this.kind.options.maximumNumberOfSuperClasses >= 0) {
+                    if (this.kind.options.maximumNumberOfSuperClasses < this.getDeclaredSuperClasses().length) {
+                        throw new Error(`Only ${this.kind.options.maximumNumberOfSuperClasses} super-classes are allowed.`);
+                    }
+                }
+                // check for cycles in sub-type-relationships
+                if (this.getAllSuperClasses(false).has(this)) {
+                    throw new Error(`Circles in super-sub-class-relationships are not allowed: ${this.getName()}`);
+                }
+            },
+            onInvalidation: () => {
+                // TODO remove all listeners, ...
+            },
+        });
     }
 
     override getName(): string {
@@ -75,16 +115,28 @@ export class ClassType extends Type {
     }
 
     override getUserRepresentation(): string {
+        const slots: string[] = [];
         // fields
         const fields: string[] = [];
         for (const field of this.getFields(false).entries()) {
             fields.push(`${field[0]}: ${field[1].getName()}`);
         }
+        if (fields.length >= 1) {
+            slots.push(fields.join(', '));
+        }
+        // methods
+        const methods: string[] = [];
+        for (const method of this.getMethods(false)) {
+            methods.push(`${method.getUserRepresentation()}`);
+        }
+        if (methods.length >= 1) {
+            slots.push(methods.join(', '));
+        }
         // super classes
         const superClasses = this.getDeclaredSuperClasses();
         const extendedClasses = superClasses.length <= 0 ? '' : ` extends ${superClasses.map(c => c.getName()).join(', ')}`;
-        // whole representation
-        return `${this.className} { ${fields.join(', ')} }${extendedClasses}`;
+        // complete representation
+        return `${this.className}${extendedClasses} { ${slots.join(', ')} }`;
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
@@ -95,7 +147,7 @@ export class ClassType extends Type {
                     (t1, t2) => this.kind.services.equality.getTypeEqualityProblem(t1, t2));
             } else if (this.kind.options.typing === 'Nominal') {
                 // for nominal typing:
-                return checkValueForConflict(this.identifier, otherType.identifier, 'name');
+                return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
             } else {
                 assertUnreachable(this.kind.options.typing);
             }
@@ -187,8 +239,15 @@ export class ClassType extends Type {
         }
     }
 
-    getDeclaredSuperClasses(): readonly ClassType[] {
-        return this.superClasses;
+    getDeclaredSuperClasses(): ClassType[] {
+        return this.superClasses.map(superr => {
+            const superType = superr.getType();
+            if (superType) {
+                return superType;
+            } else {
+                throw new Error('Not all super class types are resolved.');
+            }
+        });
     }
 
     getDeclaredSubClasses(): ClassType[] {
@@ -253,15 +312,27 @@ export class ClassType extends Type {
             }
         }
         // own fields
-        this.fields.forEach(edge => {
-            result.set(edge.name, edge.type);
+        this.fields.forEach(fieldDetails => {
+            const field = fieldDetails.type.getType();
+            if (field) {
+                result.set(fieldDetails.name, field);
+            } else {
+                throw new Error('Not all fields are resolved.');
+            }
         });
         return result;
     }
 
     getMethods(withSuperClassMethods: boolean): FunctionType[] {
         // own methods
-        const result: FunctionType[] = this.methods.map(m => m.type);
+        const result = this.methods.map(m => {
+            const method = m.type.getType();
+            if (method) {
+                return method;
+            } else {
+                throw new Error('Not all methods are resolved.');
+            }
+        });
         // methods of super classes
         if (withSuperClassMethods) {
             for (const superClass of this.getDeclaredSuperClasses()) {
@@ -294,7 +365,7 @@ export const ClassKindName = 'ClassKind';
 
 export interface FieldDetails {
     name: string;
-    type: Type;
+    type: TypeReference<Type>;
 }
 export interface CreateFieldDetails {
     name: string;
@@ -302,7 +373,7 @@ export interface CreateFieldDetails {
 }
 
 export interface MethodDetails {
-    type: FunctionType;
+    type: TypeReference<FunctionType>;
     // methods might have some more properties in the future
 }
 
@@ -337,13 +408,13 @@ export type InferClassLiteral<T = unknown> = {
 export class ClassKind implements Kind {
     readonly $name: 'ClassKind';
     readonly services: TypirServices;
-    readonly options: ClassKindOptions;
+    readonly options: Readonly<ClassKindOptions>;
 
     constructor(services: TypirServices, options?: Partial<ClassKindOptions>) {
         this.$name = ClassKindName;
         this.services = services;
         this.services.kinds.register(this);
-        this.options = {
+        this.options = { // TODO in eigene Methode auslagern!
             // the default values:
             typing: 'Nominal',
             maximumNumberOfSuperClasses: 1,
@@ -355,167 +426,90 @@ export class ClassKind implements Kind {
         assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
 
-    getClassType<T>(typeDetails: ClassTypeDetails<T> | string): ClassType | undefined { // string for nominal typing
-        const key = this.calculateIdentifier(typeof typeDetails === 'string' ? { className: typeDetails, fields: [], methods: [] } : typeDetails);
-        return this.services.graph.getType(key) as ClassType;
-    }
+    // zwei verschiedene Use cases für Calls: Reference/use (e.g. Var-Type) VS Creation (e.g. Class-Declaration)
 
-    getOrCreateClassType<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): ClassType {
-        const classType = this.getClassType(typeDetails);
-        if (classType) {
-            this.registerInferenceRules(typeDetails, classType);
-            return classType;
-        }
-        return this.createClassType(typeDetails);
-    }
-
-    createClassType<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): ClassType {
-        assertTrue(this.getClassType(typeDetails) === undefined, `${typeDetails.className}`);
-
-        // create the class type
-        const classType = new ClassType(this, this.calculateIdentifier(typeDetails), typeDetails as CreateClassTypeDetails);
-        this.services.graph.addNode(classType);
-
-        // register inference rules
-        this.registerInferenceRules<T, T1, T2>(typeDetails, classType);
-
-        return classType;
-    }
-
-    protected registerInferenceRules<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>, classType: ClassType) {
-        if (typeDetails.inferenceRuleForDeclaration) {
-            this.services.inference.addInferenceRule({
-                inferTypeWithoutChildren(domainElement, _typir) {
-                    if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
-                        return classType;
-                    } else {
-                        return InferenceRuleNotApplicable;
-                    }
-                },
-                inferTypeWithChildrensTypes(_domainElement, _childrenTypes, _typir) {
-                    // TODO check values for fields for nominal typing!
-                    return classType;
-                },
-            }, classType);
-        }
-        if (typeDetails.inferenceRuleForLiteral) {
-            this.registerInferenceRuleForLiteral(typeDetails.inferenceRuleForLiteral, this, classType);
-        }
-        if (typeDetails.inferenceRuleForReference) {
-            this.registerInferenceRuleForLiteral(typeDetails.inferenceRuleForReference, this, classType);
-        }
-        if (typeDetails.inferenceRuleForFieldAccess) {
-            this.services.inference.addInferenceRule((domainElement, _typir) => {
-                const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
-                if (result === InferenceRuleNotApplicable) {
-                    return InferenceRuleNotApplicable;
-                } else if (typeof result === 'string') {
-                    // get the type of the given field name
-                    const fieldType = classType.getFields(true).get(result);
-                    if (fieldType) {
-                        return fieldType;
-                    }
-                    return <InferenceProblem>{
-                        $problem: InferenceProblem,
-                        domainElement,
-                        inferenceCandidate: classType,
-                        location: `unknown field '${result}'`,
-                        // rule: this, // this does not work with functions ...
-                        subProblems: [],
-                    };
-                } else {
-                    return result; // do the type inference for this element instead
-                }
-            }, classType);
+    /**
+     * For the use case, that a type is used/referenced, e.g. to specify the type of a variable declaration.
+     * @param typeDetails all information needed to identify the class
+     * @returns a reference to the class type, which might be resolved in the future, if the class type does not yet exist
+     */
+    getClassType<T>(typeDetails: ClassTypeDetails<T> | string): TypeReference<ClassType> { // string for nominal typing
+        if (typeof typeDetails === 'string') {
+            // nominal typing
+            return new TypeReference(typeDetails, this.services);
+        } else {
+            // structural typing
+            // TODO does this case occur in practise?
+            return new TypeReference(() => this.calculateIdentifier(typeDetails), this.services);
         }
     }
 
-    protected registerInferenceRuleForLiteral<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): void {
-        const mapListConverter = new MapListConverter();
-        this.services.inference.addInferenceRule({
-            inferTypeWithoutChildren(domainElement, _typir) {
-                const result = rule.filter(domainElement);
-                if (result) {
-                    const matching = rule.matching(domainElement);
-                    if (matching) {
-                        const inputArguments = rule.inputValuesForFields(domainElement);
-                        if (inputArguments.size >= 1) {
-                            return mapListConverter.toList(inputArguments);
-                        } else {
-                            // there are no operands to check
-                            return classType; // this case occurs only, if the current class has no fields (including fields of super types) or is nominally typed
-                        }
-                    } else {
-                        // the domain element is slightly different
-                    }
-                } else {
-                    // the domain element has a completely different purpose
-                }
-                // does not match at all
-                return InferenceRuleNotApplicable;
-            },
-            inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
-                const allExpectedFields = classType.getFields(true);
-                // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-                const checkedFieldsProblems = checkNameTypesMap(
-                    mapListConverter.toMap(childrenTypes),
-                    allExpectedFields,
-                    createTypeCheckStrategy(classKind.options.subtypeFieldChecking, typir)
-                );
-                if (checkedFieldsProblems.length >= 1) {
-                    // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
-                    return <InferenceProblem>{
-                        $problem: InferenceProblem,
-                        domainElement,
-                        inferenceCandidate: classType,
-                        location: 'values for fields',
-                        rule: this,
-                        subProblems: checkedFieldsProblems,
-                    };
-                } else {
-                    // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
-                    return classType;
-                }
-            },
-        }, classType);
+    /**
+     * For the use case, that a new type needs to be created in Typir, e.g. for a class declaration.
+     * This function ensures, that the same type is created only once, even if this function is called multiple times, if e.g. the same type might be created for different type declaration.
+     * Nevertheless, usually a validation should produce an error in this case.
+     * @param typeDetails all information needed to create a new class
+     * @returns an initializer which creates and returns the new class type, when all depending types are resolved
+     */
+    createClassType<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): TypeInitializer<ClassType> {
+        // assertTrue(this.getClassType(typeDetails) === undefined, `The class '${typeDetails.className}' already exists!`); // ensures, that no duplicated classes are created!
+
+        return new ClassTypeInitializer(this.services, this, typeDetails);
     }
 
-    calculateIdentifier<T>(typeDetails: ClassTypeDetails<T>): string {
-        return this.printClassType(typeDetails);
+    getIdentifierPrefix(): string {
+        return this.options.identifierPrefix ? this.options.identifierPrefix + '-' : '';
     }
 
-    protected printClassType<T>(typeDetails: ClassTypeDetails<T>): string {
-        const prefix = this.options.identifierPrefix;
+    /**
+     * TODO
+     *
+     * Design decisions:
+     * - This method is part of the ClassKind and not part of ClassType, since the ClassKind requires it for 'getClassType'!
+     * - The kind might use/add additional prefixes for the identifiers to make them "even more unique".
+     *
+     * @param typeDetails the details
+     * @returns the new identifier
+     */
+    calculateIdentifier<T>(typeDetails: ClassTypeDetails<T>): string { // TODO kann keinen Identifier liefern, wenn noch nicht resolved!
+        // purpose of identifier: distinguish different types; NOT: not uniquely overloaded types
+        const prefix = this.getIdentifierPrefix();
         if (this.options.typing === 'Structural') {
             // fields
-            const fields: string[] = [];
-            for (const [fieldNUmber, fieldDetails] of typeDetails.fields.entries()) {
-                fields.push(`${fieldNUmber}:${fieldDetails.name}`);
-            }
+            const fields: string = typeDetails.fields
+                .map(f => `${f.name}:${resolveTypeSelector(this.services, f.type)}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
+                .sort() // the order of fields does not matter, therefore we need a stable order to make the identifiers comparable
+                .join(',');
             // methods
-            const methods: string[] = [];
-            for (const method of typeDetails.methods) {
-                const methodType = this.getFunctionKind().getOrCreateFunctionType(method);
-                methods.push(methodType.identifier); // TODO is ".identifier" too strict here?
-            }
-            // super classes
-            const superClasses = toArray(typeDetails.superClasses).map(selector => {
-                const type = resolveTypeSelector(this.services, selector);
-                assertType(type, isClassType);
-                return type;
-            });
-            const extendedClasses = superClasses.length <= 0 ? '' : `-extends-${superClasses.map(c => c.identifier).join(',')}`;
-            // whole representation
-            return `${prefix}-${typeDetails.className}{${fields.join(',')}}{${methods.join(',')}}${extendedClasses}`;
+            const functionKind = this.getMethodKind();
+            const methods: string = typeDetails.methods
+                .map(method => {
+                    functionKind.getOrCreateFunctionType(method); // ensure, that the corresponding Type is existing in the type system
+                    return functionKind.calculateIdentifier(method); // reuse the Identifier for Functions here!
+                })
+                .sort() // the order of methods does not matter, therefore we need a stable order to make the identifiers comparable
+                .join(',');
+            // super classes (TODO oder strukturell per getAllSuperClassX lösen?!)
+            const superClasses: string = toArray(typeDetails.superClasses)
+                .map(selector => {
+                    const type = resolveTypeSelector(this.services, selector);
+                    assertType(type, isClassType);
+                    return type.getIdentifier();
+                })
+                .sort()
+                .join(',');
+            // complete identifier (the name of the class does not matter for structural typing!)
+            return `${prefix}fields{${fields}}-methods{${methods}}-extends{${superClasses}}`;
         } else if (this.options.typing === 'Nominal') {
-            return `${prefix}-${typeDetails.className}`;
+            // only the name matters for nominal typing!
+            return `${prefix}${typeDetails.className}`;
         } else {
             assertUnreachable(this.options.typing);
         }
     }
 
-    getFunctionKind(): FunctionKind {
-        // ensure, that Typir uses the predefined 'function' kind
+    getMethodKind(): FunctionKind {
+        // ensure, that Typir uses the predefined 'function' kind for methods
         const kind = this.services.kinds.get(FunctionKindName);
         return isFunctionKind(kind) ? kind : new FunctionKind(this.services);
     }
@@ -534,6 +528,145 @@ export class ClassKind implements Kind {
 
 export function isClassKind(kind: unknown): kind is ClassKind {
     return isKind(kind) && kind.$name === ClassKindName;
+}
+
+
+export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> extends TypeInitializer<ClassType> implements TypeStateListener {
+    protected readonly typeDetails: CreateClassTypeDetails<T, T1, T2>;
+    protected readonly kind: ClassKind;
+
+    constructor(services: TypirServices, kind: ClassKind, typeDetails: CreateClassTypeDetails<T, T1, T2>) {
+        super(services);
+        this.typeDetails = typeDetails;
+        this.kind = kind;
+
+        // create the class type
+        const classType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
+        if (kind.options.typing === 'Structural') {
+            // TODO Vorsicht Inference rules werden by default an den Identifier gebunden (ebenso Validations)!
+            this.services.graph.addNode(classType, kind.getIdentifierPrefix() + typeDetails.className);
+            // TODO hinterher wieder abmelden, wenn Type invalid geworden ist bzw. ein anderer Type gewonnen hat? bzw. gewinnt immer der erste Type?
+        }
+
+        classType.addListener(this, true); // trigger directly, if some initialization states are already reached!
+    }
+
+    switchedToIdentifiable(type: Type): void {
+        // TODO Vorsicht, dass hier nicht 2x derselbe Type angefangen wird zu erstellen und dann zwei Typen auf ihre Vervollständigung warten!
+        // 2x TypeResolver erstellen, beide müssen später denselben ClassType zurückliefern!
+        // bei Node { children: Node[] } muss der Zyklus erkannt und behandelt werden!!
+        this.producedType(type as ClassType);
+    }
+
+    switchedToCompleted(classType: Type): void {
+        // register inference rules
+        // TODO or can this be done already after having the identifier?
+        registerInferenceRules<T, T1, T2>(this.services, this.typeDetails, this.kind, classType as ClassType);
+        classType.removeListener(this); // the work of this initializer is done now
+    }
+
+    switchedToInvalid(_type: Type): void {
+        // do nothing
+    }
+}
+
+
+function registerInferenceRules<T, T1, T2>(services: TypirServices, typeDetails: CreateClassTypeDetails<T, T1, T2>, classKind: ClassKind, classType: ClassType) {
+    if (typeDetails.inferenceRuleForDeclaration) {
+        services.inference.addInferenceRule({
+            inferTypeWithoutChildren(domainElement, _typir) {
+                if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
+                    return classType;
+                } else {
+                    return InferenceRuleNotApplicable;
+                }
+            },
+            inferTypeWithChildrensTypes(_domainElement, _childrenTypes, _typir) {
+                // TODO check values for fields for nominal typing!
+                return classType;
+            },
+        }, classType);
+    }
+    if (typeDetails.inferenceRuleForLiteral) {
+        registerInferenceRuleForLiteral(services, typeDetails.inferenceRuleForLiteral, classKind, classType);
+    }
+    if (typeDetails.inferenceRuleForReference) {
+        registerInferenceRuleForLiteral(services, typeDetails.inferenceRuleForReference, classKind, classType);
+    }
+    if (typeDetails.inferenceRuleForFieldAccess) {
+        services.inference.addInferenceRule((domainElement, _typir) => {
+            const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
+            if (result === InferenceRuleNotApplicable) {
+                return InferenceRuleNotApplicable;
+            } else if (typeof result === 'string') {
+                // get the type of the given field name
+                const fieldType = classType.getFields(true).get(result);
+                if (fieldType) {
+                    return fieldType;
+                }
+                return <InferenceProblem>{
+                    $problem: InferenceProblem,
+                    domainElement,
+                    inferenceCandidate: classType,
+                    location: `unknown field '${result}'`,
+                    // rule: this, // this does not work with functions ...
+                    subProblems: [],
+                };
+            } else {
+                return result; // do the type inference for this element instead
+            }
+        }, classType);
+    }
+}
+
+function registerInferenceRuleForLiteral<T>(services: TypirServices, rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): void {
+    const mapListConverter = new MapListConverter();
+    services.inference.addInferenceRule({
+        inferTypeWithoutChildren(domainElement, _typir) {
+            const result = rule.filter(domainElement);
+            if (result) {
+                const matching = rule.matching(domainElement);
+                if (matching) {
+                    const inputArguments = rule.inputValuesForFields(domainElement);
+                    if (inputArguments.size >= 1) {
+                        return mapListConverter.toList(inputArguments);
+                    } else {
+                        // there are no operands to check
+                        return classType; // this case occurs only, if the current class has no fields (including fields of super types) or is nominally typed
+                    }
+                } else {
+                    // the domain element is slightly different
+                }
+            } else {
+                // the domain element has a completely different purpose
+            }
+            // does not match at all
+            return InferenceRuleNotApplicable;
+        },
+        inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
+            const allExpectedFields = classType.getFields(true);
+            // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
+            const checkedFieldsProblems = checkNameTypesMap(
+                mapListConverter.toMap(childrenTypes),
+                allExpectedFields,
+                createTypeCheckStrategy(classKind.options.subtypeFieldChecking, typir)
+            );
+            if (checkedFieldsProblems.length >= 1) {
+                // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
+                return <InferenceProblem>{
+                    $problem: InferenceProblem,
+                    domainElement,
+                    inferenceCandidate: classType,
+                    location: 'values for fields',
+                    rule: this,
+                    subProblems: checkedFieldsProblems,
+                };
+            } else {
+                // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
+                return classType;
+            }
+        },
+    }, classType);
 }
 
 
@@ -659,7 +792,7 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
      * @returns a string key
      */
     protected calculateMethodKey(clas: ClassType, func: FunctionType): string {
-        return `${clas.identifier}.${func.functionName}(${func.getInputs().map(param => param.type.identifier)})`;
+        return `${clas.getIdentifier()}.${func.functionName}(${func.getInputs().map(param => param.type.getIdentifier())})`;
     }
 
     afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
@@ -692,11 +825,11 @@ export class TopClassType extends Type {
     }
 
     override getName(): string {
-        return this.identifier;
+        return this.getIdentifier();
     }
 
     override getUserRepresentation(): string {
-        return this.identifier;
+        return this.getIdentifier();
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {

@@ -218,7 +218,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         // class types (nominal typing):
         if (isClass(node)) {
             const className = node.name;
-            const classType = this.classKind.getOrCreateClassType({
+            const classType = this.classKind.createClassType({
                 className,
                 superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
                 fields: node.members
@@ -245,13 +245,15 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 },
                 // inference rule for accessing fields
                 inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element!.ref.$container === node
-                    ? domainElement.element!.ref.name : 'N/A', // as an alternative, use 'InferenceRuleNotApplicable' instead, what should we recommend?
+                    ? domainElement.element!.ref.name : InferenceRuleNotApplicable,
             });
 
             // TODO conversion 'nil' to classes ('TopClass')!
             // any class !== all classes; here we want to say, that 'nil' is assignable to each concrete Class type!
             // this.typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateTopClassType({}), 'IMPLICIT_EXPLICIT');
-            this.typir.conversion.markAsConvertible(this.primitiveKind.getPrimitiveType({ primitiveName: 'nil' })!, classType, 'IMPLICIT_EXPLICIT');
+            classType.addListener(type => {
+                this.typir.conversion.markAsConvertible(this.primitiveKind.getPrimitiveType({ primitiveName: 'nil' })!, type, 'IMPLICIT_EXPLICIT');
+            });
         }
     }
 }

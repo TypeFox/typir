@@ -49,6 +49,7 @@ export class FixedParameterType extends Type {
                 type: typeValues[i],
             });
         }
+        this.completeInitialization({}); // TODO preconditions
     }
 
     getParameterTypes(): Type[] {
@@ -149,7 +150,7 @@ export class FixedParameterKind implements Kind {
     readonly $name: `FixedParameterKind-${string}`;
     readonly services: TypirServices;
     readonly baseName: string;
-    readonly options: FixedParameterKindOptions;
+    readonly options: Readonly<FixedParameterKindOptions>;
     readonly parameters: Parameter[]; // assumption: the parameters are in the correct order!
 
     constructor(typir: TypirServices, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {

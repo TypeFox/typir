@@ -99,7 +99,7 @@ export class DefaultTypeEquality implements TypeEquality {
         if (type1 === type2) {
             return undefined;
         }
-        if (type1.identifier === type2.identifier) { // this works, since identifiers are unique!
+        if (type1.getIdentifier() === type2.getIdentifier()) { // this works, since identifiers are unique!
             return undefined;
         }
 

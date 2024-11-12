@@ -118,13 +118,17 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
     }
 
     addInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void {
-        const key = boundToType?.identifier ?? '';
+        const key = this.getBoundToTypeKey(boundToType);
         let rules = this.inferenceRules.get(key);
         if (!rules) {
             rules = [];
             this.inferenceRules.set(key, rules);
         }
         rules.push(rule);
+    }
+
+    protected getBoundToTypeKey(boundToType?: Type): string {
+        return boundToType?.getIdentifier() ?? '';
     }
 
     inferType(domainElement: unknown): Type | InferenceProblem[] {
@@ -264,11 +268,11 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
 
-    addedType(_newType: Type): void {
+    addedType(_newType: Type, _key: string): void {
         // do nothing
     }
-    removedType(type: Type): void {
-        this.inferenceRules.delete(type.identifier);
+    removedType(type: Type, _key: string): void {
+        this.inferenceRules.delete(this.getBoundToTypeKey(type));
     }
     addedEdge(_edge: TypeEdge): void {
         // do nothing

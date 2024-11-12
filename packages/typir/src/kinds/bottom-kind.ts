@@ -20,14 +20,15 @@ export class BottomType extends Type {
     constructor(kind: BottomKind, identifier: string) {
         super(identifier);
         this.kind = kind;
+        this.completeInitialization({}); // no preconditions
     }
 
     override getName(): string {
-        return this.identifier;
+        return this.getIdentifier();
     }
 
     override getUserRepresentation(): string {
-        return this.identifier;
+        return this.getIdentifier();
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
@@ -86,7 +87,7 @@ export const BottomKindName = 'BottomKind';
 export class BottomKind implements Kind {
     readonly $name: 'BottomKind';
     readonly services: TypirServices;
-    readonly options: BottomKindOptions;
+    readonly options: Readonly<BottomKindOptions>;
     protected instance: BottomType | undefined;
 
     constructor(services: TypirServices, options?: Partial<BottomKindOptions>) {

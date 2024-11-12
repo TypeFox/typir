@@ -51,6 +51,8 @@ export class FunctionType extends Type {
                 type: resolveTypeSelector(this.kind.services, input.type),
             };
         });
+
+        this.completeInitialization({}); // TODO preconditions
     }
 
     override getName(): string {
@@ -251,7 +253,7 @@ export type InferFunctionCall<T = unknown> = {
 export class FunctionKind implements Kind, TypeGraphListener {
     readonly $name: 'FunctionKind';
     readonly services: TypirServices;
-    readonly options: FunctionKindOptions;
+    readonly options: Readonly<FunctionKindOptions>;
     /** Limitations
      * - Works only, if function types are defined using the createFunctionType(...) function below!
      */
@@ -389,7 +391,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
         const functionName = typeDetails.functionName;
 
         // check the input
-        assertTrue(this.getFunctionType(typeDetails) === undefined, `${functionName}`); // ensures, that no duplicated functions are created!
+        assertTrue(this.getFunctionType(typeDetails) === undefined, `The function '${functionName}' already exists!`); // ensures, that no duplicated functions are created!
         if (!typeDetails) {
             throw new Error('is undefined');
         }
@@ -546,10 +548,10 @@ export class FunctionKind implements Kind, TypeGraphListener {
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
 
-    addedType(_newType: Type): void {
+    addedType(_newType: Type, _key: string): void {
         // do nothing
     }
-    removedType(type: Type): void {
+    removedType(type: Type, _key: string): void {
         if (isFunctionType(type)) {
             const overloads = this.mapNameTypes.get(type.functionName);
             if (overloads) {
@@ -571,14 +573,15 @@ export class FunctionKind implements Kind, TypeGraphListener {
 
 
     calculateIdentifier(typeDetails: FunctionTypeDetails): string {
-        // this schema allows to identify duplicated functions!
-        const prefix = this.options.identifierPrefix;
-        // function name
+        const prefix = this.options.identifierPrefix ? this.options.identifierPrefix + '-' : '';
+        // function name, if wanted
         const functionName = this.hasFunctionName(typeDetails.functionName) ? typeDetails.functionName : '';
-        // inputs
-        const inputsString = typeDetails.inputParameters.map(input => resolveTypeSelector(this.services, input.type).getName()).join(',');
+        // inputs: type identifiers in defined order
+        const inputsString = typeDetails.inputParameters.map(input => resolveTypeSelector(this.services, input.type).getIdentifier()).join(',');
+        // output: type identifier
+        const outputString = typeDetails.outputParameter ? resolveTypeSelector(this.services, typeDetails.outputParameter.type).getIdentifier() : '';
         // complete signature
-        return `${prefix}-${functionName}(${inputsString})`;
+        return `${prefix}${functionName}(${inputsString}):${outputString}`;
     }
 
     getParameterRepresentation(parameter: NameTypePair): string {
@@ -620,7 +623,7 @@ export function isFunctionKind(kind: unknown): kind is FunctionKind {
 
 
 /**
- * Predefined validation to produce errors, if the same function is declared more than once.
+ * Predefined validation to produce errors for those overloaded functions which cannot be distinguished when calling them.
  */
 export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
     protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
@@ -662,7 +665,7 @@ export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
      * @returns a string key
      */
     protected calculateFunctionKey(func: FunctionType): string {
-        return `${func.functionName}(${func.getInputs().map(param => param.type.identifier)})`;
+        return `${func.functionName}(${func.getInputs().map(param => param.type.getIdentifier())})`;
     }
 
     afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {

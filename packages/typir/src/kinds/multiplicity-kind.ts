@@ -26,10 +26,11 @@ export class MultiplicityType extends Type {
         this.constrainedType = constrainedType;
         this.lowerBound = lowerBound;
         this.upperBound = upperBound;
+        this.completeInitialization({}); // TODO preconditions
     }
 
     override getName(): string {
-        return this.kind.printType(this.getConstrainedType(), this.getLowerBound(), this.getUpperBound());
+        return `${this.constrainedType.getName()}${this.kind.printRange(this.getLowerBound(), this.getUpperBound())}`;
     }
 
     override getUserRepresentation(): string {
@@ -136,7 +137,7 @@ export const MultiplicityKindName = 'MultiplicityTypeKind';
 export class MultiplicityKind implements Kind {
     readonly $name: 'MultiplicityTypeKind';
     readonly services: TypirServices;
-    readonly options: MultiplicityKindOptions;
+    readonly options: Readonly<MultiplicityKindOptions>;
 
     constructor(services: TypirServices, options?: Partial<MultiplicityKindOptions>) {
         this.$name = MultiplicityKindName;
@@ -185,7 +186,7 @@ export class MultiplicityKind implements Kind {
     }
 
     calculateIdentifier(typeDetails: MultiplicityTypeDetails): string {
-        return this.printType(typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
+        return `${typeDetails.constrainedType.getIdentifier()}${this.printRange(typeDetails.lowerBound, typeDetails.upperBound)}`;
     }
 
     protected checkBounds(lowerBound: number, upperBound: number): boolean {
@@ -200,10 +201,7 @@ export class MultiplicityKind implements Kind {
         return true;
     }
 
-    printType(constrainedType: Type, lowerBound: number, upperBound: number): string {
-        return `${constrainedType.getName()}${this.printRange(lowerBound, upperBound)}`;
-    }
-    protected printRange(lowerBound: number, upperBound: number): string {
+    printRange(lowerBound: number, upperBound: number): string {
         if (lowerBound === upperBound || (lowerBound === 0 && upperBound === MULTIPLICITY_UNLIMITED)) {
             // [2..2] => [2], [0..*] => [*]
             return `[${this.printBound(upperBound)}]`;
