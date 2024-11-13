@@ -30,7 +30,7 @@ jobs:
       if: success() || failure()
       shell: bash
       run: |
-        npm run test
+        npm run test:run
     - name: Publish NPM Packages
       shell: bash
       env:
