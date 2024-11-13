@@ -1,5 +1,5 @@
-const fs = require('fs-extra');
-const path = require('path');
+import fs from 'fs-extra';
+import path from 'path';
 
 async function runUpdate() {
     const langiumPath = getPath('typir', true);
@@ -13,8 +13,8 @@ async function runUpdate() {
     ]);
 }
 
-async function replaceAll(project, package, version) {
-    const path = getPath(project, package);
+async function replaceAll(project, pkg, version) {
+    const path = getPath(project, pkg);
     let content = await fs.readFile(path, 'utf-8');
     content = content
         .replace(/(?<="typir": "[~\^]?)\d+\.\d+\.\d+/g, version)
@@ -22,8 +22,8 @@ async function replaceAll(project, package, version) {
     await fs.writeFile(path, content);
 }
 
-function getPath(project, package) {
-    return path.join(package ? 'packages' : 'examples', project, 'package.json');
+function getPath(project, pkg) {
+    return path.join(pkg ? 'packages' : 'examples', project, 'package.json');
 }
 
 runUpdate();
