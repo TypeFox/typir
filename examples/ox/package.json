@@ -1,8 +1,9 @@
 {
-    "name": "ox",
-    "displayName": "Ox",
+    "name": "typir-example-ox",
+    "displayName": "ox",
     "version": "0.0.1",
-    "description": "Please enter a brief description here",
+    "private": true,
+    "description": "",
     "author": {
         "name": "TypeFox",
         "url": "https://www.typefox.io"

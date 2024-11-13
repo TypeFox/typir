@@ -37,9 +37,7 @@
         "langium:generate": "npm run langium:generate --workspace=examples/ox --workspace=examples/lox",
         "langium:watch": "npm run langium:watch --workspace=examples/ox --workspace=examples/lox",
         "vscode:prepublish": "npm run build && npm run lint",
-        "reset:repo": "git clean -f -X -d",
-        "publish:next": "npm --no-git-tag-version version \"$(semver $npm_package_version -i minor)-next.$(git rev-parse --short HEAD)\" && npm publish --tag next",
-        "publish:latest": "npm publish --tag latest --access public"
+        "reset:repo": "git clean -f -X -d"
     },
     "devDependencies": {
         "@types/node": "~18.19.55",

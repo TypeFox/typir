@@ -41,7 +41,9 @@
     "clean": "shx rm -rf lib out coverage",
     "build": "tsc",
     "watch": "tsc --watch",
-    "lint": "eslint src test --ext .ts"
+    "lint": "eslint src test --ext .ts",
+    "publish:next": "npm --no-git-tag-version version \"$(semver $npm_package_version -i minor)-next.$(git rev-parse --short HEAD)\" && npm publish --tag next",
+    "publish:latest": "npm publish --tag latest --access public"
   },
   "repository": {
     "type": "git",
