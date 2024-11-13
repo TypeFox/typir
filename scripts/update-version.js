@@ -2,28 +2,37 @@ import fs from 'fs-extra';
 import path from 'path';
 
 async function runUpdate() {
-    const langiumPath = getPath('typir', true);
-    const langiumPackage = await fs.readJson(langiumPath);
-    const version = langiumPackage.version;
+    const versions = await Promise.all([
+        getVersionOf('typir'),
+        getVersionOf('typir-langium'),
+    ]);
     await Promise.all([
-        replaceAll('typir', true, version),
-        replaceAll('typir-langium', true, version),
-        replaceAll('ox', false, version),
-        replaceAll('lox', false, version),
+        replaceAll('typir', true, versions),
+        replaceAll('typir-langium', true, versions),
+        replaceAll('ox', false, versions),
+        replaceAll('lox', false, versions),
     ]);
 }
 
-async function replaceAll(project, pkg, version) {
+async function replaceAll(project, pkg, versions) {
     const path = getPath(project, pkg);
     let content = await fs.readFile(path, 'utf-8');
-    content = content
-        .replace(/(?<="typir": "[~\^]?)\d+\.\d+\.\d+/g, version)
-        .replace(/(?<="typir-langium": "[~\^]?)\d+\.\d+\.\d+/g, version)
+    versions.forEach(([project, version]) => {
+        const regex = new RegExp("(?<=\"" + project + "\": \"[~\\^]?)\\d+\\.\\d+\\.\\d+", "g");
+        console.log(regex);
+        content = content.replace(regex, version);
+    });
     await fs.writeFile(path, content);
 }
 
 function getPath(project, pkg) {
     return path.join(pkg ? 'packages' : 'examples', project, 'package.json');
+}
+
+async function getVersionOf(project) {
+    const typirPath = getPath(project, true);
+    const typirPackage = await fs.readJson(typirPath);
+    return [project, typirPackage.version];
 }
 
 runUpdate();
