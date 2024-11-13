@@ -6,17 +6,6 @@
     "private": true,
     "engineStrict": true,
     "type": "module",
-    "sideEffects": false,
-    "files": [
-        "lib",
-        "src"
-    ],
-    "exports": {
-        ".": {
-            "types": "./lib/index.d.ts",
-            "import": "./lib/index.js"
-        }
-    },
     "engines": {
         "node": ">= 18.0.0",
         "npm": ">= 9.5.0"
