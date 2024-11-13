@@ -19,7 +19,6 @@ async function replaceAll(project, pkg, versions) {
     let content = await fs.readFile(path, 'utf-8');
     versions.forEach(([project, version]) => {
         const regex = new RegExp("(?<=\"" + project + "\": \"[~\\^]?)\\d+\\.\\d+\\.\\d+", "g");
-        console.log(regex);
         content = content.replace(regex, version);
     });
     await fs.writeFile(path, content);
