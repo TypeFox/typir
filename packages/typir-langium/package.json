@@ -31,11 +31,7 @@
   ],
   "files": [
     "lib",
-    "src",
-    "node.js",
-    "node.d.ts",
-    "test.js",
-    "test.d.ts"
+    "src"
   ],
   "scripts": {
     "clean": "shx rm -rf lib out coverage",
