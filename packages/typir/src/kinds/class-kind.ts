@@ -73,7 +73,6 @@ export class ClassType extends Type {
         const refMethods = this.methods.map(m => m.type);
         // the uniqueness of methods can be checked with the predefined UniqueMethodValidation below
 
-        // calculate the Identifier, based on the resolved type references
         // const all: Array<TypeReference<Type | FunctionType>> = [];
         const fieldsAndMethods: Array<TypeReference<Type>> = [];
         fieldsAndMethods.push(...refFields);
@@ -85,7 +84,7 @@ export class ClassType extends Type {
                 refsToBeIdentified: fieldsAndMethods,
             },
             preconditionsForCompletion: {
-                refsToBeCompleted: this.superClasses as unknown as Array<TypeReference<Type>>,
+                refsToBeCompleted: this.superClasses as unknown as Array<TypeReference<Type>>, // TODO here we are waiting for the same/current (identifiable) ClassType!!
             },
             referencesRelevantForInvalidation: [...fieldsAndMethods, ...(this.superClasses as unknown as Array<TypeReference<Type>>)],
             onIdentification: () => {
@@ -387,6 +386,7 @@ export interface ClassTypeDetails<T = unknown> {
 }
 export interface CreateClassTypeDetails<T = unknown, T1 = unknown, T2 = unknown> extends ClassTypeDetails<T> { // TODO the generics look very bad!
     inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // TODO what is the purpose for this? what is the difference to literals?
+    // TODO rename to Constructor call??
     inferenceRuleForLiteral?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
     inferenceRuleForReference?: InferClassLiteral<T2>,
     inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | InferenceRuleNotApplicable, // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
@@ -553,19 +553,25 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
     }
 
     switchedToIdentifiable(classType: Type): void {
-        // TODO Vorsicht, dass hier nicht 2x derselbe Type angefangen wird zu erstellen und dann zwei Typen auf ihre Vervollständigung warten!
-        // 2x TypeResolver erstellen, beide müssen später denselben ClassType zurückliefern!
-        // bei Node { children: Node[] } muss der Zyklus erkannt und behandelt werden!!
-        this.producedType(classType as ClassType);
-        registerInferenceRules<T, T1, T2>(this.services, this.typeDetails, this.kind, classType as ClassType);
-    }
+        /* Important explanations:
+         * - This logic here (and 'producedType(...)') ensures, that the same ClassType is not registered twice in the type graph.
+         * - By waiting untile the new class has its identifier, 'producedType(...)' is able to check, whether this class type is already existing!
+         * - Accordingly, 'classType' and 'readyClassType' might have different values!
+         */
+        const readyClassType = this.producedType(classType as ClassType);
 
-    switchedToCompleted(classType: Type): void {
         // register inference rules
-        classType.removeListener(this); // the work of this initializer is done now
+        registerInferenceRules<T, T1, T2>(this.services, this.typeDetails, this.kind, readyClassType);
+
+        // the work of this initializer is done now
+        classType.removeListener(this);
     }
 
-    switchedToInvalid(_type: Type): void {
+    switchedToCompleted(_classType: Type): void {
+        // do nothing
+    }
+
+    switchedToInvalid(_previousClassType: Type): void {
         // do nothing
     }
 }

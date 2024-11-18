@@ -18,8 +18,11 @@ export abstract class TypeInitializer<T extends Type = Type> {
         this.services = services;
     }
 
-    protected producedType(newType: T): void {
+    protected producedType(newType: T): T {
         const key = newType.getIdentifier();
+        if (!key) {
+            throw new Error('missing identifier!');
+        }
         const existingType = this.services.graph.getType(key);
         if (existingType) {
             // ensure, that the same type is not duplicated!
@@ -31,8 +34,9 @@ export abstract class TypeInitializer<T extends Type = Type> {
         }
 
         // inform and clear all listeners
-        this.listeners.forEach(listener => listener(this.typeToReturn!));
+        this.listeners.slice().forEach(listener => listener(this.typeToReturn!));
         this.listeners = [];
+        return this.typeToReturn;
     }
 
     getType(): T | undefined {

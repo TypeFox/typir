@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isClassType } from '../kinds/class-kind.js';
 import { Kind, isKind } from '../kinds/kind.js';
 import { TypeReference, TypirProblem, WaitingForInvalidTypeReferences, WaitingForResolvedTypeReferences } from '../utils/utils-definitions.js';
 import { assertTrue, assertUnreachable } from '../utils/utils.js';
@@ -156,28 +155,32 @@ export abstract class Type {
         onCompletion?: () => void,
         onInvalidation?: () => void,
     }): void {
-        // specify the preconditions:
-        // invalid --> identifiable
-        const init1 = new WaitingForResolvedTypeReferences(
-            preconditions.preconditionsForInitialization?.refsToBeIdentified,
-            preconditions.preconditionsForInitialization?.refsToBeCompleted,
-        );
-        // identifiable --> completed
-        const init2 = new WaitingForResolvedTypeReferences(
-            preconditions.preconditionsForCompletion?.refsToBeIdentified,
-            preconditions.preconditionsForCompletion?.refsToBeCompleted,
-        );
-        // completed --> invalid
-        const init3 = new WaitingForInvalidTypeReferences(
-            preconditions.referencesRelevantForInvalidation ?? [],
-        );
-
         // store the reactions
         this.onIdentification = preconditions.onIdentification ?? (() => {});
         this.onCompletion = preconditions.onCompletion ?? (() => {});
         this.onInvalidation = preconditions.onInvalidation ?? (() => {});
 
-        // specify the transitions between the states:
+        if (this.kind.$name === 'ClassKind') {
+            console.log('');
+        }
+        // preconditions for Identifiable
+        const init1 = new WaitingForResolvedTypeReferences(
+            preconditions.preconditionsForInitialization?.refsToBeIdentified,
+            preconditions.preconditionsForInitialization?.refsToBeCompleted,
+            this,
+        );
+        // preconditions for Completed
+        const init2 = new WaitingForResolvedTypeReferences(
+            preconditions.preconditionsForCompletion?.refsToBeIdentified,
+            preconditions.preconditionsForCompletion?.refsToBeCompleted,
+            this,
+        );
+        // preconditions for Invalid
+        const init3 = new WaitingForInvalidTypeReferences(
+            preconditions.referencesRelevantForInvalidation ?? [],
+        );
+
+        // invalid --> identifiable
         init1.addListener(() => {
             this.switchFromInvalidToIdentifiable();
             if (init2.isFulfilled()) {
@@ -185,6 +188,7 @@ export abstract class Type {
                 this.switchFromIdentifiableToCompleted();
             }
         }, true);
+        // identifiable --> completed
         init2.addListener(() => {
             if (init1.isFulfilled()) {
                 this.switchFromIdentifiableToCompleted();
@@ -192,6 +196,7 @@ export abstract class Type {
                 // switching will be done later by 'init1' in order to conform to the stric order Identifiable --> Completed
             }
         }, false); // not required, since init1 will switch to Completed as well!
+        // identifiable/completed --> invalid
         init3.addListener(() => {
             if (this.isNotInState('Invalid')) {
                 this.switchFromCompleteOrIdentifiableToInvalid();
@@ -207,21 +212,21 @@ export abstract class Type {
         this.assertState('Invalid');
         this.onIdentification();
         this.initialization = 'Identifiable';
-        this.stateListeners.forEach(listener => listener.switchedToIdentifiable(this));
+        this.stateListeners.slice().forEach(listener => listener.switchedToIdentifiable(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromIdentifiableToCompleted(): void {
         this.assertState('Identifiable');
         this.onCompletion();
         this.initialization = 'Completed';
-        this.stateListeners.forEach(listener => listener.switchedToCompleted(this));
+        this.stateListeners.slice().forEach(listener => listener.switchedToCompleted(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromCompleteOrIdentifiableToInvalid(): void {
         this.assertNotState('Invalid');
         this.onInvalidation();
         this.initialization = 'Invalid';
-        this.stateListeners.forEach(listener => listener.switchedToInvalid(this));
+        this.stateListeners.slice().forEach(listener => listener.switchedToInvalid(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
 
