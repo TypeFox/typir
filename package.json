@@ -26,7 +26,8 @@
         "langium:generate": "npm run langium:generate --workspace=examples/ox --workspace=examples/lox",
         "langium:watch": "npm run langium:watch --workspace=examples/ox --workspace=examples/lox",
         "vscode:prepublish": "npm run build && npm run lint",
-        "reset:repo": "git clean -f -X -d"
+        "reset:repo": "git clean -f -X -d",
+        "version:dependencies": "node ./scripts/update-version.js && npm install"
     },
     "devDependencies": {
         "@types/node": "~18.19.55",
@@ -38,6 +39,7 @@
         "esbuild": "~0.24.0",
         "eslint": "~8.57.1",
         "eslint-plugin-header": "~3.1.1",
+        "fs-extra": "^11.2.0",
         "shx": "~0.3.4",
         "typescript": "~5.5.4",
         "vitest": "~2.1.2"

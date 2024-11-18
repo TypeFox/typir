@@ -1,8 +1,9 @@
 {
-    "name": "ox",
-    "displayName": "Ox",
+    "name": "typir-example-ox",
+    "displayName": "ox",
     "version": "0.0.1",
-    "description": "Please enter a brief description here",
+    "private": true,
+    "description": "",
     "author": {
         "name": "TypeFox",
         "url": "https://www.typefox.io"
@@ -27,11 +28,11 @@
         "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\""
     },
     "dependencies": {
-      "commander": "~12.1.0",
-      "langium": "~3.2.0",
-      "typir-langium": "~0.0.1",
-      "vscode-languageclient": "~9.0.1",
-      "vscode-languageserver": "~9.0.1"
+        "commander": "~12.1.0",
+        "langium": "~3.2.0",
+        "typir-langium": "~0.0.1",
+        "vscode-languageclient": "~9.0.1",
+        "vscode-languageserver": "~9.0.1"
     },
     "devDependencies": {
         "@types/vscode": "~1.94.0",
@@ -74,6 +75,6 @@
     ],
     "main": "./out/extension/main.cjs",
     "bin": {
-        "ox-cli": "./out/cli/main.js"
+        "ox-cli": "out/cli/main.js"
     }
 }

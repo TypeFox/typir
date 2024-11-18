@@ -1,8 +1,9 @@
 {
-    "name": "lox",
+    "name": "typir-example-lox",
     "displayName": "lox",
     "version": "0.0.1",
-    "description": "Please enter a brief description here",
+    "private": true,
+    "description": "",
     "author": {
         "name": "TypeFox",
         "url": "https://www.typefox.io"
@@ -74,6 +75,6 @@
     ],
     "main": "./out/extension/main.cjs",
     "bin": {
-        "ox-cli": "./out/cli/main.js"
+        "ox-cli": "out/cli/main.js"
     }
 }
