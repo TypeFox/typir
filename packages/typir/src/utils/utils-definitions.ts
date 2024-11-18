@@ -64,32 +64,39 @@ export type WaitingForResolvedTypeReferencesListener<T extends Type = Type> = (w
  * The listeners might be informed multiple times, if at least one of the TypeReferences was unresolved and later on again in the desired state.
  */
 export class WaitingForResolvedTypeReferences<T extends Type = Type> {
-    protected informed: boolean = false;
+    protected fulfilled: boolean = false;
+    protected typesForCycles: Type | undefined;
 
     // All given TypeReferences must be (at least!) in the state Identifiable or Completed, before the listeners are informed.
     protected readonly waitForRefsIdentified: Array<TypeReference<T>> | undefined;
     protected readonly waitForRefsCompleted: Array<TypeReference<T>> | undefined;
+    private readonly reactOnNextState: TypeReferenceListener<T> = (reference: TypeReference<T>, resolvedType: T) => this.listeningForNextState(reference, resolvedType);
+    private readonly reactOnResetState: TypeReferenceListener<T> = (_reference: TypeReference<T>, _resolvedType: T) => this.listeningForReset();
 
-    /** These listeners will be informed, when all TypeReferences are in the desired state. */
+    /** These listeners will be informed once, when all TypeReferences are in the desired state.
+     * If some of these TypeReferences are invalid and later in the desired state again, the listeners will be informed again. */
     protected readonly listeners: Array<WaitingForResolvedTypeReferencesListener<T>> = [];
 
     constructor(
         waitForRefsToBeIdentified: Array<TypeReference<T>> | undefined,
         waitForRefsToBeCompleted: Array<TypeReference<T>> | undefined,
+        typeCycle: Type | undefined,
     ) {
 
         // remember the relevant TypeReferences
         this.waitForRefsIdentified = waitForRefsToBeIdentified;
         this.waitForRefsCompleted = waitForRefsToBeCompleted;
+        this.typesForCycles = typeCycle;
 
         // register to get updates for the relevant TypeReferences
         toArray(this.waitForRefsIdentified).forEach(ref => {
-            ref.addReactionOnTypeIdentified(() => this.listeningForNextState(), false);
-            ref.addReactionOnTypeUnresolved(() => this.listeningForReset(), false);
+            ref.addReactionOnTypeIdentified(this.reactOnNextState, false);
+            ref.addReactionOnTypeUnresolved(this.reactOnResetState, false);
         });
         toArray(this.waitForRefsCompleted).forEach(ref => {
-            ref.addReactionOnTypeCompleted(() => this.listeningForNextState(), false);
-            ref.addReactionOnTypeUnresolved(() => this.listeningForReset(), false);
+            ref.addReactionOnTypeIdentified(this.reactOnNextState, false);
+            ref.addReactionOnTypeCompleted(this.reactOnNextState, false);
+            ref.addReactionOnTypeUnresolved(this.reactOnResetState, false);
         });
 
         // everything might already be true
@@ -99,7 +106,7 @@ export class WaitingForResolvedTypeReferences<T extends Type = Type> {
     addListener(newListener: WaitingForResolvedTypeReferencesListener<T>, informIfAlreadyFulfilled: boolean): void {
         this.listeners.push(newListener);
         // inform new listener, if the state is already reached!
-        if (informIfAlreadyFulfilled && this.informed) {
+        if (informIfAlreadyFulfilled && this.fulfilled) {
             newListener(this);
         }
     }
@@ -111,32 +118,33 @@ export class WaitingForResolvedTypeReferences<T extends Type = Type> {
         }
     }
 
-    protected listeningForNextState(): void {
+    protected listeningForNextState(_reference: TypeReference<T>, _resolvedType: T): void {
+        // check, whether all TypeReferences are resolved and the resolved types are in the expected state
         this.check();
-        // TODO is a more performant solution possible, e.g. by counting or using "_type"??
+        // TODO is a more performant solution possible, e.g. by counting or using "resolvedType"??
     }
 
     protected listeningForReset(): void {
         // since at least one TypeReference was reset, the listeners might be informed (again), when all TypeReferences reached the desired state (again)
-        this.informed = false;
+        this.fulfilled = false;
         // TODO should listeners be informed about this invalidation?
     }
 
     protected check() {
         // already informed => do not inform again
-        if (this.informed) {
+        if (this.fulfilled) {
             return;
         }
 
         for (const ref of toArray(this.waitForRefsIdentified)) {
-            if (ref.isInStateOrLater('Identifiable')) {
+            if (ref.isInStateOrLater('Identifiable') || ref.getType() === this.typesForCycles) {
                 // that is fine
             } else {
                 return;
             }
         }
         for (const ref of toArray(this.waitForRefsCompleted)) {
-            if (ref.isInStateOrLater('Completed')) {
+            if (ref.isInStateOrLater('Completed') || ref.getType() === this.typesForCycles) {
                 // that is fine
             } else {
                 return;
@@ -144,12 +152,12 @@ export class WaitingForResolvedTypeReferences<T extends Type = Type> {
         }
 
         // everything is fine now! => inform all listeners
-        this.informed = true; // don't inform the listeners again
-        this.listeners.forEach(listener => listener(this));
+        this.fulfilled = true; // don't inform the listeners again
+        this.listeners.slice().forEach(listener => listener(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     isFulfilled(): boolean {
-        return this.informed;
+        return this.fulfilled;
     }
 }
 
@@ -201,7 +209,7 @@ export class WaitingForInvalidTypeReferences<T extends Type = Type> {
     protected listeningForReset(): void {
         this.counterInvalid++;
         if (this.isFulfilled()) {
-            this.listeners.forEach(listener => listener(this));
+            this.listeners.slice().forEach(listener => listener(this));
         }
     }
 
@@ -213,7 +221,7 @@ export class WaitingForInvalidTypeReferences<T extends Type = Type> {
 
 
 // react on type found/identified/resolved/unresolved
-export type TypeReferenceListener<T extends Type = Type> = (reference: TypeReference<T>, type: T) => void;
+export type TypeReferenceListener<T extends Type = Type> = (reference: TypeReference<T>, resolvedType: T) => void;
 
 /**
  * A TypeReference accepts a specification and resolves a type from this specification.
@@ -221,6 +229,8 @@ export type TypeReferenceListener<T extends Type = Type> = (reference: TypeRefer
  *
  * The internal logic of a TypeReference is independent from the kind of the type to resolve.
  * A TypeReference takes care of the lifecycle of the types.
+ *
+ * Once the type is resolved, listeners are notified about this and all following changes of its state.
  */
 export class TypeReference<T extends Type = Type> implements TypeGraphListener, TypeStateListener, TypeInferenceCollectorListener {
     protected readonly selector: TypeSelector;
@@ -366,7 +376,25 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
             listener(this, this.resolvedType!);
         }
     }
-    // TODO do we need corresponding "removeReactionOnTypeX(...)" methods?
+
+    removeReactionOnTypeIdentified(listener: TypeReferenceListener<T>): void {
+        const index = this.reactOnIdentified.indexOf(listener);
+        if (index >= 0) {
+            this.reactOnIdentified.splice(index, 1);
+        }
+    }
+    removeReactionOnTypeCompleted(listener: TypeReferenceListener<T>): void {
+        const index = this.reactOnCompleted.indexOf(listener);
+        if (index >= 0) {
+            this.reactOnCompleted.splice(index, 1);
+        }
+    }
+    removeReactionOnTypeUnresolved(listener: TypeReferenceListener<T>): void {
+        const index = this.reactOnUnresolved.indexOf(listener);
+        if (index >= 0) {
+            this.reactOnUnresolved.splice(index, 1);
+        }
+    }
 
 
     addedType(addedType: Type, _key: string): void {
@@ -407,7 +435,7 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         const result = this.resolve(); // is it possible to do this more performant by looking at the given "type"?
         if (result === 'ALREADY_RESOLVED' && type === this.resolvedType) {
             // the type was already resolved, but some observers of this TypeReference still need to be informed
-            this.reactOnIdentified.forEach(listener => listener(this, this.resolvedType!));
+            this.reactOnIdentified.slice().forEach(listener => listener(this, this.resolvedType!)); // slice() prevents issues with removal of listeners during notifications
         }
     }
 
@@ -415,7 +443,7 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         const result = this.resolve(); // is it possible to do this more performant by looking at the given "type"?
         if (result === 'ALREADY_RESOLVED' && type === this.resolvedType) {
             // the type was already resolved, but some observers of this TypeReference still need to be informed
-            this.reactOnCompleted.forEach(listener => listener(this, this.resolvedType!));
+            this.reactOnCompleted.slice().forEach(listener => listener(this, this.resolvedType!)); // slice() prevents issues with removal of listeners during notifications
         }
     }
 
