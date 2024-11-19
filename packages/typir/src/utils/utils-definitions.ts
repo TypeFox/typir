@@ -124,12 +124,38 @@ export class WaitingForResolvedTypeReferences<T extends Type = Type> {
     }
 
     addTypesToIgnoreForCycles(moreTypes: Set<Type>): void {
-        // TODO wer überprüft, ob schon vorhanden?? recursiv weiter propagieren ??
+        const newTypes: Set<Type> = new Set();
         for (const anotherType of moreTypes) {
-            this.typesForCycles.add(anotherType);
-            // TODO noch rekursiv weiterpropagieren??
+            if (this.typesForCycles.has(anotherType)) {
+                // ignore this additional type, required to break the propagation, since it becomes cyclic as well in case of cyclic types!
+            } else {
+                newTypes.add(anotherType);
+                this.typesForCycles.add(anotherType);
+            }
         }
-        this.check();
+
+        if (newTypes.size >= 1) {
+            // propagate the new types to ignore recursively to indirect dependencies as well
+            for (const ref of (this.waitForRefsIdentified ?? [])) {
+                const refType = ref.getType();
+                if (refType?.isInStateOrLater('Identifiable')) {
+                    // already resolved (TODO is that correct?)
+                } else {
+                    refType?.ignoreDependingTypesDuringInitialization(newTypes);
+                }
+            }
+            for (const ref of (this.waitForRefsCompleted ?? [])) {
+                const refType = ref.getType();
+                if (refType?.isInStateOrLater('Completed')) {
+                    // already resolved (TODO is that correct?)
+                } else {
+                    refType?.ignoreDependingTypesDuringInitialization(newTypes);
+                }
+            }
+
+            // since there are more types to ignore, check again
+            this.check();
+        }
     }
 
     protected listeningForNextIdentified(_reference: TypeReference<T>, resolvedType: T): void {

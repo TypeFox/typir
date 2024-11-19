@@ -313,7 +313,7 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
         ]);
     });
 
-    test.only('2 involved classes', async () => {
+    test('2 involved classes', async () => {
         await validate(`
             class MyClass1 < MyClass2 { }
             class MyClass2 < MyClass1 { }
