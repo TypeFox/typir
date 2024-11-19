@@ -169,20 +169,20 @@ describe('Explicitly test type checking for LOX', () => {
             await validate(`
                 class MyClass { name: string age: number }
                 var v1 = MyClass(); // constructor call
-            `, 0);
+            `, []);
         });
         test('Class literals 2', async () => {
             await validate(`
                 class MyClass { name: string age: number }
                 var v1: MyClass = MyClass(); // constructor call
-            `, 0);
+            `, []);
         });
         test('Class literals 3', async () => {
             await validate(`
                 class MyClass1 {}
                 class MyClass2 {}
                 var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
-            `, 0, 1);
+            `, [], 1);
         });
     });
 
@@ -204,14 +204,14 @@ describe('Explicitly test type checking for LOX', () => {
         await validate(`
             class MyClass1 {}
             class MyClass2 < MyClass1 {}
-        `, 0);
+        `, []);
     });
     test('Class inheritance and the order of type definitions', async () => {
-        // switching the order of super and sub class works in Langium, but not in Typir at the moment, TODO warum nicht mehr??
+        // switching the order of super and sub class works in Langium and in Typir
         await validate(`
             class MyClass2 < MyClass1 {}
             class MyClass1 {}
-        `, 0);
+        `, []);
     });
 
     test('Class fields', async () => {
@@ -233,12 +233,19 @@ describe('Explicitly test type checking for LOX', () => {
         await validate(`
             class MyClass1 { }
             class MyClass1 { }
-        `, 2);
+        `, [
+            'Declared classes need to be unique (MyClass1).',
+            'Declared classes need to be unique (MyClass1).',
+        ]);
         await validate(`
             class MyClass2 { }
             class MyClass2 { }
             class MyClass2 { }
-        `, 3);
+        `, [
+            'Declared classes need to be unique (MyClass2).',
+            'Declared classes need to be unique (MyClass2).',
+            'Declared classes need to be unique (MyClass2).',
+        ]);
     });
 
     test('Class methods: OK', async () => await validate(`
@@ -249,7 +256,7 @@ describe('Explicitly test type checking for LOX', () => {
         }
         var v1: MyClass1 = MyClass1();
         var v2: number = v1.method1(456);
-    `, 0));
+    `, []));
 
     test('Class methods: wrong return value', async () => await validate(`
         class MyClass1 {
@@ -290,18 +297,29 @@ describe('Explicitly test type checking for LOX', () => {
                 return true;
             }
         }
-    `, 2)); // both methods need to be marked
-
-    test.todo('Cyclic use of Classes: parent-children', async () => await validate(`
-        class Node {
-            children: Node
-        }
-    `, 0));
+    `, [ // both methods need to be marked:
+        'Declared methods need to be unique (class-MyClass1.method1(number)).',
+        'Declared methods need to be unique (class-MyClass1.method1(number)).',
+    ]));
 
 });
 
+describe('Cyclic type definitions where a Class is declared and already used', () => {
+    test('Class with field', async () => await validate(`
+        class Node {
+            children: Node
+        }
+    `, []));
+
+    test.todo('Class with method', async () => await validate(`
+        class Node {
+            myMethod(input: number): Class {}
+        }
+    `, []));
+});
+
 describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {
-    test('3 involved classes', async () => {
+    test('Three involved classes: 1 -> 2 -> 3 -> 1', async () => {
         await validate(`
             class MyClass1 < MyClass3 { }
             class MyClass2 < MyClass1 { }
@@ -313,7 +331,7 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
         ]);
     });
 
-    test('2 involved classes', async () => {
+    test('Two involved classes: 1 -> 2 -> 1', async () => {
         await validate(`
             class MyClass1 < MyClass2 { }
             class MyClass2 < MyClass1 { }
@@ -323,14 +341,14 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
         ]);
     });
 
-    test('1 involved class', async () => {
+    test('One involved class: 1 -> 1', async () => {
         await validate(`
             class MyClass1 < MyClass1 { }
         `, 'Circles in super-sub-class-relationships are not allowed: MyClass1');
     });
 });
 
-describe('LOX', () => {
+describe('longer LOX examples', () => {
     // this test case will work after having the support for cyclic type definitions, since it will solve also issues with topological order of type definitions
     test('complete with difficult order of classes', async () => await validate(`
         class SuperClass {
@@ -366,7 +384,7 @@ describe('LOX', () => {
         // Assigning a subclass to a super class
         var superType: SuperClass = x;
         print superType.a;
-    `, 0));
+    `, []));
 
     test('complete with easy order of classes', async () => await validate(`
         class SuperClass {
@@ -403,7 +421,7 @@ describe('LOX', () => {
         // Assigning a subclass to a super class
         var superType: SuperClass = x;
         print superType.a;
-    `, 0));
+    `, []));
 });
 
 async function validate(lox: string, errors: number | string | string[], warnings: number = 0) {
