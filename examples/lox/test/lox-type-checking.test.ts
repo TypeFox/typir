@@ -306,10 +306,14 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
             class MyClass1 < MyClass3 { }
             class MyClass2 < MyClass1 { }
             class MyClass3 < MyClass2 { }
-        `, 3);
+        `, [
+            'Circles in super-sub-class-relationships are not allowed: MyClass1',
+            'Circles in super-sub-class-relationships are not allowed: MyClass2',
+            'Circles in super-sub-class-relationships are not allowed: MyClass3',
+        ]);
     });
 
-    test('2 involved classes', async () => {
+    test.only('2 involved classes', async () => {
         await validate(`
             class MyClass1 < MyClass2 { }
             class MyClass2 < MyClass1 { }
@@ -319,7 +323,7 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
         ]);
     });
 
-    test.only('1 involved class', async () => {
+    test('1 involved class', async () => {
         await validate(`
             class MyClass1 < MyClass1 { }
         `, 'Circles in super-sub-class-relationships are not allowed: MyClass1');

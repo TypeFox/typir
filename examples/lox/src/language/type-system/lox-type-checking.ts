@@ -190,6 +190,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // check for unique function declarations
         this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
+
         // check for unique class declarations
         this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueClassValidation(this.typir, isClass));
         // check for unique method declarations

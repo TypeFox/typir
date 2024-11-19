@@ -145,6 +145,9 @@ export abstract class Type {
         }
     }
 
+    protected waitForIdentifiable: WaitingForResolvedTypeReferences;
+    protected waitForCompleted: WaitingForResolvedTypeReferences;
+    protected waitForInvalid: WaitingForInvalidTypeReferences;
 
     // to be called at the end of the constructor of each specific Type implementation!
     protected completeInitialization(preconditions: {
@@ -164,44 +167,49 @@ export abstract class Type {
             console.log('');
         }
         // preconditions for Identifiable
-        const init1 = new WaitingForResolvedTypeReferences(
+        this.waitForIdentifiable = new WaitingForResolvedTypeReferences(
             preconditions.preconditionsForInitialization?.refsToBeIdentified,
             preconditions.preconditionsForInitialization?.refsToBeCompleted,
             this,
         );
         // preconditions for Completed
-        const init2 = new WaitingForResolvedTypeReferences(
+        this.waitForCompleted = new WaitingForResolvedTypeReferences(
             preconditions.preconditionsForCompletion?.refsToBeIdentified,
             preconditions.preconditionsForCompletion?.refsToBeCompleted,
             this,
         );
         // preconditions for Invalid
-        const init3 = new WaitingForInvalidTypeReferences(
+        this.waitForInvalid = new WaitingForInvalidTypeReferences(
             preconditions.referencesRelevantForInvalidation ?? [],
         );
 
         // invalid --> identifiable
-        init1.addListener(() => {
+        this.waitForIdentifiable.addListener(() => {
             this.switchFromInvalidToIdentifiable();
-            if (init2.isFulfilled()) {
+            if (this.waitForCompleted.isFulfilled()) {
                 // this is required to ensure the stric order Identifiable --> Completed, since 'init2' might already be triggered
                 this.switchFromIdentifiableToCompleted();
             }
         }, true);
         // identifiable --> completed
-        init2.addListener(() => {
-            if (init1.isFulfilled()) {
+        this.waitForCompleted.addListener(() => {
+            if (this.waitForIdentifiable.isFulfilled()) {
                 this.switchFromIdentifiableToCompleted();
             } else {
                 // switching will be done later by 'init1' in order to conform to the stric order Identifiable --> Completed
             }
         }, false); // not required, since init1 will switch to Completed as well!
         // identifiable/completed --> invalid
-        init3.addListener(() => {
+        this.waitForInvalid.addListener(() => {
             if (this.isNotInState('Invalid')) {
                 this.switchFromCompleteOrIdentifiableToInvalid();
             }
         }, false); // no initial trigger!
+    }
+
+    ignoreDependingTypesDuringInitialization(additionalTypesToIgnore: Set<Type>): void {
+        this.waitForIdentifiable.addTypesToIgnoreForCycles(additionalTypesToIgnore);
+        this.waitForCompleted.addTypesToIgnoreForCycles(additionalTypesToIgnore);
     }
 
     protected onIdentification: () => void; // typical use cases: calculate the identifier

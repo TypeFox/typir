@@ -65,12 +65,13 @@ export type WaitingForResolvedTypeReferencesListener<T extends Type = Type> = (w
  */
 export class WaitingForResolvedTypeReferences<T extends Type = Type> {
     protected fulfilled: boolean = false;
-    protected typesForCycles: Type | undefined;
+    protected typesForCycles: Set<Type> = new Set();
 
     // All given TypeReferences must be (at least!) in the state Identifiable or Completed, before the listeners are informed.
     protected readonly waitForRefsIdentified: Array<TypeReference<T>> | undefined;
     protected readonly waitForRefsCompleted: Array<TypeReference<T>> | undefined;
-    private readonly reactOnNextState: TypeReferenceListener<T> = (reference: TypeReference<T>, resolvedType: T) => this.listeningForNextState(reference, resolvedType);
+    private readonly reactOnNextIdentified: TypeReferenceListener<T> = (reference: TypeReference<T>, resolvedType: T) => this.listeningForNextIdentified(reference, resolvedType);
+    private readonly reactOnNextCompleted: TypeReferenceListener<T> = (reference: TypeReference<T>, resolvedType: T) => this.listeningForNextCompleted(reference, resolvedType);
     private readonly reactOnResetState: TypeReferenceListener<T> = (_reference: TypeReference<T>, _resolvedType: T) => this.listeningForReset();
 
     /** These listeners will be informed once, when all TypeReferences are in the desired state.
@@ -86,16 +87,20 @@ export class WaitingForResolvedTypeReferences<T extends Type = Type> {
         // remember the relevant TypeReferences
         this.waitForRefsIdentified = waitForRefsToBeIdentified;
         this.waitForRefsCompleted = waitForRefsToBeCompleted;
-        this.typesForCycles = typeCycle;
+
+        // set-up the set of types to not wait for them, in order to handle cycles
+        if (typeCycle) {
+            this.typesForCycles.add(typeCycle);
+        }
 
         // register to get updates for the relevant TypeReferences
         toArray(this.waitForRefsIdentified).forEach(ref => {
-            ref.addReactionOnTypeIdentified(this.reactOnNextState, false);
+            ref.addReactionOnTypeIdentified(this.reactOnNextIdentified, false);
             ref.addReactionOnTypeUnresolved(this.reactOnResetState, false);
         });
         toArray(this.waitForRefsCompleted).forEach(ref => {
-            ref.addReactionOnTypeIdentified(this.reactOnNextState, false);
-            ref.addReactionOnTypeCompleted(this.reactOnNextState, false);
+            ref.addReactionOnTypeIdentified(this.reactOnNextIdentified, false);
+            ref.addReactionOnTypeCompleted(this.reactOnNextCompleted, false);
             ref.addReactionOnTypeUnresolved(this.reactOnResetState, false);
         });
 
@@ -118,7 +123,24 @@ export class WaitingForResolvedTypeReferences<T extends Type = Type> {
         }
     }
 
-    protected listeningForNextState(_reference: TypeReference<T>, _resolvedType: T): void {
+    addTypesToIgnoreForCycles(moreTypes: Set<Type>): void {
+        // TODO wer überprüft, ob schon vorhanden?? recursiv weiter propagieren ??
+        for (const anotherType of moreTypes) {
+            this.typesForCycles.add(anotherType);
+            // TODO noch rekursiv weiterpropagieren??
+        }
+        this.check();
+    }
+
+    protected listeningForNextIdentified(_reference: TypeReference<T>, resolvedType: T): void {
+        // inform the referenced type about the types to ignore for completion
+        resolvedType.ignoreDependingTypesDuringInitialization(this.typesForCycles);
+        // check, whether all TypeReferences are resolved and the resolved types are in the expected state
+        this.check();
+        // TODO is a more performant solution possible, e.g. by counting or using "resolvedType"??
+    }
+
+    protected listeningForNextCompleted(_reference: TypeReference<T>, _resolvedType: T): void {
         // check, whether all TypeReferences are resolved and the resolved types are in the expected state
         this.check();
         // TODO is a more performant solution possible, e.g. by counting or using "resolvedType"??
@@ -137,14 +159,16 @@ export class WaitingForResolvedTypeReferences<T extends Type = Type> {
         }
 
         for (const ref of toArray(this.waitForRefsIdentified)) {
-            if (ref.isInStateOrLater('Identifiable') || ref.getType() === this.typesForCycles) {
+            const refType = ref.getType();
+            if (refType && (refType.isInStateOrLater('Identifiable') || this.typesForCycles.has(refType))) {
                 // that is fine
             } else {
                 return;
             }
         }
         for (const ref of toArray(this.waitForRefsCompleted)) {
-            if (ref.isInStateOrLater('Completed') || ref.getType() === this.typesForCycles) {
+            const refType = ref.getType();
+            if (refType && (refType.isInStateOrLater('Completed') || this.typesForCycles.has(refType))) {
                 // that is fine
             } else {
                 return;
