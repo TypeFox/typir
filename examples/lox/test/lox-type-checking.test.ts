@@ -205,6 +205,8 @@ describe('Explicitly test type checking for LOX', () => {
             class MyClass1 {}
             class MyClass2 < MyClass1 {}
         `, 0);
+    });
+    test('Class inheritance and the order of type definitions', async () => {
         // switching the order of super and sub class works in Langium, but not in Typir at the moment, TODO warum nicht mehr??
         await validate(`
             class MyClass2 < MyClass1 {}
@@ -290,30 +292,37 @@ describe('Explicitly test type checking for LOX', () => {
         }
     `, 2)); // both methods need to be marked
 
+    test.todo('Cyclic use of Classes: parent-children', async () => await validate(`
+        class Node {
+            children: Node
+        }
+    `, 0));
+
 });
 
 describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {
-    // note that inference problems occur here due to the order of class declarations! after fixing that issue, errors regarding cycles should occur!
-
-    test.fails('3 involved classes', async () => {
+    test('3 involved classes', async () => {
         await validate(`
             class MyClass1 < MyClass3 { }
             class MyClass2 < MyClass1 { }
             class MyClass3 < MyClass2 { }
-        `, 0);
+        `, 3);
     });
 
-    test.fails('2 involved classes', async () => {
+    test('2 involved classes', async () => {
         await validate(`
             class MyClass1 < MyClass2 { }
             class MyClass2 < MyClass1 { }
-        `, 0);
+        `, [
+            'Circles in super-sub-class-relationships are not allowed: MyClass1',
+            'Circles in super-sub-class-relationships are not allowed: MyClass2',
+        ]);
     });
 
-    test.fails('1 involved class', async () => {
+    test.only('1 involved class', async () => {
         await validate(`
             class MyClass1 < MyClass1 { }
-        `, 0);
+        `, 'Circles in super-sub-class-relationships are not allowed: MyClass1');
     });
 });
 
@@ -393,13 +402,35 @@ describe('LOX', () => {
     `, 0));
 });
 
-async function validate(lox: string, errors: number, warnings: number = 0) {
+async function validate(lox: string, errors: number | string | string[], warnings: number = 0) {
     const document = await parseDocument(loxServices, lox.trim());
     const diagnostics: Diagnostic[] = await loxServices.validation.DocumentValidator.validateDocument(document);
+
     // errors
-    const diagnosticsErrors = diagnostics.filter(d => d.severity === DiagnosticSeverity.Error);
-    expect(diagnosticsErrors, diagnosticsErrors.map(d => d.message).join('\n')).toHaveLength(errors);
+    const diagnosticsErrors = diagnostics.filter(d => d.severity === DiagnosticSeverity.Error).map(d => fixMessage(d.message));
+    const msgError = diagnosticsErrors.join('\n');
+    if (typeof errors === 'number') {
+        expect(diagnosticsErrors, msgError).toHaveLength(errors);
+    } else if (typeof errors === 'string') {
+        expect(diagnosticsErrors, msgError).toHaveLength(1);
+        expect(diagnosticsErrors[0]).toBe(errors);
+    } else {
+        expect(diagnosticsErrors, msgError).toHaveLength(errors.length);
+        for (const expected of errors) {
+            expect(diagnosticsErrors).includes(expected);
+        }
+    }
+
     // warnings
-    const diagnosticsWarnings = diagnostics.filter(d => d.severity === DiagnosticSeverity.Warning);
-    expect(diagnosticsWarnings, diagnosticsWarnings.map(d => d.message).join('\n')).toHaveLength(warnings);
+    const diagnosticsWarnings = diagnostics.filter(d => d.severity === DiagnosticSeverity.Warning).map(d => fixMessage(d.message));
+    const msgWarning = diagnosticsWarnings.join('\n');
+    expect(diagnosticsWarnings, msgWarning).toHaveLength(warnings);
+}
+
+function fixMessage(msg: string): string {
+    if (msg.startsWith('While validating the AstNode')) {
+        const inbetween = 'this error is found: ';
+        return msg.substring(msg.indexOf(inbetween) + inbetween.length);
+    }
+    return msg;
 }

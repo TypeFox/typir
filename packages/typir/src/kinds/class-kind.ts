@@ -8,7 +8,7 @@ import { assertUnreachable } from 'langium';
 import { TypeEqualityProblem } from '../features/equality.js';
 import { InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
-import { ValidationProblem, ValidationRuleWithBeforeAfter } from '../features/validation.js';
+import { ValidationProblem, ValidationRule, ValidationRuleWithBeforeAfter } from '../features/validation.js';
 import { Type, TypeStateListener, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { TypeReference, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
@@ -99,10 +99,6 @@ export class ClassType extends Type {
                     if (this.kind.options.maximumNumberOfSuperClasses < this.getDeclaredSuperClasses().length) {
                         throw new Error(`Only ${this.kind.options.maximumNumberOfSuperClasses} super-classes are allowed.`);
                     }
-                }
-                // check for cycles in sub-type-relationships
-                if (this.getAllSuperClasses(false).has(this)) {
-                    throw new Error(`Circles in super-sub-class-relationships are not allowed: ${this.getName()}`);
                 }
             },
             onInvalidation: () => {
@@ -301,11 +297,21 @@ export class ClassType extends Type {
         return result;
     }
 
+    hasSubSuperClassCycles(): boolean {
+        return this.getAllSuperClasses(false).has(this);
+    }
+    ensureNoCycles(): void {
+        if (this.hasSubSuperClassCycles()) {
+            throw new Error('This is not possible, since this class has cycles in its super-classes!');
+        }
+    }
+
     getFields(withSuperClassesFields: boolean): Map<string, Type> {
         // in case of conflicting field names, the type of the sub-class takes precedence! TODO check this
         const result = new Map();
         // fields of super classes
         if (withSuperClassesFields) {
+            this.ensureNoCycles();
             for (const superClass of this.getDeclaredSuperClasses()) {
                 for (const [superName, superType] of superClass.getFields(true)) {
                     result.set(superName, superType);
@@ -336,6 +342,7 @@ export class ClassType extends Type {
         });
         // methods of super classes
         if (withSuperClassMethods) {
+            this.ensureNoCycles();
             for (const superClass of this.getDeclaredSuperClasses()) {
                 for (const superMethod of superClass.getMethods(true)) {
                     result.push(superMethod);
@@ -390,6 +397,7 @@ export interface CreateClassTypeDetails<T = unknown, T1 = unknown, T2 = unknown>
     inferenceRuleForLiteral?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
     inferenceRuleForReference?: InferClassLiteral<T2>,
     inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | InferenceRuleNotApplicable, // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
+    // inference rules for Method calls are part of "methods: CreateFunctionTypeDetails[]" above!
 }
 
 // TODO nominal vs structural typing ??
@@ -567,8 +575,15 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         classType.removeListener(this);
     }
 
-    switchedToCompleted(_classType: Type): void {
-        // do nothing
+    switchedToCompleted(classType: Type): void {
+        // If there is no inference rule for the declaration of a class, such a class is probably a library or builtIn class.
+        // Therefore, no validation errors can be shown for the classes and exceptions are thrown instead.
+        if (this.typeDetails.inferenceRuleForDeclaration === null) {
+            // check for cycles in sub-type-relationships of classes
+            if ((classType as ClassType).hasSubSuperClassCycles()) {
+                throw new Error(`Circles in super-sub-class-relationships are not allowed: ${classType.getName()}`);
+            }
+        }
     }
 
     switchedToInvalid(_previousClassType: Type): void {
@@ -820,6 +835,35 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
         return result;
     }
 }
+
+
+/**
+ * Predefined validation to produce errors for all those class declarations, whose class type have cycles in their super-classes.
+ * @param isRelevant helps to filter out declarations of classes in the user AST,
+ * is parameter is the reasons, why this validation cannot be registered by default by Typir for classes, since this parameter is DSL-specific
+ * @returns a validation rule which checks for any class declaration/type, whether they have no cycles in their sub-super-class-relationships
+ */
+export function createNoSuperClassCyclesValidation(isRelevant: (domainElement: unknown) => boolean): ValidationRule {
+    return (domainElement: unknown, typir: TypirServices) => {
+        const result: ValidationProblem[] = [];
+        if (isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
+            const classType = typir.inference.inferType(domainElement);
+            if (isClassType(classType) && classType.isInStateOrLater('Completed')) {
+                // check for cycles in sub-type-relationships
+                if (classType.hasSubSuperClassCycles()) {
+                    result.push({
+                        $problem: ValidationProblem,
+                        domainElement,
+                        severity: 'error',
+                        message: `Circles in super-sub-class-relationships are not allowed: ${classType.getName()}`,
+                    });
+                }
+            }
+        }
+        return result;
+    };
+}
+
 
 
 export class TopClassType extends Type {
