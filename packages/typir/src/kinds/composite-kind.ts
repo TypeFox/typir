@@ -3,35 +3,39 @@
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
+class AttributeType<TOut> {
+    _: TOut;
+}
+
 export namespace Typir {
-    export namespace Attributes {
-        export class AttributeType<TOut> {
-            _: TOut;
+    export namespace System {
+        export function create() {
+
         }
+    }
+    export namespace Attributes {
         export function integer() { return new AttributeType<number>(); }
+        export function string() { return new AttributeType<string>(); }
         export function enumeration<TEnum extends string>(..._values: TEnum[]) { return new AttributeType<TEnum>(); }
         export type infer<A> = A extends AttributeType<infer T> ? T : never;
     }
     export namespace Primitives {
-        type WithOutput<TAttributes, TOut> = TAttributes & {
-            $value: TOut;
-        };
-        interface PrimitiveBuilder<TIn extends string, TAttributes = Record<never, unknown>> {
-            attribute<TName extends string, TAttr>(name: TName, attributeType: Typir.Attributes.AttributeType<TAttr>): PrimitiveBuilder<TIn, TAttributes & {[K in TName]: Typir.Attributes.infer<typeof attributeType>}>;
-            parseBy<TOut>(parse: (input: TIn) => WithOutput<TAttributes, TOut>): PrimitiveTypeFactory<TIn, WithOutput<TAttributes, TOut>>;
+        interface PrimitiveBuilder<TIn extends string, TAttributes = {}> {
+            attribute<TName extends string, TAttr>(name: TName, attributeType: AttributeType<TAttr>): PrimitiveBuilder<TIn, TAttributes & {[K in TName]: Typir.Attributes.infer<typeof attributeType>}>;
+            parseBy(parse: (input: TIn) => TAttributes): PrimitiveTypeFactory<TIn, TAttributes>;
         }
-        class PrimitiveBuilderImpl<TIn extends string, TAttributes = Record<never, unknown>> implements PrimitiveBuilder<TIn, TAttributes> {
-            parseBy<TOut>(parse: (input: TIn) => WithOutput<TAttributes, TOut>): PrimitiveTypeFactory<TIn, WithOutput<TAttributes, TOut>> {
-                return new PrimitiveTypeFactoryImpl<TIn, WithOutput<TAttributes, TOut>>(parse);
+        class PrimitiveBuilderImpl<TIn extends string, TAttributes = {}> implements PrimitiveBuilder<TIn, TAttributes> {
+            parseBy(parse: (input: TIn) => TAttributes): PrimitiveTypeFactory<TIn, TAttributes> {
+                return new PrimitiveTypeFactoryImpl<TIn, TAttributes>(parse);
             }
-            attribute<TName extends string, TAttr>(_name: TName, _attributeType: Attributes.AttributeType<TAttr>): PrimitiveBuilder<TIn, TAttributes & { [K in TName]: TAttr; }> {
+            attribute<TName extends string, TAttr>(_name: TName, _attributeType: AttributeType<TAttr>): PrimitiveBuilder<TIn, TAttributes & { [K in TName]: TAttr; }> {
                 return new PrimitiveBuilderImpl<TIn, TAttributes & { [K in TName]: TAttr; }>();
             }
         }
-        type PrimitiveTypeFactory<TIn extends string, TAttributes = Record<never, unknown>> = {
+        type PrimitiveTypeFactory<TIn extends string, TAttributes = {}> = {
             parse(input: TIn): TAttributes;
         };
-        class PrimitiveTypeFactoryImpl<TIn extends string, TAttributes = Record<never, unknown>> implements PrimitiveTypeFactory<TIn, TAttributes> {
+        class PrimitiveTypeFactoryImpl<TIn extends string, TAttributes = {}> implements PrimitiveTypeFactory<TIn, TAttributes> {
             public parse: (input: TIn) => TAttributes;
             constructor(_parse: (input: TIn) => TAttributes) {
                 this.parse = _parse;
@@ -41,19 +45,54 @@ export namespace Typir {
             return new PrimitiveBuilderImpl<TIn>();
         }
     }
+
+    export namespace Composites {
+        export function create<TAst>() {
+
+        }
+        export namespace Children {
+            export function single() {
+
+            }
+            export function multipleByIndex() {
+
+            }
+            export function multipleByName() {
+
+            }
+        }
+    }
 }
 
+export const system = Typir.System.create()
+    .addFeature(Typir.Features.IsSubTypeOf)
+    .addFeature(Typir.Features.IsCastableTo)
+    .addFeature(Typir.Features.IsEqualTo)
+    .build()
+    ;
 
-export const CharType = Typir.Primitives.create()
+export const CharType = Typir.Primitives.create(system)
     .attribute('type', Typir.Attributes.enumeration('character', 'graphic', 'uchar', 'widechar', 'nonvarying', 'varying', 'varyingz'))
     .attribute('length', Typir.Attributes.integer())
     .parseBy(input => {
         return {
-            length: input.length,
+            length: input.length-2,
             type: 'varyingz',
             $value: input.substring(1, input.length-2)
         };
     });
+
+export const ClassType = Typir.Composites.create(system)
+    .attribute('name', Typir.Attributes.string())
+    .children('members', Typir.Composites.Children.multipleByName(() => system.top())
+    .child('superClass', Typir.Composites.Children.single(self => self)
+    .children('interfaces', Typir.Composites.Children.multipleByIndex(self => self))
+    .inferOn(isMyClass, myClass => {
+        return {
+...
+        }
+    })
+    ;
 
 // CharType.create({
 //     type: 'character',
