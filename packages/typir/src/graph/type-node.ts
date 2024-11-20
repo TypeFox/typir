@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Kind, isKind } from '../kinds/kind.js';
-import { TypeReference, TypirProblem, WaitingForInvalidTypeReferences, WaitingForResolvedTypeReferences } from '../utils/utils-definitions.js';
+import { TypeReference, TypirProblem, WaitingForInvalidTypeReferences, WaitingForIdentifiableAndCompletedTypeReferences } from '../utils/utils-definitions.js';
 import { assertTrue, assertUnreachable } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 
@@ -72,64 +72,67 @@ export abstract class Type {
 
 
 
-    protected initialization: TypeInitializationState = 'Invalid'; // TODO or Identifiable
+    // store the state of the initialization process of this type
+
+    protected initializationState: TypeInitializationState = 'Invalid';
 
     getInitializationState(): TypeInitializationState {
-        return this.initialization;
+        return this.initializationState;
     }
 
     protected assertState(expectedState: TypeInitializationState): void {
         if (this.isInState(expectedState) === false) {
-            throw new Error(`The current state of type '${this.identifier}' is ${this.initialization}, but ${expectedState} is expected.`);
+            throw new Error(`The current state of type '${this.identifier}' is ${this.initializationState}, but ${expectedState} is expected.`);
         }
     }
     protected assertNotState(expectedState: TypeInitializationState): void {
         if (this.isNotInState(expectedState) === false) {
-            throw new Error(`The current state of type '${this.identifier}' is ${this.initialization}, but this state is not expected.`);
+            throw new Error(`The current state of type '${this.identifier}' is ${this.initializationState}, but this state is not expected.`);
         }
     }
     protected assertStateOrLater(expectedState: TypeInitializationState): void {
         if (this.isInStateOrLater(expectedState) === false) {
-            throw new Error(`The current state of type '${this.identifier}' is ${this.initialization}, but this state is not expected.`);
+            throw new Error(`The current state of type '${this.identifier}' is ${this.initializationState}, but this state is not expected.`);
         }
     }
 
     isInState(state: TypeInitializationState): boolean {
-        return this.initialization === state;
+        return this.initializationState === state;
     }
     isNotInState(state: TypeInitializationState): boolean {
-        return this.initialization !== state;
+        return this.initializationState !== state;
     }
     isInStateOrLater(state: TypeInitializationState): boolean {
         switch (state) {
             case 'Invalid':
                 return true;
             case 'Identifiable':
-                return this.initialization !== 'Invalid';
+                return this.initializationState !== 'Invalid';
             case 'Completed':
-                return this.initialization === 'Completed';
+                return this.initializationState === 'Completed';
             default:
                 assertUnreachable(state);
         }
     }
 
-    // manage listeners for updated state of the current type
+
+    // manage listeners for updates of the initialization state
 
     protected stateListeners: TypeStateListener[] = [];
 
-    addListener(listener: TypeStateListener, informIfAlreadyFulfilled: boolean): void {
+    addListener(listener: TypeStateListener, informIfNotInvalidAnymore: boolean): void {
         this.stateListeners.push(listener);
-        if (informIfAlreadyFulfilled) {
+        if (informIfNotInvalidAnymore) {
             const currentState = this.getInitializationState();
             switch (currentState) {
                 case 'Invalid':
-                    // TODO?
+                    // don't inform about the Invalid state!
                     break;
                 case 'Identifiable':
                     listener.switchedToIdentifiable(this);
                     break;
                 case 'Completed':
-                    listener.switchedToIdentifiable(this);
+                    listener.switchedToIdentifiable(this); // inform about both Identifiable and Completed!
                     listener.switchedToCompleted(this);
                     break;
                 default:
@@ -145,16 +148,32 @@ export abstract class Type {
         }
     }
 
-    protected waitForIdentifiable: WaitingForResolvedTypeReferences;
-    protected waitForCompleted: WaitingForResolvedTypeReferences;
+    // initialization logic which is specific for the type to initialize
+    protected onIdentification: () => void;
+    protected onCompletion: () => void;
+    protected onInvalidation: () => void;
+
+    // internal helpers
+    protected waitForIdentifiable: WaitingForIdentifiableAndCompletedTypeReferences;
+    protected waitForCompleted: WaitingForIdentifiableAndCompletedTypeReferences;
     protected waitForInvalid: WaitingForInvalidTypeReferences;
 
-    // to be called at the end of the constructor of each specific Type implementation!
-    protected completeInitialization(preconditions: {
+    /**
+     * Use this method to specify, how THIS new type should be initialized.
+     *
+     * This method has(!) to be called at the end(!) of the constructor of each specific Type implementation, even if nothing has to be specified,
+     * since calling this method starts the initialization process!
+     * If you forget the call this method, the new type remains invalid and invisible for Typir and you will not be informed about this problem!
+     *
+     * @param preconditions all possible options for the initialization process
+     */
+    protected defineTheInitializationProcessOfThisType(preconditions: {
         preconditionsForInitialization?: PreconditionsForInitializationState,
         preconditionsForCompletion?: PreconditionsForInitializationState,
         referencesRelevantForInvalidation?: TypeReference[],
+        /** typical use cases: calculate the identifier, register inference rules for the type object already now! */
         onIdentification?: () => void,
+        /** typical use cases: do some internal checks for the completed properties */
         onCompletion?: () => void,
         onInvalidation?: () => void,
     }): void {
@@ -167,13 +186,13 @@ export abstract class Type {
             console.log('');
         }
         // preconditions for Identifiable
-        this.waitForIdentifiable = new WaitingForResolvedTypeReferences(
+        this.waitForIdentifiable = new WaitingForIdentifiableAndCompletedTypeReferences(
             preconditions.preconditionsForInitialization?.refsToBeIdentified,
             preconditions.preconditionsForInitialization?.refsToBeCompleted,
             this,
         );
         // preconditions for Completed
-        this.waitForCompleted = new WaitingForResolvedTypeReferences(
+        this.waitForCompleted = new WaitingForIdentifiableAndCompletedTypeReferences(
             preconditions.preconditionsForCompletion?.refsToBeIdentified,
             preconditions.preconditionsForCompletion?.refsToBeCompleted,
             this,
@@ -187,53 +206,54 @@ export abstract class Type {
         this.waitForIdentifiable.addListener(() => {
             this.switchFromInvalidToIdentifiable();
             if (this.waitForCompleted.isFulfilled()) {
-                // this is required to ensure the stric order Identifiable --> Completed, since 'init2' might already be triggered
+                // this is required to ensure the stric order Identifiable --> Completed, since 'waitForCompleted' might already be triggered
                 this.switchFromIdentifiableToCompleted();
             }
-        }, true);
+        }, true); // 'true' triggers the initialization process!
         // identifiable --> completed
         this.waitForCompleted.addListener(() => {
             if (this.waitForIdentifiable.isFulfilled()) {
                 this.switchFromIdentifiableToCompleted();
             } else {
-                // switching will be done later by 'init1' in order to conform to the stric order Identifiable --> Completed
+                // switching will be done later by 'waitForIdentifiable' in order to conform to the stric order Identifiable --> Completed
             }
-        }, false); // not required, since init1 will switch to Completed as well!
+        }, false); // not required, since 'waitForIdentifiable' will switch to Completed as well!
         // identifiable/completed --> invalid
         this.waitForInvalid.addListener(() => {
             if (this.isNotInState('Invalid')) {
                 this.switchFromCompleteOrIdentifiableToInvalid();
             }
-        }, false); // no initial trigger!
+        }, false); // no initial trigger, since 'Invalid' is the initial state
     }
 
+    /**
+     * This is an internal method to ignore some types during the initialization process in order to prevent dependency cycles.
+     * Usually there is no need to call this method on your own.
+     * @param additionalTypesToIgnore the new types to ignore during
+     */
     ignoreDependingTypesDuringInitialization(additionalTypesToIgnore: Set<Type>): void {
         this.waitForIdentifiable.addTypesToIgnoreForCycles(additionalTypesToIgnore);
         this.waitForCompleted.addTypesToIgnoreForCycles(additionalTypesToIgnore);
     }
 
-    protected onIdentification: () => void; // typical use cases: calculate the identifier
-    protected onCompletion: () => void; // typical use cases: determine all properties which depend on other types to be created
-    protected onInvalidation: () => void; // TODO ist jetzt anders; typical use cases: register inference rules for the type object already now!
-
     protected switchFromInvalidToIdentifiable(): void {
         this.assertState('Invalid');
         this.onIdentification();
-        this.initialization = 'Identifiable';
+        this.initializationState = 'Identifiable';
         this.stateListeners.slice().forEach(listener => listener.switchedToIdentifiable(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromIdentifiableToCompleted(): void {
         this.assertState('Identifiable');
         this.onCompletion();
-        this.initialization = 'Completed';
+        this.initializationState = 'Completed';
         this.stateListeners.slice().forEach(listener => listener.switchedToCompleted(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromCompleteOrIdentifiableToInvalid(): void {
         this.assertNotState('Invalid');
         this.onInvalidation();
-        this.initialization = 'Invalid';
+        this.initializationState = 'Invalid';
         this.stateListeners.slice().forEach(listener => listener.switchedToInvalid(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
@@ -355,4 +375,3 @@ export interface TypeStateListener {
     switchedToIdentifiable(type: Type): void;
     switchedToCompleted(type: Type): void;
 }
-// TODO brauchen wir das überhaupt? stattdessen in TypeReference direkt realisieren?

@@ -20,7 +20,7 @@ export class TopType extends Type {
     constructor(kind: TopKind, identifier: string) {
         super(identifier);
         this.kind = kind;
-        this.completeInitialization({}); // no preconditions
+        this.defineTheInitializationProcessOfThisType({}); // no preconditions
     }
 
     override getName(): string {

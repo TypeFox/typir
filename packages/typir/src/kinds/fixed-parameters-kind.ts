@@ -49,7 +49,7 @@ export class FixedParameterType extends Type {
                 type: typeValues[i],
             });
         }
-        this.completeInitialization({}); // TODO preconditions
+        this.defineTheInitializationProcessOfThisType({}); // TODO preconditions
     }
 
     getParameterTypes(): Type[] {

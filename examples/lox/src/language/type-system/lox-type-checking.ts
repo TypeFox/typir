@@ -211,24 +211,17 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // TODO support lambda (type references)!
 
-        /**
-         * TODO Delayed:
-         * - (classType: Type) => Type(for output)
-         * - WANN werden sie aufgelöst? bei erster Verwendung?
-         * - WO wird das verwaltet? im Kind? im Type? im TypeGraph?
-         */
-
         // class types (nominal typing):
         if (isClass(node)) {
             const className = node.name;
             const classType = this.classKind.createClassType({
                 className,
-                superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
+                superClasses: node.superClass?.ref, // note that type inference is used here
                 fields: node.members
                     .filter(isFieldMember) // only Fields, no Methods
                     .map(f => <CreateFieldDetails>{
                         name: f.name,
-                        type: f.type, // note that type inference is used here; TODO delayed
+                        type: f.type, // note that type inference is used here
                     }),
                 methods: node.members
                     .filter(isMethodMember) // only Methods, no Fields

@@ -26,7 +26,7 @@ export class MultiplicityType extends Type {
         this.constrainedType = constrainedType;
         this.lowerBound = lowerBound;
         this.upperBound = upperBound;
-        this.completeInitialization({}); // TODO preconditions
+        this.defineTheInitializationProcessOfThisType({}); // TODO preconditions
     }
 
     override getName(): string {

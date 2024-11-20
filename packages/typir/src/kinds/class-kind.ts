@@ -20,7 +20,6 @@ import { TypeInitializer } from '../utils/type-initialization.js';
 
 // TODO irgendwann die Dateien auseinander ziehen und Packages einführen!
 
-// TODO wenn die Initialisierung von ClassType abgeschlossen ist, sollte darüber aktiv benachrichtigt werden!
 export class ClassType extends Type {
     override readonly kind: ClassKind;
     readonly className: string;
@@ -79,12 +78,12 @@ export class ClassType extends Type {
         fieldsAndMethods.push(...(refMethods as unknown as Array<TypeReference<Type>>)); // TODO dirty hack?!
         // all.push(...refMethods); // does not work
 
-        this.completeInitialization({
+        this.defineTheInitializationProcessOfThisType({
             preconditionsForInitialization: {
                 refsToBeIdentified: fieldsAndMethods,
             },
             preconditionsForCompletion: {
-                refsToBeCompleted: this.superClasses as unknown as Array<TypeReference<Type>>, // TODO here we are waiting for the same/current (identifiable) ClassType!!
+                refsToBeCompleted: this.superClasses as unknown as Array<TypeReference<Type>>,
             },
             referencesRelevantForInvalidation: [...fieldsAndMethods, ...(this.superClasses as unknown as Array<TypeReference<Type>>)],
             onIdentification: () => {
@@ -554,7 +553,6 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         if (kind.options.typing === 'Structural') {
             // TODO Vorsicht Inference rules werden by default an den Identifier gebunden (ebenso Validations)!
             this.services.graph.addNode(classType, kind.getIdentifierPrefix() + typeDetails.className);
-            // TODO hinterher wieder abmelden, wenn Type invalid geworden ist bzw. ein anderer Type gewonnen hat? bzw. gewinnt immer der erste Type?
         }
 
         classType.addListener(this, true); // trigger directly, if some initialization states are already reached!
@@ -567,6 +565,13 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
          * - Accordingly, 'classType' and 'readyClassType' might have different values!
          */
         const readyClassType = this.producedType(classType as ClassType);
+
+        // remove/invalidate the duplicated and skipped class type now
+        if (readyClassType !== classType) {
+            if (this.kind.options.typing === 'Structural') {
+                this.services.graph.removeNode(classType, this.kind.getIdentifierPrefix() + this.typeDetails.className);
+            }
+        }
 
         // register inference rules
         registerInferenceRules<T, T1, T2>(this.services, this.typeDetails, this.kind, readyClassType);

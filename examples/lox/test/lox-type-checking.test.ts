@@ -11,6 +11,7 @@ import type { Diagnostic } from 'vscode-languageserver-types';
 import { DiagnosticSeverity } from 'vscode-languageserver-types';
 import { createLoxServices } from '../src/language/lox-module.js';
 import { deleteAllDocuments } from 'typir-langium';
+import { isClassType } from '../../../packages/typir/lib/kinds/class-kind.js';
 
 const loxServices = createLoxServices(EmptyFileSystem).Lox;
 
@@ -311,11 +312,53 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         }
     `, []));
 
+    test('Two Classes with fields with the other Class as type', async () => await validate(`
+        class A {
+            prop1: B
+        }
+        class B {
+            prop2: A
+        }
+    `, []));
+
+    test.todo('Three Classes with fields with the other Class as type', async () => await validate(`
+        class A {
+            prop1: B
+        }
+        class B {
+            prop2: C
+        }
+        class C {
+            prop3: A
+        }
+    `, []));
+
     test.todo('Class with method', async () => await validate(`
         class Node {
             myMethod(input: number): Class {}
         }
     `, []));
+
+    test('Having two declarations for the delayed class A, but only one type A in the type system', async () => {
+        await validate(`
+            class A {
+                property1: B // needs to wait for B, since B is defined below
+            }
+            class A {
+                property2: B // needs to wait for B, since B is defined below
+            }
+            class B { }
+        `, [ // Typir works with this, but for LOX these validation errors are produced:
+            'Declared classes need to be unique (A).',
+            'Declared classes need to be unique (A).',
+        ]);
+        // check, that there is only one class type A in the type graph:
+        const classes = loxServices.graph.getAllRegisteredTypes().filter(t => isClassType(t)).map(t => t.getName());
+        expect(classes).toHaveLength(2);
+        expect(classes).includes('A');
+        expect(classes).includes('B');
+    });
+
 });
 
 describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {

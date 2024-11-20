@@ -52,7 +52,7 @@ export class FunctionType extends Type {
             };
         });
 
-        this.completeInitialization({}); // TODO preconditions
+        this.defineTheInitializationProcessOfThisType({}); // TODO preconditions
     }
 
     override getName(): string {

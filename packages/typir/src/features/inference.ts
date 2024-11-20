@@ -49,6 +49,9 @@ type TypeInferenceResultWithInferringChildren =
  * i.e. only a single type (or no type at all) can be inferred for a given domain element.
  * There are inference rules which dependent on types of children of the given domain element (e.g. calls of overloaded functions depend on the types of the current arguments)
  * and there are inference rules without this need.
+ *
+ * Within inference rules, don't take the initialization state of the inferred type into account,
+ * since such inferrence rules might not work for cyclic type definitions.
  */
 export type TypeInferenceRule = TypeInferenceRuleWithoutInferringChildren | TypeInferenceRuleWithInferringChildren;
 
