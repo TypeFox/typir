@@ -40,7 +40,7 @@ export abstract class TypeInitializer<T extends Type = Type> {
         if (existingType) {
             // ensure, that the same type is not duplicated!
             this.typeToReturn = existingType as T;
-            // TODO: newType.invalidate() ??
+            newType.deconstruct();
         } else {
             this.typeToReturn = newType;
             this.services.graph.addNode(newType);

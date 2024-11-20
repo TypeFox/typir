@@ -6,16 +6,23 @@
 
 import { EmptyFileSystem } from 'langium';
 import { parseDocument } from 'langium/test';
+import { deleteAllDocuments } from 'typir-langium';
 import { afterEach, describe, expect, test } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
 import { DiagnosticSeverity } from 'vscode-languageserver-types';
-import { createLoxServices } from '../src/language/lox-module.js';
-import { deleteAllDocuments } from 'typir-langium';
 import { isClassType } from '../../../packages/typir/lib/kinds/class-kind.js';
+import { isFunctionType } from '../../../packages/typir/lib/kinds/function-kind.js';
+import { createLoxServices } from '../src/language/lox-module.js';
+import { expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
 
 const loxServices = createLoxServices(EmptyFileSystem).Lox;
 
-afterEach(async () => await deleteAllDocuments(loxServices));
+afterEach(async () => {
+    await deleteAllDocuments(loxServices);
+    // check, that there are no user-defined classes and functions after clearing/invalidating all LOX documents
+    expectTypirTypes(loxServices, isClassType);
+    expectTypirTypes(loxServices, isFunctionType, '-', '*', '/', '+', '+', '+', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '!=', '=', '!', '-');
+});
 
 describe('Explicitly test type checking for LOX', () => {
 
@@ -306,38 +313,51 @@ describe('Explicitly test type checking for LOX', () => {
 });
 
 describe('Cyclic type definitions where a Class is declared and already used', () => {
-    test('Class with field', async () => await validate(`
-        class Node {
-            children: Node
-        }
-    `, []));
+    test('Class with field', async () => {
+        await validate(`
+            class Node {
+                children: Node
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'Node');
+    });
 
-    test('Two Classes with fields with the other Class as type', async () => await validate(`
-        class A {
-            prop1: B
-        }
-        class B {
-            prop2: A
-        }
-    `, []));
+    test('Two Classes with fields with the other Class as type', async () => {
+        await validate(`
+            class A {
+                prop1: B
+            }
+            class B {
+                prop2: A
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+    });
 
-    test.todo('Three Classes with fields with the other Class as type', async () => await validate(`
-        class A {
-            prop1: B
-        }
-        class B {
-            prop2: C
-        }
-        class C {
-            prop3: A
-        }
-    `, []));
+    test('Three Classes with fields with the other Class as type', async () => {
+        await validate(`
+            class A {
+                prop1: B
+            }
+            class B {
+                prop2: C
+            }
+            class C {
+                prop3: A
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B', 'C');
+    });
 
-    test.todo('Class with method', async () => await validate(`
-        class Node {
-            myMethod(input: number): Class {}
-        }
-    `, []));
+    test.todo('Class with method', async () => {
+        await validate(`
+            class Node {
+                myMethod(input: number): Node {}
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'Node');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod');
+    });
 
     test('Having two declarations for the delayed class A, but only one type A in the type system', async () => {
         await validate(`
@@ -353,10 +373,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
             'Declared classes need to be unique (A).',
         ]);
         // check, that there is only one class type A in the type graph:
-        const classes = loxServices.graph.getAllRegisteredTypes().filter(t => isClassType(t)).map(t => t.getName());
-        expect(classes).toHaveLength(2);
-        expect(classes).includes('A');
-        expect(classes).includes('B');
+        expectTypirTypes(loxServices, isClassType, 'A', 'B');
     });
 
 });
@@ -372,6 +389,7 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
             'Circles in super-sub-class-relationships are not allowed: MyClass2',
             'Circles in super-sub-class-relationships are not allowed: MyClass3',
         ]);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2', 'MyClass3');
     });
 
     test('Two involved classes: 1 -> 2 -> 1', async () => {
@@ -382,12 +400,14 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
             'Circles in super-sub-class-relationships are not allowed: MyClass1',
             'Circles in super-sub-class-relationships are not allowed: MyClass2',
         ]);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
     });
 
     test('One involved class: 1 -> 1', async () => {
         await validate(`
             class MyClass1 < MyClass1 { }
         `, 'Circles in super-sub-class-relationships are not allowed: MyClass1');
+        expectTypirTypes(loxServices, isClassType, 'MyClass1');
     });
 });
 

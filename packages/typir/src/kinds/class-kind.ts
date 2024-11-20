@@ -6,7 +6,7 @@
 
 import { assertUnreachable } from 'langium';
 import { TypeEqualityProblem } from '../features/equality.js';
-import { InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
+import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { ValidationProblem, ValidationRule, ValidationRuleWithBeforeAfter } from '../features/validation.js';
 import { Type, TypeStateListener, isType } from '../graph/type-node.js';
@@ -34,17 +34,26 @@ export class ClassType extends Type {
         this.kind = kind;
         this.className = typeDetails.className;
 
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const thisType = this;
+
         // resolve the super classes
         this.superClasses = toArray(typeDetails.superClasses).map(superr => {
             const superRef = new TypeReference<ClassType>(superr, kind.services);
-            superRef.addReactionOnTypeCompleted((_ref, superType) => {
-                // after the super-class is complete, register this class as sub-class for that super-class
-                superType.subClasses.push(this);
+            superRef.addListener({
+                onTypeReferenceResolved(_reference, superType) {
+                    // after the super-class is complete, register this class as sub-class for that super-class
+                    superType.subClasses.push(thisType);
+                },
+                onTypeReferenceInvalidated(_reference, superType) {
+                    if (superType) {
+                        // if the superType gets invalid, de-register this class as sub-class of the super-class
+                        superType.subClasses.splice(superType.subClasses.indexOf(thisType), 1);
+                    } else {
+                        // initially do nothing
+                    }
+                },
             }, true);
-            superRef.addReactionOnTypeUnresolved((_ref, superType) => {
-                // if the superType gets invalid, de-register this class as sub-class of the super-class
-                superType.subClasses.splice(superType.subClasses.indexOf(this), 1);
-            }, false);
             return superRef;
         });
 
@@ -538,9 +547,11 @@ export function isClassKind(kind: unknown): kind is ClassKind {
 }
 
 
+// TODO Review: Is it better to not have "extends TypeInitializer" and to merge TypeInitializer+ClassTypeInitializer into one class?
 export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> extends TypeInitializer<ClassType> implements TypeStateListener {
     protected readonly typeDetails: CreateClassTypeDetails<T, T1, T2>;
     protected readonly kind: ClassKind;
+    protected inferenceRules: TypeInferenceRule[];
 
     constructor(services: TypirServices, kind: ClassKind, typeDetails: CreateClassTypeDetails<T, T1, T2>) {
         super(services);
@@ -549,11 +560,14 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
 
         // create the class type
         const classType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
-        // TODO erst nach Herausfiltern im Initializer darf der Type selbst sich registrieren!
         if (kind.options.typing === 'Structural') {
-            // TODO Vorsicht Inference rules werden by default an den Identifier gebunden (ebenso Validations)!
+            // register structural classes also by their names, since these names are usually used for reference in the DSL/AST!
             this.services.graph.addNode(classType, kind.getIdentifierPrefix() + typeDetails.className);
         }
+
+        this.inferenceRules = createInferenceRules<T, T1, T2>(this.typeDetails, this.kind, classType);
+        // register all the inference rules already now to enable early type inference for this Class type
+        this.inferenceRules.forEach(rule => services.inference.addInferenceRule(rule, undefined)); // 'undefined', since the Identifier is still missing
 
         classType.addListener(this, true); // trigger directly, if some initialization states are already reached!
     }
@@ -568,16 +582,28 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
 
         // remove/invalidate the duplicated and skipped class type now
         if (readyClassType !== classType) {
+            // the class type changed, since the same type was already created earlier and is reused here (this is a special case) => skip the classType!
+            classType.removeListener(this); // since this ClassTypeInitializer initialized the invalid type, there is nothing to do anymore here!
+
             if (this.kind.options.typing === 'Structural') {
+                // replace the type in the type graph
                 this.services.graph.removeNode(classType, this.kind.getIdentifierPrefix() + this.typeDetails.className);
+                this.services.graph.addNode(readyClassType, this.kind.getIdentifierPrefix() + this.typeDetails.className);
             }
+
+            // remove the inference rules for the invalid type
+            this.inferenceRules.forEach(rule => this.services.inference.removeInferenceRule(rule, undefined));
+            // but re-create the inference rules for the new type!!
+            // This is required, since inference rules for different declarations in the AST might be different, but should infer the same Typir type!
+            this.inferenceRules = createInferenceRules(this.typeDetails, this.kind, readyClassType);
+            this.inferenceRules.forEach(rule => this.services.inference.addInferenceRule(rule, readyClassType));
+        } else {
+            // the class type is unchanged (this is the usual case)
+
+            // keep the existing inference rules, but register it for the unchanged class type
+            this.inferenceRules.forEach(rule => this.services.inference.removeInferenceRule(rule, undefined));
+            this.inferenceRules.forEach(rule => this.services.inference.addInferenceRule(rule, readyClassType));
         }
-
-        // register inference rules
-        registerInferenceRules<T, T1, T2>(this.services, this.typeDetails, this.kind, readyClassType);
-
-        // the work of this initializer is done now
-        classType.removeListener(this);
     }
 
     switchedToCompleted(classType: Type): void {
@@ -589,6 +615,9 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
                 throw new Error(`Circles in super-sub-class-relationships are not allowed: ${classType.getName()}`);
             }
         }
+
+        // the work of this initializer is done now
+        classType.removeListener(this);
     }
 
     switchedToInvalid(_previousClassType: Type): void {
@@ -597,9 +626,10 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
 }
 
 
-function registerInferenceRules<T, T1, T2>(services: TypirServices, typeDetails: CreateClassTypeDetails<T, T1, T2>, classKind: ClassKind, classType: ClassType) {
+function createInferenceRules<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>, classKind: ClassKind, classType: ClassType): TypeInferenceRule[] {
+    const result: TypeInferenceRule[] = [];
     if (typeDetails.inferenceRuleForDeclaration) {
-        services.inference.addInferenceRule({
+        result.push({
             inferTypeWithoutChildren(domainElement, _typir) {
                 if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
                     return classType;
@@ -611,16 +641,16 @@ function registerInferenceRules<T, T1, T2>(services: TypirServices, typeDetails:
                 // TODO check values for fields for nominal typing!
                 return classType;
             },
-        }, classType);
+        });
     }
     if (typeDetails.inferenceRuleForLiteral) {
-        registerInferenceRuleForLiteral(services, typeDetails.inferenceRuleForLiteral, classKind, classType);
+        result.push(createInferenceRuleForLiteral(typeDetails.inferenceRuleForLiteral, classKind, classType));
     }
     if (typeDetails.inferenceRuleForReference) {
-        registerInferenceRuleForLiteral(services, typeDetails.inferenceRuleForReference, classKind, classType);
+        result.push(createInferenceRuleForLiteral(typeDetails.inferenceRuleForReference, classKind, classType));
     }
     if (typeDetails.inferenceRuleForFieldAccess) {
-        services.inference.addInferenceRule((domainElement, _typir) => {
+        result.push((domainElement, _typir) => {
             const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
             if (result === InferenceRuleNotApplicable) {
                 return InferenceRuleNotApplicable;
@@ -641,13 +671,14 @@ function registerInferenceRules<T, T1, T2>(services: TypirServices, typeDetails:
             } else {
                 return result; // do the type inference for this element instead
             }
-        }, classType);
+        });
     }
+    return result;
 }
 
-function registerInferenceRuleForLiteral<T>(services: TypirServices, rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): void {
+function createInferenceRuleForLiteral<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): TypeInferenceRule {
     const mapListConverter = new MapListConverter();
-    services.inference.addInferenceRule({
+    return {
         inferTypeWithoutChildren(domainElement, _typir) {
             const result = rule.filter(domainElement);
             if (result) {
@@ -692,7 +723,7 @@ function registerInferenceRuleForLiteral<T>(services: TypirServices, rule: Infer
                 return classType;
             }
         },
-    }, classType);
+    };
 }
 
 

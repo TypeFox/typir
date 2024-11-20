@@ -111,6 +111,7 @@ export interface TypeInferenceCollector {
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
     addInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
+    removeInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
 
     addListener(listener: TypeInferenceCollectorListener): void;
     removeListener(listener: TypeInferenceCollectorListener): void;
@@ -138,6 +139,17 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         }
         rules.push(rule);
         this.listeners.forEach(listener => listener.addedInferenceRule(rule, boundToType));
+    }
+
+    removeInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void {
+        const key = this.getBoundToTypeKey(boundToType);
+        const rules = this.inferenceRules.get(key);
+        if (rules) {
+            const index = rules.indexOf(rule);
+            if (index >= 0) {
+                rules.splice(index, 1);
+            }
+        }
     }
 
     protected getBoundToTypeKey(boundToType?: Type): string {
