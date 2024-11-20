@@ -8,10 +8,16 @@ import { expect } from 'vitest';
 import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 
-export function expectTypirTypes(services: TypirServices, filterTypes: (type: Type) => boolean, ...namesOfExpectedTypes: string[]): void {
-    const typeNames = services.graph.getAllRegisteredTypes().filter(filterTypes).map(t => t.getName());
+export function expectTypirTypes(services: TypirServices, filterTypes: (type: Type) => boolean, ...namesOfExpectedTypes: string[]): Type[] {
+    const types = services.graph.getAllRegisteredTypes().filter(filterTypes);
+    types.forEach(type => expect(type.getInitializationState()).toBe('Completed'));
+    const typeNames = types.map(t => t.getName());
     expect(typeNames, typeNames.join(', ')).toHaveLength(namesOfExpectedTypes.length);
     for (const name of namesOfExpectedTypes) {
-        expect(typeNames).includes(name);
+        const index = typeNames.indexOf(name);
+        expect(index >= 0).toBeTruthy();
+        typeNames.splice(index, 1); // removing elements is needed to probably support duplicated entries
     }
+    expect(typeNames).toHaveLength(0);
+    return types;
 }

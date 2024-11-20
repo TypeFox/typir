@@ -313,7 +313,7 @@ describe('Explicitly test type checking for LOX', () => {
 });
 
 describe('Cyclic type definitions where a Class is declared and already used', () => {
-    test('Class with field', async () => {
+    test('Class with field of its own type', async () => {
         await validate(`
             class Node {
                 children: Node
@@ -334,7 +334,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         expectTypirTypes(loxServices, isClassType, 'A', 'B');
     });
 
-    test('Three Classes with fields with the other Class as type', async () => {
+    test('Three Classes with fields with one of the other Classes as type', async () => {
         await validate(`
             class A {
                 prop1: B
@@ -349,14 +349,49 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         expectTypirTypes(loxServices, isClassType, 'A', 'B', 'C');
     });
 
-    test.todo('Class with method', async () => {
+    test('Three Classes with fields with two of the other Classes as type', async () => {
         await validate(`
-            class Node {
-                myMethod(input: number): Node {}
+            class A {
+                prop1: B
+                prop2: C
+            }
+            class B {
+                prop3: C
+                prop4: A
+            }
+            class C {
+                prop5: A
+                prop6: B
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'Node');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod');
+        expectTypirTypes(loxServices, isClassType, 'A', 'B', 'C');
+    });
+
+    test('Class with field of its own type and another dependency', async () => {
+        await validate(`
+            class Node {
+                children: Node
+                other: Another
+            }
+            class Another {
+                children: Node
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'Node', 'Another');
+    });
+
+    test('Two Classes with a field of its own type and cyclic dependencies to each other', async () => {
+        await validate(`
+            class Node {
+                own: Node
+                other: Another
+            }
+            class Another {
+                own: Another
+                another: Node
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'Node', 'Another');
     });
 
     test('Having two declarations for the delayed class A, but only one type A in the type system', async () => {
@@ -374,6 +409,56 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         ]);
         // check, that there is only one class type A in the type graph:
         expectTypirTypes(loxServices, isClassType, 'A', 'B');
+    });
+
+    test('Having three declarations for the delayed class A, but only one type A in the type system', async () => {
+        await validate(`
+            class A {
+                property1: B // needs to wait for B, since B is defined below
+            }
+            class A {
+                property2: B // needs to wait for B, since B is defined below
+            }
+            class A {
+                property3: B // needs to wait for B, since B is defined below
+            }
+            class B { }
+        `, [ // Typir works with this, but for LOX these validation errors are produced:
+            'Declared classes need to be unique (A).',
+            'Declared classes need to be unique (A).',
+            'Declared classes need to be unique (A).',
+        ]);
+        // check, that there is only one class type A in the type graph:
+        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+    });
+
+    test('Having two declarations for class A waiting for B, while B itself depends on A', async () => {
+        await validate(`
+            class A {
+                property1: B // needs to wait for B, since B is defined below
+            }
+            class A {
+                property2: B // needs to wait for B, since B is defined below
+            }
+            class B {
+                property3: A // should be the valid A and not the invalid A
+            }
+        `, [ // Typir works with this, but for LOX these validation errors are produced:
+            'Declared classes need to be unique (A).',
+            'Declared classes need to be unique (A).',
+        ]);
+        // check, that there is only one class type A in the type graph:
+        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+    });
+
+    test.todo('Class with method', async () => {
+        await validate(`
+            class Node {
+                myMethod(input: number): Node {}
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'Node');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod');
     });
 
 });
