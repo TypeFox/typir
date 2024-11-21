@@ -9,7 +9,17 @@ import { TypeReference, TypirProblem, WaitingForInvalidTypeReferences, WaitingFo
 import { assertTrue, assertUnreachable } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 
-// export type TypeInitializationState = 'Created' | 'Identifiable' | 'Completed';
+/**
+ * The transitions between the states of a type are depicted as state machine:
+ * ```mermaid
+stateDiagram-v2
+    [*] --> Invalid
+    Invalid --> Identifiable
+    Identifiable --> Completed
+    Completed --> Invalid
+    Identifiable --> Invalid
+```
+ */
 export type TypeInitializationState = 'Invalid' | 'Identifiable' | 'Completed';
 
 export interface PreconditionsForInitializationState {
@@ -20,7 +30,7 @@ export interface PreconditionsForInitializationState {
 /**
  * Design decisions:
  * - features of types are realized/determined by their kinds
- * - Names of types must be unique!
+ * - Identifiers of types must be unique!
  */
 export abstract class Type {
     readonly kind: Kind; // => $kind: string, required for isXType() checks
@@ -194,14 +204,14 @@ export abstract class Type {
         this.waitForIdentifiable = new WaitingForIdentifiableAndCompletedTypeReferences(
             preconditions.preconditionsForInitialization?.refsToBeIdentified,
             preconditions.preconditionsForInitialization?.refsToBeCompleted,
-            this,
         );
+        this.waitForIdentifiable.addTypesToIgnoreForCycles(new Set([this]));
         // preconditions for Completed
         this.waitForCompleted = new WaitingForIdentifiableAndCompletedTypeReferences(
             preconditions.preconditionsForCompletion?.refsToBeIdentified,
             preconditions.preconditionsForCompletion?.refsToBeCompleted,
-            this,
         );
+        this.waitForCompleted.addTypesToIgnoreForCycles(new Set([this]));
         // preconditions for Invalid
         this.waitForInvalid = new WaitingForInvalidTypeReferences(
             preconditions.referencesRelevantForInvalidation ?? [],
@@ -280,6 +290,9 @@ export abstract class Type {
             this.onInvalidation();
             this.initializationState = 'Invalid';
             this.stateListeners.slice().forEach(listener => listener.switchedToInvalid(this)); // slice() prevents issues with removal of listeners during notifications
+            // add the types again, since the initialization process started again
+            this.waitForIdentifiable.addTypesToIgnoreForCycles(new Set([this]));
+            this.waitForCompleted.addTypesToIgnoreForCycles(new Set([this]));
         } else {
             // is already 'Invalid' => do nothing
         }

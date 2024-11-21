@@ -50,18 +50,19 @@ export class TypeGraph {
      * Design decision:
      * This is the central API call to remove a type from the type system in case that it is no longer valid/existing/needed.
      * It is not required to directly inform the kind of the removed type yourself, since the kind itself will take care of removed types.
-     * @param type the type to remove
+     * @param typeToRemove the type to remove
      * @param key an optional key to register the type, since it is allowed to register the same type with different keys in the graph
      */
-    removeNode(type: Type, key?: string): void {
-        const mapKey = key ?? type.getIdentifier();
+    removeNode(typeToRemove: Type, key?: string): void {
+        const mapKey = key ?? typeToRemove.getIdentifier();
         // remove all edges which are connected to the type to remove
-        type.getAllIncomingEdges().forEach(e => this.removeEdge(e));
-        type.getAllOutgoingEdges().forEach(e => this.removeEdge(e));
+        typeToRemove.getAllIncomingEdges().forEach(e => this.removeEdge(e));
+        typeToRemove.getAllOutgoingEdges().forEach(e => this.removeEdge(e));
         // remove the type itself
         const contained = this.nodes.delete(mapKey);
         if (contained) {
-            this.listeners.forEach(listener => listener.removedType(type, mapKey));
+            this.listeners.slice().forEach(listener => listener.removedType(typeToRemove, mapKey));
+            typeToRemove.deconstruct();
         } else {
             throw new Error(`Type does not exist: ${mapKey}`);
         }

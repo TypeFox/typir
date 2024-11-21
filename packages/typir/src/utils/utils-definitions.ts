@@ -50,7 +50,7 @@ export type TypeSelector =
 export type DelayedTypeSelector = TypeSelector | (() => TypeSelector);
 
 
-export interface WaitingForResolvedTypeReferencesListener<T extends Type = Type> {
+export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<T extends Type = Type> {
     onFulfilled(waiter: WaitingForIdentifiableAndCompletedTypeReferences<T>): void;
     onInvalidated(waiter: WaitingForIdentifiableAndCompletedTypeReferences<T>): void;
 }
@@ -70,7 +70,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
      * e.g. A should not waiting B and B should not wait for A.
      * These types to ignore are stored in the following Set.
      */
-    protected typesForCycles: Set<Type> = new Set();
+    protected typesToIgnoreForCycles: Set<Type> = new Set();
 
     /** These TypeReferences must be in the states Identifiable or Completed, before the listeners are informed */
     protected readonly waitForRefsIdentified: Array<TypeReference<T>> | undefined;
@@ -80,22 +80,16 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
     /** These listeners will be informed once, when all TypeReferences are in the desired state.
      * If some of these TypeReferences are invalid (the listeners will not be informed about this) and later in the desired state again,
      * the listeners will be informed again, and so on. */
-    protected readonly listeners: Array<WaitingForResolvedTypeReferencesListener<T>> = [];
+    protected readonly listeners: Array<WaitingForIdentifiableAndCompletedTypeReferencesListener<T>> = [];
 
     constructor(
         waitForRefsToBeIdentified: Array<TypeReference<T>> | undefined,
         waitForRefsToBeCompleted: Array<TypeReference<T>> | undefined,
-        typeCycle: Type | undefined,
     ) {
 
         // remember the relevant TypeReferences to wait for
         this.waitForRefsIdentified = waitForRefsToBeIdentified;
         this.waitForRefsCompleted = waitForRefsToBeCompleted;
-
-        // set-up the set of types to not wait for them, in order to handle cycles
-        if (typeCycle) {
-            this.typesForCycles.add(typeCycle);
-        }
 
         // register to get updates for the relevant TypeReferences
         toArray(this.waitForRefsIdentified).forEach(ref => ref.addListener(this, false));
@@ -109,10 +103,10 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         this.listeners.splice(0, this.listeners.length);
         this.waitForRefsIdentified?.forEach(ref => ref.removeListener(this));
         this.waitForRefsCompleted?.forEach(ref => ref.removeListener(this));
-        this.typesForCycles.clear();
+        this.typesToIgnoreForCycles.clear();
     }
 
-    addListener(newListener: WaitingForResolvedTypeReferencesListener<T>, informAboutCurrentState: boolean): void {
+    addListener(newListener: WaitingForIdentifiableAndCompletedTypeReferencesListener<T>, informAboutCurrentState: boolean): void {
         this.listeners.push(newListener);
         // inform the new listener
         if (informAboutCurrentState) {
@@ -124,7 +118,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         }
     }
 
-    removeListener(listenerToRemove: WaitingForResolvedTypeReferencesListener<T>): void {
+    removeListener(listenerToRemove: WaitingForIdentifiableAndCompletedTypeReferencesListener<T>): void {
         const index = this.listeners.indexOf(listenerToRemove);
         if (index >= 0) {
             this.listeners.splice(index, 1);
@@ -135,11 +129,11 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         // identify the actual new types to ignore (filtering out the types which are already ignored)
         const newTypesToIgnore: Set<Type> = new Set();
         for (const typeToIgnore of moreTypesToIgnore) {
-            if (this.typesForCycles.has(typeToIgnore)) {
-                // ignore this additional type, required to break the propagation, since the propagation becomes cyclic as well in case of cyclic types!
+            if (this.typesToIgnoreForCycles.has(typeToIgnore)) {
+                // ignore this additional type, required to break the propagation, since the propagation itself becomes cyclic as well in case of cyclic types!
             } else {
                 newTypesToIgnore.add(typeToIgnore);
-                this.typesForCycles.add(typeToIgnore);
+                this.typesToIgnoreForCycles.add(typeToIgnore);
             }
         }
 
@@ -173,7 +167,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
 
     onTypeReferenceResolved(_reference: TypeReference<Type>, resolvedType: Type): void {
         // inform the referenced type about the types to ignore for completion
-        resolvedType.ignoreDependingTypesDuringInitialization(this.typesForCycles);
+        resolvedType.ignoreDependingTypesDuringInitialization(this.typesToIgnoreForCycles);
         resolvedType.addListener(this, false);
         // check, whether all TypeReferences are resolved and the resolved types are in the expected state
         this.checkIfFulfilled();
@@ -211,7 +205,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
 
         for (const ref of toArray(this.waitForRefsIdentified)) {
             const refType = ref.getType();
-            if (refType && (refType.isInStateOrLater('Identifiable') || this.typesForCycles.has(refType))) {
+            if (refType && (refType.isInStateOrLater('Identifiable') || this.typesToIgnoreForCycles.has(refType))) {
                 // that is fine
             } else {
                 return;
@@ -219,7 +213,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         }
         for (const ref of toArray(this.waitForRefsCompleted)) {
             const refType = ref.getType();
-            if (refType && (refType.isInStateOrLater('Completed') || this.typesForCycles.has(refType))) {
+            if (refType && (refType.isInStateOrLater('Completed') || this.typesToIgnoreForCycles.has(refType))) {
                 // that is fine
             } else {
                 return;
@@ -229,6 +223,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         // everything is fine now! => inform all listeners
         this.fulfilled = true; // don't inform the listeners again
         this.listeners.slice().forEach(listener => listener.onFulfilled(this)); // slice() prevents issues with removal of listeners during notifications
+        this.typesToIgnoreForCycles.clear(); // otherwise deleted types remain in this Set forever
     }
 
     protected switchToNotFulfilled(): void {
