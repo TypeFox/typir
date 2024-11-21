@@ -44,7 +44,7 @@ describe('Tests for Typir', () => {
             ],
             methods: [],
         });
-        console.log(typePerson.getType()!.getUserRepresentation());
+        console.log(typePerson.getTypeFinal()!.getUserRepresentation());
         const typeStudent = classKind.createClassType({
             className: 'Student',
             superClasses: typePerson, // a Student is a special Person

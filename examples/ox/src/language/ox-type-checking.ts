@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, OperatorManager, ParameterDetails, PrimitiveKind, TypirServices, UniqueFunctionValidation } from 'typir';
+import { CreateParameterDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, OperatorManager, PrimitiveKind, TypirServices, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
@@ -171,11 +171,11 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         if (isFunctionDeclaration(domainElement)) {
             const functionName = domainElement.name;
             // define function type
-            this.functionKind.getOrCreateFunctionType({
+            this.functionKind.createFunctionType({
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
                 outputParameter: { name: NO_PARAMETER_NAME, type: domainElement.returnType },
-                inputParameters: domainElement.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
+                inputParameters: domainElement.parameters.map(p => (<CreateParameterDetails>{ name: p.name, type: p.type })),
                 // inference rule for function declaration:
                 inferenceRuleForDeclaration: (node: unknown) => node === domainElement, // only the current function declaration matches!
                 /** inference rule for funtion calls:

@@ -5,32 +5,33 @@
  ******************************************************************************/
 
 import { TypeEqualityProblem } from '../features/equality.js';
-import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable } from '../features/inference.js';
+import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../features/inference.js';
 import { SubTypeProblem } from '../features/subtype.js';
 import { ValidationProblem, ValidationRuleWithBeforeAfter } from '../features/validation.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
-import { Type, isType } from '../graph/type-node.js';
+import { Type, TypeStateListener, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { NameTypePair, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
+import { TypeInitializer } from '../utils/type-initialization.js';
+import { NameTypePair, TypeReference, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, checkTypeArrays, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
-import { assertTrue } from '../utils/utils.js';
+import { assertTrue, assertType, assertUnreachable } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';
 
 export class FunctionType extends Type {
     override readonly kind: FunctionKind;
 
     readonly functionName: string;
-    readonly outputParameter: NameTypePair | undefined;
-    readonly inputParameters: NameTypePair[];
+    readonly outputParameter: ParameterDetails | undefined;
+    readonly inputParameters: ParameterDetails[];
 
-    constructor(kind: FunctionKind, identifier: string, typeDetails: FunctionTypeDetails) {
-        super(identifier);
+    constructor(kind: FunctionKind, typeDetails: FunctionTypeDetails) {
+        super(undefined);
         this.kind = kind;
         this.functionName = typeDetails.functionName;
 
         // output parameter
-        const outputType = typeDetails.outputParameter ? resolveTypeSelector(this.kind.services, typeDetails.outputParameter.type) : undefined;
+        const outputType = typeDetails.outputParameter ? new TypeReference(typeDetails.outputParameter.type, this.kind.services) : undefined;
         if (typeDetails.outputParameter) {
             assertTrue(outputType !== undefined);
             this.kind.enforceParameterName(typeDetails.outputParameter.name, this.kind.options.enforceOutputParameterName);
@@ -46,13 +47,34 @@ export class FunctionType extends Type {
         // input parameters
         this.inputParameters = typeDetails.inputParameters.map(input => {
             this.kind.enforceParameterName(input.name, this.kind.options.enforceInputParameterNames);
-            return <NameTypePair>{
+            return <ParameterDetails>{
                 name: input.name,
-                type: resolveTypeSelector(this.kind.services, input.type),
+                type: new TypeReference(input.type, this.kind.services),
             };
         });
 
-        this.defineTheInitializationProcessOfThisType({}); // TODO preconditions
+        // define to wait for the parameter types
+        const allParameterRefs = this.inputParameters.map(p => p.type);
+        if (outputType) {
+            allParameterRefs.push(outputType);
+        }
+        this.defineTheInitializationProcessOfThisType({
+            preconditionsForInitialization: {
+                refsToBeIdentified: allParameterRefs,
+            },
+            referencesRelevantForInvalidation: allParameterRefs,
+            onIdentification: () => {
+                // the identifier is calculated now
+                this.identifier = this.kind.calculateIdentifier(typeDetails); // TODO it is still not nice, that the type resolving is done again, since the TypeReferences here are not reused
+                // the registration of the type in the type graph is done by the TypeInitializer
+            },
+            onCompletion: () => {
+                // some check?
+            },
+            onInvalidation: () => {
+                // ?
+            },
+        });
     }
 
     override getName(): string {
@@ -143,17 +165,51 @@ export class FunctionType extends Type {
         return this.functionName;
     }
 
-    getOutput(): NameTypePair | undefined {
-        return this.outputParameter;
+    getOutput(notResolvedBehavior: 'EXCEPTION' | 'RETURN_UNDEFINED' = 'EXCEPTION'): NameTypePair | undefined {
+        if (this.outputParameter) {
+            const type = this.outputParameter.type.getType();
+            if (type) {
+                return <NameTypePair>{
+                    name: this.outputParameter.name,
+                    type,
+                };
+            } else {
+                switch (notResolvedBehavior) {
+                    case 'EXCEPTION':
+                        throw new Error(`Output parameter ${this.outputParameter.name} is not resolved.`);
+                    case 'RETURN_UNDEFINED':
+                        return undefined;
+                    default:
+                        assertUnreachable(notResolvedBehavior);
+                }
+            }
+        } else {
+            return undefined;
+        }
     }
 
     getInputs(): NameTypePair[] {
-        return this.inputParameters;
+        return this.inputParameters.map(param => {
+            const type = param.type.getType();
+            if (type) {
+                return <NameTypePair>{
+                    name: param.name,
+                    type,
+                };
+            } else {
+                throw new Error(`Input parameter ${param.name} is not resolved.`);
+            }
+        });
     }
 }
 
 export function isFunctionType(type: unknown): type is FunctionType {
     return isType(type) && isFunctionKind(type.kind);
+}
+
+export interface ParameterDetails {
+    name: string;
+    type: TypeReference<Type>;
 }
 
 
@@ -173,7 +229,7 @@ export interface FunctionKindOptions {
 
 export const FunctionKindName = 'FunctionKind';
 
-export interface ParameterDetails {
+export interface CreateParameterDetails {
     name: string;
     type: TypeSelector;
 }
@@ -181,8 +237,8 @@ export interface ParameterDetails {
 export interface FunctionTypeDetails {
     functionName: string,
     /** The order of parameters is important! */
-    outputParameter: ParameterDetails | undefined,
-    inputParameters: ParameterDetails[],
+    outputParameter: CreateParameterDetails | undefined,
+    inputParameters: CreateParameterDetails[],
 }
 export interface CreateFunctionTypeDetails<T> extends FunctionTypeDetails {
     /** for function declarations => returns the funtion type (the whole signature including all names) */
@@ -257,7 +313,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
     /** Limitations
      * - Works only, if function types are defined using the createFunctionType(...) function below!
      */
-    protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
+    readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
     // TODO try to replace this map with calculating the required identifier for the function
 
     constructor(services: TypirServices, options?: Partial<FunctionKindOptions>) {
@@ -372,172 +428,16 @@ export class FunctionKind implements Kind, TypeGraphListener {
         );
     }
 
-    getFunctionType(typeDetails: FunctionTypeDetails): FunctionType | undefined {
-        const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as FunctionType;
+    getFunctionType(typeDetails: FunctionTypeDetails): TypeReference<FunctionType> {
+        return new TypeReference(() => this.calculateIdentifier(typeDetails), this.services);
     }
 
-    getOrCreateFunctionType<T>(typeDetails: CreateFunctionTypeDetails<T>): FunctionType {
-        const functionType = this.getFunctionType(typeDetails);
-        if (functionType) {
-            // register the additional inference rules for the same type!
-            this.registerInferenceRules(typeDetails, functionType);
-            return functionType;
-        }
-        return this.createFunctionType(typeDetails);
+    createFunctionType<T>(typeDetails: CreateFunctionTypeDetails<T>): TypeInitializer<FunctionType> {
+        return new FunctionTypeInitializer(this.services, this, typeDetails);
     }
 
-    createFunctionType<T>(typeDetails: CreateFunctionTypeDetails<T>): FunctionType {
-        const functionName = typeDetails.functionName;
-
-        // check the input
-        assertTrue(this.getFunctionType(typeDetails) === undefined, `The function '${functionName}' already exists!`); // ensures, that no duplicated functions are created!
-        if (!typeDetails) {
-            throw new Error('is undefined');
-        }
-        if (typeDetails.outputParameter === undefined && typeDetails.inferenceRuleForCalls) {
-            // no output parameter => no inference rule for calling this function
-            throw new Error(`A function '${functionName}' without output parameter cannot have an inferred type, when this function is called!`);
-        }
-        this.enforceFunctionName(functionName, this.options.enforceFunctionName);
-
-        // create the function type
-        const functionType = new FunctionType(this, this.calculateIdentifier(typeDetails), typeDetails);
-        this.services.graph.addNode(functionType);
-
-        // output parameter for function calls
-        const outputTypeForFunctionCalls = this.getOutputTypeForFunctionCalls(functionType);
-
-        // remember the new function for later in order to enable overloaded functions!
-        let overloaded = this.mapNameTypes.get(functionName);
-        if (overloaded) {
-            // do nothing
-        } else {
-            overloaded = {
-                overloadedFunctions: [],
-                inference: new CompositeTypeInferenceRule(this.services),
-                sameOutputType: undefined,
-            };
-            this.mapNameTypes.set(functionName, overloaded);
-            this.services.inference.addInferenceRule(overloaded.inference);
-        }
-        if (overloaded.overloadedFunctions.length <= 0) {
-            // remember the output type of the first function
-            overloaded.sameOutputType = outputTypeForFunctionCalls;
-        } else {
-            if (overloaded.sameOutputType && outputTypeForFunctionCalls && this.services.equality.areTypesEqual(overloaded.sameOutputType, outputTypeForFunctionCalls) === true) {
-                // the output types of all overloaded functions are the same for now
-            } else {
-                // there is a difference
-                overloaded.sameOutputType = undefined;
-            }
-        }
-        overloaded.overloadedFunctions.push({
-            functionType,
-            inferenceRuleForCalls: typeDetails.inferenceRuleForCalls,
-        });
-
-        this.registerInferenceRules(typeDetails, functionType);
-
-        return functionType;
-    }
-
-    protected registerInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, functionType: FunctionType): void {
-        const functionName = typeDetails.functionName;
-        const mapNameTypes = this.mapNameTypes;
-        const overloaded = mapNameTypes.get(functionName)!;
-        const outputTypeForFunctionCalls = this.getOutputTypeForFunctionCalls(functionType);
-        if (typeDetails.inferenceRuleForCalls) {
-            /** Preconditions:
-             * - there is a rule which specifies how to infer the current function type
-             * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
-             *   (exception: the options contain a type to return in this special case)
-             */
-            function check(returnType: Type | undefined): Type {
-                if (returnType) {
-                    return returnType;
-                } else {
-                    throw new Error(`The function ${functionName} is called, but has no output type to infer.`);
-                }
-            }
-
-            // register inference rule for calls of the new function
-            // TODO what about the case, that multiple variants match?? after implicit conversion for example?! => overload with the lowest number of conversions wins!
-            overloaded.inference.addInferenceRule({
-                inferTypeWithoutChildren(domainElement, _typir) {
-                    const result = typeDetails.inferenceRuleForCalls!.filter(domainElement);
-                    if (result) {
-                        const matching = typeDetails.inferenceRuleForCalls!.matching(domainElement);
-                        if (matching) {
-                            const inputArguments = typeDetails.inferenceRuleForCalls!.inputArguments(domainElement);
-                            if (inputArguments && inputArguments.length >= 1) {
-                                // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-                                const overloadInfos = mapNameTypes.get(functionName);
-                                if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
-                                    // (only) for overloaded functions:
-                                    if (overloadInfos.sameOutputType) {
-                                        // exception: all(!) overloaded functions have the same(!) output type, save performance and return this type!
-                                        return overloadInfos.sameOutputType;
-                                    } else {
-                                        // otherwise: the types of the parameters need to be inferred in order to determine an exact match
-                                        return inputArguments;
-                                    }
-                                } else {
-                                    // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
-                                    return check(outputTypeForFunctionCalls);
-                                }
-                            } else {
-                                // there are no operands to check
-                                return check(outputTypeForFunctionCalls);
-                            }
-                        } else {
-                            // the domain element is slightly different
-                        }
-                    } else {
-                        // the domain element has a completely different purpose
-                    }
-                    // does not match at all
-                    return InferenceRuleNotApplicable;
-                },
-                inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
-                    const inputTypes = typeDetails.inputParameters.map(p => resolveTypeSelector(typir, p.type));
-                    // all operands need to be assignable(! not equal) to the required types
-                    const comparisonConflicts = checkTypeArrays(childrenTypes, inputTypes,
-                        (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2), true);
-                    if (comparisonConflicts.length >= 1) {
-                        // this function type does not match, due to assignability conflicts => return them as errors
-                        return {
-                            $problem: InferenceProblem,
-                            domainElement,
-                            inferenceCandidate: functionType,
-                            location: 'input parameters',
-                            rule: this,
-                            subProblems: comparisonConflicts,
-                        };
-                        // We have a dedicated validation for this case (see below), but a resulting error might be ignored by the user => return the problem during type-inference again
-                    } else {
-                        // matching => return the return type of the function for the case of a function call!
-                        return check(outputTypeForFunctionCalls);
-                    }
-                },
-            }, functionType);
-        }
-
-        // register inference rule for the declaration of the new function
-        // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
-        if (typeDetails.inferenceRuleForDeclaration) {
-            this.services.inference.addInferenceRule((domainElement, _typir) => {
-                if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
-                    return functionType;
-                } else {
-                    return InferenceRuleNotApplicable;
-                }
-            }, functionType);
-        }
-    }
-
-    protected getOutputTypeForFunctionCalls(functionType: FunctionType): Type | undefined {
-        return functionType.getOutput()?.type ?? // by default, use the return type of the function ...
+    getOutputTypeForFunctionCalls(functionType: FunctionType): Type | undefined {
+        return functionType.getOutput('RETURN_UNDEFINED')?.type ?? // by default, use the return type of the function ...
             // ... if this type is missing, use the specified type for this case in the options:
             // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
             (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR'
@@ -619,6 +519,221 @@ export const NO_PARAMETER_NAME = '';
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
     return isKind(kind) && kind.$name === FunctionKindName;
+}
+
+
+export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> implements TypeStateListener {
+    protected readonly typeDetails: CreateFunctionTypeDetails<T>;
+    protected readonly kind: FunctionKind;
+    protected inferenceRules: FunctionInferenceRules;
+    protected initialFunctionType: FunctionType;
+
+    constructor(services: TypirServices, kind: FunctionKind, typeDetails: CreateFunctionTypeDetails<T>) {
+        super(services);
+        this.typeDetails = typeDetails;
+        this.kind = kind;
+
+        const functionName = typeDetails.functionName;
+
+        // check the input
+        if (typeDetails.outputParameter === undefined && typeDetails.inferenceRuleForCalls) {
+            // no output parameter => no inference rule for calling this function
+            throw new Error(`A function '${functionName}' without output parameter cannot have an inferred type, when this function is called!`);
+        }
+        kind.enforceFunctionName(functionName, kind.options.enforceFunctionName);
+
+        // prepare the overloads
+        let overloaded = this.kind.mapNameTypes.get(functionName);
+        if (overloaded) {
+            // do nothing
+        } else {
+            overloaded = {
+                overloadedFunctions: [],
+                inference: new CompositeTypeInferenceRule(this.services),
+                sameOutputType: undefined,
+            };
+            this.kind.mapNameTypes.set(functionName, overloaded);
+            this.services.inference.addInferenceRule(overloaded.inference);
+        }
+
+        // create the new Function type
+        this.initialFunctionType = new FunctionType(kind, typeDetails);
+
+        this.inferenceRules = createInferenceRules(typeDetails, kind, this.initialFunctionType);
+        registerInferenceRules(this.inferenceRules, kind, functionName, undefined);
+
+        this.initialFunctionType.addListener(this, true);
+    }
+
+    override getTypeInitial(): FunctionType {
+        return this.initialFunctionType;
+    }
+
+    switchedToIdentifiable(functionType: Type): void {
+        const functionName = this.typeDetails.functionName;
+        assertType(functionType, isFunctionType);
+        const readyFunctionType = this.producedType(functionType);
+        if (readyFunctionType !== functionType) {
+            functionType.removeListener(this);
+            deregisterInferenceRules(this.inferenceRules, this.kind, functionName, undefined);
+            this.inferenceRules = createInferenceRules(this.typeDetails, this.kind, readyFunctionType);
+            registerInferenceRules(this.inferenceRules, this.kind, functionName, readyFunctionType);
+        } else {
+            deregisterInferenceRules(this.inferenceRules, this.kind, functionName, undefined);
+            registerInferenceRules(this.inferenceRules, this.kind, functionName, readyFunctionType);
+        }
+
+        // remember the new function for later in order to enable overloaded functions!
+        // const functionName = typeDetails.functionName;
+        const outputTypeForFunctionCalls = this.kind.getOutputTypeForFunctionCalls(readyFunctionType); // output parameter for function calls
+        const overloaded = this.kind.mapNameTypes.get(functionName)!;
+        if (overloaded.overloadedFunctions.length <= 0) {
+            // remember the output type of the first function
+            overloaded.sameOutputType = outputTypeForFunctionCalls;
+        } else {
+            if (overloaded.sameOutputType && outputTypeForFunctionCalls && this.services.equality.areTypesEqual(overloaded.sameOutputType, outputTypeForFunctionCalls) === true) {
+                // the output types of all overloaded functions are the same for now
+            } else {
+                // there is a difference
+                overloaded.sameOutputType = undefined;
+            }
+        }
+        overloaded.overloadedFunctions.push({
+            functionType: readyFunctionType,
+            inferenceRuleForCalls: this.typeDetails.inferenceRuleForCalls,
+        });
+    }
+
+    switchedToCompleted(functionType: Type): void {
+        functionType.removeListener(this);
+    }
+
+    switchedToInvalid(_functionType: Type): void {
+        // empty
+    }
+}
+
+interface FunctionInferenceRules {
+    forCall?: TypeInferenceRule;
+    forDeclaration?: TypeInferenceRule;
+}
+
+function registerInferenceRules(rules: FunctionInferenceRules, functionKind: FunctionKind, functionName: string, functionType: FunctionType | undefined): void {
+    if (rules.forCall) {
+        const overloaded = functionKind.mapNameTypes.get(functionName)!;
+        overloaded.inference.addInferenceRule(rules.forCall, functionType);
+    }
+
+    if (rules.forDeclaration) {
+        functionKind.services.inference.addInferenceRule(rules.forDeclaration, functionType);
+    }
+}
+
+function deregisterInferenceRules(rules: FunctionInferenceRules, functionKind: FunctionKind, functionName: string, functionType: FunctionType | undefined): void {
+    if (rules.forCall) {
+        const overloaded = functionKind.mapNameTypes.get(functionName);
+        overloaded?.inference.removeInferenceRule(rules.forCall, functionType);
+    }
+
+    if (rules.forDeclaration) {
+        functionKind.services.inference.removeInferenceRule(rules.forDeclaration, functionType);
+    }
+}
+
+function createInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, functionKind: FunctionKind, functionType: FunctionType): FunctionInferenceRules {
+    const result: FunctionInferenceRules = {};
+    const functionName = typeDetails.functionName;
+    const mapNameTypes = functionKind.mapNameTypes;
+    const outputTypeForFunctionCalls = functionKind.getOutputTypeForFunctionCalls(functionType);
+    if (typeDetails.inferenceRuleForCalls) { // TODO warum wird hier nicht einfach "outputTypeForFunctionCalls !== undefined" überprüft??
+        /** Preconditions:
+         * - there is a rule which specifies how to infer the current function type
+         * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
+         *   (exception: the options contain a type to return in this special case)
+         */
+        function check(returnType: Type | undefined): Type {
+            if (returnType) {
+                return returnType;
+            } else {
+                throw new Error(`The function ${functionName} is called, but has no output type to infer.`);
+            }
+        }
+
+        // register inference rule for calls of the new function
+        // TODO what about the case, that multiple variants match?? after implicit conversion for example?! => overload with the lowest number of conversions wins!
+        result.forCall = {
+            inferTypeWithoutChildren(domainElement, _typir) {
+                const result = typeDetails.inferenceRuleForCalls!.filter(domainElement);
+                if (result) {
+                    const matching = typeDetails.inferenceRuleForCalls!.matching(domainElement);
+                    if (matching) {
+                        const inputArguments = typeDetails.inferenceRuleForCalls!.inputArguments(domainElement);
+                        if (inputArguments && inputArguments.length >= 1) {
+                            // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
+                            const overloadInfos = mapNameTypes.get(functionName);
+                            if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
+                                // (only) for overloaded functions:
+                                if (overloadInfos.sameOutputType) {
+                                    // exception: all(!) overloaded functions have the same(!) output type, save performance and return this type!
+                                    return overloadInfos.sameOutputType;
+                                } else {
+                                    // otherwise: the types of the parameters need to be inferred in order to determine an exact match
+                                    return inputArguments;
+                                }
+                            } else {
+                                // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
+                                return check(outputTypeForFunctionCalls);
+                            }
+                        } else {
+                            // there are no operands to check
+                            return check(outputTypeForFunctionCalls);
+                        }
+                    } else {
+                        // the domain element is slightly different
+                    }
+                } else {
+                    // the domain element has a completely different purpose
+                }
+                // does not match at all
+                return InferenceRuleNotApplicable;
+            },
+            inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
+                const inputTypes = typeDetails.inputParameters.map(p => resolveTypeSelector(typir, p.type));
+                // all operands need to be assignable(! not equal) to the required types
+                const comparisonConflicts = checkTypeArrays(childrenTypes, inputTypes,
+                    (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2), true);
+                if (comparisonConflicts.length >= 1) {
+                    // this function type does not match, due to assignability conflicts => return them as errors
+                    return {
+                        $problem: InferenceProblem,
+                        domainElement,
+                        inferenceCandidate: functionType,
+                        location: 'input parameters',
+                        rule: this,
+                        subProblems: comparisonConflicts,
+                    };
+                    // We have a dedicated validation for this case (see below), but a resulting error might be ignored by the user => return the problem during type-inference again
+                } else {
+                    // matching => return the return type of the function for the case of a function call!
+                    return check(outputTypeForFunctionCalls);
+                }
+            },
+        };
+    }
+
+    // register inference rule for the declaration of the new function
+    // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
+    if (typeDetails.inferenceRuleForDeclaration) {
+        result.forDeclaration = (domainElement, _typir) => {
+            if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
+                return functionType;
+            } else {
+                return InferenceRuleNotApplicable;
+            }
+        };
+    }
+
+    return result;
 }
 
 

@@ -16,12 +16,13 @@ import { createLoxServices } from '../src/language/lox-module.js';
 import { expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
 
 const loxServices = createLoxServices(EmptyFileSystem).Lox;
+const operatorNames = ['-', '*', '/', '+', '+', '+', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '!=', '=', '!', '-'];
 
 afterEach(async () => {
     await deleteAllDocuments(loxServices);
     // check, that there are no user-defined classes and functions after clearing/invalidating all LOX documents
     expectTypirTypes(loxServices, isClassType);
-    expectTypirTypes(loxServices, isFunctionType, '-', '*', '/', '+', '+', '+', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '!=', '=', '!', '-');
+    expectTypirTypes(loxServices, isFunctionType, ...operatorNames);
 });
 
 describe('Explicitly test type checking for LOX', () => {
@@ -451,14 +452,59 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         expectTypirTypes(loxServices, isClassType, 'A', 'B');
     });
 
-    test.todo('Class with method', async () => {
+    test('Class with method', async () => {
         await validate(`
             class Node {
                 myMethod(input: number): Node {}
             }
         `, []);
         expectTypirTypes(loxServices, isClassType, 'Node');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+    });
+
+    test('Two different Classes with the same method (type) should result in only one method type', async () => {
+        await validate(`
+            class A {
+                prop1: boolean
+                myMethod(input: number): boolean {}
+            }
+            class B {
+                prop1: number
+                myMethod(input: number): boolean {}
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+    });
+
+    test('Two different Classes depend on each other regarding their methods return type', async () => {
+        await validate(`
+            class A {
+                prop1: boolean
+                myMethod(input: number): B {}
+            }
+            class B {
+                prop1: number
+                myMethod(input: number): A {}
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', 'myMethod', ...operatorNames);
+    });
+
+    test('Two different Classes with the same method which has on of these classes as return type', async () => {
+        await validate(`
+            class A {
+                prop1: boolean
+                myMethod(input: number): B {}
+            }
+            class B {
+                prop1: number
+                myMethod(input: number): B {}
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
     });
 
 });

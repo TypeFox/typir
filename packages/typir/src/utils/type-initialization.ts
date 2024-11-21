@@ -43,7 +43,7 @@ export abstract class TypeInitializer<T extends Type = Type> {
             newType.deconstruct();
         } else {
             this.typeToReturn = newType;
-            this.services.graph.addNode(newType);
+            this.services.graph.addNode(this.typeToReturn);
         }
 
         // inform and clear all listeners
@@ -54,7 +54,10 @@ export abstract class TypeInitializer<T extends Type = Type> {
         return this.typeToReturn;
     }
 
-    getType(): T | undefined {
+    // TODO using this type feels wrong, but otherwise, it seems not to work ...
+    abstract getTypeInitial(): T
+
+    getTypeFinal(): T | undefined {
         return this.typeToReturn;
     }
 

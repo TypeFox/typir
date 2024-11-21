@@ -27,6 +27,7 @@ export function isSpecificTypirProblem(problem: unknown, $problem: string): prob
 
 export type Types = Type | Type[];
 export type Names = string | string[];
+export type TypeInitializers<T extends Type = Type> = TypeInitializer<T> | Array<TypeInitializer<T>>;
 
 export type NameTypePair = {
     name: string;
@@ -92,11 +93,8 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         this.waitForRefsCompleted = waitForRefsToBeCompleted;
 
         // register to get updates for the relevant TypeReferences
-        toArray(this.waitForRefsIdentified).forEach(ref => ref.addListener(this, false));
-        toArray(this.waitForRefsCompleted).forEach(ref => ref.addListener(this, false));
-
-        // everything might already be fulfilled
-        this.checkIfFulfilled();
+        toArray(this.waitForRefsIdentified).forEach(ref => ref.addListener(this, true)); // 'true' calls 'checkIfFulfilled()' to check, whether everything might already be fulfilled
+        toArray(this.waitForRefsCompleted).forEach(ref => ref.addListener(this, true));
     }
 
     deconstruct(): void {
@@ -411,7 +409,7 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         } else if (typeof selector === 'string') {
             return this.services.graph.getType(selector) as T;
         } else if (selector instanceof TypeInitializer) {
-            return selector.getType();
+            return selector.getTypeInitial();
         } else if (selector instanceof TypeReference) {
             return selector.getType();
         } else if (typeof selector === 'function') {
@@ -489,7 +487,7 @@ export function resolveTypeSelector(services: TypirServices, selector: TypeSelec
             throw new Error(`A type with identifier '${selector}' as TypeSelector does not exist in the type graph.`);
         }
     } else if (selector instanceof TypeInitializer) {
-        return selector.getType();
+        return selector.getTypeFinal();
     } else if (selector instanceof TypeReference) {
         return selector.getType();
     } else if (typeof selector === 'function') {

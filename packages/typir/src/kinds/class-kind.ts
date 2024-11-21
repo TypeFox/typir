@@ -499,9 +499,8 @@ export class ClassKind implements Kind {
             // methods
             const functionKind = this.getMethodKind();
             const methods: string = typeDetails.methods
-                .map(method => {
-                    functionKind.getOrCreateFunctionType(method); // ensure, that the corresponding Type is existing in the type system
-                    return functionKind.calculateIdentifier(method); // reuse the Identifier for Functions here!
+                .map(createMethodDetails => {
+                    return functionKind.calculateIdentifier(createMethodDetails); // reuse the Identifier for Functions here!
                 })
                 .sort() // the order of methods does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
@@ -552,6 +551,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
     protected readonly typeDetails: CreateClassTypeDetails<T, T1, T2>;
     protected readonly kind: ClassKind;
     protected inferenceRules: TypeInferenceRule[];
+    protected initialClassType: ClassType;
 
     constructor(services: TypirServices, kind: ClassKind, typeDetails: CreateClassTypeDetails<T, T1, T2>) {
         super(services);
@@ -559,17 +559,17 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         this.kind = kind;
 
         // create the class type
-        const classType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
+        this.initialClassType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
         if (kind.options.typing === 'Structural') {
             // register structural classes also by their names, since these names are usually used for reference in the DSL/AST!
-            this.services.graph.addNode(classType, kind.getIdentifierPrefix() + typeDetails.className);
+            this.services.graph.addNode(this.initialClassType, kind.getIdentifierPrefix() + typeDetails.className);
         }
 
-        this.inferenceRules = createInferenceRules<T, T1, T2>(this.typeDetails, this.kind, classType);
+        this.inferenceRules = createInferenceRules<T, T1, T2>(this.typeDetails, this.kind, this.initialClassType);
         // register all the inference rules already now to enable early type inference for this Class type
         this.inferenceRules.forEach(rule => services.inference.addInferenceRule(rule, undefined)); // 'undefined', since the Identifier is still missing
 
-        classType.addListener(this, true); // trigger directly, if some initialization states are already reached!
+        this.initialClassType.addListener(this, true); // trigger directly, if some initialization states are already reached!
     }
 
     switchedToIdentifiable(classType: Type): void {
@@ -578,7 +578,8 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
          * - By waiting untile the new class has its identifier, 'producedType(...)' is able to check, whether this class type is already existing!
          * - Accordingly, 'classType' and 'readyClassType' might have different values!
          */
-        const readyClassType = this.producedType(classType as ClassType);
+        assertType(classType, isClassType);
+        const readyClassType = this.producedType(classType);
 
         // remove/invalidate the duplicated and skipped class type now
         if (readyClassType !== classType) {
@@ -622,6 +623,10 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
 
     switchedToInvalid(_previousClassType: Type): void {
         // do nothing
+    }
+
+    override getTypeInitial(): ClassType {
+        return this.initialClassType;
     }
 }
 
