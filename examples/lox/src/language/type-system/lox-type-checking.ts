@@ -192,11 +192,14 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
 
         // check for unique class declarations
-        this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueClassValidation(this.typir, isClass));
+        const uniqueClassValidator = new UniqueClassValidation(this.typir, isClass);
         // check for unique method declarations
         this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueMethodValidation(this.typir,
             (node) => isMethodMember(node), // MethodMembers could have other $containers?
-            (method, _type) => method.$container));
+            (method, _type) => method.$container,
+            uniqueClassValidator,
+        ));
+        this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(uniqueClassValidator); // TODO this order is important, solve it in a different way!
         // check for cycles in super-sub-type relationships
         this.typir.validation.collector.addValidationRule(createNoSuperClassCyclesValidation(isClass));
     }

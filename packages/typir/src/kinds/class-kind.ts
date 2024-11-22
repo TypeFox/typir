@@ -738,6 +738,7 @@ function createInferenceRuleForLiteral<T>(rule: InferClassLiteral<T>, classKind:
  */
 export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
     protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
+
     protected readonly services: TypirServices;
     protected readonly isRelevant: (domainElement: unknown) => boolean; // using this check improves performance a lot
 
@@ -798,25 +799,40 @@ export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
         this.foundDeclarations.clear();
         return result;
     }
+
+    isClassDuplicated(clas: ClassType): boolean {
+        const key = this.calculateClassKey(clas);
+        return this.foundDeclarations.has(key) && this.foundDeclarations.get(key)!.length >= 2;
+    }
+}
+
+interface UniqueMethodValidationEntry {
+    domainElement: unknown;
+    classType: ClassType;
 }
 
 /**
  * Predefined validation to produce errors, if inside a class the same method is declared more than once.
  */
 export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter {
-    protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
+    protected readonly foundDeclarations: Map<string, UniqueMethodValidationEntry[]> = new Map();
+
     protected readonly services: TypirServices;
     /** Determines domain elements which represent declared methods, improves performance a lot. */
     protected readonly isMethodDeclaration: (domainElement: unknown) => domainElement is T;
     /** Determines the corresponding domain element of the class declaration, so that Typir can infer its ClassType */
     protected readonly getClassOfMethod: (domainElement: T, methodType: FunctionType) => unknown;
+    protected readonly uniqueClassValidator: UniqueClassValidation | undefined;
 
     constructor(services: TypirServices,
         isMethodDeclaration: (domainElement: unknown) => domainElement is T,
-        getClassOfMethod: (domainElement: T, methodType: FunctionType) => unknown) {
+        getClassOfMethod: (domainElement: T, methodType: FunctionType) => unknown,
+        uniqueClassValidator?: UniqueClassValidation,
+    ) {
         this.services = services;
         this.isMethodDeclaration = isMethodDeclaration;
         this.getClassOfMethod = getClassOfMethod;
+        this.uniqueClassValidator = uniqueClassValidator;
     }
 
     beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
@@ -837,7 +853,10 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
                         entries = [];
                         this.foundDeclarations.set(key, entries);
                     }
-                    entries.push(domainElement);
+                    entries.push({
+                        domainElement,
+                        classType,
+                    });
                 }
             }
         }
@@ -862,12 +881,16 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
         for (const [key, methods] of this.foundDeclarations.entries()) {
             if (methods.length >= 2) {
                 for (const method of methods) {
-                    result.push({
-                        $problem: ValidationProblem,
-                        domainElement: method,
-                        severity: 'error',
-                        message: `Declared methods need to be unique (${key}).`,
-                    });
+                    if (this.uniqueClassValidator?.isClassDuplicated(method.classType)) {
+                        // ignore duplicated methods inside duplicated classes
+                    } else {
+                        result.push({
+                            $problem: ValidationProblem,
+                            domainElement: method.domainElement,
+                            severity: 'error',
+                            message: `Declared methods need to be unique (${key}).`,
+                        });
+                    }
                 }
             }
         }

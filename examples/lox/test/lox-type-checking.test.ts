@@ -507,6 +507,36 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
     });
 
+    test('Same delayed function type is used by a function declaration and a method declaration', async () => {
+        await validate(`
+            class A {
+                myMethod(input: number): B {}
+            }
+            fun myMethod(input: number): B {}
+            class B { }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+    });
+
+    test('Two class declarations A with the same delayed method which depends on the class B', async () => {
+        await validate(`
+            class A {
+                myMethod(input: number): B {}
+            }
+            class A {
+                myMethod(input: number): B {}
+            }
+            class B { }
+        `, [ // Typir works with this, but for LOX these validation errors are produced:
+            'Declared classes need to be unique (A).',
+            'Declared classes need to be unique (A).',
+        ]);
+        // check, that there is only one class type A in the type graph:
+        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+    });
+
 });
 
 describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {
