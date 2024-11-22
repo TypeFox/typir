@@ -1,6 +1,6 @@
 {
   "name": "typir-langium",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Typir binding for Langium",
   "homepage": "https://typir.org",
   "author": {
@@ -49,6 +49,6 @@
   "bugs": "https://github.com/TypeFox/typir/issues",
   "dependencies": {
     "langium": "~3.2.0",
-    "typir": "~0.0.1"
+    "typir": "~0.0.2"
   }
 }
