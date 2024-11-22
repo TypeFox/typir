@@ -23,8 +23,8 @@ stateDiagram-v2
 export type TypeInitializationState = 'Invalid' | 'Identifiable' | 'Completed';
 
 export interface PreconditionsForInitializationState {
-    refsToBeIdentified?: TypeReference[]; // or later/more
-    refsToBeCompleted?: TypeReference[]; // or later/more
+    referencesToBeIdentifiable?: TypeReference[]; // or later/more
+    referencesToBeCompleted?: TypeReference[]; // or later/more
 }
 
 /**
@@ -179,37 +179,37 @@ export abstract class Type {
      */
     protected defineTheInitializationProcessOfThisType(preconditions: {
         /** Contains only those TypeReferences which are required to do the initialization. */
-        preconditionsForInitialization?: PreconditionsForInitializationState,
+        preconditionsForIdentifiable?: PreconditionsForInitializationState,
         /** Contains only those TypeReferences which are required to do the completion.
          * TypeReferences which are required only for the initialization, but not for the completion,
          * don't need to be repeated here, since the completion is done only after the initialization. */
-        preconditionsForCompletion?: PreconditionsForInitializationState,
+        preconditionsForCompleted?: PreconditionsForInitializationState,
         /** Must contain all(!) TypeReferences of a type. */
         referencesRelevantForInvalidation?: TypeReference[],
         /** typical use cases: calculate the identifier, register inference rules for the type object already now! */
-        onIdentification?: () => void,
+        onIdentifiable?: () => void,
         /** typical use cases: do some internal checks for the completed properties */
-        onCompletion?: () => void,
-        onInvalidation?: () => void,
+        onCompleted?: () => void,
+        onInvalidated?: () => void,
     }): void {
         // store the reactions
-        this.onIdentification = preconditions.onIdentification ?? (() => {});
-        this.onCompletion = preconditions.onCompletion ?? (() => {});
-        this.onInvalidation = preconditions.onInvalidation ?? (() => {});
+        this.onIdentification = preconditions.onIdentifiable ?? (() => {});
+        this.onCompletion = preconditions.onCompleted ?? (() => {});
+        this.onInvalidation = preconditions.onInvalidated ?? (() => {});
 
         if (this.kind.$name === 'ClassKind') {
             console.log('');
         }
         // preconditions for Identifiable
         this.waitForIdentifiable = new WaitingForIdentifiableAndCompletedTypeReferences(
-            preconditions.preconditionsForInitialization?.refsToBeIdentified,
-            preconditions.preconditionsForInitialization?.refsToBeCompleted,
+            preconditions.preconditionsForIdentifiable?.referencesToBeIdentifiable,
+            preconditions.preconditionsForIdentifiable?.referencesToBeCompleted,
         );
         this.waitForIdentifiable.addTypesToIgnoreForCycles(new Set([this]));
         // preconditions for Completed
         this.waitForCompleted = new WaitingForIdentifiableAndCompletedTypeReferences(
-            preconditions.preconditionsForCompletion?.refsToBeIdentified,
-            preconditions.preconditionsForCompletion?.refsToBeCompleted,
+            preconditions.preconditionsForCompleted?.referencesToBeIdentifiable,
+            preconditions.preconditionsForCompleted?.referencesToBeCompleted,
         );
         this.waitForCompleted.addTypesToIgnoreForCycles(new Set([this]));
         // preconditions for Invalid

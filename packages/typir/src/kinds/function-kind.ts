@@ -59,20 +59,20 @@ export class FunctionType extends Type {
             allParameterRefs.push(outputType);
         }
         this.defineTheInitializationProcessOfThisType({
-            preconditionsForInitialization: {
-                refsToBeIdentified: allParameterRefs,
+            preconditionsForIdentifiable: {
+                referencesToBeIdentifiable: allParameterRefs,
             },
             referencesRelevantForInvalidation: allParameterRefs,
-            onIdentification: () => {
+            onIdentifiable: () => {
                 // the identifier is calculated now
-                this.identifier = this.kind.calculateIdentifier(typeDetails); // TODO it is still not nice, that the type resolving is done again, since the TypeReferences here are not reused
+                this.identifier = this.kind.calculateIdentifier(typeDetails);
                 // the registration of the type in the type graph is done by the TypeInitializer
             },
-            onCompletion: () => {
-                // some check?
+            onCompleted: () => {
+                // no additional checks so far
             },
-            onInvalidation: () => {
-                // ?
+            onInvalidated: () => {
+                // nothing to do
             },
         });
     }

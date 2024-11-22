@@ -88,19 +88,19 @@ export class ClassType extends Type {
         // all.push(...refMethods); // does not work
 
         this.defineTheInitializationProcessOfThisType({
-            preconditionsForInitialization: {
-                refsToBeIdentified: fieldsAndMethods,
+            preconditionsForIdentifiable: {
+                referencesToBeIdentifiable: fieldsAndMethods,
             },
-            preconditionsForCompletion: {
-                refsToBeCompleted: this.superClasses as unknown as Array<TypeReference<Type>>,
+            preconditionsForCompleted: {
+                referencesToBeCompleted: this.superClasses as unknown as Array<TypeReference<Type>>,
             },
             referencesRelevantForInvalidation: [...fieldsAndMethods, ...(this.superClasses as unknown as Array<TypeReference<Type>>)],
-            onIdentification: () => {
+            onIdentifiable: () => {
                 // the identifier is calculated now
                 this.identifier = this.kind.calculateIdentifier(typeDetails); // TODO it is still not nice, that the type resolving is done again, since the TypeReferences here are not reused
                 // the registration of the type in the type graph is done by the TypeInitializer
             },
-            onCompletion: () => {
+            onCompleted: () => {
                 // when all super classes are completely available, do the following checks:
                 // check number of allowed super classes
                 if (this.kind.options.maximumNumberOfSuperClasses >= 0) {
@@ -109,8 +109,8 @@ export class ClassType extends Type {
                     }
                 }
             },
-            onInvalidation: () => {
-                // TODO remove all listeners, ...
+            onInvalidated: () => {
+                // nothing to do
             },
         });
     }

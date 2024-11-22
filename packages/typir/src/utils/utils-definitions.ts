@@ -48,7 +48,7 @@ export type TypeSelector =
     | TypeReference     // reference to a (maybe delayed) type
     | unknown           // domain node to infer the final type from
     ;
-export type DelayedTypeSelector = TypeSelector | (() => TypeSelector);
+export type DelayedTypeSelector = TypeSelector | (() => TypeSelector); // TODO
 
 
 export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<T extends Type = Type> {
@@ -305,10 +305,22 @@ export class WaitingForInvalidTypeReferences<T extends Type = Type> implements T
 
 
 /**
- * A listener for TypeReferences, who will be informed about the found/identified/resolved/unresolved type of the current TypeReference.
+ * A listener for TypeReferences, who will be informed about the resolved/found type of the current TypeReference.
  */
 export interface TypeReferenceListener<T extends Type = Type> {
+    /**
+     * Informs when the type of the reference is resolved/found.
+     * @param reference the currently resolved TypeReference
+     * @param resolvedType Usually the resolved type is either 'Identifiable' or 'Completed',
+     * in rare cases this type might be 'Invalid', e.g. if there are corresponding inference rules or TypeInitializers.
+     */
     onTypeReferenceResolved(reference: TypeReference<T>, resolvedType: T): void;
+    /**
+     * Informs when the type of the reference is invalidated/removed.
+     * @param reference the currently invalidate/unresolved TypeReference
+     * @param previousType undefined occurs in the special case, that the TypeReference never resolved a type so far,
+     * but new listeners already want to be informed about the (current) type.
+     */
     onTypeReferenceInvalidated(reference: TypeReference<T>, previousType: T | undefined): void;
 }
 
@@ -431,7 +443,7 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
             if (this.resolvedType) {
                 listener.onTypeReferenceResolved(this, this.resolvedType);
             } else {
-                listener.onTypeReferenceInvalidated(this, undefined!); // hack, maybe remove this parameter?
+                listener.onTypeReferenceInvalidated(this, undefined);
             }
         }
     }
