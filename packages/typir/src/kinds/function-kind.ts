@@ -609,7 +609,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
     }
 
     switchedToInvalid(_functionType: Type): void {
-        // empty
+        // nothing specific needs to be done for Functions here, since the base implementation takes already care about all relevant stuff
     }
 }
 

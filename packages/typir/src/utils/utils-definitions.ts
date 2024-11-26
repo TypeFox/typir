@@ -123,6 +123,11 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         }
     }
 
+    /**
+     * This method is called to inform about additional types which can be ignored during the waiting/resolving process.
+     * This helps to deal with cycles in type dependencies.
+     * @param moreTypesToIgnore might contain duplicates, which are filtered internally
+     */
     addTypesToIgnoreForCycles(moreTypesToIgnore: Set<Type>): void {
         // identify the actual new types to ignore (filtering out the types which are already ignored)
         const newTypesToIgnore: Set<Type> = new Set();
@@ -164,7 +169,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
     }
 
     onTypeReferenceResolved(_reference: TypeReference<Type>, resolvedType: Type): void {
-        // inform the referenced type about the types to ignore for completion
+        // inform the referenced type about the types to ignore for completion, so that the type could switch to its next phase (if needed)
         resolvedType.ignoreDependingTypesDuringInitialization(this.typesToIgnoreForCycles);
         resolvedType.addListener(this, false);
         // check, whether all TypeReferences are resolved and the resolved types are in the expected state

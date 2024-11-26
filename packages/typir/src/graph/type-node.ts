@@ -19,6 +19,10 @@ stateDiagram-v2
     Completed --> Invalid
     Identifiable --> Invalid
 ```
+ * A state is 'Completed', when all its dependencies are available, i.e. the types of all its properties are available.
+ * A state is 'Identifiable', when all those dependencies are available which are required to calculate the identifier of the type.
+ * A state is 'Invalid' otherwise.
+ * 'Invalid' is made explicit, since it might require less dependencies than 'Completed' and therefore speed-ups the resolution of dependencies.
  */
 export type TypeInitializationState = 'Invalid' | 'Identifiable' | 'Completed';
 
@@ -130,8 +134,8 @@ export abstract class Type {
 
     protected stateListeners: TypeStateListener[] = [];
 
-    addListener(listener: TypeStateListener, informIfNotInvalidAnymore: boolean): void {
-        this.stateListeners.push(listener);
+    addListener(newListeners: TypeStateListener, informIfNotInvalidAnymore: boolean): void {
+        this.stateListeners.push(newListeners);
         if (informIfNotInvalidAnymore) {
             const currentState = this.getInitializationState();
             switch (currentState) {
@@ -139,11 +143,11 @@ export abstract class Type {
                     // don't inform about the Invalid state!
                     break;
                 case 'Identifiable':
-                    listener.switchedToIdentifiable(this);
+                    newListeners.switchedToIdentifiable(this);
                     break;
                 case 'Completed':
-                    listener.switchedToIdentifiable(this); // inform about both Identifiable and Completed!
-                    listener.switchedToCompleted(this);
+                    newListeners.switchedToIdentifiable(this); // inform about both Identifiable and Completed!
+                    newListeners.switchedToCompleted(this);
                     break;
                 default:
                     assertUnreachable(currentState);
@@ -197,21 +201,18 @@ export abstract class Type {
         this.onCompletion = preconditions.onCompleted ?? (() => {});
         this.onInvalidation = preconditions.onInvalidated ?? (() => {});
 
-        if (this.kind.$name === 'ClassKind') {
-            console.log('');
-        }
         // preconditions for Identifiable
         this.waitForIdentifiable = new WaitingForIdentifiableAndCompletedTypeReferences(
             preconditions.preconditionsForIdentifiable?.referencesToBeIdentifiable,
             preconditions.preconditionsForIdentifiable?.referencesToBeCompleted,
         );
-        this.waitForIdentifiable.addTypesToIgnoreForCycles(new Set([this]));
+        this.waitForIdentifiable.addTypesToIgnoreForCycles(new Set([this])); // start of the principle: children don't need to wait for their parents
         // preconditions for Completed
         this.waitForCompleted = new WaitingForIdentifiableAndCompletedTypeReferences(
             preconditions.preconditionsForCompleted?.referencesToBeIdentifiable,
             preconditions.preconditionsForCompleted?.referencesToBeCompleted,
         );
-        this.waitForCompleted.addTypesToIgnoreForCycles(new Set([this]));
+        this.waitForCompleted.addTypesToIgnoreForCycles(new Set([this])); // start of the principle: children don't need to wait for their parents
         // preconditions for Invalid
         this.waitForInvalid = new WaitingForInvalidTypeReferences(
             preconditions.referencesRelevantForInvalidation ?? [],
@@ -262,7 +263,7 @@ export abstract class Type {
         this.waitForCompleted.addTypesToIgnoreForCycles(additionalTypesToIgnore);
     }
 
-    deconstruct(): void {
+    dispose(): void {
         // clear everything
         this.stateListeners.splice(0, this.stateListeners.length);
         this.waitForInvalid.getWaitForRefsInvalid().forEach(ref => ref.deconstruct());

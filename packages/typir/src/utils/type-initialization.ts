@@ -21,6 +21,10 @@ export type TypeInitializerListener<T extends Type = Type> = (type: T) => void;
  * Since the first Typir type is not yet in the type systems (since it still waits for B) and therefore remains unknown,
  * it will be tried to create A a second time, again delayed, since B is still not yet available.
  * When B is created, A is waiting twice and might be created twice, if no TypeInitializer is used.
+ *
+ * Design decision: While this class does not provide some many default implementations,
+ * a common super class (or interface) of all type initializers is useful,
+ * since they all can be used as TypeSelector in an easy way.
  */
 export abstract class TypeInitializer<T extends Type = Type> {
     protected readonly services: TypirServices;
@@ -40,7 +44,7 @@ export abstract class TypeInitializer<T extends Type = Type> {
         if (existingType) {
             // ensure, that the same type is not duplicated!
             this.typeToReturn = existingType as T;
-            newType.deconstruct();
+            newType.dispose();
         } else {
             this.typeToReturn = newType;
             this.services.graph.addNode(this.typeToReturn);
@@ -54,7 +58,7 @@ export abstract class TypeInitializer<T extends Type = Type> {
         return this.typeToReturn;
     }
 
-    // TODO using this type feels wrong, but otherwise, it seems not to work ...
+    // TODO using this type feels wrong, but without this approach, it seems not to work ...
     abstract getTypeInitial(): T
 
     getTypeFinal(): T | undefined {

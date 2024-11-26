@@ -452,10 +452,20 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         expectTypirTypes(loxServices, isClassType, 'A', 'B');
     });
 
-    test('Class with method', async () => {
+    test('Class with method: cycle with return type', async () => {
         await validate(`
             class Node {
                 myMethod(input: number): Node {}
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'Node');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+    });
+
+    test('Class with method: cycle with input parameter type', async () => {
+        await validate(`
+            class Node {
+                myMethod(input: Node): number {}
             }
         `, []);
         expectTypirTypes(loxServices, isClassType, 'Node');
@@ -492,7 +502,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         expectTypirTypes(loxServices, isFunctionType, 'myMethod', 'myMethod', ...operatorNames);
     });
 
-    test('Two different Classes with the same method which has on of these classes as return type', async () => {
+    test('Two different Classes with the same method which has one of these classes as return type', async () => {
         await validate(`
             class A {
                 prop1: boolean
@@ -537,6 +547,74 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
     });
 
+    test('Mix of dependencies in classes: 1 method and 1 field', async () => {
+        await validate(`
+            class A {
+                myMethod(input: number): B1 {}
+            }
+            class B1 {
+                propB1: A
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B1');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+    });
+
+    test('Mix of dependencies in classes: 1 method and 2 fields (order 1)', async () => {
+        await validate(`
+            class B1 {
+                propB1: B2
+            }
+            class B2 {
+                propB1: A
+            }
+            class A {
+                myMethod(input: number): B1 {}
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B1', 'B2');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+    });
+
+    test.todo('Mix of dependencies in classes: 1 method and 2 fields (order 2)', async () => {
+        await validate(`
+            class A {
+                myMethod(input: number): B1 {}
+            }
+            class B1 {
+                propB1: B2
+            }
+            class B2 {
+                propB1: A
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B1', 'B2');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+    });
+
+    test.todo('The same class is involved into two dependency cycles', async () => {
+        await validate(`
+            class A {
+                probA: C1
+                myMethod(input: number): B1 {}
+            }
+            class B1 {
+                propB1: B2
+            }
+            class B2 {
+                propB1: A
+            }
+            class C1 {
+                methodC1(p: C2) {}
+            }
+            class C2 {
+                methodC2(p: A) {}
+            }
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'A', 'B1', 'B2', 'C1', 'C2');
+        expectTypirTypes(loxServices, isFunctionType, 'myMethod', 'methodC1', 'methodC2', ...operatorNames);
+    });
+
 });
 
 describe('Test internal validation of Typir for cycles in the class inheritance hierarchy', () => {
@@ -546,9 +624,9 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
             class MyClass2 < MyClass1 { }
             class MyClass3 < MyClass2 { }
         `, [
-            'Circles in super-sub-class-relationships are not allowed: MyClass1',
-            'Circles in super-sub-class-relationships are not allowed: MyClass2',
-            'Circles in super-sub-class-relationships are not allowed: MyClass3',
+            'Cycles in super-sub-class-relationships are not allowed: MyClass1',
+            'Cycles in super-sub-class-relationships are not allowed: MyClass2',
+            'Cycles in super-sub-class-relationships are not allowed: MyClass3',
         ]);
         expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2', 'MyClass3');
     });
@@ -558,8 +636,8 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
             class MyClass1 < MyClass2 { }
             class MyClass2 < MyClass1 { }
         `, [
-            'Circles in super-sub-class-relationships are not allowed: MyClass1',
-            'Circles in super-sub-class-relationships are not allowed: MyClass2',
+            'Cycles in super-sub-class-relationships are not allowed: MyClass1',
+            'Cycles in super-sub-class-relationships are not allowed: MyClass2',
         ]);
         expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
     });
@@ -567,7 +645,7 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
     test('One involved class: 1 -> 1', async () => {
         await validate(`
             class MyClass1 < MyClass1 { }
-        `, 'Circles in super-sub-class-relationships are not allowed: MyClass1');
+        `, 'Cycles in super-sub-class-relationships are not allowed: MyClass1');
         expectTypirTypes(loxServices, isClassType, 'MyClass1');
     });
 });

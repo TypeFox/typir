@@ -388,6 +388,12 @@ export interface CreateFieldDetails {
     type: TypeSelector;
 }
 
+/**
+ * Describes all properties of Methods of a Class.
+ * The final reason to describe methods with Function types was to have a simple solution and to reuse all the implementations for functions,
+ * since methods and functions are the same from a typing perspective.
+ * This interfaces makes annotating further properties to methods easier (which are not supported by functions).
+ */
 export interface MethodDetails {
     type: TypeReference<FunctionType>;
     // methods might have some more properties in the future
@@ -443,8 +449,6 @@ export class ClassKind implements Kind {
         };
         assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
-
-    // zwei verschiedene Use cases für Calls: Reference/use (e.g. Var-Type) VS Creation (e.g. Class-Declaration)
 
     /**
      * For the use case, that a type is used/referenced, e.g. to specify the type of a variable declaration.
@@ -546,7 +550,6 @@ export function isClassKind(kind: unknown): kind is ClassKind {
 }
 
 
-// TODO Review: Is it better to not have "extends TypeInitializer" and to merge TypeInitializer+ClassTypeInitializer into one class?
 export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> extends TypeInitializer<ClassType> implements TypeStateListener {
     protected readonly typeDetails: CreateClassTypeDetails<T, T1, T2>;
     protected readonly kind: ClassKind;
@@ -613,7 +616,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         if (this.typeDetails.inferenceRuleForDeclaration === null) {
             // check for cycles in sub-type-relationships of classes
             if ((classType as ClassType).hasSubSuperClassCycles()) {
-                throw new Error(`Circles in super-sub-class-relationships are not allowed: ${classType.getName()}`);
+                throw new Error(`Cycles in super-sub-class-relationships are not allowed: ${classType.getName()}`);
             }
         }
 
@@ -622,7 +625,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
     }
 
     switchedToInvalid(_previousClassType: Type): void {
-        // do nothing
+        // nothing specific needs to be done for Classes here, since the base implementation takes already care about all relevant stuff
     }
 
     override getTypeInitial(): ClassType {
@@ -919,7 +922,7 @@ export function createNoSuperClassCyclesValidation(isRelevant: (domainElement: u
                         $problem: ValidationProblem,
                         domainElement,
                         severity: 'error',
-                        message: `Circles in super-sub-class-relationships are not allowed: ${classType.getName()}`,
+                        message: `Cycles in super-sub-class-relationships are not allowed: ${classType.getName()}`,
                     });
                 }
             }

@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 import { EdgeCachingInformation } from '../features/caching.js';
+import { assertTrue } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 import { Type } from './type-node.js';
 
@@ -28,10 +29,11 @@ export class TypeGraph {
      * Therefore it is usually not needed to call this method in an other context.
      * @param type the new type
      * @param key an optional key to register the type, since it is allowed to register the same type with different keys in the graph
-     * TODO oder stattdessen einen ProxyType verwenden? wie funktioniert das mit isClassType und isSubType? wie funktioniert removeType?
      */
     addNode(type: Type, key?: string): void {
-        // TODO überprüfen, dass Identifiable-State erreicht ist??
+        if (!key) {
+            assertTrue(type.isInStateOrLater('Identifiable')); // the key of the type must be available!
+        }
         const mapKey = key ?? type.getIdentifier();
         if (this.nodes.has(mapKey)) {
             if (this.nodes.get(mapKey) === type) {
@@ -62,7 +64,7 @@ export class TypeGraph {
         const contained = this.nodes.delete(mapKey);
         if (contained) {
             this.listeners.slice().forEach(listener => listener.removedType(typeToRemove, mapKey));
-            typeToRemove.deconstruct();
+            typeToRemove.dispose();
         } else {
             throw new Error(`Type does not exist: ${mapKey}`);
         }
