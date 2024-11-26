@@ -1,6 +1,6 @@
 # Typir
 
-Engineering types for software languages in the web.
+Typir is a framework for type systems and type checking in the web.
 
 ## Installation
 

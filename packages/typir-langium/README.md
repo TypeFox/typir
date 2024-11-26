@@ -1,6 +1,6 @@
 # Typir integration for Langium
 
-Engineering types beside using Langium.
+Typir-Langium is a framework for type checking of languages developed with [Langium](https://langium.org).
 
 ## Installation
 
