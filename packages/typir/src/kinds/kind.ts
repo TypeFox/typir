@@ -11,6 +11,14 @@
  */
 export interface Kind {
     readonly $name: string;
+
+    /* Each kind/type requires to have a method to calculate identifiers for new types:
+    calculateIdentifier(typeDetails: XTypeDetails): string { ... }
+    - used as key in the type graph-map
+    - used to uniquely identify same types! (not overloaded types)
+    - must be public in order to reuse it by other Kinds
+    */
+
 }
 
 export function isKind(kind: unknown): kind is Kind {

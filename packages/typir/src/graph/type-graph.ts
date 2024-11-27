@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 import { EdgeCachingInformation } from '../features/caching.js';
+import { assertTrue } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 import { Type } from './type-node.js';
 
@@ -24,21 +25,25 @@ export class TypeGraph {
     protected readonly listeners: TypeGraphListener[] = [];
 
     /**
-     * Usually this method is called by kinds after creating a a corresponding type.
+     * Usually this method is called by kinds after creating a corresponding type.
      * Therefore it is usually not needed to call this method in an other context.
      * @param type the new type
+     * @param key an optional key to register the type, since it is allowed to register the same type with different keys in the graph
      */
-    addNode(type: Type): void {
-        const key = type.identifier;
-        if (this.nodes.has(key)) {
-            if (this.nodes.get(key) === type) {
+    addNode(type: Type, key?: string): void {
+        if (!key) {
+            assertTrue(type.isInStateOrLater('Identifiable')); // the key of the type must be available!
+        }
+        const mapKey = key ?? type.getIdentifier();
+        if (this.nodes.has(mapKey)) {
+            if (this.nodes.get(mapKey) === type) {
                 // this type is already registered => that is OK
             } else {
-                throw new Error(`Names of types must be unique: ${key}`);
+                throw new Error(`Names of types must be unique: ${mapKey}`);
             }
         } else {
-            this.nodes.set(key, type);
-            this.listeners.forEach(listener => listener.addedType(type));
+            this.nodes.set(mapKey, type);
+            this.listeners.forEach(listener => listener.addedType(type, mapKey));
         }
     }
 
@@ -47,29 +52,34 @@ export class TypeGraph {
      * Design decision:
      * This is the central API call to remove a type from the type system in case that it is no longer valid/existing/needed.
      * It is not required to directly inform the kind of the removed type yourself, since the kind itself will take care of removed types.
-     * @param type the type to remove
+     * @param typeToRemove the type to remove
+     * @param key an optional key to register the type, since it is allowed to register the same type with different keys in the graph
      */
-    removeNode(type: Type): void {
-        const key = type.identifier;
+    removeNode(typeToRemove: Type, key?: string): void {
+        const mapKey = key ?? typeToRemove.getIdentifier();
         // remove all edges which are connected to the type to remove
-        type.getAllIncomingEdges().forEach(e => this.removeEdge(e));
-        type.getAllOutgoingEdges().forEach(e => this.removeEdge(e));
+        typeToRemove.getAllIncomingEdges().forEach(e => this.removeEdge(e));
+        typeToRemove.getAllOutgoingEdges().forEach(e => this.removeEdge(e));
         // remove the type itself
-        const contained = this.nodes.delete(key);
+        const contained = this.nodes.delete(mapKey);
         if (contained) {
-            this.listeners.forEach(listener => listener.removedType(type));
+            this.listeners.slice().forEach(listener => listener.removedType(typeToRemove, mapKey));
+            typeToRemove.dispose();
         } else {
-            throw new Error(`Type does not exist: ${key}`);
+            throw new Error(`Type does not exist: ${mapKey}`);
         }
     }
 
-    getNode(name: string): Type | undefined {
-        return this.nodes.get(name);
+    getNode(key: string): Type | undefined {
+        return this.nodes.get(key);
     }
-    getType(name: string): Type | undefined {
-        return this.getNode(name);
+    getType(key: string): Type | undefined {
+        return this.getNode(key);
     }
 
+    getAllRegisteredTypes(): Type[] {
+        return [...this.nodes.values()];
+    }
 
     addEdge(edge: TypeEdge): void {
         // check constraints: no duplicated edges (same values for: from, to, $relation)
@@ -129,8 +139,8 @@ export class TypeGraph {
 }
 
 export interface TypeGraphListener {
-    addedType(type: Type): void;
-    removedType(type: Type): void;
+    addedType(type: Type, key: string): void;
+    removedType(type: Type, key: string): void;
     addedEdge(edge: TypeEdge): void;
     removedEdge(edge: TypeEdge): void;
 }

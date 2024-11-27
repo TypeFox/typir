@@ -25,6 +25,8 @@ export * from './kinds/multiplicity-kind.js';
 export * from './kinds/primitive-kind.js';
 export * from './kinds/top-kind.js';
 export * from './utils/dependency-injection.js';
+export * from './utils/test-utils.js';
 export * from './utils/utils.js';
+export * from './utils/type-initialization.js';
 export * from './utils/utils-definitions.js';
 export * from './utils/utils-type-comparison.js';

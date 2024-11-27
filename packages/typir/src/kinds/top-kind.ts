@@ -20,14 +20,15 @@ export class TopType extends Type {
     constructor(kind: TopKind, identifier: string) {
         super(identifier);
         this.kind = kind;
+        this.defineTheInitializationProcessOfThisType({}); // no preconditions
     }
 
     override getName(): string {
-        return this.identifier;
+        return this.getIdentifier();
     }
 
     override getUserRepresentation(): string {
-        return this.identifier;
+        return this.getIdentifier();
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
@@ -86,7 +87,7 @@ export const TopKindName = 'TopKind';
 export class TopKind implements Kind {
     readonly $name: 'TopKind';
     readonly services: TypirServices;
-    readonly options: TopKindOptions;
+    readonly options: Readonly<TopKindOptions>;
     protected instance: TopType | undefined;
 
     constructor(services: TypirServices, options?: Partial<TopKindOptions>) {

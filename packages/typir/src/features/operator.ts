@@ -7,7 +7,8 @@
 import { Type } from '../graph/type-node.js';
 import { FunctionKind, FunctionKindName, isFunctionKind, NO_PARAMETER_NAME } from '../kinds/function-kind.js';
 import { TypirServices } from '../typir.js';
-import { NameTypePair, Types } from '../utils/utils-definitions.js';
+import { TypeInitializer } from '../utils/type-initialization.js';
+import { NameTypePair, TypeInitializers } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
 
 // export type InferOperatorWithSingleOperand = (domainElement: unknown, operatorName: string) => boolean | unknown;
@@ -65,12 +66,12 @@ export interface GenericOperatorDetails<T> {
 
 // TODO rename it to "OperatorFactory", when there are no more responsibilities!
 export interface OperatorManager {
-    createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): Types
-    createBinaryOperator<T>(typeDetails: BinaryOperatorDetails<T>): Types
-    createTernaryOperator<T>(typeDetails: TernaryOperatorDetails<T>): Types
+    createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type>
+    createBinaryOperator<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type>
+    createTernaryOperator<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type>
 
     /** This function allows to create a single operator with arbitrary input operands. */
-    createGenericOperator<T>(typeDetails: GenericOperatorDetails<T>): Type;
+    createGenericOperator<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type>;
 }
 
 /**
@@ -98,9 +99,9 @@ export class DefaultOperatorManager implements OperatorManager {
         this.services = services;
     }
 
-    createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): Types {
+    createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type> {
         const signatures = toArray(typeDetails.signature);
-        const result: Type[] = [];
+        const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
             result.push(this.createGenericOperator({
                 name: typeDetails.name,
@@ -114,9 +115,9 @@ export class DefaultOperatorManager implements OperatorManager {
         return result.length === 1 ? result[0] : result;
     }
 
-    createBinaryOperator<T>(typeDetails: BinaryOperatorDetails<T>): Types {
+    createBinaryOperator<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type> {
         const signatures = toArray(typeDetails.signature);
-        const result: Type[] = [];
+        const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
             result.push(this.createGenericOperator({
                 name: typeDetails.name,
@@ -131,9 +132,9 @@ export class DefaultOperatorManager implements OperatorManager {
         return result.length === 1 ? result[0] : result;
     }
 
-    createTernaryOperator<T>(typeDetails: TernaryOperatorDetails<T>): Types {
+    createTernaryOperator<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type> {
         const signatures = toArray(typeDetails.signature);
-        const result: Type[] = [];
+        const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
             result.push(this.createGenericOperator({
                 name: typeDetails.name,
@@ -149,7 +150,7 @@ export class DefaultOperatorManager implements OperatorManager {
         return result.length === 1 ? result[0] : result;
     }
 
-    createGenericOperator<T>(typeDetails: GenericOperatorDetails<T>): Type {
+    createGenericOperator<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type> {
         // define/register the wanted operator as "special" function
         const functionKind = this.getFunctionKind();
 
@@ -170,7 +171,7 @@ export class DefaultOperatorManager implements OperatorManager {
                 : undefined
         });
 
-        return newOperatorType;
+        return newOperatorType as unknown as TypeInitializer<Type>;
     }
 
     protected getFunctionKind(): FunctionKind {

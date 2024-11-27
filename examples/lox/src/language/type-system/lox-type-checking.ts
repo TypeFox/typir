@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, OperatorManager, ParameterDetails, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation } from 'typir';
+import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, CreateParameterDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, OperatorManager, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, createNoSuperClassCyclesValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../../packages/typir/lib/features/validation.js';
 import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
@@ -190,12 +190,18 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // check for unique function declarations
         this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
+
         // check for unique class declarations
-        this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueClassValidation(this.typir, isClass));
+        const uniqueClassValidator = new UniqueClassValidation(this.typir, isClass);
         // check for unique method declarations
         this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(new UniqueMethodValidation(this.typir,
             (node) => isMethodMember(node), // MethodMembers could have other $containers?
-            (method, _type) => method.$container));
+            (method, _type) => method.$container,
+            uniqueClassValidator,
+        ));
+        this.typir.validation.collector.addValidationRuleWithBeforeAndAfter(uniqueClassValidator); // TODO this order is important, solve it in a different way!
+        // check for cycles in super-sub-type relationships
+        this.typir.validation.collector.addValidationRule(createNoSuperClassCyclesValidation(isClass));
     }
 
     onNewAstNode(node: AstNode): void {
@@ -203,29 +209,22 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
         if (isFunctionDeclaration(node)) {
-            this.functionKind.getOrCreateFunctionType(createFunctionDetails(node)); // this logic is reused for methods of classes, since the LOX grammar defines them very similar
+            this.functionKind.createFunctionType(createFunctionDetails(node)); // this logic is reused for methods of classes, since the LOX grammar defines them very similar
         }
 
         // TODO support lambda (type references)!
 
-        /**
-         * TODO Delayed:
-         * - (classType: Type) => Type(for output)
-         * - WANN werden sie aufgelöst? bei erster Verwendung?
-         * - WO wird das verwaltet? im Kind? im Type? im TypeGraph?
-         */
-
         // class types (nominal typing):
         if (isClass(node)) {
             const className = node.name;
-            const classType = this.classKind.getOrCreateClassType({
+            const classType = this.classKind.createClassType({
                 className,
-                superClasses: node.superClass?.ref, // note that type inference is used here; TODO delayed
+                superClasses: node.superClass?.ref, // note that type inference is used here
                 fields: node.members
                     .filter(isFieldMember) // only Fields, no Methods
                     .map(f => <CreateFieldDetails>{
                         name: f.name,
-                        type: f.type, // note that type inference is used here; TODO delayed
+                        type: f.type, // note that type inference is used here
                     }),
                 methods: node.members
                     .filter(isMethodMember) // only Methods, no Fields
@@ -245,13 +244,15 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 },
                 // inference rule for accessing fields
                 inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element!.ref.$container === node
-                    ? domainElement.element!.ref.name : 'N/A', // as an alternative, use 'InferenceRuleNotApplicable' instead, what should we recommend?
+                    ? domainElement.element!.ref.name : InferenceRuleNotApplicable,
             });
 
             // TODO conversion 'nil' to classes ('TopClass')!
             // any class !== all classes; here we want to say, that 'nil' is assignable to each concrete Class type!
             // this.typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateTopClassType({}), 'IMPLICIT_EXPLICIT');
-            this.typir.conversion.markAsConvertible(this.primitiveKind.getPrimitiveType({ primitiveName: 'nil' })!, classType, 'IMPLICIT_EXPLICIT');
+            classType.addListener(type => {
+                this.typir.conversion.markAsConvertible(this.primitiveKind.getPrimitiveType({ primitiveName: 'nil' })!, type, 'IMPLICIT_EXPLICIT');
+            });
         }
     }
 }
@@ -261,7 +262,7 @@ function createFunctionDetails(node: FunctionDeclaration | MethodMember): Create
     return {
         functionName: callableName,
         outputParameter: { name: NO_PARAMETER_NAME, type: node.returnType },
-        inputParameters: node.parameters.map(p => (<ParameterDetails>{ name: p.name, type: p.type })),
+        inputParameters: node.parameters.map(p => (<CreateParameterDetails>{ name: p.name, type: p.type })),
         // inference rule for function declaration:
         inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function/method declaration matches!
         /** inference rule for funtion/method calls:

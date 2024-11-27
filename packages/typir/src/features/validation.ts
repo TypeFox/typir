@@ -105,7 +105,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                             domainProperty: details.domainProperty,
                             domainIndex: details.domainIndex,
                             severity: details.severity ?? 'error',
-                            message: details.message ?? `'${actualType.identifier}' is ${negated ? '' : 'not '}related to '${expectedType.identifier}' regarding ${strategy}.`,
+                            message: details.message ?? `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
                             subProblems: [comparisonResult]
                         }];
                     }
@@ -118,7 +118,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                             domainProperty: details.domainProperty,
                             domainIndex: details.domainIndex,
                             severity: details.severity ?? 'error',
-                            message: details.message ?? `'${actualType.identifier}' is ${negated ? '' : 'not '}related to '${expectedType.identifier}' regarding ${strategy}.`,
+                            message: details.message ?? `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
                             subProblems: [] // no sub-problems are available!
                         }];
                     } else {
@@ -209,7 +209,7 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
     }
 
     addValidationRule(rule: ValidationRule, boundToType?: Type): void {
-        const key = boundToType?.identifier ?? '';
+        const key = this.getBoundToTypeKey(boundToType);
         let rules = this.validationRules.get(key);
         if (!rules) {
             rules = [];
@@ -219,7 +219,7 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
     }
 
     addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void {
-        const key = boundToType?.identifier ?? '';
+        const key = this.getBoundToTypeKey(boundToType);
         let rules = this.validationRulesBeforeAfter.get(key);
         if (!rules) {
             rules = [];
@@ -228,15 +228,18 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
         rules.push(rule);
     }
 
+    protected getBoundToTypeKey(boundToType?: Type): string {
+        return boundToType?.getIdentifier() ?? '';
+    }
 
     /* Get informed about deleted types in order to remove validation rules which are bound to them. */
 
-    addedType(_newType: Type): void {
+    addedType(_newType: Type, _key: string): void {
         // do nothing
     }
-    removedType(type: Type): void {
-        this.validationRules.delete(type.identifier);
-        this.validationRulesBeforeAfter.delete(type.identifier);
+    removedType(type: Type, _key: string): void {
+        this.validationRules.delete(this.getBoundToTypeKey(type));
+        this.validationRulesBeforeAfter.delete(this.getBoundToTypeKey(type));
     }
     addedEdge(_edge: TypeEdge): void {
         // do nothing

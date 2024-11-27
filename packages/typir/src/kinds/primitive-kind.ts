@@ -20,19 +20,20 @@ export class PrimitiveType extends Type {
     constructor(kind: PrimitiveKind, identifier: string) {
         super(identifier);
         this.kind = kind;
+        this.defineTheInitializationProcessOfThisType({}); // no preconditions
     }
 
     override getName(): string {
-        return this.identifier;
+        return this.getIdentifier();
     }
 
     override getUserRepresentation(): string {
-        return this.identifier;
+        return this.getIdentifier();
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isPrimitiveType(otherType)) {
-            return checkValueForConflict(this.identifier, otherType.identifier, 'name');
+            return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
         } else {
             return [<TypeEqualityProblem>{
                 $problem: TypeEqualityProblem,
