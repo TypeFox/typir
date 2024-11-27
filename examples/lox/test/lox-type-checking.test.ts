@@ -6,14 +6,12 @@
 
 import { EmptyFileSystem } from 'langium';
 import { parseDocument } from 'langium/test';
+import { isClassType, isFunctionType, expectTypirTypes } from 'typir';
 import { deleteAllDocuments } from 'typir-langium';
 import { afterEach, describe, expect, test } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
 import { DiagnosticSeverity } from 'vscode-languageserver-types';
-import { isClassType } from '../../../packages/typir/lib/kinds/class-kind.js';
-import { isFunctionType } from '../../../packages/typir/lib/kinds/function-kind.js';
 import { createLoxServices } from '../src/language/lox-module.js';
-import { expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
 
 const loxServices = createLoxServices(EmptyFileSystem).Lox;
 const operatorNames = ['-', '*', '/', '+', '+', '+', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '!=', '=', '!', '-'];

@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type } from '../graph/type-node.js';
-import { FunctionKind, FunctionKindName, isFunctionKind, NO_PARAMETER_NAME } from '../kinds/function-kind.js';
+import { FunctionKind, FunctionKindName, isFunctionKind, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
 import { TypirServices } from '../typir.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { NameTypePair, TypeInitializers } from '../utils/utils-definitions.js';
