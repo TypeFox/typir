@@ -42,7 +42,7 @@ export * from './kinds/primitive/primitive-type.js';
 export * from './kinds/top/top-kind.js';
 export * from './kinds/top/top-type.js';
 export * from './kinds/kind.js';
-export * from './kinds/kind-registry.js';
+export * from './features/kind-registry.js';
 export * from './utils/dependency-injection.js';
 export * from './utils/test-utils.js';
 export * from './utils/utils.js';

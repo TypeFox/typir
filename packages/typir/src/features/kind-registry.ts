@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Kind } from './kind.js';
+import { Kind } from '../kinds/kind.js';
 
 export interface KindRegistry {
     register(kind: Kind): void;
