@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationProblem, ValidationRule, ValidationRuleWithBeforeAfter } from '../../features/validation.js';
+import { ValidationProblem, ValidationRule, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { FunctionType, isFunctionType } from '../function/function-type.js';
 import { isClassType, ClassType } from './class-type.js';

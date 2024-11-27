@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeInferenceCollectorListener, TypeInferenceRule } from '../features/inference.js';
+import { TypeInferenceCollectorListener, TypeInferenceRule } from '../services/inference.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { isType, Type } from '../graph/type-node.js';

@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { CompositeTypeInferenceRule } from '../../features/inference.js';
-import { ValidationProblem } from '../../features/validation.js';
+import { CompositeTypeInferenceRule } from '../../services/inference.js';
+import { ValidationProblem } from '../../services/validation.js';
 import { TypeEdge } from '../../graph/type-edge.js';
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type } from '../../graph/type-node.js';

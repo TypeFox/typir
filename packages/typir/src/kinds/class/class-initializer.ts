@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeInferenceRule, InferenceRuleNotApplicable, InferenceProblem } from '../../features/inference.js';
+import { TypeInferenceRule, InferenceRuleNotApplicable, InferenceProblem } from '../../services/inference.js';
 import { TypeStateListener, Type } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypirServices } from '../../typir.js';

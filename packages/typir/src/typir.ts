@@ -4,17 +4,17 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { DefaultTypeAssignability, TypeAssignability } from './features/assignability.js';
-import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './features/caching.js';
-import { DefaultTypeConversion, TypeConversion } from './features/conversion.js';
-import { DefaultTypeEquality, TypeEquality } from './features/equality.js';
-import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './features/inference.js';
-import { DefaultOperatorManager, OperatorManager } from './features/operator.js';
-import { DefaultTypeConflictPrinter, ProblemPrinter } from './features/printing.js';
-import { DefaultSubType, SubType } from './features/subtype.js';
-import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './features/validation.js';
+import { DefaultTypeAssignability, TypeAssignability } from './services/assignability.js';
+import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './services/caching.js';
+import { DefaultTypeConversion, TypeConversion } from './services/conversion.js';
+import { DefaultTypeEquality, TypeEquality } from './services/equality.js';
+import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './services/inference.js';
+import { DefaultOperatorManager, OperatorManager } from './services/operator.js';
+import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.js';
+import { DefaultSubType, SubType } from './services/subtype.js';
+import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './services/validation.js';
 import { TypeGraph } from './graph/type-graph.js';
-import { DefaultKindRegistry, KindRegistry } from './features/kind-registry.js';
+import { DefaultKindRegistry, KindRegistry } from './services/kind-registry.js';
 import { inject, Module } from './utils/dependency-injection.js';
 
 /**

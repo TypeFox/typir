@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { InferenceRuleNotApplicable } from '../../features/inference.js';
+import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
 import { BottomType } from './bottom-type.js';

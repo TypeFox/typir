@@ -9,7 +9,7 @@ import { isType, Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
 import { isSpecificTypirProblem, isNameTypePair, NameTypePair, TypirProblem } from './utils-definitions.js';
-import { InferenceProblem } from '../features/inference.js';
+import { InferenceProblem } from '../services/inference.js';
 import { Kind } from '../kinds/kind.js';
 
 export type TypeCheckStrategy =

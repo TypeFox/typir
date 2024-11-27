@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { InferenceRuleNotApplicable } from '../../features/inference.js';
+import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference, resolveTypeSelector } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';

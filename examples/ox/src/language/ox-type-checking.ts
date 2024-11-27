@@ -8,7 +8,7 @@ import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
 import { CreateParameterDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, OperatorManager, PrimitiveKind, TypirServices, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
-import { ValidationMessageDetails } from '../../../../packages/typir/lib/features/validation.js';
+import { ValidationMessageDetails } from '../../../../packages/typir/lib/services/validation.js';
 import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export class OxTypeCreator extends AbstractLangiumTypeCreator {

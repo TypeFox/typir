@@ -5,15 +5,6 @@
  ******************************************************************************/
 
 export * from './typir.js';
-export * from './features/assignability.js';
-export * from './features/caching.js';
-export * from './features/conversion.js';
-export * from './features/equality.js';
-export * from './features/inference.js';
-export * from './features/operator.js';
-export * from './features/printing.js';
-export * from './features/subtype.js';
-export * from './features/validation.js';
 export * from './graph/type-edge.js';
 export * from './graph/type-graph.js';
 export * from './graph/type-node.js';
@@ -42,7 +33,16 @@ export * from './kinds/primitive/primitive-type.js';
 export * from './kinds/top/top-kind.js';
 export * from './kinds/top/top-type.js';
 export * from './kinds/kind.js';
-export * from './features/kind-registry.js';
+export * from './services/assignability.js';
+export * from './services/caching.js';
+export * from './services/conversion.js';
+export * from './services/equality.js';
+export * from './services/inference.js';
+export * from './services/kind-registry.js';
+export * from './services/operator.js';
+export * from './services/printing.js';
+export * from './services/subtype.js';
+export * from './services/validation.js';
 export * from './utils/dependency-injection.js';
 export * from './utils/test-utils.js';
 export * from './utils/utils.js';

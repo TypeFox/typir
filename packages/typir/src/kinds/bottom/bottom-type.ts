@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../features/equality.js';
-import { SubTypeProblem } from '../../features/subtype.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import { SubTypeProblem } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
