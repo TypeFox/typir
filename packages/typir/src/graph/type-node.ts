@@ -61,7 +61,7 @@ export abstract class Type {
      * Identifiers might have a naming schema for calculatable values.
      */
     getIdentifier(): string {
-        this.assertStateOrLater('Identifiable');
+        // an Identifier must be available; note that the state might be 'Invalid' nevertheless, which is required to handle cyclic type definitions
         assertTrue(this.identifier !== undefined);
         return this.identifier;
     }

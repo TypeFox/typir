@@ -576,7 +576,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
     });
 
-    test.todo('Mix of dependencies in classes: 1 method and 2 fields (order 2)', async () => {
+    test('Mix of dependencies in classes: 1 method and 2 fields (order 2)', async () => {
         await validate(`
             class A {
                 myMethod(input: number): B1 {}
@@ -592,7 +592,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
         expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
     });
 
-    test.todo('The same class is involved into two dependency cycles', async () => {
+    test('The same class is involved into two dependency cycles', async () => {
         await validate(`
             class A {
                 probA: C1
@@ -605,10 +605,10 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 propB1: A
             }
             class C1 {
-                methodC1(p: C2) {}
+                methodC1(p: C2): void {}
             }
             class C2 {
-                methodC2(p: A) {}
+                methodC2(p: A): void {}
             }
         `, []);
         expectTypirTypes(loxServices, isClassType, 'A', 'B1', 'B2', 'C1', 'C2');

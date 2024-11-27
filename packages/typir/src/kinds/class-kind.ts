@@ -30,7 +30,9 @@ export class ClassType extends Type {
     protected methods: MethodDetails[]; // unordered
 
     constructor(kind: ClassKind, typeDetails: ClassTypeDetails) {
-        super(undefined);
+        super(kind.options.typing === 'Nominal'
+            ? kind.calculateNominalIdentifier(typeDetails) // use the name of the class as identifier already now
+            : undefined); // the identifier for structurally typed classes will be set later after resolving all fields and methods
         this.kind = kind;
         this.className = typeDetails.className;
 
@@ -527,6 +529,10 @@ export class ClassKind implements Kind {
         }
     }
 
+    calculateNominalIdentifier<T>(typeDetails: ClassTypeDetails<T>): string {
+        return this.getIdentifierPrefix() + typeDetails.className;
+    }
+
     getMethodKind(): FunctionKind {
         // ensure, that Typir uses the predefined 'function' kind for methods
         const kind = this.services.kinds.get(FunctionKindName);
@@ -565,7 +571,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         this.initialClassType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
         if (kind.options.typing === 'Structural') {
             // register structural classes also by their names, since these names are usually used for reference in the DSL/AST!
-            this.services.graph.addNode(this.initialClassType, kind.getIdentifierPrefix() + typeDetails.className);
+            this.services.graph.addNode(this.initialClassType, kind.calculateNominalIdentifier(typeDetails));
         }
 
         this.inferenceRules = createInferenceRules<T, T1, T2>(this.typeDetails, this.kind, this.initialClassType);
@@ -591,8 +597,9 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
 
             if (this.kind.options.typing === 'Structural') {
                 // replace the type in the type graph
-                this.services.graph.removeNode(classType, this.kind.getIdentifierPrefix() + this.typeDetails.className);
-                this.services.graph.addNode(readyClassType, this.kind.getIdentifierPrefix() + this.typeDetails.className);
+                const nominalIdentifier = this.kind.calculateNominalIdentifier(this.typeDetails);
+                this.services.graph.removeNode(classType, nominalIdentifier);
+                this.services.graph.addNode(readyClassType, nominalIdentifier);
             }
 
             // remove the inference rules for the invalid type
