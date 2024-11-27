@@ -65,13 +65,15 @@ export namespace Typir {
 }
 
 export const system = Typir.System.create()
-    .addFeature(Typir.Features.IsSubTypeOf)
-    .addFeature(Typir.Features.IsCastableTo)
-    .addFeature(Typir.Features.IsEqualTo)
+    .addPlugin(Typir.Plugins.Attributes)
+    .addPlugin(Typir.Plugins.IsSubTypeOf)
+    .addPlugin(Typir.Plugins.IsCastableTo)
+    .addPlugin(Typir.Plugins.IsEqualTo)
+    .addPlugin(Typir.Plugins.Inference)
     .build()
     ;
 
-export const CharType = Typir.Primitives.create(system)
+export const CharType = Typir.Primitives.create(system) //system.types.create()
     .attribute('type', Typir.Attributes.enumeration('character', 'graphic', 'uchar', 'widechar', 'nonvarying', 'varying', 'varyingz'))
     .attribute('length', Typir.Attributes.integer())
     .parseBy(input => {
@@ -82,23 +84,27 @@ export const CharType = Typir.Primitives.create(system)
         };
     });
 
+
+//CharType(20) -> CharType(100) implizit
+//CharType(20) <- CharType(100) exlizit
+
 export const ClassType = Typir.Composites.create(system)
     .attribute('name', Typir.Attributes.string())
-    .children('members', Typir.Composites.Children.multipleByName(() => system.top())
-    .child('superClass', Typir.Composites.Children.single(self => self)
-    .children('interfaces', Typir.Composites.Children.multipleByIndex(self => self))
+    .children('members', Typir.Composites.Children.multipleByName(() => system.types.top())
+    .child('superClass', Typir.Composites.Children.single(() => ClassType)
+    .children('interfaces', Typir.Composites.Children.multipleByIndex(() => ClassType)))
     .inferOn(isMyClass, myClass => {
         return {
 ...
         }
-    })
-    ;
+    });
 
 // CharType.create({
 //     type: 'character',
 //     length: 100,
 //     value: "'123456'"
 // });
+//CharType.parse("'abc'")
 // const value: string = CharType.parse("'abcdefg'").length;
 // CharType.top({
 //     type: 'character',
