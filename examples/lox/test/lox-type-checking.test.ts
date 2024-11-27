@@ -78,6 +78,7 @@ describe('Explicitly test type checking for LOX', () => {
         await validate('fun myFunction2() : boolean { return 2; }', 1);
         await validate('fun myFunction3() : number { return 2; }', 0);
         await validate('fun myFunction4() : number { return true; }', 1);
+        expectTypirTypes(loxServices, isFunctionType, 'myFunction1', 'myFunction2', 'myFunction3', 'myFunction4', ...operatorNames);
     });
 
     test('overloaded function: different return types are not enough', async () => {
@@ -85,18 +86,21 @@ describe('Explicitly test type checking for LOX', () => {
             fun myFunction() : boolean { return true; }
             fun myFunction() : number { return 2; }
         `, 2);
+        expectTypirTypes(loxServices, isFunctionType, 'myFunction', 'myFunction', ...operatorNames); // the types are different nevertheless!
     });
     test('overloaded function: different parameter names are not enough', async () => {
         await validate(`
             fun myFunction(input: boolean) : boolean { return true; }
             fun myFunction(other: boolean) : boolean { return true; }
         `, 2);
+        expectTypirTypes(loxServices, isFunctionType, 'myFunction', ...operatorNames); // but both functions have the same type!
     });
     test('overloaded function: but different parameter types are fine', async () => {
         await validate(`
             fun myFunction(input: boolean) : boolean { return true; }
             fun myFunction(input: number) : boolean { return true; }
         `, 0);
+        expectTypirTypes(loxServices, isFunctionType, 'myFunction', 'myFunction', ...operatorNames);
     });
 
     test('use overloaded operators: +', async () => {
@@ -179,12 +183,14 @@ describe('Explicitly test type checking for LOX', () => {
                 class MyClass { name: string age: number }
                 var v1 = MyClass(); // constructor call
             `, []);
+            expectTypirTypes(loxServices, isClassType, 'MyClass');
         });
         test('Class literals 2', async () => {
             await validate(`
                 class MyClass { name: string age: number }
                 var v1: MyClass = MyClass(); // constructor call
             `, []);
+            expectTypirTypes(loxServices, isClassType, 'MyClass');
         });
         test('Class literals 3', async () => {
             await validate(`
@@ -192,20 +198,26 @@ describe('Explicitly test type checking for LOX', () => {
                 class MyClass2 {}
                 var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
             `, [], 1);
+            expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
         });
     });
 
-    test('Class inheritance for assignments', async () => {
+    test('Class inheritance for assignments: correct', async () => {
         await validate(`
             class MyClass1 { name: string age: number }
             class MyClass2 < MyClass1 {}
             var v1: MyClass1 = MyClass2();
         `, 0);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
+    });
+
+    test('Class inheritance for assignments: wrong', async () => {
         await validate(`
             class MyClass1 { name: string age: number }
             class MyClass2 < MyClass1 {}
             var v1: MyClass2 = MyClass1();
         `, 1);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
     });
 
     test('Class inheritance and the order of type definitions', async () => {
@@ -214,6 +226,7 @@ describe('Explicitly test type checking for LOX', () => {
             class MyClass1 {}
             class MyClass2 < MyClass1 {}
         `, []);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
     });
     test('Class inheritance and the order of type definitions', async () => {
         // switching the order of super and sub class works in Langium and in Typir
@@ -221,24 +234,30 @@ describe('Explicitly test type checking for LOX', () => {
             class MyClass2 < MyClass1 {}
             class MyClass1 {}
         `, []);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
     });
 
-    test('Class fields', async () => {
+    test('Class fields: correct values', async () => {
         await validate(`
             class MyClass1 { name: string age: number }
             var v1: MyClass1 = MyClass1();
             v1.name = "Bob";
             v1.age = 42;
         `, 0);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+    });
+
+    test('Class fields: wrong values', async () => {
         await validate(`
             class MyClass1 { name: string age: number }
             var v1: MyClass1 = MyClass1();
             v1.name = 42;
             v1.age = "Bob";
         `, 2);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1');
     });
 
-    test('Classes must be unique by name', async () => {
+    test('Classes must be unique by name 2', async () => {
         await validate(`
             class MyClass1 { }
             class MyClass1 { }
@@ -246,6 +265,10 @@ describe('Explicitly test type checking for LOX', () => {
             'Declared classes need to be unique (MyClass1).',
             'Declared classes need to be unique (MyClass1).',
         ]);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+    });
+
+    test('Classes must be unique by name 3', async () => {
         await validate(`
             class MyClass2 { }
             class MyClass2 { }
@@ -255,61 +278,77 @@ describe('Explicitly test type checking for LOX', () => {
             'Declared classes need to be unique (MyClass2).',
             'Declared classes need to be unique (MyClass2).',
         ]);
+        expectTypirTypes(loxServices, isClassType, 'MyClass2');
     });
 
-    test('Class methods: OK', async () => await validate(`
-        class MyClass1 {
-            method1(input: number): number {
-                return 123;
+    test('Class methods: OK', async () => {
+        await validate(`
+            class MyClass1 {
+                method1(input: number): number {
+                    return 123;
+                }
             }
-        }
-        var v1: MyClass1 = MyClass1();
-        var v2: number = v1.method1(456);
-    `, []));
+            var v1: MyClass1 = MyClass1();
+            var v2: number = v1.method1(456);
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+    });
 
-    test('Class methods: wrong return value', async () => await validate(`
-        class MyClass1 {
-            method1(input: number): number {
-                return true;
+    test('Class methods: wrong return value', async () => {
+        await validate(`
+            class MyClass1 {
+                method1(input: number): number {
+                    return true;
+                }
             }
-        }
-        var v1: MyClass1 = MyClass1();
-        var v2: number = v1.method1(456);
-    `, 1));
+            var v1: MyClass1 = MyClass1();
+            var v2: number = v1.method1(456);
+        `, 1);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+    });
 
-    test('Class methods: method return type does not fit to variable type', async () => await validate(`
-        class MyClass1 {
-            method1(input: number): number {
-                return 123;
+    test('Class methods: method return type does not fit to variable type', async () => {
+        await validate(`
+            class MyClass1 {
+                method1(input: number): number {
+                    return 123;
+                }
             }
-        }
-        var v1: MyClass1 = MyClass1();
-        var v2: boolean = v1.method1(456);
-    `, 1));
+            var v1: MyClass1 = MyClass1();
+            var v2: boolean = v1.method1(456);
+        `, 1);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+    });
 
-    test('Class methods: value for input parameter does not fit to the type of the input parameter', async () => await validate(`
-        class MyClass1 {
-            method1(input: number): number {
-                return 123;
+    test('Class methods: value for input parameter does not fit to the type of the input parameter', async () => {
+        await validate(`
+            class MyClass1 {
+                method1(input: number): number {
+                    return 123;
+                }
             }
-        }
-        var v1: MyClass1 = MyClass1();
-        var v2: number = v1.method1(true);
-    `, 1));
+            var v1: MyClass1 = MyClass1();
+            var v2: number = v1.method1(true);
+        `, 1);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+    });
 
-    test('Class methods: methods are not distinguishable', async () => await validate(`
-        class MyClass1 {
-            method1(input: number): number {
-                return 123;
+    test('Class methods: methods are not distinguishable', async () => {
+        await validate(`
+            class MyClass1 {
+                method1(input: number): number {
+                    return 123;
+                }
+                method1(another: number): boolean {
+                    return true;
+                }
             }
-            method1(another: number): boolean {
-                return true;
-            }
-        }
-    `, [ // both methods need to be marked:
-        'Declared methods need to be unique (class-MyClass1.method1(number)).',
-        'Declared methods need to be unique (class-MyClass1.method1(number)).',
-    ]));
+        `, [ // both methods need to be marked:
+            'Declared methods need to be unique (class-MyClass1.method1(number)).',
+            'Declared methods need to be unique (class-MyClass1.method1(number)).',
+        ]);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+    });
 
 });
 
@@ -652,78 +691,84 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
 
 describe('longer LOX examples', () => {
     // this test case will work after having the support for cyclic type definitions, since it will solve also issues with topological order of type definitions
-    test('complete with difficult order of classes', async () => await validate(`
-        class SuperClass {
-            a: number
-        }
-
-        class SubClass < SuperClass {
-            // Nested class
-            nested: NestedClass
-        }
-
-        class NestedClass {
-            field: string
-            method(): string {
-                return "execute this";
+    test('complete with difficult order of classes', async () => {
+        await validate(`
+            class SuperClass {
+                a: number
             }
-        }
 
-        // Constructor call
-        var x = SubClass();
-        // Assigning nil to a class type
-        var nilTest = SubClass();
-        nilTest = nil;
-
-        // Accessing members of a class
-        var value = x.nested.method() + "wasd";
-        print value;
-
-        // Accessing members of a super class
-        var superValue = x.a;
-        print superValue;
-
-        // Assigning a subclass to a super class
-        var superType: SuperClass = x;
-        print superType.a;
-    `, []));
-
-    test('complete with easy order of classes', async () => await validate(`
-        class SuperClass {
-            a: number
-        }
-
-        class NestedClass {
-            field: string
-            method(): string {
-                return "execute this";
+            class SubClass < SuperClass {
+                // Nested class
+                nested: NestedClass
             }
-        }
 
-        class SubClass < SuperClass {
-            // Nested class
-            nested: NestedClass
-        }
+            class NestedClass {
+                field: string
+                method(): string {
+                    return "execute this";
+                }
+            }
+
+            // Constructor call
+            var x = SubClass();
+            // Assigning nil to a class type
+            var nilTest = SubClass();
+            nilTest = nil;
+
+            // Accessing members of a class
+            var value = x.nested.method() + "wasd";
+            print value;
+
+            // Accessing members of a super class
+            var superValue = x.a;
+            print superValue;
+
+            // Assigning a subclass to a super class
+            var superType: SuperClass = x;
+            print superType.a;
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'SuperClass', 'SubClass', 'NestedClass');
+    });
+
+    test('complete with easy order of classes', async () => {
+        await validate(`
+            class SuperClass {
+                a: number
+            }
+
+            class NestedClass {
+                field: string
+                method(): string {
+                    return "execute this";
+                }
+            }
+
+            class SubClass < SuperClass {
+                // Nested class
+                nested: NestedClass
+            }
 
 
-        // Constructor call
-        var x = SubClass();
-        // Assigning nil to a class type
-        var nilTest = SubClass();
-        nilTest = nil;
+            // Constructor call
+            var x = SubClass();
+            // Assigning nil to a class type
+            var nilTest = SubClass();
+            nilTest = nil;
 
-        // Accessing members of a class
-        var value = x.nested.method() + "wasd";
-        print value;
+            // Accessing members of a class
+            var value = x.nested.method() + "wasd";
+            print value;
 
-        // Accessing members of a super class
-        var superValue = x.a;
-        print superValue;
+            // Accessing members of a super class
+            var superValue = x.a;
+            print superValue;
 
-        // Assigning a subclass to a super class
-        var superType: SuperClass = x;
-        print superType.a;
-    `, []));
+            // Assigning a subclass to a super class
+            var superType: SuperClass = x;
+            print superType.a;
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'SuperClass', 'SubClass', 'NestedClass');
+    });
 });
 
 async function validate(lox: string, errors: number | string | string[], warnings: number = 0) {
