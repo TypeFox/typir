@@ -31,7 +31,7 @@ export class ClassType extends Type {
 
     constructor(kind: ClassKind, typeDetails: ClassTypeDetails) {
         super(kind.options.typing === 'Nominal'
-            ? kind.calculateNominalIdentifier(typeDetails) // use the name of the class as identifier already now
+            ? kind.calculateIdentifierWithClassNameOnly(typeDetails) // use the name of the class as identifier already now
             : undefined); // the identifier for structurally typed classes will be set later after resolving all fields and methods
         this.kind = kind;
         this.className = typeDetails.className;
@@ -483,19 +483,20 @@ export class ClassKind implements Kind {
     }
 
     /**
-     * TODO
+     * This method calculates the identifier of a class with the given details.
+     * Depending on structural or nominal typing of classes, the fields and methods or the name of the class will be used to compose the resulting identifier.
      * If some types for the properties of the class are missing, an exception will be thrown.
      *
      * Design decisions:
      * - This method is part of the ClassKind and not part of ClassType, since the ClassKind requires it for 'getClassType'!
-     * - The kind might use/add additional prefixes for the identifiers to make them "even more unique".
+     * - The kind might use/add additional prefixes for the identifiers to prevent collisions with types of other kinds,
+     *   which might occur in some applications.
      *
      * @param typeDetails the details
      * @returns the new identifier
      */
     calculateIdentifier<T>(typeDetails: ClassTypeDetails<T>): string {
         // purpose of identifier: distinguish different types; NOT: not uniquely overloaded types
-        const prefix = this.getIdentifierPrefix();
         if (this.options.typing === 'Structural') {
             // fields
             const fields: string = typeDetails.fields
@@ -520,17 +521,24 @@ export class ClassKind implements Kind {
                 .sort()
                 .join(',');
             // complete identifier (the name of the class does not matter for structural typing!)
-            return `${prefix}fields{${fields}}-methods{${methods}}-extends{${superClasses}}`;
+            return `${this.getIdentifierPrefix()}fields{${fields}}-methods{${methods}}-extends{${superClasses}}`;
         } else if (this.options.typing === 'Nominal') {
-            // only the name matters for nominal typing!
-            return `${prefix}${typeDetails.className}`;
+            // only the name of the class matters for nominal typing!
+            return this.calculateIdentifierWithClassNameOnly(typeDetails);
         } else {
             assertUnreachable(this.options.typing);
         }
     }
 
-    calculateNominalIdentifier<T>(typeDetails: ClassTypeDetails<T>): string {
-        return this.getIdentifierPrefix() + typeDetails.className;
+    /**
+     * Calculates an identifier for classes which takes only the name of the class into account,
+     * regardless of whether the class is structurally or nominally typed.
+     * For structurally typed classes, this identifier might be used as well, since these names are usually used for reference in the DSL/AST!
+     * @param typeDetails the details of the class
+     * @returns the identifier based on the class name
+     */
+    calculateIdentifierWithClassNameOnly<T>(typeDetails: ClassTypeDetails<T>): string {
+        return `${this.getIdentifierPrefix()}${typeDetails.className}`;
     }
 
     getMethodKind(): FunctionKind {
@@ -571,7 +579,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         this.initialClassType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
         if (kind.options.typing === 'Structural') {
             // register structural classes also by their names, since these names are usually used for reference in the DSL/AST!
-            this.services.graph.addNode(this.initialClassType, kind.calculateNominalIdentifier(typeDetails));
+            this.services.graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));
         }
 
         this.inferenceRules = createInferenceRules<T, T1, T2>(this.typeDetails, this.kind, this.initialClassType);
@@ -597,9 +605,9 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
 
             if (this.kind.options.typing === 'Structural') {
                 // replace the type in the type graph
-                const nominalIdentifier = this.kind.calculateNominalIdentifier(this.typeDetails);
-                this.services.graph.removeNode(classType, nominalIdentifier);
-                this.services.graph.addNode(readyClassType, nominalIdentifier);
+                const nameBasedIdentifier = this.kind.calculateIdentifierWithClassNameOnly(this.typeDetails);
+                this.services.graph.removeNode(classType, nameBasedIdentifier);
+                this.services.graph.addNode(readyClassType, nameBasedIdentifier);
             }
 
             // remove the inference rules for the invalid type
