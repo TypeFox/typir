@@ -11,9 +11,11 @@ import { ValidationProblem, ValidationRuleWithBeforeAfter } from '../features/va
 import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type, TypeStateListener, isType } from '../graph/type-node.js';
+import { TypeInitializer } from '../initialization/type-initializer.js';
+import { TypeReference, resolveTypeSelector } from '../initialization/type-reference.js';
+import { TypeSelector } from '../initialization/type-selector.js';
 import { TypirServices } from '../typir.js';
-import { TypeInitializer } from '../utils/type-initialization.js';
-import { NameTypePair, TypeReference, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
+import { NameTypePair, TypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, checkTypeArrays, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, assertType, assertUnreachable } from '../utils/utils.js';
 import { Kind, isKind } from './kind.js';

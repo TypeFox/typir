@@ -10,13 +10,15 @@ import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from 
 import { SubTypeProblem } from '../features/subtype.js';
 import { ValidationProblem, ValidationRule, ValidationRuleWithBeforeAfter } from '../features/validation.js';
 import { Type, TypeStateListener, isType } from '../graph/type-node.js';
+import { TypeInitializer } from '../initialization/type-initializer.js';
 import { TypirServices } from '../typir.js';
-import { TypeReference, TypeSelector, TypirProblem, resolveTypeSelector } from '../utils/utils-definitions.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 import { IndexedTypeConflict, MapListConverter, TypeCheckStrategy, checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../utils/utils.js';
 import { CreateFunctionTypeDetails, FunctionKind, FunctionKindName, FunctionType, isFunctionKind, isFunctionType } from './function-kind.js';
 import { Kind, isKind } from './kind.js';
-import { TypeInitializer } from '../utils/type-initialization.js';
+import { TypeReference, resolveTypeSelector } from '../initialization/type-reference.js';
+import { TypeSelector } from '../initialization/type-selector.js';
 
 // TODO irgendwann die Dateien auseinander ziehen und Packages einführen!
 
