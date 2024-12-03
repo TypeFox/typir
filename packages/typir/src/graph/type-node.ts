@@ -4,8 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeReference } from '../initialization/type-reference.js';
+import { WaitingForIdentifiableAndCompletedTypeReferences, WaitingForInvalidTypeReferences } from '../initialization/type-waiting.js';
 import { Kind, isKind } from '../kinds/kind.js';
-import { TypeReference, TypirProblem, WaitingForInvalidTypeReferences, WaitingForIdentifiableAndCompletedTypeReferences } from '../utils/utils-definitions.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 import { assertTrue, assertUnreachable } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 

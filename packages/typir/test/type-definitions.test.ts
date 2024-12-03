@@ -6,13 +6,12 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, expect, test } from 'vitest';
-import { AssignabilityProblem } from '../src/features/assignability.js';
-import { ClassKind } from '../src/kinds/class-kind.js';
-import { FixedParameterKind } from '../src/kinds/fixed-parameters-kind.js';
-import { FunctionKind, NO_PARAMETER_NAME } from '../src/kinds/function-kind.js';
-import { MultiplicityKind } from '../src/kinds/multiplicity-kind.js';
-import { PrimitiveKind } from '../src/kinds/primitive-kind.js';
+import { ClassKind } from '../src/kinds/class/class-kind.js';
+import { FunctionKind, NO_PARAMETER_NAME } from '../src/kinds/function/function-kind.js';
+import { PrimitiveKind } from '../src/kinds/primitive/primitive-kind.js';
 import { createTypirServices } from '../src/typir.js';
+import { MultiplicityKind } from '../src/kinds/multiplicity/multiplicity-kind.js';
+import { FixedParameterKind } from '../src/kinds/fixed-parameters/fixed-parameters-kind.js';
 
 describe('Tests for Typir', () => {
     test('Define some types', async () => {

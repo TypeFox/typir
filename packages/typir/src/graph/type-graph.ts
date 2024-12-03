@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { EdgeCachingInformation } from '../features/caching.js';
+import { EdgeCachingInformation } from '../services/caching.js';
 import { assertTrue } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 import { Type } from './type-node.js';
