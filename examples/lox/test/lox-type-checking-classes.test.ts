@@ -171,4 +171,16 @@ describe('Class literals', () => {
         expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
     });
 
+    test('nil is assignable to any Class', async () => {
+        await validateLox(`
+            class MyClass1 {}
+            class MyClass2 {}
+            var v1 = MyClass1();
+            var v2: MyClass2 = MyClass2();
+            v1 = nil;
+            v2 = nil;
+        `, []);
+        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
+    });
+
 });
