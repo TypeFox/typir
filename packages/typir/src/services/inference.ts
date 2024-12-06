@@ -103,6 +103,7 @@ export interface TypeInferenceCollector {
      * @returns the found Type or some inference problems (might be empty), when none of the inference rules were able to infer a type
      */
     inferType(domainElement: unknown): Type | InferenceProblem[]
+
     /**
      * Registers an inference rule.
      * When inferring the type for an element, all registered inference rules are checked until the first match.
@@ -190,73 +191,16 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     protected inferTypeLogic(domainElement: unknown): Type | InferenceProblem[] {
         this.checkForError(domainElement);
-        // otherwise, check all rules
+
+        // check all rules
         const collectedInferenceProblems: InferenceProblem[] = [];
         for (const rules of this.inferenceRules.values()) {
             for (const rule of rules) {
-                if (typeof rule === 'function') {
-                    // simple case without type inference for children
-                    const ruleResult: TypeInferenceResultWithoutInferringChildren = rule(domainElement, this.services);
-                    this.checkForError(ruleResult);
-                    const checkResult = this.inferTypeLogicWithoutChildren(ruleResult, collectedInferenceProblems);
-                    if (checkResult) {
-                        // this inference rule was applicable and produced a final result
-                        return checkResult;
-                    } else {
-                        // no result for this inference rule => check the next inference rules
-                    }
-                } else if (typeof rule === 'object') {
-                    // more complex case with inferring the type for children
-                    const ruleResult: TypeInferenceResultWithInferringChildren = rule.inferTypeWithoutChildren(domainElement, this.services);
-                    if (Array.isArray(ruleResult)) {
-                        // this rule might match => continue applying this rule
-                        // resolve the requested child types
-                        const childElements = ruleResult;
-                        const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.services.inference.inferType(child));
-                        // check, whether inferring the children resulted in some other inference problems
-                        const childTypeProblems: InferenceProblem[] = [];
-                        for (let i = 0; i < childTypes.length; i++) {
-                            const child = childTypes[i];
-                            if (Array.isArray(child)) {
-                                childTypeProblems.push({
-                                    $problem: InferenceProblem,
-                                    domainElement: childElements[i],
-                                    location: `child element ${i}`,
-                                    rule,
-                                    subProblems: child,
-                                });
-                            }
-                        }
-                        if (childTypeProblems.length >= 1) {
-                            collectedInferenceProblems.push({
-                                $problem: InferenceProblem,
-                                domainElement,
-                                location: 'inferring depending children',
-                                rule,
-                                subProblems: childTypeProblems,
-                            });
-                        } else {
-                            // the types of all children are successfully inferred
-                            const finalInferenceResult = rule.inferTypeWithChildrensTypes(domainElement, childTypes as Type[], this.services);
-                            if (isType(finalInferenceResult)) {
-                                // type is inferred!
-                                return finalInferenceResult;
-                            } else {
-                                // inference is not applicable (probably due to a mismatch of the children's types) => check the next rule
-                                collectedInferenceProblems.push(finalInferenceResult);
-                            }
-                        }
-                    } else {
-                        const checkResult = this.inferTypeLogicWithoutChildren(ruleResult, collectedInferenceProblems);
-                        if (checkResult) {
-                            // this inference rule was applicable and produced a final result
-                            return checkResult;
-                        } else {
-                            // no result for this inference rule => check the next inference rules
-                        }
-                    }
+                const result = this.executeSingleInferenceRuleLogic(rule, domainElement, collectedInferenceProblems);
+                if (result) {
+                    return result; // return the first inferred type
                 } else {
-                    assertUnreachable(rule);
+                    // no result for this inference rule => check the next inference rules
                 }
             }
         }
@@ -274,20 +218,84 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         return collectedInferenceProblems;
     }
 
-    protected inferTypeLogicWithoutChildren(result: TypeInferenceResultWithoutInferringChildren, collectedInferenceProblems: InferenceProblem[]): Type | InferenceProblem[] | undefined {
+    protected executeSingleInferenceRuleLogic(rule: TypeInferenceRule, domainElement: unknown, collectedInferenceProblems: InferenceProblem[]): Type | undefined {
+        if (typeof rule === 'function') {
+            // simple case without type inference for children
+            const ruleResult: TypeInferenceResultWithoutInferringChildren = rule(domainElement, this.services);
+            this.checkForError(ruleResult);
+            return this.inferTypeLogicWithoutChildren(ruleResult, collectedInferenceProblems);
+        } else if (typeof rule === 'object') {
+            // more complex case with inferring the type for children
+            const ruleResult: TypeInferenceResultWithInferringChildren = rule.inferTypeWithoutChildren(domainElement, this.services);
+            if (Array.isArray(ruleResult)) {
+                // this rule might match => continue applying this rule
+                // resolve the requested child types
+                const childElements = ruleResult;
+                const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.services.inference.inferType(child));
+                // check, whether inferring the children resulted in some other inference problems
+                const childTypeProblems: InferenceProblem[] = [];
+                for (let i = 0; i < childTypes.length; i++) {
+                    const child = childTypes[i];
+                    if (Array.isArray(child)) {
+                        childTypeProblems.push({
+                            $problem: InferenceProblem,
+                            domainElement: childElements[i],
+                            location: `child element ${i}`,
+                            rule,
+                            subProblems: child,
+                        });
+                    }
+                }
+                if (childTypeProblems.length >= 1) {
+                    collectedInferenceProblems.push({
+                        $problem: InferenceProblem,
+                        domainElement,
+                        location: 'inferring depending children',
+                        rule,
+                        subProblems: childTypeProblems,
+                    });
+                    return undefined;
+                } else {
+                    // the types of all children are successfully inferred
+                    const finalInferenceResult = rule.inferTypeWithChildrensTypes(domainElement, childTypes as Type[], this.services);
+                    if (isType(finalInferenceResult)) {
+                        // type is inferred!
+                        return finalInferenceResult;
+                    } else {
+                        // inference is not applicable (probably due to a mismatch of the children's types) => check the next rule
+                        collectedInferenceProblems.push(finalInferenceResult);
+                        return undefined;
+                    }
+                }
+            } else {
+                return this.inferTypeLogicWithoutChildren(ruleResult, collectedInferenceProblems);
+            }
+        } else {
+            assertUnreachable(rule);
+        }
+    }
+
+    protected inferTypeLogicWithoutChildren(result: TypeInferenceResultWithoutInferringChildren, collectedInferenceProblems: InferenceProblem[]): Type | undefined {
         if (result === InferenceRuleNotApplicable) {
             // this rule is not applicable at all => ignore this rule
+            return undefined;
         } else if (isType(result)) {
             // the result type is already found!
             return result;
         } else if (isInferenceProblem(result)) {
             // found some inference problems
             collectedInferenceProblems.push(result);
+            return undefined;
         } else {
             // this 'result' domain element is used instead to infer its type, which is the type for the current domain element as well
-            return this.inferType(result);
+            const recursiveResult = this.inferType(result);
+            if (Array.isArray(recursiveResult)) {
+                collectedInferenceProblems.push(...recursiveResult);
+                return undefined;
+            } else {
+                return recursiveResult;
+            }
         }
-        return undefined;
     }
 
 
