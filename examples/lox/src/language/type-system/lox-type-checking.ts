@@ -233,12 +233,12 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     ? domainElement.element!.ref.name : InferenceRuleNotApplicable,
             });
 
-            // TODO conversion 'nil' to classes ('TopClass')!
-            // any class !== all classes; here we want to say, that 'nil' is assignable to each concrete Class type!
-            // this.typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateTopClassType({}), 'IMPLICIT_EXPLICIT');
+            // explicitly declare, that 'nil' can be assigned to any Class variable
             classType.addListener(type => {
                 this.typir.conversion.markAsConvertible(this.typir.factory.primitives.get({ primitiveName: 'nil' })!, type, 'IMPLICIT_EXPLICIT');
             });
+            // The following idea does not work, since variables in LOX have a concrete class type and not an "any class" type:
+            // this.typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateTopClassType({}), 'IMPLICIT_EXPLICIT');
         }
     }
 }

@@ -18,6 +18,7 @@ export class TopClassType extends Type {
     constructor(kind: TopClassKind, identifier: string) {
         super(identifier);
         this.kind = kind;
+        this.defineTheInitializationProcessOfThisType({}); // no preconditions
     }
 
     override getName(): string {
