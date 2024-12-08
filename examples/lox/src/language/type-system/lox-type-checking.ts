@@ -45,7 +45,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 (node: unknown) => isReturnStatement(node) && node.value === undefined
             ] });
         const typeNil = this.typir.factory.primitives.create({ primitiveName: 'nil',
-            inferenceRules: isNilLiteral }); // From "Crafting Interpreters" no value, like null in other languages. Uninitialised variables default to nil. When the execution reaches the end of the block of a function body without hitting a return, nil is implicitly returned.
+            inferenceRules: isNilLiteral }); // From "Crafting Interpreters" no value, like null in other languages. TODO Uninitialised variables default to nil. When the execution reaches the end of the block of a function body without hitting a return, nil is implicitly returned.
         const typeAny = this.typir.factory.top.create({});
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
@@ -116,16 +116,13 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 } else if (isMethodMember(ref)) {
                     return InferenceRuleNotApplicable; // inference rule is registered directly at the method
                 } else if (isVariableDeclaration(ref)) {
-                    // use variables inside expressions!
-                    return ref; // infer the Typir type from the variable, see the case below
+                    return ref; // use variables inside expressions: infer the Typir type from the variable, see the case below
                 } else if (isParameter(ref)) {
-                    // use parameters inside expressions
-                    return ref.type;
+                    return ref.type; // use parameters inside expressions
                 } else if (isFunctionDeclaration(ref)) {
-                    // there is already an inference rule for function calls
-                    return InferenceRuleNotApplicable;
+                    return InferenceRuleNotApplicable; // there is already an inference rule for function calls
                 } else if (ref === undefined) {
-                    return InferenceRuleNotApplicable;
+                    return InferenceRuleNotApplicable; // unresolved cross-reference: syntactic issues must be fixed before type checking can be applied
                 } else {
                     assertUnreachable(ref);
                 }
@@ -133,11 +130,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             // ... variable declarations
             if (isVariableDeclaration(domainElement)) {
                 if (domainElement.type) {
-                    // the user declared this variable with a type
-                    return domainElement.type;
+                    return domainElement.type; // the user declared this variable with a type
                 } else if (domainElement.value) {
-                    // the didn't declared a type for this variable => do type inference of the assigned value instead!
-                    return domainElement.value;
+                    return domainElement.value; // the user didn't declared a type for this variable => do type inference of the assigned value instead!
                 } else {
                     return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
                 }
