@@ -35,6 +35,8 @@ export interface FunctionKindOptions {
 
 export const FunctionKindName = 'FunctionKind';
 
+export type FunctionCallValidationRule<T> = (functionCall: T, functionType: FunctionType, typir: TypirServices) => ValidationProblem[];
+
 export interface CreateParameterDetails {
     name: string;
     type: TypeSelector;
@@ -52,6 +54,9 @@ export interface CreateFunctionTypeDetails<T> extends FunctionTypeDetails {
     /** for function calls => returns the return type of the function */
     inferenceRuleForCalls?: InferFunctionCall<T>,
     // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
+
+    /** This validation will be applied to all domain elements which represent calls of the functions. */
+    validationForCall?: FunctionCallValidationRule<T>,
 }
 
 /** Collects all functions with the same name */

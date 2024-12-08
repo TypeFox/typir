@@ -32,7 +32,7 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
     return isSpecificTypirProblem(problem, ValidationProblem);
 }
 
-export type ValidationRule = (domainElement: unknown, typir: TypirServices) => ValidationProblem[];
+export type ValidationRule<T = unknown> = (domainElement: T, typir: TypirServices) => ValidationProblem[];
 
 export interface ValidationRuleWithBeforeAfter {
     beforeValidation(domainRoot: unknown, typir: TypirServices): ValidationProblem[]
@@ -154,6 +154,8 @@ export interface ValidationCollector {
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
     addValidationRule(rule: ValidationRule, boundToType?: Type): void;
+    removeValidationRule(rule: ValidationRule, boundToType?: Type): void;
+
     /**
      * Registers a validation rule which will be called once before and once after the whole validation.
      * @param rule a new validation rule
@@ -161,6 +163,7 @@ export interface ValidationCollector {
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
     addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void;
+    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void;
 }
 
 export class DefaultValidationCollector implements ValidationCollector, TypeGraphListener {
@@ -218,6 +221,17 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
         rules.push(rule);
     }
 
+    removeValidationRule(rule: ValidationRule, boundToType?: Type): void {
+        const key = this.getBoundToTypeKey(boundToType);
+        const rules = this.validationRules.get(key);
+        if (rules) {
+            const index = rules.indexOf(rule);
+            if (index >= 0) {
+                rules.splice(index, 1);
+            }
+        }
+    }
+
     addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
         let rules = this.validationRulesBeforeAfter.get(key);
@@ -226,6 +240,17 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
             this.validationRulesBeforeAfter.set(key, rules);
         }
         rules.push(rule);
+    }
+
+    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void {
+        const key = this.getBoundToTypeKey(boundToType);
+        const rules = this.validationRulesBeforeAfter.get(key);
+        if (rules) {
+            const index = rules.indexOf(rule);
+            if (index >= 0) {
+                rules.splice(index, 1);
+            }
+        }
     }
 
     protected getBoundToTypeKey(boundToType?: Type): string {

@@ -8,7 +8,7 @@ import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
 import { CreateFieldDetails, CreateFunctionTypeDetails, CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationMessageDetails, createNoSuperClassCyclesValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
-import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export class LoxTypeCreator extends AbstractLangiumTypeCreator {
@@ -83,10 +83,22 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // ==, != for all data types (the warning for different types is realized below)
         for (const operator of ['==', '!=']) {
-            this.typir.factory.operators.createBinary({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.operators.createBinary({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }, inferenceRule: binaryInferenceRule,
+                // show a warning to the user, if something like "3 == false" is compared, since different types already indicate, that the IF condition will be evaluated to false
+                validationRule: (node, _operatorName, _operatorType, typir) => typir.validation.constraints.ensureNodeIsEquals(node.left, node.right, (actual, expected) => <ValidationMessageDetails>{
+                    message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
+                    domainElement: node, // mark the 'operator' property! (note that "node.right" and "node.left" are the input for Typir)
+                    domainProperty: 'operator',
+                    severity: 'warning' }),
+            });
         }
-        // = for SuperType = SubType (TODO integrate the validation here? should be replaced!)
-        this.typir.factory.operators.createBinary({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }, inferenceRule: binaryInferenceRule });
+        // = for SuperType = SubType (Note that LOX designed assignments as operators!)
+        this.typir.factory.operators.createBinary({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }, inferenceRule: binaryInferenceRule,
+            // this validation will be checked for each call of this operator!
+            validationRule: (node, _opName, _opType, typir) => typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{
+                message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left.$cstNode?.text}' with type '${expected.name}'`,
+                domainProperty: 'value' }),
+        });
 
         // unary operators
         this.typir.factory.operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }, inferenceRule: unaryInferenceRule });
@@ -148,18 +160,6 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                             message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
                             domainProperty: 'value' }),
                     ];
-                }
-                if (isBinaryExpression(node) && node.operator === '=') {
-                    return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{
-                        message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left.$cstNode?.text}' with type '${expected.name}'`,
-                        domainProperty: 'value' });
-                }
-                if (isBinaryExpression(node) && (node.operator === '==' || node.operator === '!=')) {
-                    return typir.validation.constraints.ensureNodeIsEquals(node.left, node.right, (actual, expected) => <ValidationMessageDetails>{
-                        message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
-                        domainElement: node, // mark the 'operator' property! (note that "node.right" and "node.left" are the input for Typir)
-                        domainProperty: 'operator',
-                        severity: 'warning' });
                 }
                 if (isReturnStatement(node)) {
                     const callableDeclaration: FunctionDeclaration | MethodMember | undefined = AstUtils.getContainerOfType(node, node => isFunctionDeclaration(node) || isMethodMember(node));
