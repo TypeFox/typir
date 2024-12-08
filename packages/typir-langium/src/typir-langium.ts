@@ -5,10 +5,10 @@
  ******************************************************************************/
 
 import { LangiumServices, LangiumSharedServices } from 'langium/lsp';
-import { DeepPartial, DefaultTypeRelationshipCaching, DefaultTypirServiceModule, Module, TypirServices } from 'typir';
+import { DeepPartial, DefaultTypirServiceModule, Module, PartialTypirServices, TypirServices } from 'typir';
 import { LangiumDomainElementInferenceCaching } from './features/langium-caching.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
-import { PlaceholderLangiumTypeCreator, LangiumTypeCreator } from './features/langium-type-creator.js';
+import { LangiumTypeCreator, PlaceholderLangiumTypeCreator } from './features/langium-type-creator.js';
 import { LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
 
 /**
@@ -24,24 +24,40 @@ export type LangiumServicesForTypirBinding = TypirServices & TypirLangiumService
 
 export type PartialTypirLangiumServices = DeepPartial<LangiumServicesForTypirBinding>
 
+export function createLangiumSpecificTypirServicesModule(langiumServices: LangiumSharedServices): Module<TypirServices> {
+    // replace some implementations for the core Typir services
+    const LangiumSpecifics: Module<TypirServices, PartialTypirServices> = {
+        printer: () => new LangiumProblemPrinter(),
+        caching: {
+            domainElementInference: () => new LangiumDomainElementInferenceCaching(langiumServices),
+        },
+    };
+    return Module.merge(
+        // use all core Typir services:
+        DefaultTypirServiceModule,
+        // replace some of the core Typir default implementations for Langium:
+        LangiumSpecifics
+    );
+}
+
+export function createDefaultTypirLangiumServices(langiumServices: LangiumSharedServices): Module<LangiumServicesForTypirBinding, TypirLangiumServices> {
+    return {
+        TypeValidation: (typirServices) => new LangiumTypirValidator(typirServices),
+        TypeCreator: (typirServices) => new PlaceholderLangiumTypeCreator(typirServices, langiumServices),
+    };
+}
+
 /**
  * Contains all customizations of Typir to simplify type checking for DSLs developed with Langium,
  * the language workbench for textual domain-specific languages (DSLs) in the web (https://langium.org/).
  */
 export function createLangiumModuleForTypirBinding(langiumServices: LangiumSharedServices): Module<LangiumServicesForTypirBinding> {
-    return {
-        // use all core Typir services:
-        ...DefaultTypirServiceModule,
-        // replace some of the core Typir default implementations for Langium:
-        printer: () => new LangiumProblemPrinter(),
-        caching: {
-            typeRelationships: (services) => new DefaultTypeRelationshipCaching(services), // this is the same implementation as in core Typir, since all edges of removed types are removed as well
-            domainElementInference: () => new LangiumDomainElementInferenceCaching(langiumServices),
-        },
-        // provide implementations for the additional services for the Typir-Langium-binding:
-        TypeValidation: (typirServices) => new LangiumTypirValidator(typirServices),
-        TypeCreator: (typirServices) => new PlaceholderLangiumTypeCreator(typirServices, langiumServices),
-    };
+    return Module.merge(
+        // the core Typir services (with adapted implementations for Typir-Langium)
+        createLangiumSpecificTypirServicesModule(langiumServices),
+        // the additional services for the Typir-Langium binding (with implementations)
+        createDefaultTypirLangiumServices(langiumServices),
+    );
 }
 
 export function initializeLangiumTypirServices(services: LangiumServices & LangiumServicesForTypirBinding): void {
