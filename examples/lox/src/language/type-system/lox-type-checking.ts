@@ -99,10 +99,10 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 const ref = domainElement.element?.ref;
                 if (isClass(ref)) {
                     return InferenceRuleNotApplicable; // not required anymore
-                } else if (isClassMember(ref)) {
-                    return InferenceRuleNotApplicable; // TODO
+                } else if (isFieldMember(ref)) {
+                    return InferenceRuleNotApplicable; // inference rule is registered directly at the Fields
                 } else if (isMethodMember(ref)) {
-                    return InferenceRuleNotApplicable; // TODO
+                    return InferenceRuleNotApplicable; // inference rule is registered directly at the method
                 } else if (isVariableDeclaration(ref)) {
                     // use variables inside expressions!
                     return ref; // infer the Typir type from the variable, see the case below
