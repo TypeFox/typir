@@ -18,7 +18,7 @@ export function registerTypirValidationChecks(services: LangiumDefaultCoreServic
 }
 
 /*
-* TODO validation with Typir for Langium
+* TODO Ideas and features for the validation with Typir for Langium
 *
 * What to validate:
 * - Is it possible to infer a type at all? Type vs undefined
@@ -37,19 +37,23 @@ export function registerTypirValidationChecks(services: LangiumDefaultCoreServic
 * Apply the same ideas for InferenceRules as well!
 */
 
-export class LangiumTypirValidator {
+export interface LangiumTypirValidator {
+    /**
+     * Executes all checks, which are directly derived from the current Typir configuration,
+     * i.e. checks that arguments fit to parameters for function calls (including operands for operators).
+     * @param node the current AST node to check regarding typing issues
+     * @param accept receives the found validation hints
+     */
+    checkTypingProblemsWithTypir(node: AstNode, accept: ValidationAcceptor): void;
+}
+
+export class DefaultLangiumTypirValidator implements LangiumTypirValidator {
     protected readonly services: TypirServices;
 
     constructor(services: LangiumServicesForTypirBinding) {
         this.services = services;
     }
 
-    /**
-     * Executes all checks, which are directly derived from the current Typir configuration,
-     * i.e. arguments fit to parameters for function calls (including operands for operators).
-     * @param node the current AST node to check regarding typing issues
-     * @param accept receives the found validation hints
-     */
     checkTypingProblemsWithTypir(node: AstNode, accept: ValidationAcceptor) {
         // TODO use the new validation registry API in Langium v3.3 instead!
         if (node.$container === undefined) {

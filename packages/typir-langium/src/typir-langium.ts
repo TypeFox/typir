@@ -9,7 +9,7 @@ import { DeepPartial, DefaultTypirServiceModule, Module, PartialTypirServices, T
 import { LangiumDomainElementInferenceCaching } from './features/langium-caching.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
 import { LangiumTypeCreator, PlaceholderLangiumTypeCreator } from './features/langium-type-creator.js';
-import { LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
+import { DefaultLangiumTypirValidator, LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
 
 /**
  * Additional Typir-Langium services to manage the Typir services
@@ -42,7 +42,7 @@ export function createLangiumSpecificTypirServicesModule(langiumServices: Langiu
 
 export function createDefaultTypirLangiumServices(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, TypirLangiumServices> {
     return {
-        TypeValidation: (typirServices) => new LangiumTypirValidator(typirServices),
+        TypeValidation: (typirServices) => new DefaultLangiumTypirValidator(typirServices),
         TypeCreator: (typirServices) => new PlaceholderLangiumTypeCreator(typirServices, langiumServices),
     };
 }
