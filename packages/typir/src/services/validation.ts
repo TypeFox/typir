@@ -34,10 +34,10 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
 
 export type ValidationRule<T = unknown> = (domainElement: T, typir: TypirServices) => ValidationProblem[];
 
-export interface ValidationRuleWithBeforeAfter {
-    beforeValidation(domainRoot: unknown, typir: TypirServices): ValidationProblem[]
-    validation: ValidationRule
-    afterValidation(domainRoot: unknown, typir: TypirServices): ValidationProblem[]
+export interface ValidationRuleWithBeforeAfter<ElementType = unknown, RootType = ElementType> {
+    beforeValidation(domainRoot: RootType, typir: TypirServices): ValidationProblem[];
+    validation: ValidationRule<ElementType>;
+    afterValidation(domainRoot: RootType, typir: TypirServices): ValidationProblem[];
 }
 
 /** Annotate types after the validation with additional information in order to ease the creation of usefull messages. */
@@ -142,10 +142,10 @@ export class DefaultValidationConstraints implements ValidationConstraints {
 }
 
 
-export interface ValidationCollector {
-    validateBefore(domainRoot: unknown): ValidationProblem[];
-    validate(domainElement: unknown): ValidationProblem[];
-    validateAfter(domainRoot: unknown): ValidationProblem[];
+export interface ValidationCollector<ElementType = unknown, RootType = ElementType> {
+    validateBefore(domainRoot: RootType): ValidationProblem[];
+    validate(domainElement: ElementType): ValidationProblem[];
+    validateAfter(domainRoot: RootType): ValidationProblem[];
 
     /**
      * Registers a validation rule.
@@ -153,8 +153,8 @@ export interface ValidationCollector {
      * @param boundToType an optional type, if the new validation rule is dedicated for exactly this type.
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
-    addValidationRule(rule: ValidationRule, boundToType?: Type): void;
-    removeValidationRule(rule: ValidationRule, boundToType?: Type): void;
+    addValidationRule(rule: ValidationRule<ElementType>, boundToType?: Type): void;
+    removeValidationRule(rule: ValidationRule<ElementType>, boundToType?: Type): void;
 
     /**
      * Registers a validation rule which will be called once before and once after the whole validation.
@@ -162,21 +162,21 @@ export interface ValidationCollector {
      * @param boundToType an optional type, if the new validation rule is dedicated for exactly this type.
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
-    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void;
-    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void;
+    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<ElementType, RootType>, boundToType?: Type): void;
+    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<ElementType, RootType>, boundToType?: Type): void;
 }
 
-export class DefaultValidationCollector implements ValidationCollector, TypeGraphListener {
+export class DefaultValidationCollector<ElementType = unknown, RootType = ElementType> implements ValidationCollector<ElementType, RootType>, TypeGraphListener {
     protected readonly services: TypirServices;
-    protected readonly validationRules: Map<string, ValidationRule[]> = new Map(); // type identifier (otherwise '') -> validation rules
-    protected readonly validationRulesBeforeAfter: Map<string, ValidationRuleWithBeforeAfter[]> = new Map(); // type identifier (otherwise '') -> validation rules
+    protected readonly validationRules: Map<string, Array<ValidationRule<ElementType>>> = new Map(); // type identifier (otherwise '') -> validation rules
+    protected readonly validationRulesBeforeAfter: Map<string, Array<ValidationRuleWithBeforeAfter<ElementType, RootType>>> = new Map(); // type identifier (otherwise '') -> validation rules
 
     constructor(services: TypirServices) {
         this.services = services;
         this.services.graph.addListener(this);
     }
 
-    validateBefore(domainRoot: unknown): ValidationProblem[] {
+    validateBefore(domainRoot: RootType): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
         for (const rules of this.validationRulesBeforeAfter.values()) {
             for (const rule of rules) {
@@ -186,7 +186,7 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
         return problems;
     }
 
-    validate(domainElement: unknown): ValidationProblem[] {
+    validate(domainElement: ElementType): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
         for (const rules of this.validationRules.values()) {
             for (const rule of rules) {
@@ -201,7 +201,7 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
         return problems;
     }
 
-    validateAfter(domainRoot: unknown): ValidationProblem[] {
+    validateAfter(domainRoot: RootType): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
         for (const rules of this.validationRulesBeforeAfter.values()) {
             for (const rule of rules) {
@@ -211,7 +211,7 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
         return problems;
     }
 
-    addValidationRule(rule: ValidationRule, boundToType?: Type): void {
+    addValidationRule(rule: ValidationRule<ElementType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
         let rules = this.validationRules.get(key);
         if (!rules) {
@@ -221,7 +221,7 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
         rules.push(rule);
     }
 
-    removeValidationRule(rule: ValidationRule, boundToType?: Type): void {
+    removeValidationRule(rule: ValidationRule<ElementType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
         const rules = this.validationRules.get(key);
         if (rules) {
@@ -232,7 +232,7 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
         }
     }
 
-    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void {
+    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<ElementType, RootType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
         let rules = this.validationRulesBeforeAfter.get(key);
         if (!rules) {
@@ -242,7 +242,7 @@ export class DefaultValidationCollector implements ValidationCollector, TypeGrap
         rules.push(rule);
     }
 
-    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter, boundToType?: Type): void {
+    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<ElementType, RootType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
         const rules = this.validationRulesBeforeAfter.get(key);
         if (rules) {
