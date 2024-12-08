@@ -52,7 +52,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         this.initialFunctionType = new FunctionType(kind, typeDetails);
 
         this.inferenceRules = createInferenceRules(typeDetails, kind, this.initialFunctionType);
-        registerInferenceRules(this.inferenceRules, kind, functionName, undefined);
+        this.registerInferenceRules(functionName, undefined);
 
         this.initialFunctionType.addListener(this, true);
     }
@@ -67,12 +67,12 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         const readyFunctionType = this.producedType(functionType);
         if (readyFunctionType !== functionType) {
             functionType.removeListener(this);
-            deregisterInferenceRules(this.inferenceRules, this.kind, functionName, undefined);
+            this.deregisterInferenceRules(functionName, undefined);
             this.inferenceRules = createInferenceRules(this.typeDetails, this.kind, readyFunctionType);
-            registerInferenceRules(this.inferenceRules, this.kind, functionName, readyFunctionType);
+            this.registerInferenceRules(functionName, readyFunctionType);
         } else {
-            deregisterInferenceRules(this.inferenceRules, this.kind, functionName, undefined);
-            registerInferenceRules(this.inferenceRules, this.kind, functionName, readyFunctionType);
+            this.deregisterInferenceRules(functionName, undefined);
+            this.registerInferenceRules(functionName, readyFunctionType);
         }
 
         // remember the new function for later in order to enable overloaded functions!
@@ -103,33 +103,31 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
     switchedToInvalid(_functionType: Type): void {
         // nothing specific needs to be done for Functions here, since the base implementation takes already care about all relevant stuff
     }
+
+    protected registerInferenceRules(functionName: string, functionType: FunctionType | undefined): void {
+        if (this.inferenceRules.forCall) {
+            const overloaded = this.kind.mapNameTypes.get(functionName)!;
+            overloaded.inference.addInferenceRule(this.inferenceRules.forCall, functionType);
+        }
+        if (this.inferenceRules.forDeclaration) {
+            this.kind.services.inference.addInferenceRule(this.inferenceRules.forDeclaration, functionType);
+        }
+    }
+
+    protected deregisterInferenceRules(functionName: string, functionType: FunctionType | undefined): void {
+        if (this.inferenceRules.forCall) {
+            const overloaded = this.kind.mapNameTypes.get(functionName);
+            overloaded?.inference.removeInferenceRule(this.inferenceRules.forCall, functionType);
+        }
+        if (this.inferenceRules.forDeclaration) {
+            this.kind.services.inference.removeInferenceRule(this.inferenceRules.forDeclaration, functionType);
+        }
+    }
 }
 
 interface FunctionInferenceRules {
     forCall?: TypeInferenceRule;
     forDeclaration?: TypeInferenceRule;
-}
-
-function registerInferenceRules(rules: FunctionInferenceRules, functionKind: FunctionKind, functionName: string, functionType: FunctionType | undefined): void {
-    if (rules.forCall) {
-        const overloaded = functionKind.mapNameTypes.get(functionName)!;
-        overloaded.inference.addInferenceRule(rules.forCall, functionType);
-    }
-
-    if (rules.forDeclaration) {
-        functionKind.services.inference.addInferenceRule(rules.forDeclaration, functionType);
-    }
-}
-
-function deregisterInferenceRules(rules: FunctionInferenceRules, functionKind: FunctionKind, functionName: string, functionType: FunctionType | undefined): void {
-    if (rules.forCall) {
-        const overloaded = functionKind.mapNameTypes.get(functionName);
-        overloaded?.inference.removeInferenceRule(rules.forCall, functionType);
-    }
-
-    if (rules.forDeclaration) {
-        functionKind.services.inference.removeInferenceRule(rules.forDeclaration, functionType);
-    }
 }
 
 function createInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, functionKind: FunctionKind, functionType: FunctionType): FunctionInferenceRules {
