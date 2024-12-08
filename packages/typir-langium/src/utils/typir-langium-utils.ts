@@ -4,8 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, AstUtils, LangiumDocument, URI } from 'langium';
-import { LangiumServices } from 'langium/lsp';
+import { AstNode, AstUtils, LangiumDocument, LangiumSharedCoreServices, URI } from 'langium';
 
 export function getDocumentKeyForURI(document: URI): string {
     return document.toString();
@@ -19,11 +18,11 @@ export function getDocumentKey(node: AstNode): string {
     return getDocumentKeyForDocument(AstUtils.getDocument(node));
 }
 
-export async function deleteAllDocuments(services: LangiumServices) {
-    const docsToDelete = services.shared.workspace.LangiumDocuments.all
+export async function deleteAllDocuments(services: LangiumSharedCoreServices) {
+    const docsToDelete = services.workspace.LangiumDocuments.all
         .map((x) => x.uri)
         .toArray();
-    await services.shared.workspace.DocumentBuilder.update(
+    await services.workspace.DocumentBuilder.update(
         [], // update no documents
         docsToDelete // delete all documents
     );
