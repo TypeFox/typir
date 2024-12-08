@@ -17,7 +17,7 @@ export const loxServices = createLoxServices(EmptyFileSystem).Lox;
 export const operatorNames = ['-', '*', '/', '+', '+', '+', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '!=', '=', '!', '-'];
 
 afterEach(async () => {
-    await deleteAllDocuments(loxServices);
+    await deleteAllDocuments(loxServices.shared);
     // check, that there are no user-defined classes and functions after clearing/invalidating all LOX documents
     expectTypirTypes(loxServices, isClassType);
     expectTypirTypes(loxServices, isFunctionType, ...operatorNames);

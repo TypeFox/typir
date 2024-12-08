@@ -17,7 +17,7 @@ export const oxServices = createOxServices(EmptyFileSystem).Ox;
 export const operatorNames = ['-', '*', '/', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '==', '!=', '!=', '!', '-'];
 
 afterEach(async () => {
-    await deleteAllDocuments(oxServices);
+    await deleteAllDocuments(oxServices.shared);
     // check, that there are no user-defined classes and functions after clearing/invalidating all LOX documents
     expectTypirTypes(oxServices, isFunctionType, ...operatorNames);
 });

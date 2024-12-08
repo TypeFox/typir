@@ -5,7 +5,6 @@
  ******************************************************************************/
 
 import { AstNode, ContextCache, DocumentState, LangiumSharedCoreServices, URI } from 'langium';
-import { LangiumSharedServices } from 'langium/lsp';
 import { CachePending, DomainElementInferenceCaching, Type } from 'typir';
 import { getDocumentKey } from '../utils/typir-langium-utils.js';
 
@@ -13,7 +12,7 @@ import { getDocumentKey } from '../utils/typir-langium-utils.js';
 export class LangiumDomainElementInferenceCaching implements DomainElementInferenceCaching {
     protected readonly cache: DocumentCache<unknown, Type | CachePending>; // removes cached AstNodes, if their underlying LangiumDocuments are invalidated
 
-    constructor(langiumServices: LangiumSharedServices) {
+    constructor(langiumServices: LangiumSharedCoreServices) {
         this.cache = new DocumentCache(langiumServices, DocumentState.IndexedReferences);
     }
 

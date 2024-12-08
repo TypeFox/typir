@@ -4,8 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument } from 'langium';
-import { LangiumSharedServices } from 'langium/lsp';
+import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument, LangiumSharedCoreServices } from 'langium';
 import { Type, TypeEdge, TypeGraph, TypeGraphListener, TypirServices } from 'typir';
 import { getDocumentKeyForDocument, getDocumentKeyForURI } from '../utils/typir-langium-utils.js';
 
@@ -28,7 +27,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
     protected readonly documentTypesMap: Map<string, Type[]> = new Map();
     protected readonly typeGraph: TypeGraph;
 
-    constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
+    constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
         this.typeGraph = typirServices.graph;
 
         // for new and updated documents
@@ -120,7 +119,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
 }
 
 export class PlaceholderLangiumTypeCreator extends AbstractLangiumTypeCreator {
-    constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
+    constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
         super(typirServices, langiumServices);
     }
     override onInitialize(): void {

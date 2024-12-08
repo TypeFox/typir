@@ -4,12 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, AstUtils, ValidationAcceptor, ValidationChecks } from 'langium';
-import { LangiumServices } from 'langium/lsp';
+import { AstNode, AstUtils, LangiumDefaultCoreServices, ValidationAcceptor, ValidationChecks } from 'langium';
 import { TypirServices, ValidationProblem } from 'typir';
 import { LangiumServicesForTypirBinding } from '../typir-langium.js';
 
-export function registerTypirValidationChecks(services: LangiumServices & LangiumServicesForTypirBinding) {
+export function registerTypirValidationChecks(services: LangiumDefaultCoreServices & LangiumServicesForTypirBinding) {
     const registry = services.validation.ValidationRegistry;
     const validator = services.TypeValidation;
     const checks: ValidationChecks<object> = {
