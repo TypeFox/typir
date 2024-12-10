@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { PrimitiveFactoryService } from '../../services/factory.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
@@ -20,6 +19,11 @@ export interface PrimitiveTypeDetails {
 export type InferPrimitiveType = (domainElement: unknown) => boolean;
 
 export const PrimitiveKindName = 'PrimitiveKind';
+
+export interface PrimitiveFactoryService {
+    create(typeDetails: PrimitiveTypeDetails): PrimitiveType;
+    get(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined;
+}
 
 export class PrimitiveKind implements Kind, PrimitiveFactoryService {
     readonly $name: 'PrimitiveKind';

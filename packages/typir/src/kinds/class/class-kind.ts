@@ -58,6 +58,11 @@ export type InferClassLiteral<T = unknown> = {
 };
 
 
+export interface ClassFactoryService {
+    create<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): TypeInitializer<ClassType>;
+    get<T>(typeDetails: ClassTypeDetails<T> | string): TypeReference<ClassType>;
+}
+
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
  * Fields have exactly one type and no multiplicity (which can be realized with a type of kind 'MultiplicityKind').
@@ -65,7 +70,7 @@ export type InferClassLiteral<T = unknown> = {
  * The field name is used to identify fields of classes.
  * The order of fields is not defined, i.e. there is no order of fields.
  */
-export class ClassKind implements Kind {
+export class ClassKind implements Kind, ClassFactoryService {
     readonly $name: 'ClassKind';
     readonly services: TypirServices;
     readonly options: Readonly<ClassKindOptions>;
@@ -91,7 +96,7 @@ export class ClassKind implements Kind {
      * @param typeDetails all information needed to identify the class
      * @returns a reference to the class type, which might be resolved in the future, if the class type does not yet exist
      */
-    getClassType<T>(typeDetails: ClassTypeDetails<T> | string): TypeReference<ClassType> { // string for nominal typing
+    get<T>(typeDetails: ClassTypeDetails<T> | string): TypeReference<ClassType> { // string for nominal typing
         if (typeof typeDetails === 'string') {
             // nominal typing
             return new TypeReference(typeDetails, this.services);
@@ -108,7 +113,7 @@ export class ClassKind implements Kind {
      * @param typeDetails all information needed to create a new class
      * @returns an initializer which creates and returns the new class type, when all depending types are resolved
      */
-    createClassType<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): TypeInitializer<ClassType> {
+    create<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): TypeInitializer<ClassType> {
         return new ClassTypeInitializer(this.services, this, typeDetails);
     }
 

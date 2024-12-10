@@ -5,13 +5,15 @@
  ******************************************************************************/
 
 import { TypeGraph } from './graph/type-graph.js';
-import { FunctionKind } from './kinds/function/function-kind.js';
-import { PrimitiveKind } from './kinds/primitive/primitive-kind.js';
+import { BottomFactoryService, BottomKind } from './kinds/bottom/bottom-kind.js';
+import { ClassFactoryService, ClassKind } from './kinds/class/class-kind.js';
+import { FunctionKind, FunctionPredefinedService } from './kinds/function/function-kind.js';
+import { PrimitiveFactoryService, PrimitiveKind } from './kinds/primitive/primitive-kind.js';
+import { TopFactoryService, TopKind } from './kinds/top/top-kind.js';
 import { DefaultTypeAssignability, TypeAssignability } from './services/assignability.js';
 import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './services/caching.js';
 import { DefaultTypeConversion, TypeConversion } from './services/conversion.js';
 import { DefaultTypeEquality, TypeEquality } from './services/equality.js';
-import { FunctionPredefinedService, PrimitiveFactoryService } from './services/factory.js';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './services/inference.js';
 import { DefaultKindRegistry, KindRegistry } from './services/kind-registry.js';
 import { DefaultOperatorManager, OperatorManager } from './services/operator.js';
@@ -51,17 +53,18 @@ export type TypirServices = {
     };
     readonly graph: TypeGraph;
     readonly kinds: KindRegistry;
-    // readonly operators: OperatorManager;
     readonly printer: ProblemPrinter;
     readonly validation: {
         readonly collector: ValidationCollector;
         readonly constraints: ValidationConstraints;
     };
-    // readonly factory: PredefinedService; // alternative names: predefined, library, types
     readonly factory: {
-        primitives: PrimitiveFactoryService;
-        functions: FunctionPredefinedService;
-        operators: OperatorManager;
+        readonly primitives: PrimitiveFactoryService;
+        readonly functions: FunctionPredefinedService;
+        readonly classes: ClassFactoryService;
+        readonly top: TopFactoryService;
+        readonly bottom: BottomFactoryService;
+        readonly operators: OperatorManager;
     };
 };
 
@@ -76,18 +79,18 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
         typeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
         domainElementInference: () => new DefaultDomainElementInferenceCaching()
     },
-    // operators: (services) => new DefaultOperatorManager(services),
     kinds: () => new DefaultKindRegistry(),
     printer: () => new DefaultTypeConflictPrinter(),
     validation: {
         collector: (services) => new DefaultValidationCollector(services),
         constraints: (services) => new DefaultValidationConstraints(services),
     },
-    // factory: (services) => new DefaultPredefinedService(services),
     factory: {
-        // primitives: (services) => new DefaultPrimitivePredefinedService(services),
         primitives: (services) => new PrimitiveKind(services),
-        functions: (services) => new FunctionKind(services, { subtypeParameterChecking: 'ASSIGNABLE_TYPE' }),
+        functions: (services) => new FunctionKind(services),
+        classes: (services) => new ClassKind(services),
+        top: (services) => new TopKind(services),
+        bottom: (services) => new BottomKind(services),
         operators: (services) => new DefaultOperatorManager(services),
     },
 };

@@ -34,7 +34,7 @@ describe('Tests for Typir', () => {
 
         // create class type Person with 1 firstName and 1..2 lastNames and an age properties
         const typeOneOrTwoStrings = multiplicityKind.createMultiplicityType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
-        const typePerson = classKind.createClassType({
+        const typePerson = classKind.create({
             className: 'Person',
             fields: [
                 { name: 'firstName', type: typeString },
@@ -44,7 +44,7 @@ describe('Tests for Typir', () => {
             methods: [],
         });
         console.log(typePerson.getTypeFinal()!.getUserRepresentation());
-        const typeStudent = classKind.createClassType({
+        const typeStudent = classKind.create({
             className: 'Student',
             superClasses: typePerson, // a Student is a special Person
             fields: [
@@ -64,27 +64,27 @@ describe('Tests for Typir', () => {
         });
 
         // binary operators on Integers
-        const opAdd = typir.operators.createBinary({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } });
-        const opMinus = typir.operators.createBinary({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } });
-        const opLess = typir.operators.createBinary({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } });
-        const opEqualInt = typir.operators.createBinary({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean },
+        const opAdd = typir.factory.operators.createBinary({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } });
+        const opMinus = typir.factory.operators.createBinary({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } });
+        const opLess = typir.factory.operators.createBinary({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } });
+        const opEqualInt = typir.factory.operators.createBinary({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean },
             inferenceRule: {
                 filter: (domainElement): domainElement is string => typeof domainElement === 'string',
                 matching: domainElement => domainElement.includes('=='),
                 operands: domainElement => []
             }});
         // binary operators on Booleans
-        const opEqualBool = typir.operators.createBinary({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
-        const opAnd = typir.operators.createBinary({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
+        const opEqualBool = typir.factory.operators.createBinary({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
+        const opAnd = typir.factory.operators.createBinary({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
         // unary operators
-        const opNotBool = typir.operators.createUnaryOperator({ name: '!', signature: { operand: typeBoolean, return: typeBoolean },
+        const opNotBool = typir.factory.operators.createUnary({ name: '!', signature: { operand: typeBoolean, return: typeBoolean },
             inferenceRule: {
                 filter: (domainElement): domainElement is string => typeof domainElement === 'string',
                 matching: domainElement => domainElement.includes('NOT'),
                 operand: domainElement => []
             }});
         // ternary operator
-        const opTernaryIf = typir.operators.createTernaryOperator({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } });
+        const opTernaryIf = typir.factory.operators.createTernary({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } });
 
         // automated conversion from int to string
         // it is possible to define multiple sources and/or targets at the same time:

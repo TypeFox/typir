@@ -4,21 +4,20 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { CompositeTypeInferenceRule } from '../../services/inference.js';
-import { ValidationProblem } from '../../services/validation.js';
 import { TypeEdge } from '../../graph/type-edge.js';
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference, resolveTypeSelector } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
+import { CompositeTypeInferenceRule } from '../../services/inference.js';
+import { ValidationProblem } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { NameTypePair } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy, checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { Kind, isKind } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
 import { FunctionType, isFunctionType } from './function-type.js';
-import { FunctionPredefinedService } from '../../services/factory.js';
 
 
 export interface FunctionKindOptions {
@@ -96,6 +95,11 @@ export type InferFunctionCall<T = unknown> = {
  * - search in all Types VS remember them in a Map; add VS remove function type
  */
 
+
+export interface FunctionPredefinedService {
+    create<T>(typeDetails: CreateFunctionTypeDetails<T>): TypeInitializer<FunctionType>;
+    get(typeDetails: FunctionTypeDetails): TypeReference<FunctionType>;
+}
 
 /**
  * Represents signatures of executable code.
@@ -235,7 +239,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionPredefined
         );
     }
 
-    getFunctionType(typeDetails: FunctionTypeDetails): TypeReference<FunctionType> {
+    get(typeDetails: FunctionTypeDetails): TypeReference<FunctionType> {
         return new TypeReference(() => this.calculateIdentifier(typeDetails), this.services);
     }
 
