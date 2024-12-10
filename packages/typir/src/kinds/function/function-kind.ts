@@ -18,6 +18,7 @@ import { TypeCheckStrategy, checkTypes, checkValueForConflict, createTypeCheckSt
 import { Kind, isKind } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
 import { FunctionType, isFunctionType } from './function-type.js';
+import { FunctionPredefinedService } from '../../services/factory.js';
 
 
 export interface FunctionKindOptions {
@@ -112,7 +113,7 @@ export type InferFunctionCall<T = unknown> = {
  * - optional parameters
  * - parameters which are used for output AND input
  */
-export class FunctionKind implements Kind, TypeGraphListener {
+export class FunctionKind implements Kind, TypeGraphListener, FunctionPredefinedService {
     readonly $name: 'FunctionKind';
     readonly services: TypirServices;
     readonly options: Readonly<FunctionKindOptions>;
@@ -238,7 +239,7 @@ export class FunctionKind implements Kind, TypeGraphListener {
         return new TypeReference(() => this.calculateIdentifier(typeDetails), this.services);
     }
 
-    createFunctionType<T>(typeDetails: CreateFunctionTypeDetails<T>): TypeInitializer<FunctionType> {
+    create<T>(typeDetails: CreateFunctionTypeDetails<T>): TypeInitializer<FunctionType> {
         return new FunctionTypeInitializer(this.services, this, typeDetails);
     }
 

@@ -4,17 +4,20 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeGraph } from './graph/type-graph.js';
+import { FunctionKind } from './kinds/function/function-kind.js';
+import { PrimitiveKind } from './kinds/primitive/primitive-kind.js';
 import { DefaultTypeAssignability, TypeAssignability } from './services/assignability.js';
 import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './services/caching.js';
 import { DefaultTypeConversion, TypeConversion } from './services/conversion.js';
 import { DefaultTypeEquality, TypeEquality } from './services/equality.js';
+import { FunctionPredefinedService, PrimitiveFactoryService } from './services/factory.js';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './services/inference.js';
+import { DefaultKindRegistry, KindRegistry } from './services/kind-registry.js';
 import { DefaultOperatorManager, OperatorManager } from './services/operator.js';
 import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.js';
 import { DefaultSubType, SubType } from './services/subtype.js';
 import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './services/validation.js';
-import { TypeGraph } from './graph/type-graph.js';
-import { DefaultKindRegistry, KindRegistry } from './services/kind-registry.js';
 import { inject, Module } from './utils/dependency-injection.js';
 
 /**
@@ -48,11 +51,17 @@ export type TypirServices = {
     };
     readonly graph: TypeGraph;
     readonly kinds: KindRegistry;
-    readonly operators: OperatorManager;
+    // readonly operators: OperatorManager;
     readonly printer: ProblemPrinter;
     readonly validation: {
         readonly collector: ValidationCollector;
         readonly constraints: ValidationConstraints;
+    };
+    // readonly factory: PredefinedService; // alternative names: predefined, library, types
+    readonly factory: {
+        primitives: PrimitiveFactoryService;
+        functions: FunctionPredefinedService;
+        operators: OperatorManager;
     };
 };
 
@@ -67,12 +76,19 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
         typeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
         domainElementInference: () => new DefaultDomainElementInferenceCaching()
     },
-    operators: (services) => new DefaultOperatorManager(services),
+    // operators: (services) => new DefaultOperatorManager(services),
     kinds: () => new DefaultKindRegistry(),
     printer: () => new DefaultTypeConflictPrinter(),
     validation: {
         collector: (services) => new DefaultValidationCollector(services),
         constraints: (services) => new DefaultValidationConstraints(services),
+    },
+    // factory: (services) => new DefaultPredefinedService(services),
+    factory: {
+        // primitives: (services) => new DefaultPrimitivePredefinedService(services),
+        primitives: (services) => new PrimitiveKind(services),
+        functions: (services) => new FunctionKind(services, { subtypeParameterChecking: 'ASSIGNABLE_TYPE' }),
+        operators: (services) => new DefaultOperatorManager(services),
     },
 };
 

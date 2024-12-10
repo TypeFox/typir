@@ -27,10 +27,10 @@ describe('Tests for Typir', () => {
         const functionKind = new FunctionKind(typir);
 
         // create some primitive types
-        const typeInt = primitiveKind.createPrimitiveType({ primitiveName: 'Integer' });
-        const typeString = primitiveKind.createPrimitiveType({ primitiveName: 'String',
+        const typeInt = primitiveKind.create({ primitiveName: 'Integer' });
+        const typeString = primitiveKind.create({ primitiveName: 'String',
             inferenceRules: domainElement => typeof domainElement === 'string'}); // combine type definition with a dedicated inference rule for it
-        const typeBoolean = primitiveKind.createPrimitiveType({ primitiveName: 'Boolean' });
+        const typeBoolean = primitiveKind.create({ primitiveName: 'Boolean' });
 
         // create class type Person with 1 firstName and 1..2 lastNames and an age properties
         const typeOneOrTwoStrings = multiplicityKind.createMultiplicityType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
@@ -57,25 +57,25 @@ describe('Tests for Typir', () => {
         const typeListInt = listKind.createFixedParameterType({ parameterTypes: typeInt });
         const typeListString = listKind.createFixedParameterType({ parameterTypes: typeString });
         // const typeMapStringPerson = mapKind.createFixedParameterType({ parameterTypes: [typeString, typePerson] });
-        const typeFunctionStringLength = functionKind.createFunctionType({
+        const typeFunctionStringLength = functionKind.create({
             functionName: 'length',
             outputParameter: { name: NO_PARAMETER_NAME, type: typeInt },
             inputParameters: [{ name: 'value', type: typeString }]
         });
 
         // binary operators on Integers
-        const opAdd = typir.operators.createBinaryOperator({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } });
-        const opMinus = typir.operators.createBinaryOperator({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } });
-        const opLess = typir.operators.createBinaryOperator({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } });
-        const opEqualInt = typir.operators.createBinaryOperator({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean },
+        const opAdd = typir.operators.createBinary({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } });
+        const opMinus = typir.operators.createBinary({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } });
+        const opLess = typir.operators.createBinary({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } });
+        const opEqualInt = typir.operators.createBinary({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean },
             inferenceRule: {
                 filter: (domainElement): domainElement is string => typeof domainElement === 'string',
                 matching: domainElement => domainElement.includes('=='),
                 operands: domainElement => []
             }});
         // binary operators on Booleans
-        const opEqualBool = typir.operators.createBinaryOperator({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
-        const opAnd = typir.operators.createBinaryOperator({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
+        const opEqualBool = typir.operators.createBinary({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
+        const opAnd = typir.operators.createBinary({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
         // unary operators
         const opNotBool = typir.operators.createUnaryOperator({ name: '!', signature: { operand: typeBoolean, return: typeBoolean },
             inferenceRule: {

@@ -66,12 +66,12 @@ export interface GenericOperatorDetails<T> {
 
 // TODO rename it to "OperatorFactory", when there are no more responsibilities!
 export interface OperatorManager {
-    createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type>
-    createBinaryOperator<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type>
-    createTernaryOperator<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type>
+    createUnary<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type>
+    createBinary<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type>
+    createTernary<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type>
 
     /** This function allows to create a single operator with arbitrary input operands. */
-    createGenericOperator<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type>;
+    createGeneric<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type>;
 }
 
 /**
@@ -99,11 +99,11 @@ export class DefaultOperatorManager implements OperatorManager {
         this.services = services;
     }
 
-    createUnaryOperator<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type> {
+    createUnary<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type> {
         const signatures = toArray(typeDetails.signature);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
-            result.push(this.createGenericOperator({
+            result.push(this.createGeneric({
                 name: typeDetails.name,
                 outputType: signature.return,
                 inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
@@ -115,11 +115,11 @@ export class DefaultOperatorManager implements OperatorManager {
         return result.length === 1 ? result[0] : result;
     }
 
-    createBinaryOperator<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type> {
+    createBinary<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type> {
         const signatures = toArray(typeDetails.signature);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
-            result.push(this.createGenericOperator({
+            result.push(this.createGeneric({
                 name: typeDetails.name,
                 outputType: signature.return,
                 inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
@@ -132,11 +132,11 @@ export class DefaultOperatorManager implements OperatorManager {
         return result.length === 1 ? result[0] : result;
     }
 
-    createTernaryOperator<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type> {
+    createTernary<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type> {
         const signatures = toArray(typeDetails.signature);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
-            result.push(this.createGenericOperator({
+            result.push(this.createGeneric({
                 name: typeDetails.name,
                 outputType: signature.return,
                 inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
@@ -150,12 +150,12 @@ export class DefaultOperatorManager implements OperatorManager {
         return result.length === 1 ? result[0] : result;
     }
 
-    createGenericOperator<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type> {
+    createGeneric<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type> {
         // define/register the wanted operator as "special" function
         const functionKind = this.getFunctionKind();
 
         // create the operator as type of kind 'function'
-        const newOperatorType = functionKind.createFunctionType({
+        const newOperatorType = functionKind.create({
             functionName: typeDetails.name,
             outputParameter: { name: NO_PARAMETER_NAME, type: typeDetails.outputType },
             inputParameters: typeDetails.inputParameter,

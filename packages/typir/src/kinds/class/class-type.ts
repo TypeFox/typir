@@ -88,7 +88,7 @@ export class ClassType extends Type {
 
         // resolve methods
         this.methods = typeDetails.methods.map(method => <MethodDetails>{
-            type: new TypeReference(kind.getMethodKind().createFunctionType(method), kind.services),
+            type: new TypeReference(kind.getMethodKind().create(method), kind.services),
         });
         const refMethods = this.methods.map(m => m.type);
         // the uniqueness of methods can be checked with the predefined UniqueMethodValidation below
