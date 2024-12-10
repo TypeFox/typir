@@ -5,19 +5,19 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference, resolveTypeSelector } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
+import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../../utils/utils.js';
-import { CreateFunctionTypeDetails, FunctionKind, FunctionKindName, isFunctionKind } from '../function/function-kind.js';
+import { CreateFunctionTypeDetails, FunctionPredefinedService } from '../function/function-kind.js';
 import { Kind, isKind } from '../kind.js';
+import { ClassTypeInitializer } from './class-initializer.js';
+import { ClassType, isClassType } from './class-type.js';
 import { TopClassKind, TopClassKindName, TopClassTypeDetails, isTopClassKind } from './top-class-kind.js';
 import { TopClassType } from './top-class-type.js';
-import { ClassType, isClassType } from './class-type.js';
-import { ClassTypeInitializer } from './class-initializer.js';
 
 export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
@@ -143,7 +143,7 @@ export class ClassKind implements Kind, ClassFactoryService {
                 .sort() // the order of fields does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
             // methods
-            const functionKind = this.getMethodKind();
+            const functionKind = this.getMethodFactory();
             const methods: string = typeDetails.methods
                 .map(createMethodDetails => {
                     return functionKind.calculateIdentifier(createMethodDetails); // reuse the Identifier for Functions here!
@@ -180,10 +180,8 @@ export class ClassKind implements Kind, ClassFactoryService {
         return `${this.getIdentifierPrefix()}${typeDetails.className}`;
     }
 
-    getMethodKind(): FunctionKind {
-        // ensure, that Typir uses the predefined 'function' kind for methods
-        const kind = this.services.kinds.get(FunctionKindName);
-        return isFunctionKind(kind) ? kind : new FunctionKind(this.services);
+    getMethodFactory(): FunctionPredefinedService {
+        return this.services.factory.functions;
     }
 
     getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {

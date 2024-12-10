@@ -99,6 +99,7 @@ export type InferFunctionCall<T = unknown> = {
 export interface FunctionPredefinedService {
     create<T>(typeDetails: CreateFunctionTypeDetails<T>): TypeInitializer<FunctionType>;
     get(typeDetails: FunctionTypeDetails): TypeReference<FunctionType>;
+    calculateIdentifier(typeDetails: FunctionTypeDetails): string;
 }
 
 /**

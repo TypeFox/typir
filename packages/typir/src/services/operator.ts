@@ -5,9 +5,9 @@
  ******************************************************************************/
 
 import { Type } from '../graph/type-node.js';
-import { FunctionKind, FunctionKindName, isFunctionKind, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
-import { TypirServices } from '../typir.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
+import { FunctionPredefinedService, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
+import { TypirServices } from '../typir.js';
 import { NameTypePair, TypeInitializers } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
 
@@ -152,7 +152,7 @@ export class DefaultOperatorManager implements OperatorManager {
 
     createGeneric<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type> {
         // define/register the wanted operator as "special" function
-        const functionKind = this.getFunctionKind();
+        const functionKind = this.getFunctionFactory();
 
         // create the operator as type of kind 'function'
         const newOperatorType = functionKind.create({
@@ -174,9 +174,7 @@ export class DefaultOperatorManager implements OperatorManager {
         return newOperatorType as unknown as TypeInitializer<Type>;
     }
 
-    protected getFunctionKind(): FunctionKind {
-        // ensure, that Typir uses the predefined 'function' kind
-        const kind = this.services.kinds.get(FunctionKindName);
-        return isFunctionKind(kind) ? kind : new FunctionKind(this.services);
+    protected getFunctionFactory(): FunctionPredefinedService {
+        return this.services.factory.functions;
     }
 }
