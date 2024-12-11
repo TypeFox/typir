@@ -38,7 +38,7 @@ describe('Tests for the new API', () => {
             matching: (node, operatorName) => node.operator === operatorName,
             operands: node => [node.left, node.right],
         };
-        typir.factory.operators.createBinary({ name: '+', signature: [
+        typir.factory.operators.createBinary({ name: '+', signature: [ // operator overloading
             { left: numberType, right: numberType, return: numberType }, // 2 + 3
             { left: stringType, right: stringType, return: stringType }, // "2" + "3"
         ], inferenceRule });
@@ -57,7 +57,7 @@ describe('Tests for the new API', () => {
 
         // register a type-related validation
         typir.validation.collector.addValidationRule(node => {
-            if (node instanceof Statement) {
+            if (node instanceof AssignmentStatement) {
                 return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
                     `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
             }
@@ -81,12 +81,12 @@ describe('Tests for the new API', () => {
 
         // 123 is assignable to a string variable
         const varString = new Variable('v1', new StringLiteral('Hello'));
-        const assignNumberToString = new Statement(varString, new NumberLiteral(123));
+        const assignNumberToString = new AssignmentStatement(varString, new NumberLiteral(123));
         expect(typir.validation.collector.validate(assignNumberToString)).toHaveLength(0);
 
         // "123" is not assignable to a number variable
         const varNumber = new Variable('v2', new NumberLiteral(456));
-        const assignStringToNumber = new Statement(varNumber, new StringLiteral('123'));
+        const assignStringToNumber = new AssignmentStatement(varNumber, new StringLiteral('123'));
         const errors2 = typir.validation.collector.validate(assignStringToNumber);
         expect(errors2[0].message).toBe("The type 'string' is not assignable to the type 'number'.");
     });
@@ -134,7 +134,7 @@ class Variable extends AstElement {
     }
 }
 
-class Statement extends AstElement {
+class AssignmentStatement extends AstElement {
     left: Variable;
     right: AstElement;
     constructor(left: Variable, right: AstElement) {
