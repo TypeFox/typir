@@ -143,10 +143,10 @@ export class ClassKind implements Kind, ClassFactoryService {
                 .sort() // the order of fields does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
             // methods
-            const functionKind = this.getMethodFactory();
+            const functionFactory = this.getMethodFactory();
             const methods: string = typeDetails.methods
                 .map(createMethodDetails => {
-                    return functionKind.calculateIdentifier(createMethodDetails); // reuse the Identifier for Functions here!
+                    return functionFactory.calculateIdentifier(createMethodDetails); // reuse the Identifier for Functions here!
                 })
                 .sort() // the order of methods does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');

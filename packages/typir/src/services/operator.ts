@@ -152,10 +152,10 @@ export class DefaultOperatorManager implements OperatorManager {
 
     createGeneric<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type> {
         // define/register the wanted operator as "special" function
-        const functionKind = this.getFunctionFactory();
+        const functionFactory = this.getFunctionFactory();
 
         // create the operator as type of kind 'function'
-        const newOperatorType = functionKind.create({
+        const newOperatorType = functionFactory.create({
             functionName: typeDetails.name,
             outputParameter: { name: NO_PARAMETER_NAME, type: typeDetails.outputType },
             inputParameters: typeDetails.inputParameter,
