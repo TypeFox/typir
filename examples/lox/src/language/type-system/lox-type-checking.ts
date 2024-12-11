@@ -6,60 +6,47 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { ClassKind, CreateFieldDetails, CreateFunctionTypeDetails, CreateParameterDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, OperatorManager, PrimitiveKind, TopKind, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, createNoSuperClassCyclesValidation, ValidationMessageDetails } from 'typir';
+import { CreateFieldDetails, CreateFunctionTypeDetails, CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationMessageDetails, createNoSuperClassCyclesValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isClassMember, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export class LoxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: TypirServices;
-    protected readonly primitiveKind: PrimitiveKind;
-    protected readonly functionKind: FunctionKind;
-    protected readonly classKind: ClassKind;
-    protected readonly anyKind: TopKind;
-    protected readonly operators: OperatorManager;
 
     constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
         super(typirServices, langiumServices);
         this.typir = typirServices;
-
-        this.primitiveKind = new PrimitiveKind(this.typir);
-        this.functionKind = new FunctionKind(this.typir);
-        this.classKind = new ClassKind(this.typir, {
-            typing: 'Nominal',
-        });
-        this.anyKind = new TopKind(this.typir);
-        this.operators = this.typir.operators;
     }
 
     onInitialize(): void {
         // primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
-        const typeBool = this.primitiveKind.createPrimitiveType({ primitiveName: 'boolean',
+        const typeBool = this.typir.factory.primitives.create({ primitiveName: 'boolean',
             inferenceRules: [
                 isBooleanLiteral,
                 (node: unknown) => isTypeReference(node) && node.primitive === 'boolean'
             ]});
         // ... but their primitive kind is provided/preset by Typir
-        const typeNumber = this.primitiveKind.createPrimitiveType({ primitiveName: 'number',
+        const typeNumber = this.typir.factory.primitives.create({ primitiveName: 'number',
             inferenceRules: [
                 isNumberLiteral,
                 (node: unknown) => isTypeReference(node) && node.primitive === 'number'
             ]});
-        const typeString = this.primitiveKind.createPrimitiveType({ primitiveName: 'string',
+        const typeString = this.typir.factory.primitives.create({ primitiveName: 'string',
             inferenceRules: [
                 isStringLiteral,
                 (node: unknown) => isTypeReference(node) && node.primitive === 'string'
             ]});
-        const typeVoid = this.primitiveKind.createPrimitiveType({ primitiveName: 'void',
+        const typeVoid = this.typir.factory.primitives.create({ primitiveName: 'void',
             inferenceRules: [
                 (node: unknown) => isTypeReference(node) && node.primitive === 'void',
                 isPrintStatement,
                 (node: unknown) => isReturnStatement(node) && node.value === undefined
             ] });
-        const typeNil = this.primitiveKind.createPrimitiveType({ primitiveName: 'nil',
+        const typeNil = this.typir.factory.primitives.create({ primitiveName: 'nil',
             inferenceRules: isNilLiteral }); // From "Crafting Interpreters" no value, like null in other languages. Uninitialised variables default to nil. When the execution reaches the end of the block of a function body without hitting a return, nil is implicitly returned.
-        const typeAny = this.anyKind.createTopType({});
+        const typeAny = this.typir.factory.top.create({});
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
         const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
@@ -75,9 +62,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // binary operators: numbers => number
         for (const operator of ['-', '*', '/']) {
-            this.operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
         }
-        this.operators.createBinaryOperator({ name: '+', signature: [
+        this.typir.factory.operators.createBinary({ name: '+', signature: [
             { left: typeNumber, right: typeNumber, return: typeNumber },
             { left: typeString, right: typeString, return: typeString },
             { left: typeNumber, right: typeString, return: typeString },
@@ -86,24 +73,24 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
-            this.operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }, inferenceRule: binaryInferenceRule });
         }
 
         // binary operators: booleans => boolean
         for (const operator of ['and', 'or']) {
-            this.operators.createBinaryOperator({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }, inferenceRule: binaryInferenceRule });
         }
 
         // ==, != for all data types (the warning for different types is realized below)
         for (const operator of ['==', '!=']) {
-            this.operators.createBinaryOperator({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.operators.createBinary({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }, inferenceRule: binaryInferenceRule });
         }
         // = for SuperType = SubType (TODO integrate the validation here? should be replaced!)
-        this.operators.createBinaryOperator({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }, inferenceRule: binaryInferenceRule });
+        this.typir.factory.operators.createBinary({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }, inferenceRule: binaryInferenceRule });
 
         // unary operators
-        this.operators.createUnaryOperator({ name: '!', signature: { operand: typeBool, return: typeBool }, inferenceRule: unaryInferenceRule });
-        this.operators.createUnaryOperator({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
+        this.typir.factory.operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }, inferenceRule: unaryInferenceRule });
+        this.typir.factory.operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
 
         // additional inference rules for ...
         this.typir.inference.addInferenceRule((domainElement: unknown) => {
@@ -208,7 +195,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
         if (isFunctionDeclaration(node)) {
-            this.functionKind.createFunctionType(createFunctionDetails(node)); // this logic is reused for methods of classes, since the LOX grammar defines them very similar
+            this.typir.factory.functions.create(createFunctionDetails(node)); // this logic is reused for methods of classes, since the LOX grammar defines them very similar
         }
 
         // TODO support lambda (type references)!
@@ -216,7 +203,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         // class types (nominal typing):
         if (isClass(node)) {
             const className = node.name;
-            const classType = this.classKind.createClassType({
+            const classType = this.typir.factory.classes.create({
                 className,
                 superClasses: node.superClass?.ref, // note that type inference is used here
                 fields: node.members
@@ -250,7 +237,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             // any class !== all classes; here we want to say, that 'nil' is assignable to each concrete Class type!
             // this.typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateTopClassType({}), 'IMPLICIT_EXPLICIT');
             classType.addListener(type => {
-                this.typir.conversion.markAsConvertible(this.primitiveKind.getPrimitiveType({ primitiveName: 'nil' })!, type, 'IMPLICIT_EXPLICIT');
+                this.typir.conversion.markAsConvertible(this.typir.factory.primitives.get({ primitiveName: 'nil' })!, type, 'IMPLICIT_EXPLICIT');
             });
         }
     }

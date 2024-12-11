@@ -16,25 +16,27 @@ import { FixedParameterKind } from '../src/kinds/fixed-parameters/fixed-paramete
 describe('Tests for Typir', () => {
     test('Define some types', async () => {
         // start the type system
-        const typir = createTypirServices();
+        const typir = createTypirServices({
+            // customize some default factories for predefined types
+            factory: {
+                classes: (services) =>new ClassKind(typir, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' }),
+            },
+        });
 
         // reuse predefined kinds
-        const primitiveKind = new PrimitiveKind(typir);
         const multiplicityKind = new MultiplicityKind(typir, { symbolForUnlimited: '*' });
-        const classKind = new ClassKind(typir, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' });
         const listKind = new FixedParameterKind(typir, 'List', { parameterSubtypeCheckingStrategy: 'EQUAL_TYPE' }, 'entry');
         const mapKind = new FixedParameterKind(typir, 'Map', { parameterSubtypeCheckingStrategy: 'EQUAL_TYPE' }, 'key', 'value');
-        const functionKind = new FunctionKind(typir);
 
         // create some primitive types
-        const typeInt = primitiveKind.create({ primitiveName: 'Integer' });
-        const typeString = primitiveKind.create({ primitiveName: 'String',
+        const typeInt = typir.factory.primitives.create({ primitiveName: 'Integer' });
+        const typeString = typir.factory.primitives.create({ primitiveName: 'String',
             inferenceRules: domainElement => typeof domainElement === 'string'}); // combine type definition with a dedicated inference rule for it
-        const typeBoolean = primitiveKind.create({ primitiveName: 'Boolean' });
+        const typeBoolean = typir.factory.primitives.create({ primitiveName: 'Boolean' });
 
         // create class type Person with 1 firstName and 1..2 lastNames and an age properties
         const typeOneOrTwoStrings = multiplicityKind.createMultiplicityType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
-        const typePerson = classKind.create({
+        const typePerson = typir.factory.classes.create({
             className: 'Person',
             fields: [
                 { name: 'firstName', type: typeString },
@@ -44,7 +46,7 @@ describe('Tests for Typir', () => {
             methods: [],
         });
         console.log(typePerson.getTypeFinal()!.getUserRepresentation());
-        const typeStudent = classKind.create({
+        const typeStudent = typir.factory.classes.create({
             className: 'Student',
             superClasses: typePerson, // a Student is a special Person
             fields: [
@@ -57,7 +59,7 @@ describe('Tests for Typir', () => {
         const typeListInt = listKind.createFixedParameterType({ parameterTypes: typeInt });
         const typeListString = listKind.createFixedParameterType({ parameterTypes: typeString });
         // const typeMapStringPerson = mapKind.createFixedParameterType({ parameterTypes: [typeString, typePerson] });
-        const typeFunctionStringLength = functionKind.create({
+        const typeFunctionStringLength = typir.factory.functions.create({
             functionName: 'length',
             outputParameter: { name: NO_PARAMETER_NAME, type: typeInt },
             inputParameters: [{ name: 'value', type: typeString }]

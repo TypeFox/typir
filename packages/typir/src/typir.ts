@@ -88,7 +88,7 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
     factory: {
         primitives: (services) => new PrimitiveKind(services),
         functions: (services) => new FunctionKind(services),
-        classes: (services) => new ClassKind(services),
+        classes: (services) => new ClassKind(services, { typing: 'Nominal' }),
         top: (services) => new TopKind(services),
         bottom: (services) => new BottomKind(services),
         operators: (services) => new DefaultOperatorManager(services),
