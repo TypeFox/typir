@@ -10,11 +10,13 @@ import { TypeReference } from './type-reference.js';
 
 // This TypeScript type defines the possible ways to identify a wanted Typir type.
 // TODO find better names: TypeSpecification, TypeDesignation/Designator, ... ?
-export type TypeSelector =
+export type BasicTypeSelector =
     | Type              // the instance of the wanted type
     | string            // identifier of the type (in the type graph/map)
     | TypeInitializer   // delayed creation of types
     | TypeReference     // reference to a (maybe delayed) type
     | unknown           // domain node to infer the final type from
     ;
-export type DelayedTypeSelector = TypeSelector | (() => TypeSelector); // TODO
+export type TypeSelector =
+    | BasicTypeSelector             // all base type selectors
+    | (() => BasicTypeSelector);    // all type selectors might be given as functions as well, in order to ease delayed specifications
