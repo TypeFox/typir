@@ -23,7 +23,12 @@ export type InferBottomType = (domainElement: unknown) => boolean;
 
 export const BottomKindName = 'BottomKind';
 
-export class BottomKind implements Kind {
+export interface BottomFactoryService {
+    create(typeDetails: BottomTypeDetails): BottomType;
+    get(typeDetails: BottomTypeDetails): BottomType | undefined;
+}
+
+export class BottomKind implements Kind, BottomFactoryService {
     readonly $name: 'BottomKind';
     readonly services: TypirServices;
     readonly options: Readonly<BottomKindOptions>;
@@ -41,22 +46,13 @@ export class BottomKind implements Kind {
         };
     }
 
-    getBottomType(typeDetails: BottomTypeDetails): BottomType | undefined {
+    get(typeDetails: BottomTypeDetails): BottomType | undefined {
         const key = this.calculateIdentifier(typeDetails);
         return this.services.graph.getType(key) as BottomType;
     }
 
-    getOrCreateBottomType(typeDetails: BottomTypeDetails): BottomType {
-        const bottomType = this.getBottomType(typeDetails);
-        if (bottomType) {
-            this.registerInferenceRules(typeDetails, bottomType);
-            return bottomType;
-        }
-        return this.createBottomType(typeDetails);
-    }
-
-    createBottomType(typeDetails: BottomTypeDetails): BottomType {
-        assertTrue(this.getBottomType(typeDetails) === undefined);
+    create(typeDetails: BottomTypeDetails): BottomType {
+        assertTrue(this.get(typeDetails) === undefined);
         // create the bottom type (singleton)
         if (this.instance) {
             // note, that the given inference rules are ignored in this case!

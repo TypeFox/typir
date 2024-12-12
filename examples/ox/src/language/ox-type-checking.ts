@@ -6,39 +6,32 @@
 
 import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
 import { LangiumSharedServices } from 'langium/lsp';
-import { CreateParameterDetails, FunctionKind, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, OperatorManager, PrimitiveKind, TypirServices, UniqueFunctionValidation } from 'typir';
+import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/services/validation.js';
 import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, isBinaryExpression, isBooleanLiteral, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isNumberLiteral, isParameter, isReturnStatement, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 export class OxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: TypirServices;
-    protected readonly primitiveKind: PrimitiveKind;
-    protected readonly functionKind: FunctionKind;
-    protected readonly operators: OperatorManager;
 
     constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
         super(typirServices, langiumServices);
         this.typir = typirServices;
-
-        this.primitiveKind = new PrimitiveKind(this.typir);
-        this.functionKind = new FunctionKind(this.typir);
-        this.operators = this.typir.operators;
     }
 
     onInitialize(): void {
         // define primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
-        const typeBool = this.primitiveKind.createPrimitiveType({ primitiveName: 'boolean', inferenceRules: [
+        const typeBool = this.typir.factory.primitives.create({ primitiveName: 'boolean', inferenceRules: [
             isBooleanLiteral,
             (node: unknown) => isTypeReference(node) && node.primitive === 'boolean',
         ]});
         // ... but their primitive kind is provided/preset by Typir
-        const typeNumber = this.primitiveKind.createPrimitiveType({ primitiveName: 'number', inferenceRules: [
+        const typeNumber = this.typir.factory.primitives.create({ primitiveName: 'number', inferenceRules: [
             isNumberLiteral,
             (node: unknown) => isTypeReference(node) && node.primitive === 'number',
         ]});
-        const typeVoid = this.primitiveKind.createPrimitiveType({ primitiveName: 'void', inferenceRules:
+        const typeVoid = this.typir.factory.primitives.create({ primitiveName: 'void', inferenceRules:
             (node: unknown) => isTypeReference(node) && node.primitive === 'void'
         });
 
@@ -57,29 +50,29 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         // define operators
         // binary operators: numbers => number
         for (const operator of ['+', '-', '*', '/']) {
-            this.operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
         }
         // TODO better name: overloads, overloadRules, selectors, signatures
         // TODO better name for "inferenceRule": astSelectors
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
-            this.operators.createBinaryOperator({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }, inferenceRule: binaryInferenceRule });
         }
         // binary operators: booleans => boolean
         for (const operator of ['and', 'or']) {
-            this.operators.createBinaryOperator({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }, inferenceRule: binaryInferenceRule });
         }
         // ==, != for booleans and numbers
         for (const operator of ['==', '!=']) {
-            this.operators.createBinaryOperator({ name: operator, signature: [
+            this.typir.factory.operators.createBinary({ name: operator, signature: [
                 { left: typeNumber, right: typeNumber, return: typeBool },
                 { left: typeBool, right: typeBool, return: typeBool },
             ], inferenceRule: binaryInferenceRule });
         }
 
         // unary operators
-        this.operators.createUnaryOperator({ name: '!', signature: { operand: typeBool, return: typeBool }, inferenceRule: unaryInferenceRule });
-        this.operators.createUnaryOperator({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
+        this.typir.factory.operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }, inferenceRule: unaryInferenceRule });
+        this.typir.factory.operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
 
         /** Hints regarding the order of Typir configurations for OX:
          * - In general, Typir aims to not depend on the order of configurations.
@@ -171,7 +164,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         if (isFunctionDeclaration(domainElement)) {
             const functionName = domainElement.name;
             // define function type
-            this.functionKind.createFunctionType({
+            this.typir.factory.functions.create({
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
                 outputParameter: { name: NO_PARAMETER_NAME, type: domainElement.returnType },

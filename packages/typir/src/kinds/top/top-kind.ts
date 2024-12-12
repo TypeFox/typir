@@ -23,7 +23,12 @@ export type InferTopType = (domainElement: unknown) => boolean;
 
 export const TopKindName = 'TopKind';
 
-export class TopKind implements Kind {
+export interface TopFactoryService {
+    create(typeDetails: TopTypeDetails): TopType;
+    get(typeDetails: TopTypeDetails): TopType | undefined;
+}
+
+export class TopKind implements Kind, TopFactoryService {
     readonly $name: 'TopKind';
     readonly services: TypirServices;
     readonly options: Readonly<TopKindOptions>;
@@ -41,22 +46,13 @@ export class TopKind implements Kind {
         };
     }
 
-    getTopType(typeDetails: TopTypeDetails): TopType | undefined {
+    get(typeDetails: TopTypeDetails): TopType | undefined {
         const key = this.calculateIdentifier(typeDetails);
         return this.services.graph.getType(key) as TopType;
     }
 
-    getOrCreateTopType(typeDetails: TopTypeDetails): TopType {
-        const topType = this.getTopType(typeDetails);
-        if (topType) {
-            this.registerInferenceRules(typeDetails, topType);
-            return topType;
-        }
-        return this.createTopType(typeDetails);
-    }
-
-    createTopType(typeDetails: TopTypeDetails): TopType {
-        assertTrue(this.getTopType(typeDetails) === undefined);
+    create(typeDetails: TopTypeDetails): TopType {
+        assertTrue(this.get(typeDetails) === undefined);
 
         // create the top type (singleton)
         if (this.instance) {

@@ -20,7 +20,12 @@ export type InferPrimitiveType = (domainElement: unknown) => boolean;
 
 export const PrimitiveKindName = 'PrimitiveKind';
 
-export class PrimitiveKind implements Kind {
+export interface PrimitiveFactoryService {
+    create(typeDetails: PrimitiveTypeDetails): PrimitiveType;
+    get(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined;
+}
+
+export class PrimitiveKind implements Kind, PrimitiveFactoryService {
     readonly $name: 'PrimitiveKind';
     readonly services: TypirServices;
 
@@ -30,22 +35,13 @@ export class PrimitiveKind implements Kind {
         this.services.kinds.register(this);
     }
 
-    getPrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined {
+    get(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined {
         const key = this.calculateIdentifier(typeDetails);
         return this.services.graph.getType(key) as PrimitiveType;
     }
 
-    getOrCreatePrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType {
-        const primitiveType = this.getPrimitiveType(typeDetails);
-        if (primitiveType) {
-            this.registerInferenceRules(typeDetails, primitiveType);
-            return primitiveType;
-        }
-        return this.createPrimitiveType(typeDetails);
-    }
-
-    createPrimitiveType(typeDetails: PrimitiveTypeDetails): PrimitiveType {
-        assertTrue(this.getPrimitiveType(typeDetails) === undefined);
+    create(typeDetails: PrimitiveTypeDetails): PrimitiveType {
+        assertTrue(this.get(typeDetails) === undefined);
 
         // create the primitive type
         const primitiveType = new PrimitiveType(this, this.calculateIdentifier(typeDetails));
