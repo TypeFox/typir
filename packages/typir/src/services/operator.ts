@@ -6,7 +6,7 @@
 
 import { Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
-import { FunctionPredefinedService, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
+import { FunctionFactoryService, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
 import { TypirServices } from '../typir.js';
 import { NameTypePair, TypeInitializers } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
@@ -174,7 +174,7 @@ export class DefaultOperatorManager implements OperatorManager {
         return newOperatorType as unknown as TypeInitializer<Type>;
     }
 
-    protected getFunctionFactory(): FunctionPredefinedService {
+    protected getFunctionFactory(): FunctionFactoryService {
         return this.services.factory.functions;
     }
 }

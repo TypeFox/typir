@@ -7,7 +7,7 @@
 import { TypeGraph } from './graph/type-graph.js';
 import { BottomFactoryService, BottomKind } from './kinds/bottom/bottom-kind.js';
 import { ClassFactoryService, ClassKind } from './kinds/class/class-kind.js';
-import { FunctionKind, FunctionPredefinedService } from './kinds/function/function-kind.js';
+import { FunctionKind, FunctionFactoryService } from './kinds/function/function-kind.js';
 import { PrimitiveFactoryService, PrimitiveKind } from './kinds/primitive/primitive-kind.js';
 import { TopFactoryService, TopKind } from './kinds/top/top-kind.js';
 import { DefaultTypeAssignability, TypeAssignability } from './services/assignability.js';
@@ -60,7 +60,7 @@ export type TypirServices = {
     };
     readonly factory: {
         readonly primitives: PrimitiveFactoryService;
-        readonly functions: FunctionPredefinedService;
+        readonly functions: FunctionFactoryService;
         readonly classes: ClassFactoryService;
         readonly top: TopFactoryService;
         readonly bottom: BottomFactoryService;

@@ -12,7 +12,7 @@ import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../../utils/utils.js';
-import { CreateFunctionTypeDetails, FunctionPredefinedService } from '../function/function-kind.js';
+import { CreateFunctionTypeDetails, FunctionFactoryService } from '../function/function-kind.js';
 import { Kind, isKind } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
 import { ClassType, isClassType } from './class-type.js';
@@ -180,7 +180,7 @@ export class ClassKind implements Kind, ClassFactoryService {
         return `${this.getIdentifierPrefix()}${typeDetails.className}`;
     }
 
-    getMethodFactory(): FunctionPredefinedService {
+    getMethodFactory(): FunctionFactoryService {
         return this.services.factory.functions;
     }
 

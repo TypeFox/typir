@@ -96,7 +96,7 @@ export type InferFunctionCall<T = unknown> = {
  */
 
 
-export interface FunctionPredefinedService {
+export interface FunctionFactoryService {
     create<T>(typeDetails: CreateFunctionTypeDetails<T>): TypeInitializer<FunctionType>;
     get(typeDetails: FunctionTypeDetails): TypeReference<FunctionType>;
     calculateIdentifier(typeDetails: FunctionTypeDetails): string;
@@ -118,7 +118,7 @@ export interface FunctionPredefinedService {
  * - optional parameters
  * - parameters which are used for output AND input
  */
-export class FunctionKind implements Kind, TypeGraphListener, FunctionPredefinedService {
+export class FunctionKind implements Kind, TypeGraphListener, FunctionFactoryService {
     readonly $name: 'FunctionKind';
     readonly services: TypirServices;
     readonly options: Readonly<FunctionKindOptions>;
