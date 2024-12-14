@@ -8,9 +8,9 @@ import { AstNode, LangiumDefaultCoreServices, ValidationAcceptor, ValidationChec
 import { TypirServices, ValidationProblem } from 'typir';
 import { LangiumServicesForTypirBinding } from '../typir-langium.js';
 
-export function registerTypirValidationChecks(services: LangiumDefaultCoreServices & LangiumServicesForTypirBinding) {
-    const registry = services.validation.ValidationRegistry;
-    const validator = services.TypeValidation;
+export function registerTypirValidationChecks(langiumServices: LangiumDefaultCoreServices, typirServices: LangiumServicesForTypirBinding) {
+    const registry = langiumServices.validation.ValidationRegistry;
+    const validator = typirServices.TypeValidation;
     registry.registerBeforeDocument(validator.checkTypingProblemsWithTypirBeforeDocument, validator);
     const checks: ValidationChecks<object> = {
         AstNode: validator.checkTypingProblemsWithTypir, // checking each node is not performant, improve the API, see below!

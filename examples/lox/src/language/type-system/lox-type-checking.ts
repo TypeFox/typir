@@ -4,8 +4,7 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
-import { LangiumSharedServices } from 'langium/lsp';
+import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
 import { CreateFieldDetails, CreateFunctionTypeDetails, CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationMessageDetails, createNoSuperClassCyclesValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
@@ -14,7 +13,7 @@ import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeRe
 export class LoxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: TypirServices;
 
-    constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
+    constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
         super(typirServices, langiumServices);
         this.typir = typirServices;
     }
@@ -259,7 +258,7 @@ function createFunctionDetails(node: FunctionDeclaration | MethodMember): Create
     };
 }
 
-export function createLoxTypirModule(langiumServices: LangiumSharedServices): Module<LangiumServicesForTypirBinding, PartialTypirLangiumServices> {
+export function createLoxTypirModule(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, PartialTypirLangiumServices> {
     return {
         // specific configurations for LOX
         TypeCreator: (typirServices) => new LoxTypeCreator(typirServices, langiumServices),

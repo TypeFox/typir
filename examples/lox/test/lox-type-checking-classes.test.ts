@@ -17,7 +17,7 @@ describe('Test type checking for classes', () => {
             class MyClass2 < MyClass1 {}
             var v1: MyClass1 = MyClass2();
         `, 0);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2');
     });
 
     test('Class inheritance for assignments: wrong', async () => {
@@ -26,7 +26,7 @@ describe('Test type checking for classes', () => {
             class MyClass2 < MyClass1 {}
             var v1: MyClass2 = MyClass1();
         `, 1);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2');
     });
 
     test('Class fields: correct values', async () => {
@@ -36,7 +36,7 @@ describe('Test type checking for classes', () => {
             v1.name = "Bob";
             v1.age = 42;
         `, 0);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Class fields: wrong values', async () => {
@@ -46,7 +46,7 @@ describe('Test type checking for classes', () => {
             v1.name = 42;
             v1.age = "Bob";
         `, 2);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Classes must be unique by name 2', async () => {
@@ -57,7 +57,7 @@ describe('Test type checking for classes', () => {
             'Declared classes need to be unique (MyClass1).',
             'Declared classes need to be unique (MyClass1).',
         ]);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Classes must be unique by name 3', async () => {
@@ -70,7 +70,7 @@ describe('Test type checking for classes', () => {
             'Declared classes need to be unique (MyClass2).',
             'Declared classes need to be unique (MyClass2).',
         ]);
-        expectTypirTypes(loxServices, isClassType, 'MyClass2');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass2');
     });
 
     test('Class methods: OK', async () => {
@@ -83,7 +83,7 @@ describe('Test type checking for classes', () => {
             var v1: MyClass1 = MyClass1();
             var v2: number = v1.method1(456);
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Class methods: wrong return value', async () => {
@@ -96,7 +96,7 @@ describe('Test type checking for classes', () => {
             var v1: MyClass1 = MyClass1();
             var v2: number = v1.method1(456);
         `, 1);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Class methods: method return type does not fit to variable type', async () => {
@@ -109,7 +109,7 @@ describe('Test type checking for classes', () => {
             var v1: MyClass1 = MyClass1();
             var v2: boolean = v1.method1(456);
         `, 1);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Class methods: value for input parameter does not fit to the type of the input parameter', async () => {
@@ -122,7 +122,7 @@ describe('Test type checking for classes', () => {
             var v1: MyClass1 = MyClass1();
             var v2: number = v1.method1(true);
         `, 1);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Class methods: methods are not distinguishable', async () => {
@@ -139,7 +139,7 @@ describe('Test type checking for classes', () => {
             'Declared methods need to be unique (class-MyClass1.method1(number)).',
             'Declared methods need to be unique (class-MyClass1.method1(number)).',
         ]);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
 });
@@ -151,7 +151,7 @@ describe('Class literals', () => {
             class MyClass { name: string age: number }
             var v1 = MyClass(); // constructor call
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'MyClass');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass');
     });
 
     test('Class literals 2', async () => {
@@ -159,7 +159,7 @@ describe('Class literals', () => {
             class MyClass { name: string age: number }
             var v1: MyClass = MyClass(); // constructor call
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'MyClass');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass');
     });
 
     test('Class literals 3', async () => {
@@ -168,7 +168,7 @@ describe('Class literals', () => {
             class MyClass2 {}
             var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
         `, [], 1);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2');
     });
 
     test('nil is assignable to any Class', async () => {
@@ -180,7 +180,7 @@ describe('Class literals', () => {
             v1 = nil;
             v2 = nil;
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2');
     });
 
 });

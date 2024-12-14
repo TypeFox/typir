@@ -60,12 +60,12 @@ export function createLangiumModuleForTypirBinding(langiumServices: LangiumShare
     );
 }
 
-export function initializeLangiumTypirServices(services: LangiumDefaultCoreServices & LangiumServicesForTypirBinding): void {
+export function initializeLangiumTypirServices(langiumServices: LangiumDefaultCoreServices, typirServices: LangiumServicesForTypirBinding): void {
     // register the type-related validations of Typir at the Langium validation registry
-    registerTypirValidationChecks(services);
+    registerTypirValidationChecks(langiumServices, typirServices);
 
     // initialize the type creation (this is not done automatically by dependency injection!)
-    services.TypeCreator.triggerInitialization();
+    typirServices.TypeCreator.triggerInitialization();
 
     /*
     Don't use the following code ...

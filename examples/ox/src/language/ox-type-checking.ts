@@ -4,8 +4,7 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, Module, assertUnreachable } from 'langium';
-import { LangiumSharedServices } from 'langium/lsp';
+import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
 import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, UniqueFunctionValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails } from '../../../../packages/typir/lib/services/validation.js';
@@ -14,7 +13,7 @@ import { BinaryExpression, MemberCall, UnaryExpression, isAssignmentStatement, i
 export class OxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: TypirServices;
 
-    constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
+    constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
         super(typirServices, langiumServices);
         this.typir = typirServices;
     }
@@ -187,7 +186,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
 }
 
 
-export function createOxTypirModule(langiumServices: LangiumSharedServices): Module<LangiumServicesForTypirBinding, PartialTypirLangiumServices> {
+export function createOxTypirModule(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, PartialTypirLangiumServices> {
     return {
         // specific configurations for OX
         TypeCreator: (typirServices) => new OxTypeCreator(typirServices, langiumServices),

@@ -20,8 +20,8 @@ export const operatorNames = ['-', '*', '/', '+', '+', '+', '+', '<', '<=', '>',
 afterEach(async () => {
     await deleteAllDocuments(loxServices.shared);
     // check, that there are no user-defined classes and functions after clearing/invalidating all LOX documents
-    expectTypirTypes(loxServices, isClassType);
-    expectTypirTypes(loxServices, isFunctionType, ...operatorNames);
+    expectTypirTypes(loxServices.typir, isClassType);
+    expectTypirTypes(loxServices.typir, isFunctionType, ...operatorNames);
 });
 
 export async function validateLox(lox: string, errors: number | string | string[], warnings: number | string | string[] = 0) {

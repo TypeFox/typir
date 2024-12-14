@@ -19,7 +19,7 @@ export const operatorNames = ['-', '*', '/', '+', '<', '<=', '>', '>=', 'and', '
 afterEach(async () => {
     await deleteAllDocuments(oxServices.shared);
     // check, that there are no user-defined classes and functions after clearing/invalidating all LOX documents
-    expectTypirTypes(oxServices, isFunctionType, ...operatorNames);
+    expectTypirTypes(oxServices.typir, isFunctionType, ...operatorNames);
 });
 
 export async function validateOx(ox: string, errors: number | string | string[]) {

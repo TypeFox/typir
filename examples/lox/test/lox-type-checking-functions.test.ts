@@ -16,7 +16,7 @@ describe('Test type checking for user-defined functions', () => {
         await validateLox('fun myFunction2() : boolean { return 2; }', 1);
         await validateLox('fun myFunction3() : number { return 2; }', 0);
         await validateLox('fun myFunction4() : number { return true; }', 1);
-        expectTypirTypes(loxServices, isFunctionType, 'myFunction1', 'myFunction2', 'myFunction3', 'myFunction4', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myFunction1', 'myFunction2', 'myFunction3', 'myFunction4', ...operatorNames);
     });
 
     test('overloaded function: different return types are not enough', async () => {
@@ -24,7 +24,7 @@ describe('Test type checking for user-defined functions', () => {
             fun myFunction() : boolean { return true; }
             fun myFunction() : number { return 2; }
         `, 2);
-        expectTypirTypes(loxServices, isFunctionType, 'myFunction', 'myFunction', ...operatorNames); // the types are different nevertheless!
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myFunction', 'myFunction', ...operatorNames); // the types are different nevertheless!
     });
 
     test('overloaded function: different parameter names are not enough', async () => {
@@ -32,7 +32,7 @@ describe('Test type checking for user-defined functions', () => {
             fun myFunction(input: boolean) : boolean { return true; }
             fun myFunction(other: boolean) : boolean { return true; }
         `, 2);
-        expectTypirTypes(loxServices, isFunctionType, 'myFunction', ...operatorNames); // but both functions have the same type!
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myFunction', ...operatorNames); // but both functions have the same type!
     });
 
     test('overloaded function: but different parameter types are fine', async () => {
@@ -40,7 +40,7 @@ describe('Test type checking for user-defined functions', () => {
             fun myFunction(input: boolean) : boolean { return true; }
             fun myFunction(input: number) : boolean { return true; }
         `, 0);
-        expectTypirTypes(loxServices, isFunctionType, 'myFunction', 'myFunction', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myFunction', 'myFunction', ...operatorNames);
     });
 
 });
