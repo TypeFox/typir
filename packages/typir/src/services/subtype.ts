@@ -13,7 +13,6 @@ import { TypeEdge, isTypeEdge } from '../graph/type-edge.js';
 
 export interface SubTypeProblem extends TypirProblem {
     $problem: 'SubTypeProblem';
-    // 'undefined' means type or information is missing, 'string' is for data which are no Types
     superType: Type;
     subType: Type;
     subProblems: TypirProblem[]; // might be empty

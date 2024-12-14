@@ -8,17 +8,30 @@ import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument, L
 import { Type, TypeEdge, TypeGraph, TypeGraphListener, TypirServices } from 'typir';
 import { getDocumentKeyForDocument, getDocumentKeyForURI } from '../utils/typir-langium-utils.js';
 
-export interface LangiumTypeCreator { // TODO Registry instead?
+/**
+ * This service provides the API to define the actual types, inference rules and validation rules
+ * for a textual DSL developed with Langium in order to include them into the Langium lifecycle.
+ */
+export interface LangiumTypeCreator {
+    /**
+     * This function needs to be called once to trigger the initialization process.
+     * Depending on the implemention, it might or might not call onInitialize().
+     */
     triggerInitialization(): void;
 
     /**
-     * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules.
-     * This method will be executed once before the 1st added/updated/removed domain element.
+     * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules,
+     * which are constant and don't depend on the actual domain elements.
+     * This method will be executed once before the first added/updated/removed domain element.
      */
     onInitialize(): void;
 
-    /** React on updates of the AST in order to add/remove corresponding types from the type system, e.g. user-definied functions. */
-    onNewAstNode(domainElement: unknown): void;
+    /**
+     * React on updates of the AST in order to add/remove corresponding types from the type system,
+     * e.g. for user-definied functions to create corresponding function types in the type graph.
+     * @param domainElement an AstNode of the current AST
+     */
+    onNewAstNode(domainElement: AstNode): void;
 }
 
 export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, TypeGraphListener {

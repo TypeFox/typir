@@ -23,22 +23,20 @@ import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCol
 import { inject, Module } from './utils/dependency-injection.js';
 
 /**
- * Design decisions for Typir
- * - no NameProvider for the name of types, since the name depends on the type of the kind => change the implementation of the kind
- * - the type 'void' has a primitive kind (no dedicated kind for now)
+ * Some design decisions for Typir:
+ * - We don't use a graph library like graphology to realize the type graph in order to be more flexible and to reduce external dependencies.
+ * - Where should inference rules be stored? Inference rules are stored in the central service, optionally bound to types in order to simplify removal of deleted types.
+ *   Inference rules are not linked to kinds (at least for now), since different types (of the same kind) might have different inference rules.
+ * - No NameProvider for the name of types, since the name depends on the type of the kind => change the implementation of the kind.
+ * - The type 'void' has a primitive kind (no dedicated kind for now).
  * - Once created/initialized, types are constant, e.g. no additional fields can be added to classes (but their types might be resolved a bit later).
+ * - It is possible to use two different Typir instances side-by-side within the same application in general,
+ *   since the services are not realized by global functions, but by methods of classes which implement service interfaces.
  */
 
-/** Open design questions TODO
- * - use graphology for the TypeGraph?
- * - Where should inference rules be stored? only in the central service? in types? in kinds?
- * - Type is generic VS there are specific types like FunctionType (extends Type)?? functionType.kind.getOutput(functionKind) + isFunctionKind() feels bad! vs functionType.getOutput() + isFunctionType()
- * - realize "unknown" as a generic "<T = unknown>" for whole Typir? for the Langium binding T would be AstNode!
- * - Is it easy to use two different Typir instances side-by-side within the same application?
+/** Some open design questions for future releases TODO
+ * - Replace "unknown" as a generic "<T = unknown>" for whole Typir? For Typir-Langium T would be AstNode!
  * - How to bundle Typir configurations for reuse ("presets")?
- * - How to handle cycles?
- *     - Cycles at types: MyClass { myField?: MyClass, myFunction(operand: MyClass) }, MyClass<T extends MyClass<T>> to return typed sub-class instances
- *     - Cycles at instances/objects: Parent used as Child?!
  */
 
 export type TypirServices = {

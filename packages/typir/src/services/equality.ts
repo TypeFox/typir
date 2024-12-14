@@ -22,7 +22,12 @@ export function isTypeEqualityProblem(problem: unknown): problem is TypeEquality
     return isSpecificTypirProblem(problem, TypeEqualityProblem);
 }
 
-// TODO comments
+/**
+ * Analyzes, whether there is an equality-relationship between two types.
+ *
+ * In contrast to type comparisons with type1 === type2 or type1.identifier === type2.identifier,
+ * equality will take alias types and so on into account as well.
+ */
 export interface TypeEquality {
     areTypesEqual(type1: Type, type2: Type): boolean;
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined;
