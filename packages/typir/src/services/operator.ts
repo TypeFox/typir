@@ -70,8 +70,7 @@ export interface GenericOperatorDetails<T> extends AnyOperatorDetails<T> {
     inferenceRule?: InferOperatorWithSingleOperand<T> | InferOperatorWithMultipleOperands<T>;
 }
 
-// TODO rename it to "OperatorFactory", when there are no more responsibilities!
-export interface OperatorManager {
+export interface OperatorFactoryService {
     createUnary<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type>
     createBinary<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type>
     createTernary<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type>
@@ -98,7 +97,7 @@ export interface OperatorManager {
  *
  * All operands are mandatory.
  */
-export class DefaultOperatorManager implements OperatorManager {
+export class DefaultOperatorFactory implements OperatorFactoryService {
     protected readonly services: TypirServices;
 
     constructor(services: TypirServices) {

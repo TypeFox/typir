@@ -16,7 +16,7 @@ import { DefaultTypeConversion, TypeConversion } from './services/conversion.js'
 import { DefaultTypeEquality, TypeEquality } from './services/equality.js';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './services/inference.js';
 import { DefaultKindRegistry, KindRegistry } from './services/kind-registry.js';
-import { DefaultOperatorManager, OperatorManager } from './services/operator.js';
+import { DefaultOperatorFactory, OperatorFactoryService } from './services/operator.js';
 import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.js';
 import { DefaultSubType, SubType } from './services/subtype.js';
 import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './services/validation.js';
@@ -64,7 +64,7 @@ export type TypirServices = {
         readonly classes: ClassFactoryService;
         readonly top: TopFactoryService;
         readonly bottom: BottomFactoryService;
-        readonly operators: OperatorManager;
+        readonly operators: OperatorFactoryService;
     };
 };
 
@@ -91,7 +91,7 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
         classes: (services) => new ClassKind(services, { typing: 'Nominal' }),
         top: (services) => new TopKind(services),
         bottom: (services) => new BottomKind(services),
-        operators: (services) => new DefaultOperatorManager(services),
+        operators: (services) => new DefaultOperatorFactory(services),
     },
 };
 
