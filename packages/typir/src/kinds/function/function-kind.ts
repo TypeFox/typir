@@ -8,7 +8,7 @@ import { TypeEdge } from '../../graph/type-edge.js';
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
-import { TypeReference, resolveTypeSelector } from '../../initialization/type-reference.js';
+import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
 import { ValidationProblem } from '../../services/validation.js';
@@ -259,7 +259,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
             // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
             (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR'
                 ? undefined
-                : resolveTypeSelector(this.services, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
+                : this.services.infrastructure.typeResolver.resolve(this.options.typeToInferForCallsOfFunctionsWithoutOutput));
     }
 
 
@@ -294,9 +294,9 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         // function name, if wanted
         const functionName = this.hasFunctionName(typeDetails.functionName) ? typeDetails.functionName : '';
         // inputs: type identifiers in defined order
-        const inputsString = typeDetails.inputParameters.map(input => resolveTypeSelector(this.services, input.type).getIdentifier()).join(',');
+        const inputsString = typeDetails.inputParameters.map(input => this.services.infrastructure.typeResolver.resolve(input.type).getIdentifier()).join(',');
         // output: type identifier
-        const outputString = typeDetails.outputParameter ? resolveTypeSelector(this.services, typeDetails.outputParameter.type).getIdentifier() : '';
+        const outputString = typeDetails.outputParameter ? this.services.infrastructure.typeResolver.resolve(typeDetails.outputParameter.type).getIdentifier() : '';
         // complete signature
         return `${prefix}${functionName}(${inputsString}):${outputString}`;
     }

@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 import { TypeGraph } from './graph/type-graph.js';
+import { DefaultTypeResolver, TypeResolvingService } from './initialization/type-selector.js';
 import { BottomFactoryService, BottomKind } from './kinds/bottom/bottom-kind.js';
 import { ClassFactoryService, ClassKind } from './kinds/class/class-kind.js';
 import { FunctionKind, FunctionFactoryService } from './kinds/function/function-kind.js';
@@ -64,6 +65,9 @@ export type TypirServices = {
         readonly bottom: BottomFactoryService;
         readonly operators: OperatorFactoryService;
     };
+    readonly infrastructure: {
+        typeResolver: TypeResolvingService;
+    },
 };
 
 export const DefaultTypirServiceModule: Module<TypirServices> = {
@@ -91,6 +95,9 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
         bottom: (services) => new BottomKind(services),
         operators: (services) => new DefaultOperatorFactory(services),
     },
+    infrastructure: {
+        typeResolver: (services) => new DefaultTypeResolver(services),
+    }
 };
 
 /**

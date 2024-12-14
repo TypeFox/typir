@@ -6,7 +6,6 @@
 
 import { isType, Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
-import { resolveTypeSelector } from '../../initialization/type-reference.js';
 import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../../services/inference.js';
 import { ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
@@ -199,7 +198,7 @@ function createInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, func
                 return InferenceRuleNotApplicable;
             },
             inferTypeWithChildrensTypes(domainElement, actualInputTypes, typir) {
-                const expectedInputTypes = typeDetails.inputParameters.map(p => resolveTypeSelector(typir, p.type));
+                const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.typeResolver.resolve(p.type));
                 // all operands need to be assignable(! not equal) to the required types
                 const comparisonConflicts = checkTypeArrays(actualInputTypes, expectedInputTypes,
                     (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2), true);
@@ -237,7 +236,7 @@ function createInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, func
                         const childTypes: Array<Type | InferenceProblem[]> = inputArguments.map(child => typir.inference.inferType(child));
                         const actualInputTypes = childTypes.filter(t => isType(t));
                         if (childTypes.length === actualInputTypes.length) {
-                            const expectedInputTypes = typeDetails.inputParameters.map(p => resolveTypeSelector(typir, p.type));
+                            const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.typeResolver.resolve(p.type));
                             // all operands need to be assignable(! not equal) to the required types
                             const comparisonConflicts = checkTypeArrays(actualInputTypes, expectedInputTypes,
                                 (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2), true);

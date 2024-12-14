@@ -4,12 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeInferenceCollectorListener, TypeInferenceRule } from '../services/inference.js';
 import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
-import { isType, Type } from '../graph/type-node.js';
+import { Type } from '../graph/type-node.js';
+import { TypeInferenceCollectorListener, TypeInferenceRule } from '../services/inference.js';
 import { TypirServices } from '../typir.js';
-import { TypeInitializer } from './type-initializer.js';
 import { TypeSelector } from './type-selector.js';
 
 /**
@@ -51,7 +50,6 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
     /** These listeners will be informed, whenever the resolved state of this TypeReference switched from undefined to an actual type or from an actual type to undefined. */
     protected readonly listeners: Array<TypeReferenceListener<T>> = [];
 
-    // TODO introduce TypeReference factory service in order to replace the implementation?
     constructor(selector: TypeSelector, services: TypirServices) {
         this.selector = selector;
         this.services = services;
@@ -100,7 +98,7 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         }
 
         // try to resolve the type
-        const resolvedType = this.tryToResolve(this.selector);
+        const resolvedType = this.services.infrastructure.typeResolver.tryToResolve<T>(this.selector);
 
         if (resolvedType) {
             // the type is successfully resolved!
@@ -112,36 +110,6 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         } else {
             // the type is not resolved (yet)
             return 'RESOLVING_FAILED';
-        }
-    }
-
-    /**
-     * Tries to find the specified type in the type system.
-     * This method does not care about the initialization state of the found type,
-     * this method is restricted to just search and find any type according to the given TypeSelector.
-     * @param selector the specification for the desired type
-     * @returns the found type or undefined, it there is no such type in the type system
-     */
-    protected tryToResolve(selector: TypeSelector): T | undefined {
-        if (isType(selector)) {
-            // TODO is there a way to explicitly enforce/ensure "as T"?
-            return selector as T;
-        } else if (typeof selector === 'string') {
-            return this.services.graph.getType(selector) as T;
-        } else if (selector instanceof TypeInitializer) {
-            return selector.getTypeInitial();
-        } else if (selector instanceof TypeReference) {
-            return selector.getType();
-        } else if (typeof selector === 'function') {
-            return this.tryToResolve(selector()); // execute the function and try to recursively resolve the returned result again
-        } else { // the selector is of type 'known' => do type inference on it
-            const result = this.services.inference.inferType(selector);
-            // TODO failures must not be cached, otherwise a type will never be found in the future!!
-            if (isType(result)) {
-                return result as T;
-            } else {
-                return undefined;
-            }
         }
     }
 
@@ -192,32 +160,5 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
     }
     removedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
         // empty, since removed inference rules don't help to resolve a type
-    }
-}
-
-
-export function resolveTypeSelector(services: TypirServices, selector: TypeSelector): Type {
-    if (isType(selector)) {
-        return selector;
-    } else if (typeof selector === 'string') {
-        const result = services.graph.getType(selector);
-        if (result) {
-            return result;
-        } else {
-            throw new Error(`A type with identifier '${selector}' as TypeSelector does not exist in the type graph.`);
-        }
-    } else if (selector instanceof TypeInitializer) {
-        return selector.getTypeFinal();
-    } else if (selector instanceof TypeReference) {
-        return selector.getType();
-    } else if (typeof selector === 'function') {
-        return resolveTypeSelector(services, selector()); // execute the function and try to recursively resolve the returned result again
-    } else {
-        const result = services.inference.inferType(selector);
-        if (isType(result)) {
-            return result;
-        } else {
-            throw new Error(`For '${services.printer.printDomainElement(selector, false)}' as TypeSelector, no type can be inferred.`);
-        }
     }
 }

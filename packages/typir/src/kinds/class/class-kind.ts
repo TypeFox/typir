@@ -6,7 +6,7 @@
 
 import { assertUnreachable } from 'langium';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
-import { TypeReference, resolveTypeSelector } from '../../initialization/type-reference.js';
+import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
@@ -139,7 +139,7 @@ export class ClassKind implements Kind, ClassFactoryService {
         if (this.options.typing === 'Structural') {
             // fields
             const fields: string = typeDetails.fields
-                .map(f => `${f.name}:${resolveTypeSelector(this.services, f.type)}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
+                .map(f => `${f.name}:${this.services.infrastructure.typeResolver.resolve(f.type)}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
                 .sort() // the order of fields does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
             // methods
@@ -153,7 +153,7 @@ export class ClassKind implements Kind, ClassFactoryService {
             // super classes (TODO oder strukturell per getAllSuperClassX lösen?!)
             const superClasses: string = toArray(typeDetails.superClasses)
                 .map(selector => {
-                    const type = resolveTypeSelector(this.services, selector);
+                    const type = this.services.infrastructure.typeResolver.resolve(selector);
                     assertType(type, isClassType);
                     return type.getIdentifier();
                 })
