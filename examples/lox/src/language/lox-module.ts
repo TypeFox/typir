@@ -10,7 +10,7 @@ import { LangiumServicesForTypirBinding, createLangiumModuleForTypirBinding, ini
 import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module.js';
 import { LoxScopeProvider } from './lox-scope.js';
 import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
-import { createLoxTypirModule } from './type-system/lox-type-checking.js';
+import { createLoxTypirModule } from './lox-type-checking.js';
 
 /**
  * Declaration of custom services - add your own service classes here.

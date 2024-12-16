@@ -252,7 +252,7 @@ function createFunctionDetails(node: FunctionDeclaration | MethodMember): Create
         inferenceRuleForCalls: {
             filter: isMemberCall,
             matching: (domainElement: MemberCall) => (isFunctionDeclaration(domainElement.element?.ref) || isMethodMember(domainElement.element?.ref))
-                && domainElement.element!.ref.name === callableName,
+                && domainElement.explicitOperationCall && domainElement.element!.ref.name === callableName,
             inputArguments: (domainElement: MemberCall) => domainElement.arguments
         },
     };
