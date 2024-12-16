@@ -28,7 +28,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         this.initialClassType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
         if (kind.options.typing === 'Structural') {
             // register structural classes also by their names, since these names are usually used for reference in the DSL/AST!
-            this.services.Graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));
+            this.services.infrastructure.Graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));
         }
 
         this.inferenceRules = createInferenceRules<T, T1, T2>(this.typeDetails, this.kind, this.initialClassType);
@@ -55,8 +55,8 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
             if (this.kind.options.typing === 'Structural') {
                 // replace the type in the type graph
                 const nameBasedIdentifier = this.kind.calculateIdentifierWithClassNameOnly(this.typeDetails);
-                this.services.Graph.removeNode(classType, nameBasedIdentifier);
-                this.services.Graph.addNode(readyClassType, nameBasedIdentifier);
+                this.services.infrastructure.Graph.removeNode(classType, nameBasedIdentifier);
+                this.services.infrastructure.Graph.addNode(readyClassType, nameBasedIdentifier);
             }
 
             // remove the inference rules for the invalid type

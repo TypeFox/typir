@@ -173,7 +173,7 @@ export class DefaultValidationCollector<ElementType = unknown, RootType = Elemen
 
     constructor(services: TypirServices) {
         this.services = services;
-        this.services.Graph.addListener(this);
+        this.services.infrastructure.Graph.addListener(this);
     }
 
     validateBefore(domainRoot: RootType): ValidationProblem[] {

@@ -35,7 +35,7 @@ export class MultiplicityKind implements Kind {
     constructor(services: TypirServices, options?: Partial<MultiplicityKindOptions>) {
         this.$name = MultiplicityKindName;
         this.services = services;
-        this.services.Kinds.register(this);
+        this.services.infrastructure.Kinds.register(this);
         this.options = {
             // the default values:
             symbolForUnlimited: '*',
@@ -46,7 +46,7 @@ export class MultiplicityKind implements Kind {
 
     getMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.Graph.getType(key) as MultiplicityType;
+        return this.services.infrastructure.Graph.getType(key) as MultiplicityType;
     }
 
     getOrCreateMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
@@ -67,7 +67,7 @@ export class MultiplicityKind implements Kind {
 
         // create the type with multiplicities
         const typeWithMultiplicity = new MultiplicityType(this, this.calculateIdentifier(typeDetails), typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
-        this.services.Graph.addNode(typeWithMultiplicity);
+        this.services.infrastructure.Graph.addNode(typeWithMultiplicity);
 
         this.registerInferenceRules(typeDetails, typeWithMultiplicity);
 

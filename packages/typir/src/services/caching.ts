@@ -35,7 +35,7 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
     protected readonly graph: TypeGraph;
 
     constructor(services: TypirServices) {
-        this.graph = services.Graph;
+        this.graph = services.infrastructure.Graph;
     }
 
     getRelationshipUnidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined {

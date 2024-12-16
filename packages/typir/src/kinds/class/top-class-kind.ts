@@ -31,7 +31,7 @@ export class TopClassKind implements Kind {
     constructor(services: TypirServices, options?: Partial<TopClassKindOptions>) {
         this.$name = TopClassKindName;
         this.services = services;
-        this.services.Kinds.register(this);
+        this.services.infrastructure.Kinds.register(this);
         this.options = {
             // the default values:
             name: 'TopClass',
@@ -42,7 +42,7 @@ export class TopClassKind implements Kind {
 
     getTopClassType(typeDetails: TopClassTypeDetails): TopClassType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.Graph.getType(key) as TopClassType;
+        return this.services.infrastructure.Graph.getType(key) as TopClassType;
     }
 
     getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
@@ -64,7 +64,7 @@ export class TopClassKind implements Kind {
         }
         const topType = new TopClassType(this, this.calculateIdentifier(typeDetails));
         this.instance = topType;
-        this.services.Graph.addNode(topType);
+        this.services.infrastructure.Graph.addNode(topType);
 
         this.registerInferenceRules(typeDetails, topType);
 

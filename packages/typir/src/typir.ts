@@ -50,8 +50,6 @@ export type TypirServices = {
         readonly TypeRelationships: TypeRelationshipCaching;
         readonly DomainElementInference: DomainElementInferenceCaching;
     };
-    readonly Graph: TypeGraph;
-    readonly Kinds: KindRegistry;
     readonly Printer: ProblemPrinter;
     readonly validation: {
         readonly Collector: ValidationCollector;
@@ -66,22 +64,22 @@ export type TypirServices = {
         readonly Operators: OperatorFactoryService;
     };
     readonly infrastructure: {
-        TypeResolver: TypeResolvingService;
-    },
+        readonly Graph: TypeGraph;
+        readonly Kinds: KindRegistry;
+        readonly TypeResolver: TypeResolvingService;
+    };
 };
 
 export const DefaultTypirServiceModule: Module<TypirServices> = {
     Assignability: (services) => new DefaultTypeAssignability(services),
     Equality: (services) => new DefaultTypeEquality(services),
     Conversion: (services) => new DefaultTypeConversion(services),
-    Graph: () =>  new TypeGraph(),
     Subtype: (services) => new DefaultSubType(services),
     Inference: (services) => new DefaultTypeInferenceCollector(services),
     caching: {
         TypeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
-        DomainElementInference: () => new DefaultDomainElementInferenceCaching()
+        DomainElementInference: () => new DefaultDomainElementInferenceCaching(),
     },
-    Kinds: () => new DefaultKindRegistry(),
     Printer: () => new DefaultTypeConflictPrinter(),
     validation: {
         Collector: (services) => new DefaultValidationCollector(services),
@@ -96,8 +94,10 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
         Operators: (services) => new DefaultOperatorFactory(services),
     },
     infrastructure: {
+        Graph: () =>  new TypeGraph(),
+        Kinds: () => new DefaultKindRegistry(),
         TypeResolver: (services) => new DefaultTypeResolver(services),
-    }
+    },
 };
 
 /**

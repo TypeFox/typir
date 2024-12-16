@@ -59,7 +59,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
             // TODO is there a way to explicitly enforce/ensure "as T"?
             return selector as T;
         } else if (typeof selector === 'string') {
-            return this.services.Graph.getType(selector) as T;
+            return this.services.infrastructure.Graph.getType(selector) as T;
         } else if (selector instanceof TypeInitializer) {
             return selector.getTypeInitial();
         } else if (selector instanceof TypeReference) {
@@ -81,7 +81,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
         if (isType(selector)) {
             return selector as T;
         } else if (typeof selector === 'string') {
-            const result = this.services.Graph.getType(selector);
+            const result = this.services.infrastructure.Graph.getType(selector);
             if (result) {
                 return result as T;
             } else {

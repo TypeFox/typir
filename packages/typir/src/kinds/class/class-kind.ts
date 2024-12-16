@@ -78,7 +78,7 @@ export class ClassKind implements Kind, ClassFactoryService {
     constructor(services: TypirServices, options?: Partial<ClassKindOptions>) {
         this.$name = ClassKindName;
         this.services = services;
-        this.services.Kinds.register(this);
+        this.services.infrastructure.Kinds.register(this);
         this.options = { // TODO in eigene Methode auslagern!
             // the default values:
             typing: 'Nominal',
@@ -190,7 +190,7 @@ export class ClassKind implements Kind, ClassFactoryService {
 
     getTopClassKind(): TopClassKind {
         // ensure, that Typir uses the predefined 'TopClass' kind
-        const kind = this.services.Kinds.get(TopClassKindName);
+        const kind = this.services.infrastructure.Kinds.get(TopClassKindName);
         return isTopClassKind(kind) ? kind : new TopClassKind(this.services);
     }
 

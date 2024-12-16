@@ -136,7 +136,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
     constructor(services: TypirServices, options?: Partial<FunctionKindOptions>) {
         this.$name = FunctionKindName;
         this.services = services;
-        this.services.Kinds.register(this);
+        this.services.infrastructure.Kinds.register(this);
         this.options = {
             // the default values:
             enforceFunctionName: false,

@@ -128,7 +128,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
     constructor(services: TypirServices) {
         this.services = services;
         this.domainElementInference = services.caching.DomainElementInference;
-        this.services.Graph.addListener(this);
+        this.services.infrastructure.Graph.addListener(this);
     }
 
     addInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void {

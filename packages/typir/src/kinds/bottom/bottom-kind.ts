@@ -37,7 +37,7 @@ export class BottomKind implements Kind, BottomFactoryService {
     constructor(services: TypirServices, options?: Partial<BottomKindOptions>) {
         this.$name = BottomKindName;
         this.services = services;
-        this.services.Kinds.register(this);
+        this.services.infrastructure.Kinds.register(this);
         this.options = {
             // the default values:
             name: 'never',
@@ -48,7 +48,7 @@ export class BottomKind implements Kind, BottomFactoryService {
 
     get(typeDetails: BottomTypeDetails): BottomType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.Graph.getType(key) as BottomType;
+        return this.services.infrastructure.Graph.getType(key) as BottomType;
     }
 
     create(typeDetails: BottomTypeDetails): BottomType {
@@ -60,7 +60,7 @@ export class BottomKind implements Kind, BottomFactoryService {
         }
         const bottomType = new BottomType(this, this.calculateIdentifier(typeDetails));
         this.instance = bottomType;
-        this.services.Graph.addNode(bottomType);
+        this.services.infrastructure.Graph.addNode(bottomType);
 
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         this.registerInferenceRules(typeDetails, bottomType);
