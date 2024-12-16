@@ -67,9 +67,9 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         this.resolvedType = undefined;
 
         // react on new types
-        this.services.graph.addListener(this);
+        this.services.Graph.addListener(this);
         // react on new inference rules
-        this.services.inference.addListener(this);
+        this.services.Inference.addListener(this);
         // don't react on state changes of already existing types which are not (yet) completed, since TypeSelectors don't care about the initialization state of types
 
         // try to resolve now
@@ -78,8 +78,8 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
 
     protected stopResolving(): void {
         // it is not required to listen to new types anymore, since the type is already resolved/found
-        this.services.graph.removeListener(this);
-        this.services.inference.removeListener(this);
+        this.services.Graph.removeListener(this);
+        this.services.Inference.removeListener(this);
     }
 
     getType(): T | undefined {
@@ -98,7 +98,7 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         }
 
         // try to resolve the type
-        const resolvedType = this.services.infrastructure.typeResolver.tryToResolve<T>(this.selector);
+        const resolvedType = this.services.infrastructure.TypeResolver.tryToResolve<T>(this.selector);
 
         if (resolvedType) {
             // the type is successfully resolved!

@@ -27,9 +27,9 @@ export type PartialTypirLangiumServices = DeepPartial<LangiumServicesForTypirBin
 export function createLangiumSpecificTypirServicesModule(langiumServices: LangiumSharedCoreServices): Module<TypirServices> {
     // replace some implementations for the core Typir services
     const LangiumSpecifics: Module<TypirServices, PartialTypirServices> = {
-        printer: () => new LangiumProblemPrinter(),
+        Printer: () => new LangiumProblemPrinter(),
         caching: {
-            domainElementInference: () => new LangiumDomainElementInferenceCaching(langiumServices),
+            DomainElementInference: () => new LangiumDomainElementInferenceCaching(langiumServices),
         },
     };
     return Module.merge(

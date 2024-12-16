@@ -32,12 +32,12 @@ export class PrimitiveKind implements Kind, PrimitiveFactoryService {
     constructor(services: TypirServices) {
         this.$name = PrimitiveKindName;
         this.services = services;
-        this.services.kinds.register(this);
+        this.services.Kinds.register(this);
     }
 
     get(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as PrimitiveType;
+        return this.services.Graph.getType(key) as PrimitiveType;
     }
 
     create(typeDetails: PrimitiveTypeDetails): PrimitiveType {
@@ -45,7 +45,7 @@ export class PrimitiveKind implements Kind, PrimitiveFactoryService {
 
         // create the primitive type
         const primitiveType = new PrimitiveType(this, this.calculateIdentifier(typeDetails));
-        this.services.graph.addNode(primitiveType);
+        this.services.Graph.addNode(primitiveType);
 
         this.registerInferenceRules(typeDetails, primitiveType);
 
@@ -56,7 +56,7 @@ export class PrimitiveKind implements Kind, PrimitiveFactoryService {
     protected registerInferenceRules(typeDetails: PrimitiveTypeDetails, primitiveType: PrimitiveType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.services.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.Inference.addInferenceRule((domainElement, _typir) => {
                 for (const inferenceRule of rules) {
                     if (inferenceRule(domainElement)) {
                         return primitiveType;

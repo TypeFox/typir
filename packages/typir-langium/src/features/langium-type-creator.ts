@@ -41,7 +41,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
     protected readonly typeGraph: TypeGraph;
 
     constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
-        this.typeGraph = typirServices.graph;
+        this.typeGraph = typirServices.Graph;
 
         // for new and updated documents
         langiumServices.workspace.DocumentBuilder.onBuildPhase(DocumentState.IndexedReferences, async (documents, cancelToken) => {

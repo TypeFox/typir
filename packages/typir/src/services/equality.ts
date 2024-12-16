@@ -37,7 +37,7 @@ export class DefaultTypeEquality implements TypeEquality {
     protected readonly typeRelationships: TypeRelationshipCaching;
 
     constructor(services: TypirServices) {
-        this.typeRelationships = services.caching.typeRelationships;
+        this.typeRelationships = services.caching.TypeRelationships;
     }
 
     areTypesEqual(type1: Type, type2: Type): boolean {

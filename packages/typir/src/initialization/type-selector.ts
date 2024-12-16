@@ -59,7 +59,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
             // TODO is there a way to explicitly enforce/ensure "as T"?
             return selector as T;
         } else if (typeof selector === 'string') {
-            return this.services.graph.getType(selector) as T;
+            return this.services.Graph.getType(selector) as T;
         } else if (selector instanceof TypeInitializer) {
             return selector.getTypeInitial();
         } else if (selector instanceof TypeReference) {
@@ -67,7 +67,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
         } else if (typeof selector === 'function') {
             return this.tryToResolve(selector()); // execute the function and try to recursively resolve the returned result again
         } else { // the selector is of type 'known' => do type inference on it
-            const result = this.services.inference.inferType(selector);
+            const result = this.services.Inference.inferType(selector);
             // TODO failures must not be cached, otherwise a type will never be found in the future!!
             if (isType(result)) {
                 return result as T;
@@ -81,7 +81,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
         if (isType(selector)) {
             return selector as T;
         } else if (typeof selector === 'string') {
-            const result = this.services.graph.getType(selector);
+            const result = this.services.Graph.getType(selector);
             if (result) {
                 return result as T;
             } else {
@@ -94,11 +94,11 @@ export class DefaultTypeResolver implements TypeResolvingService {
         } else if (typeof selector === 'function') {
             return this.resolve(selector()); // execute the function and try to recursively resolve the returned result again
         } else {
-            const result = this.services.inference.inferType(selector);
+            const result = this.services.Inference.inferType(selector);
             if (isType(result)) {
                 return result as T;
             } else {
-                throw new Error(`For '${this.services.printer.printDomainElement(selector, false)}' as TypeSelector, no type can be inferred.`);
+                throw new Error(`For '${this.services.Printer.printDomainElement(selector, false)}' as TypeSelector, no type can be inferred.`);
             }
         }
     }

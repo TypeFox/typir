@@ -63,7 +63,7 @@ export class FixedParameterType extends Type {
             } else {
                 // all parameter types must match, e.g. Set<String> !== Set<Boolean>
                 const conflicts: TypirProblem[] = [];
-                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.services.equality.getTypeEqualityProblem(t1, t2), false));
+                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), false));
                 return conflicts;
             }
         } else {

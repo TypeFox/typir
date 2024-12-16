@@ -71,21 +71,21 @@ export class DefaultLangiumTypirValidator implements LangiumTypirValidator {
     }
 
     checkTypingProblemsWithTypirBeforeDocument(rootNode: AstNode, accept: ValidationAcceptor): void {
-        this.report(this.services.validation.collector.validateBefore(rootNode), rootNode, accept);
+        this.report(this.services.validation.Collector.validateBefore(rootNode), rootNode, accept);
     }
 
     checkTypingProblemsWithTypir(node: AstNode, accept: ValidationAcceptor) {
-        this.report(this.services.validation.collector.validate(node), node, accept);
+        this.report(this.services.validation.Collector.validate(node), node, accept);
     }
 
     checkTypingProblemsWithTypirAfterDocument(rootNode: AstNode, accept: ValidationAcceptor): void {
-        this.report(this.services.validation.collector.validateAfter(rootNode), rootNode, accept);
+        this.report(this.services.validation.Collector.validateAfter(rootNode), rootNode, accept);
     }
 
     protected report(problems: ValidationProblem[], node: AstNode, accept: ValidationAcceptor): void {
         // print all found problems for the given AST node
         for (const problem of problems) {
-            const message = this.services.printer.printValidationProblem(problem);
+            const message = this.services.Printer.printValidationProblem(problem);
             accept(problem.severity, message, { node, property: problem.domainProperty, index: problem.domainIndex });
         }
     }

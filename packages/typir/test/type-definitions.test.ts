@@ -19,7 +19,7 @@ describe('Tests for Typir', () => {
         const typir = createTypirServices({
             // customize some default factories for predefined types
             factory: {
-                classes: (services) =>new ClassKind(typir, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' }),
+                Classes: (services) =>new ClassKind(typir, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' }),
             },
         });
 
@@ -29,14 +29,14 @@ describe('Tests for Typir', () => {
         const mapKind = new FixedParameterKind(typir, 'Map', { parameterSubtypeCheckingStrategy: 'EQUAL_TYPE' }, 'key', 'value');
 
         // create some primitive types
-        const typeInt = typir.factory.primitives.create({ primitiveName: 'Integer' });
-        const typeString = typir.factory.primitives.create({ primitiveName: 'String',
+        const typeInt = typir.factory.Primitives.create({ primitiveName: 'Integer' });
+        const typeString = typir.factory.Primitives.create({ primitiveName: 'String',
             inferenceRules: domainElement => typeof domainElement === 'string'}); // combine type definition with a dedicated inference rule for it
-        const typeBoolean = typir.factory.primitives.create({ primitiveName: 'Boolean' });
+        const typeBoolean = typir.factory.Primitives.create({ primitiveName: 'Boolean' });
 
         // create class type Person with 1 firstName and 1..2 lastNames and an age properties
         const typeOneOrTwoStrings = multiplicityKind.createMultiplicityType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
-        const typePerson = typir.factory.classes.create({
+        const typePerson = typir.factory.Classes.create({
             className: 'Person',
             fields: [
                 { name: 'firstName', type: typeString },
@@ -46,7 +46,7 @@ describe('Tests for Typir', () => {
             methods: [],
         });
         console.log(typePerson.getTypeFinal()!.getUserRepresentation());
-        const typeStudent = typir.factory.classes.create({
+        const typeStudent = typir.factory.Classes.create({
             className: 'Student',
             superClasses: typePerson, // a Student is a special Person
             fields: [
@@ -59,50 +59,50 @@ describe('Tests for Typir', () => {
         const typeListInt = listKind.createFixedParameterType({ parameterTypes: typeInt });
         const typeListString = listKind.createFixedParameterType({ parameterTypes: typeString });
         // const typeMapStringPerson = mapKind.createFixedParameterType({ parameterTypes: [typeString, typePerson] });
-        const typeFunctionStringLength = typir.factory.functions.create({
+        const typeFunctionStringLength = typir.factory.Functions.create({
             functionName: 'length',
             outputParameter: { name: NO_PARAMETER_NAME, type: typeInt },
             inputParameters: [{ name: 'value', type: typeString }]
         });
 
         // binary operators on Integers
-        const opAdd = typir.factory.operators.createBinary({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } });
-        const opMinus = typir.factory.operators.createBinary({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } });
-        const opLess = typir.factory.operators.createBinary({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } });
-        const opEqualInt = typir.factory.operators.createBinary({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean },
+        const opAdd = typir.factory.Operators.createBinary({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } });
+        const opMinus = typir.factory.Operators.createBinary({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } });
+        const opLess = typir.factory.Operators.createBinary({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } });
+        const opEqualInt = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean },
             inferenceRule: {
                 filter: (domainElement): domainElement is string => typeof domainElement === 'string',
                 matching: domainElement => domainElement.includes('=='),
                 operands: domainElement => []
             }});
         // binary operators on Booleans
-        const opEqualBool = typir.factory.operators.createBinary({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
-        const opAnd = typir.factory.operators.createBinary({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
+        const opEqualBool = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
+        const opAnd = typir.factory.Operators.createBinary({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
         // unary operators
-        const opNotBool = typir.factory.operators.createUnary({ name: '!', signature: { operand: typeBoolean, return: typeBoolean },
+        const opNotBool = typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBoolean, return: typeBoolean },
             inferenceRule: {
                 filter: (domainElement): domainElement is string => typeof domainElement === 'string',
                 matching: domainElement => domainElement.includes('NOT'),
                 operand: domainElement => []
             }});
         // ternary operator
-        const opTernaryIf = typir.factory.operators.createTernary({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } });
+        const opTernaryIf = typir.factory.Operators.createTernary({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } });
 
         // automated conversion from int to string
         // it is possible to define multiple sources and/or targets at the same time:
-        typir.conversion.markAsConvertible([typeInt, typeInt], [typeString, typeString, typeString], 'EXPLICIT');
+        typir.Conversion.markAsConvertible([typeInt, typeInt], [typeString, typeString, typeString], 'EXPLICIT');
         // single relationships are possible as well
-        typir.conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT_EXPLICIT');
+        typir.Conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT_EXPLICIT');
 
         // is assignable?
         // primitives
-        expect(typir.assignability.isAssignable(typeInt, typeInt)).toBe(true);
-        expect(typir.assignability.isAssignable(typeInt, typeString)).toBe(true);
-        expect(typir.assignability.isAssignable(typeString, typeInt)).not.toBe(true);
+        expect(typir.Assignability.isAssignable(typeInt, typeInt)).toBe(true);
+        expect(typir.Assignability.isAssignable(typeInt, typeString)).toBe(true);
+        expect(typir.Assignability.isAssignable(typeString, typeInt)).not.toBe(true);
         // List, Map
         // expect(typir.assignability.isAssignable(typeListInt, typeMapStringPerson)).not.toBe(true);
-        expect(typir.assignability.isAssignable(typeListInt, typeListString)).not.toBe(true);
-        expect(typir.assignability.isAssignable(typeListInt, typeListInt)).toBe(true);
+        expect(typir.Assignability.isAssignable(typeListInt, typeListString)).not.toBe(true);
+        expect(typir.Assignability.isAssignable(typeListInt, typeListInt)).toBe(true);
         // classes
         // expect(typir.assignability.isAssignable(typeStudent, typePerson)).toBe(true);
         // const assignConflicts = typir.assignability.getAssignabilityProblem(typePerson, typeStudent);

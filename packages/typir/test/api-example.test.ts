@@ -12,15 +12,15 @@ describe('Tests for the new API', () => {
     test('Experiments', async () => {
         const typir = createTypirServices();
 
-        const booleanType = typir.factory.primitives.create({ primitiveName: 'boolean' });
+        const booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean' });
         expect(booleanType).toBeTruthy();
-        const getBool = typir.factory.primitives.get({ primitiveName: 'boolean' });
+        const getBool = typir.factory.Primitives.get({ primitiveName: 'boolean' });
         expect(getBool).toBe(booleanType);
 
-        typir.factory.functions.create({ functionName: 'myFunction', inputParameters: [], outputParameter: undefined });
+        typir.factory.Functions.create({ functionName: 'myFunction', inputParameters: [], outputParameter: undefined });
 
         // operators
-        typir.factory.operators.createBinary({ name: '&&', signature: [{ left: booleanType, right: booleanType, return: booleanType }] });
+        typir.factory.Operators.createBinary({ name: '&&', signature: [{ left: booleanType, right: booleanType, return: booleanType }] });
         // typir.operators.createBinary({ name: '&&', signature: [{ left: booleanType, right: booleanType, return: booleanType }] }); // TODO entfernen!
     });
 
@@ -29,8 +29,8 @@ describe('Tests for the new API', () => {
         const typir = createTypirServices(); // set-up the type system
 
         // primitive types
-        const numberType = typir.factory.primitives.create({ primitiveName: 'number', inferenceRules: node => node instanceof NumberLiteral });
-        const stringType = typir.factory.primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
+        const numberType = typir.factory.Primitives.create({ primitiveName: 'number', inferenceRules: node => node instanceof NumberLiteral });
+        const stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
 
         // operators
         const inferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
@@ -38,17 +38,17 @@ describe('Tests for the new API', () => {
             matching: (node, operatorName) => node.operator === operatorName,
             operands: node => [node.left, node.right],
         };
-        typir.factory.operators.createBinary({ name: '+', signature: [ // operator overloading
+        typir.factory.Operators.createBinary({ name: '+', signature: [ // operator overloading
             { left: numberType, right: numberType, return: numberType }, // 2 + 3
             { left: stringType, right: stringType, return: stringType }, // "2" + "3"
         ], inferenceRule });
-        typir.factory.operators.createBinary({ name: '-', signature: [{ left: numberType, right: numberType, return: numberType }], inferenceRule }); // 2 - 3
+        typir.factory.Operators.createBinary({ name: '-', signature: [{ left: numberType, right: numberType, return: numberType }], inferenceRule }); // 2 - 3
 
         // numbers are implicitly convertable to strings
-        typir.conversion.markAsConvertible(numberType, stringType, 'IMPLICIT_EXPLICIT');
+        typir.Conversion.markAsConvertible(numberType, stringType, 'IMPLICIT_EXPLICIT');
 
         // specify, how Typir can detect the type of a variable
-        typir.inference.addInferenceRule(node => {
+        typir.Inference.addInferenceRule(node => {
             if (node instanceof Variable) {
                 return node.initialValue; // the type of the variable is the type of its initial value
             }
@@ -56,9 +56,9 @@ describe('Tests for the new API', () => {
         });
 
         // register a type-related validation
-        typir.validation.collector.addValidationRule(node => {
+        typir.validation.Collector.addValidationRule(node => {
             if (node instanceof AssignmentStatement) {
-                return typir.validation.constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
+                return typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
                     `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
             }
             return [];
@@ -66,28 +66,28 @@ describe('Tests for the new API', () => {
 
         // 2 + 3 => OK
         const example1 = new BinaryExpression(new NumberLiteral(2), '+', new NumberLiteral(3));
-        expect(typir.validation.collector.validate(example1)).toHaveLength(0);
+        expect(typir.validation.Collector.validate(example1)).toHaveLength(0);
 
         // 2 + "3" => OK
         const example2 = new BinaryExpression(new NumberLiteral(2), '+', new StringLiteral('3'));
-        expect(typir.validation.collector.validate(example2)).toHaveLength(0);
+        expect(typir.validation.Collector.validate(example2)).toHaveLength(0);
 
         // 2 - "3" => wrong
         const example3 = new BinaryExpression(new NumberLiteral(2), '-', new StringLiteral('3'));
-        const errors1 = typir.validation.collector.validate(example3);
-        const errorStack = typir.printer.printTypirProblem(errors1[0]); // the problem comes with "sub-problems" to describe the reasons in more detail
+        const errors1 = typir.validation.Collector.validate(example3);
+        const errorStack = typir.Printer.printTypirProblem(errors1[0]); // the problem comes with "sub-problems" to describe the reasons in more detail
         expect(errorStack).includes("The parameter 'right' at index 1 got a value with a wrong type.");
         expect(errorStack).includes("For property 'right', the types 'string' and 'number' do not match.");
 
         // 123 is assignable to a string variable
         const varString = new Variable('v1', new StringLiteral('Hello'));
         const assignNumberToString = new AssignmentStatement(varString, new NumberLiteral(123));
-        expect(typir.validation.collector.validate(assignNumberToString)).toHaveLength(0);
+        expect(typir.validation.Collector.validate(assignNumberToString)).toHaveLength(0);
 
         // "123" is not assignable to a number variable
         const varNumber = new Variable('v2', new NumberLiteral(456));
         const assignStringToNumber = new AssignmentStatement(varNumber, new StringLiteral('123'));
-        const errors2 = typir.validation.collector.validate(assignStringToNumber);
+        const errors2 = typir.validation.Collector.validate(assignStringToNumber);
         expect(errors2[0].message).toBe("The type 'string' is not assignable to the type 'number'.");
     });
 

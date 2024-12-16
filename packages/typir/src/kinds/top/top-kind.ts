@@ -37,7 +37,7 @@ export class TopKind implements Kind, TopFactoryService {
     constructor(services: TypirServices, options?: Partial<TopKindOptions>) {
         this.$name = TopKindName;
         this.services = services;
-        this.services.kinds.register(this);
+        this.services.Kinds.register(this);
         this.options = {
             // the default values:
             name: 'any',
@@ -48,7 +48,7 @@ export class TopKind implements Kind, TopFactoryService {
 
     get(typeDetails: TopTypeDetails): TopType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as TopType;
+        return this.services.Graph.getType(key) as TopType;
     }
 
     create(typeDetails: TopTypeDetails): TopType {
@@ -61,7 +61,7 @@ export class TopKind implements Kind, TopFactoryService {
         }
         const topType = new TopType(this, this.calculateIdentifier(typeDetails));
         this.instance = topType;
-        this.services.graph.addNode(topType);
+        this.services.Graph.addNode(topType);
 
         this.registerInferenceRules(typeDetails, topType);
 
@@ -72,7 +72,7 @@ export class TopKind implements Kind, TopFactoryService {
     protected registerInferenceRules(typeDetails: TopTypeDetails, topType: TopType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.services.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.Inference.addInferenceRule((domainElement, _typir) => {
                 for (const inferenceRule of rules) {
                     if (inferenceRule(domainElement)) {
                         return topType;

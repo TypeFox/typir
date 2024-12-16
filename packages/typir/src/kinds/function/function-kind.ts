@@ -136,7 +136,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
     constructor(services: TypirServices, options?: Partial<FunctionKindOptions>) {
         this.$name = FunctionKindName;
         this.services = services;
-        this.services.kinds.register(this);
+        this.services.Kinds.register(this);
         this.options = {
             // the default values:
             enforceFunctionName: false,
@@ -150,7 +150,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         };
 
         // register Validations for input arguments of function calls (must be done here to support overloaded functions)
-        this.services.validation.collector.addValidationRule(
+        this.services.validation.Collector.addValidationRule(
             (domainElement, typir) => {
                 const resultAll: ValidationProblem[] = [];
                 for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
@@ -181,7 +181,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                                         });
                                     } else {
                                         // there are parameter values to check their types
-                                        const inferredParameterTypes = inputArguments.map(p => typir.inference.inferType(p));
+                                        const inferredParameterTypes = inputArguments.map(p => typir.Inference.inferType(p));
                                         for (let i = 0; i < inputArguments.length; i++) {
                                             const expectedType = expectedParameterTypes[i];
                                             const inferredType = inferredParameterTypes[i];
@@ -208,7 +208,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                                             $problem: ValidationProblem,
                                             domainElement,
                                             severity: 'error',
-                                            message: `The given operands for the function '${this.services.printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
+                                            message: `The given operands for the function '${this.services.Printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
                                             subProblems: currentProblems,
                                         });
                                     } else {
@@ -259,7 +259,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
             // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
             (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR'
                 ? undefined
-                : this.services.infrastructure.typeResolver.resolve(this.options.typeToInferForCallsOfFunctionsWithoutOutput));
+                : this.services.infrastructure.TypeResolver.resolve(this.options.typeToInferForCallsOfFunctionsWithoutOutput));
     }
 
 
@@ -294,9 +294,9 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         // function name, if wanted
         const functionName = this.hasFunctionName(typeDetails.functionName) ? typeDetails.functionName : '';
         // inputs: type identifiers in defined order
-        const inputsString = typeDetails.inputParameters.map(input => this.services.infrastructure.typeResolver.resolve(input.type).getIdentifier()).join(',');
+        const inputsString = typeDetails.inputParameters.map(input => this.services.infrastructure.TypeResolver.resolve(input.type).getIdentifier()).join(',');
         // output: type identifier
-        const outputString = typeDetails.outputParameter ? this.services.infrastructure.typeResolver.resolve(typeDetails.outputParameter.type).getIdentifier() : '';
+        const outputString = typeDetails.outputParameter ? this.services.infrastructure.TypeResolver.resolve(typeDetails.outputParameter.type).getIdentifier() : '';
         // complete signature
         return `${prefix}${functionName}(${inputsString}):${outputString}`;
     }

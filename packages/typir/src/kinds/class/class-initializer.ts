@@ -28,12 +28,12 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         this.initialClassType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
         if (kind.options.typing === 'Structural') {
             // register structural classes also by their names, since these names are usually used for reference in the DSL/AST!
-            this.services.graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));
+            this.services.Graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));
         }
 
         this.inferenceRules = createInferenceRules<T, T1, T2>(this.typeDetails, this.kind, this.initialClassType);
         // register all the inference rules already now to enable early type inference for this Class type
-        this.inferenceRules.forEach(rule => services.inference.addInferenceRule(rule, undefined)); // 'undefined', since the Identifier is still missing
+        this.inferenceRules.forEach(rule => services.Inference.addInferenceRule(rule, undefined)); // 'undefined', since the Identifier is still missing
 
         this.initialClassType.addListener(this, true); // trigger directly, if some initialization states are already reached!
     }
@@ -55,22 +55,22 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
             if (this.kind.options.typing === 'Structural') {
                 // replace the type in the type graph
                 const nameBasedIdentifier = this.kind.calculateIdentifierWithClassNameOnly(this.typeDetails);
-                this.services.graph.removeNode(classType, nameBasedIdentifier);
-                this.services.graph.addNode(readyClassType, nameBasedIdentifier);
+                this.services.Graph.removeNode(classType, nameBasedIdentifier);
+                this.services.Graph.addNode(readyClassType, nameBasedIdentifier);
             }
 
             // remove the inference rules for the invalid type
-            this.inferenceRules.forEach(rule => this.services.inference.removeInferenceRule(rule, undefined));
+            this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule, undefined));
             // but re-create the inference rules for the new type!!
             // This is required, since inference rules for different declarations in the AST might be different, but should infer the same Typir type!
             this.inferenceRules = createInferenceRules(this.typeDetails, this.kind, readyClassType);
-            this.inferenceRules.forEach(rule => this.services.inference.addInferenceRule(rule, readyClassType));
+            this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule, readyClassType));
         } else {
             // the class type is unchanged (this is the usual case)
 
             // keep the existing inference rules, but register it for the unchanged class type
-            this.inferenceRules.forEach(rule => this.services.inference.removeInferenceRule(rule, undefined));
-            this.inferenceRules.forEach(rule => this.services.inference.addInferenceRule(rule, readyClassType));
+            this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule, undefined));
+            this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule, readyClassType));
         }
     }
 

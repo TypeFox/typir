@@ -127,8 +127,8 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     constructor(services: TypirServices) {
         this.services = services;
-        this.domainElementInference = services.caching.domainElementInference;
-        this.services.graph.addListener(this);
+        this.domainElementInference = services.caching.DomainElementInference;
+        this.services.Graph.addListener(this);
     }
 
     addInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void {
@@ -231,7 +231,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                 // this rule might match => continue applying this rule
                 // resolve the requested child types
                 const childElements = ruleResult;
-                const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.services.inference.inferType(child));
+                const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.services.Inference.inferType(child));
                 // check, whether inferring the children resulted in some other inference problems
                 const childTypeProblems: InferenceProblem[] = [];
                 for (let i = 0; i < childTypes.length; i++) {

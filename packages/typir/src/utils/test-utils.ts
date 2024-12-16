@@ -18,7 +18,7 @@ import { TypirServices } from '../typir.js';
  * @returns all the found types
  */
 export function expectTypirTypes(services: TypirServices, filterTypes: (type: Type) => boolean, ...namesOfExpectedTypes: string[]): Type[] {
-    const types = services.graph.getAllRegisteredTypes().filter(filterTypes);
+    const types = services.Graph.getAllRegisteredTypes().filter(filterTypes);
     types.forEach(type => expect(type.getInitializationState()).toBe('Completed')); // check that all types are 'Completed'
     const typeNames = types.map(t => t.getName());
     expect(typeNames, typeNames.join(', ')).toHaveLength(namesOfExpectedTypes.length);

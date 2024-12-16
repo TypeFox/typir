@@ -67,8 +67,8 @@ export class DefaultValidationConstraints implements ValidationConstraints {
 
     constructor(services: TypirServices) {
         this.services = services;
-        this.inference = services.inference;
-        this.printer = services.printer;
+        this.inference = services.Inference;
+        this.printer = services.Printer;
     }
 
     ensureNodeIsAssignable(sourceNode: unknown | undefined, expected: Type | undefined | unknown,
@@ -173,7 +173,7 @@ export class DefaultValidationCollector<ElementType = unknown, RootType = Elemen
 
     constructor(services: TypirServices) {
         this.services = services;
-        this.services.graph.addListener(this);
+        this.services.Graph.addListener(this);
     }
 
     validateBefore(domainRoot: RootType): ValidationProblem[] {

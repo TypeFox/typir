@@ -48,7 +48,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
                 sameOutputType: undefined,
             };
             this.kind.mapNameTypes.set(functionName, overloaded);
-            this.services.inference.addInferenceRule(overloaded.inference);
+            this.services.Inference.addInferenceRule(overloaded.inference);
         }
 
         // create the new Function type
@@ -86,7 +86,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
             // remember the output type of the first function
             overloaded.sameOutputType = outputTypeForFunctionCalls;
         } else {
-            if (overloaded.sameOutputType && outputTypeForFunctionCalls && this.services.equality.areTypesEqual(overloaded.sameOutputType, outputTypeForFunctionCalls) === true) {
+            if (overloaded.sameOutputType && outputTypeForFunctionCalls && this.services.Equality.areTypesEqual(overloaded.sameOutputType, outputTypeForFunctionCalls) === true) {
                 // the output types of all overloaded functions are the same for now
             } else {
                 // there is a difference
@@ -113,10 +113,10 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
             overloaded.inference.addInferenceRule(this.inferenceRules.inferenceForCall, functionType);
         }
         if (this.inferenceRules.validationForCall) {
-            this.kind.services.validation.collector.addValidationRule(this.inferenceRules.validationForCall);
+            this.kind.services.validation.Collector.addValidationRule(this.inferenceRules.validationForCall);
         }
         if (this.inferenceRules.inferenceForDeclaration) {
-            this.kind.services.inference.addInferenceRule(this.inferenceRules.inferenceForDeclaration, functionType);
+            this.kind.services.Inference.addInferenceRule(this.inferenceRules.inferenceForDeclaration, functionType);
         }
     }
 
@@ -126,10 +126,10 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
             overloaded?.inference.removeInferenceRule(this.inferenceRules.inferenceForCall, functionType);
         }
         if (this.inferenceRules.validationForCall) {
-            this.kind.services.validation.collector.removeValidationRule(this.inferenceRules.validationForCall);
+            this.kind.services.validation.Collector.removeValidationRule(this.inferenceRules.validationForCall);
         }
         if (this.inferenceRules.inferenceForDeclaration) {
-            this.kind.services.inference.removeInferenceRule(this.inferenceRules.inferenceForDeclaration, functionType);
+            this.kind.services.Inference.removeInferenceRule(this.inferenceRules.inferenceForDeclaration, functionType);
         }
     }
 }
@@ -198,10 +198,10 @@ function createInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, func
                 return InferenceRuleNotApplicable;
             },
             inferTypeWithChildrensTypes(domainElement, actualInputTypes, typir) {
-                const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.typeResolver.resolve(p.type));
+                const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.TypeResolver.resolve(p.type));
                 // all operands need to be assignable(! not equal) to the required types
                 const comparisonConflicts = checkTypeArrays(actualInputTypes, expectedInputTypes,
-                    (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2), true);
+                    (t1, t2) => typir.Assignability.getAssignabilityProblem(t1, t2), true);
                 if (comparisonConflicts.length >= 1) {
                     // this function type does not match, due to assignability conflicts => return them as errors
                     return {
@@ -233,13 +233,13 @@ function createInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, func
                         // for overloaded functions: the types of the parameters need to be inferred in order to determine an exact match
                         // (Note that the short-cut for type inference for function calls, when all overloads return the same output type, does not work here, since the validation here is specific for this single variant!)
                         // This is also the reason, why the inference rule for call is not reused here.)
-                        const childTypes: Array<Type | InferenceProblem[]> = inputArguments.map(child => typir.inference.inferType(child));
+                        const childTypes: Array<Type | InferenceProblem[]> = inputArguments.map(child => typir.Inference.inferType(child));
                         const actualInputTypes = childTypes.filter(t => isType(t));
                         if (childTypes.length === actualInputTypes.length) {
-                            const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.typeResolver.resolve(p.type));
+                            const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.TypeResolver.resolve(p.type));
                             // all operands need to be assignable(! not equal) to the required types
                             const comparisonConflicts = checkTypeArrays(actualInputTypes, expectedInputTypes,
-                                (t1, t2) => typir.assignability.getAssignabilityProblem(t1, t2), true);
+                                (t1, t2) => typir.Assignability.getAssignabilityProblem(t1, t2), true);
                             if (comparisonConflicts.length <= 0) {
                                 // all arguments are assignable to the expected types of the parameters => this function is really called here => validate this call now
                                 return typeDetails.validationForCall!(domainElement, functionType, typir);

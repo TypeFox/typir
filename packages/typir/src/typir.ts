@@ -41,62 +41,62 @@ import { inject, Module } from './utils/dependency-injection.js';
  */
 
 export type TypirServices = {
-    readonly assignability: TypeAssignability;
-    readonly equality: TypeEquality;
-    readonly conversion: TypeConversion;
-    readonly subtype: SubType;
-    readonly inference: TypeInferenceCollector;
+    readonly Assignability: TypeAssignability;
+    readonly Equality: TypeEquality;
+    readonly Conversion: TypeConversion;
+    readonly Subtype: SubType;
+    readonly Inference: TypeInferenceCollector;
     readonly caching: {
-        readonly typeRelationships: TypeRelationshipCaching;
-        readonly domainElementInference: DomainElementInferenceCaching;
+        readonly TypeRelationships: TypeRelationshipCaching;
+        readonly DomainElementInference: DomainElementInferenceCaching;
     };
-    readonly graph: TypeGraph;
-    readonly kinds: KindRegistry;
-    readonly printer: ProblemPrinter;
+    readonly Graph: TypeGraph;
+    readonly Kinds: KindRegistry;
+    readonly Printer: ProblemPrinter;
     readonly validation: {
-        readonly collector: ValidationCollector;
-        readonly constraints: ValidationConstraints;
+        readonly Collector: ValidationCollector;
+        readonly Constraints: ValidationConstraints;
     };
     readonly factory: {
-        readonly primitives: PrimitiveFactoryService;
-        readonly functions: FunctionFactoryService;
-        readonly classes: ClassFactoryService;
-        readonly top: TopFactoryService;
-        readonly bottom: BottomFactoryService;
-        readonly operators: OperatorFactoryService;
+        readonly Primitives: PrimitiveFactoryService;
+        readonly Functions: FunctionFactoryService;
+        readonly Classes: ClassFactoryService;
+        readonly Top: TopFactoryService;
+        readonly Bottom: BottomFactoryService;
+        readonly Operators: OperatorFactoryService;
     };
     readonly infrastructure: {
-        typeResolver: TypeResolvingService;
+        TypeResolver: TypeResolvingService;
     },
 };
 
 export const DefaultTypirServiceModule: Module<TypirServices> = {
-    assignability: (services) => new DefaultTypeAssignability(services),
-    equality: (services) => new DefaultTypeEquality(services),
-    conversion: (services) => new DefaultTypeConversion(services),
-    graph: () =>  new TypeGraph(),
-    subtype: (services) => new DefaultSubType(services),
-    inference: (services) => new DefaultTypeInferenceCollector(services),
+    Assignability: (services) => new DefaultTypeAssignability(services),
+    Equality: (services) => new DefaultTypeEquality(services),
+    Conversion: (services) => new DefaultTypeConversion(services),
+    Graph: () =>  new TypeGraph(),
+    Subtype: (services) => new DefaultSubType(services),
+    Inference: (services) => new DefaultTypeInferenceCollector(services),
     caching: {
-        typeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
-        domainElementInference: () => new DefaultDomainElementInferenceCaching()
+        TypeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
+        DomainElementInference: () => new DefaultDomainElementInferenceCaching()
     },
-    kinds: () => new DefaultKindRegistry(),
-    printer: () => new DefaultTypeConflictPrinter(),
+    Kinds: () => new DefaultKindRegistry(),
+    Printer: () => new DefaultTypeConflictPrinter(),
     validation: {
-        collector: (services) => new DefaultValidationCollector(services),
-        constraints: (services) => new DefaultValidationConstraints(services),
+        Collector: (services) => new DefaultValidationCollector(services),
+        Constraints: (services) => new DefaultValidationConstraints(services),
     },
     factory: {
-        primitives: (services) => new PrimitiveKind(services),
-        functions: (services) => new FunctionKind(services),
-        classes: (services) => new ClassKind(services, { typing: 'Nominal' }),
-        top: (services) => new TopKind(services),
-        bottom: (services) => new BottomKind(services),
-        operators: (services) => new DefaultOperatorFactory(services),
+        Primitives: (services) => new PrimitiveKind(services),
+        Functions: (services) => new FunctionKind(services),
+        Classes: (services) => new ClassKind(services, { typing: 'Nominal' }),
+        Top: (services) => new TopKind(services),
+        Bottom: (services) => new BottomKind(services),
+        Operators: (services) => new DefaultOperatorFactory(services),
     },
     infrastructure: {
-        typeResolver: (services) => new DefaultTypeResolver(services),
+        TypeResolver: (services) => new DefaultTypeResolver(services),
     }
 };
 

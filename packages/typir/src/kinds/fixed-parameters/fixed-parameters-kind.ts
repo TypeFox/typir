@@ -44,7 +44,7 @@ export class FixedParameterKind implements Kind {
     constructor(typir: TypirServices, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
         this.$name = `${FixedParameterKindName}-${baseName}`;
         this.services = typir;
-        this.services.kinds.register(this);
+        this.services.Kinds.register(this);
         this.baseName = baseName;
         this.options = {
             // the default values:
@@ -60,7 +60,7 @@ export class FixedParameterKind implements Kind {
 
     getFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as FixedParameterType;
+        return this.services.Graph.getType(key) as FixedParameterType;
     }
 
     getOrCreateFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
@@ -78,7 +78,7 @@ export class FixedParameterKind implements Kind {
 
         // create the class type
         const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), ...toArray(typeDetails.parameterTypes));
-        this.services.graph.addNode(typeWithParameters);
+        this.services.Graph.addNode(typeWithParameters);
 
         this.registerInferenceRules(typeDetails, typeWithParameters);
 

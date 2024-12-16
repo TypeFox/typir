@@ -191,6 +191,6 @@ export class DefaultOperatorFactory implements OperatorFactoryService {
     }
 
     protected getFunctionFactory(): FunctionFactoryService {
-        return this.services.factory.functions;
+        return this.services.factory.Functions;
     }
 }

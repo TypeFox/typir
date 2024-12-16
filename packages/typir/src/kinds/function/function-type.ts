@@ -110,10 +110,10 @@ export class FunctionType extends Type {
             }
             // same output?
             conflicts.push(...checkTypes(this.getOutput(), otherType.getOutput(),
-                (s, t) => this.kind.services.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceOutputParameterName));
+                (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceOutputParameterName));
             // same input?
             conflicts.push(...checkTypeArrays(this.getInputs(), otherType.getInputs(),
-                (s, t) => this.kind.services.equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames));
+                (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames));
             return conflicts;
         } else {
             return [<TypeEqualityProblem>{

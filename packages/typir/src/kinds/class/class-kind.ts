@@ -78,7 +78,7 @@ export class ClassKind implements Kind, ClassFactoryService {
     constructor(services: TypirServices, options?: Partial<ClassKindOptions>) {
         this.$name = ClassKindName;
         this.services = services;
-        this.services.kinds.register(this);
+        this.services.Kinds.register(this);
         this.options = { // TODO in eigene Methode auslagern!
             // the default values:
             typing: 'Nominal',
@@ -139,7 +139,7 @@ export class ClassKind implements Kind, ClassFactoryService {
         if (this.options.typing === 'Structural') {
             // fields
             const fields: string = typeDetails.fields
-                .map(f => `${f.name}:${this.services.infrastructure.typeResolver.resolve(f.type)}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
+                .map(f => `${f.name}:${this.services.infrastructure.TypeResolver.resolve(f.type)}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
                 .sort() // the order of fields does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
             // methods
@@ -153,7 +153,7 @@ export class ClassKind implements Kind, ClassFactoryService {
             // super classes (TODO oder strukturell per getAllSuperClassX lösen?!)
             const superClasses: string = toArray(typeDetails.superClasses)
                 .map(selector => {
-                    const type = this.services.infrastructure.typeResolver.resolve(selector);
+                    const type = this.services.infrastructure.TypeResolver.resolve(selector);
                     assertType(type, isClassType);
                     return type.getIdentifier();
                 })
@@ -181,7 +181,7 @@ export class ClassKind implements Kind, ClassFactoryService {
     }
 
     getMethodFactory(): FunctionFactoryService {
-        return this.services.factory.functions;
+        return this.services.factory.Functions;
     }
 
     getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
@@ -190,7 +190,7 @@ export class ClassKind implements Kind, ClassFactoryService {
 
     getTopClassKind(): TopClassKind {
         // ensure, that Typir uses the predefined 'TopClass' kind
-        const kind = this.services.kinds.get(TopClassKindName);
+        const kind = this.services.Kinds.get(TopClassKindName);
         return isTopClassKind(kind) ? kind : new TopClassKind(this.services);
     }
 

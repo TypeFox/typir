@@ -50,7 +50,7 @@ export class DefaultSubType implements SubType {
     protected readonly typeRelationships: TypeRelationshipCaching;
 
     constructor(services: TypirServices) {
-        this.typeRelationships = services.caching.typeRelationships;
+        this.typeRelationships = services.caching.TypeRelationships;
     }
 
     isSubType(subType: Type, superType: Type): boolean {

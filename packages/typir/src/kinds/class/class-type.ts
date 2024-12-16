@@ -161,7 +161,7 @@ export class ClassType extends Type {
             if (this.kind.options.typing === 'Structural') {
                 // for structural typing:
                 return checkNameTypesMap(this.getFields(true), otherType.getFields(true), // including fields of super-classes
-                    (t1, t2) => this.kind.services.equality.getTypeEqualityProblem(t1, t2));
+                    (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2));
             } else if (this.kind.options.typing === 'Nominal') {
                 // for nominal typing:
                 return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
@@ -244,7 +244,7 @@ export class ClassType extends Type {
             const allSub = subType.getAllSuperClasses(true);
             const globalResult: TypirProblem[] = [];
             for (const oneSub of allSub) {
-                const localResult = this.kind.services.equality.getTypeEqualityProblem(superType, oneSub);
+                const localResult = this.kind.services.Equality.getTypeEqualityProblem(superType, oneSub);
                 if (localResult === undefined) {
                     return []; // class is found in the class hierarchy
                 }
