@@ -9,7 +9,7 @@ import { SubTypeProblem } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
-import { MultiplicityKind, isMultiplicityKind } from './multiplicity-kind.js';
+import { MultiplicityKind, MultiplicityTypeDetails, isMultiplicityKind } from './multiplicity-kind.js';
 
 export class MultiplicityType extends Type {
     override readonly kind: MultiplicityKind;
@@ -17,13 +17,12 @@ export class MultiplicityType extends Type {
     readonly lowerBound: number;
     readonly upperBound: number;
 
-    constructor(kind: MultiplicityKind, identifier: string,
-        constrainedType: Type, lowerBound: number, upperBound: number) {
-        super(identifier);
+    constructor(kind: MultiplicityKind, identifier: string, typeDetails: MultiplicityTypeDetails) {
+        super(identifier, typeDetails);
         this.kind = kind;
-        this.constrainedType = constrainedType;
-        this.lowerBound = lowerBound;
-        this.upperBound = upperBound;
+        this.constrainedType = typeDetails.constrainedType;
+        this.lowerBound = typeDetails.lowerBound;
+        this.upperBound = typeDetails.upperBound;
         this.defineTheInitializationProcessOfThisType({}); // TODO preconditions
     }
 

@@ -9,13 +9,13 @@ import { SubTypeProblem } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
-import { PrimitiveKind, isPrimitiveKind } from './primitive-kind.js';
+import { PrimitiveKind, PrimitiveTypeDetails, isPrimitiveKind } from './primitive-kind.js';
 
 export class PrimitiveType extends Type {
     override readonly kind: PrimitiveKind;
 
-    constructor(kind: PrimitiveKind, identifier: string) {
-        super(identifier);
+    constructor(kind: PrimitiveKind, identifier: string, typeDetails: PrimitiveTypeDetails) {
+        super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions
     }

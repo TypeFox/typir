@@ -4,13 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from '../../graph/type-node.js';
+import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { assertTrue } from '../../utils/utils.js';
 import { Kind, isKind } from '../kind.js';
 import { MultiplicityType } from './multiplicity-type.js';
 
-export interface MultiplicityTypeDetails {
+export interface MultiplicityTypeDetails extends TypeDetails {
     constrainedType: Type,
     lowerBound: number,
     upperBound: number
@@ -66,7 +66,7 @@ export class MultiplicityKind implements Kind {
         }
 
         // create the type with multiplicities
-        const typeWithMultiplicity = new MultiplicityType(this, this.calculateIdentifier(typeDetails), typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
+        const typeWithMultiplicity = new MultiplicityType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.services.infrastructure.Graph.addNode(typeWithMultiplicity);
 
         this.registerInferenceRules(typeDetails, typeWithMultiplicity);

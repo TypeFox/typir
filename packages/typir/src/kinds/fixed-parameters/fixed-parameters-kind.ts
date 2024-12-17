@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from '../../graph/type-node.js';
+import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
@@ -21,7 +21,7 @@ export class Parameter {
     }
 }
 
-export interface FixedParameterTypeDetails {
+export interface FixedParameterTypeDetails extends TypeDetails {
     parameterTypes: Type | Type[]
 }
 
@@ -77,7 +77,7 @@ export class FixedParameterKind implements Kind {
         assertTrue(this.getFixedParameterType(typeDetails) === undefined);
 
         // create the class type
-        const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), ...toArray(typeDetails.parameterTypes));
+        const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.services.infrastructure.Graph.addNode(typeWithParameters);
 
         this.registerInferenceRules(typeDetails, typeWithParameters);

@@ -34,6 +34,16 @@ export interface PreconditionsForInitializationState {
 }
 
 /**
+ * Contains properties which are be relevant for all types to create,
+ * i.e. it is used for specifying details of all types to create.
+ */
+export interface TypeDetails {
+    /** An element from the domain might be associated with the new type to create,
+     * e.g. the declaration node in the AST (e.g. a FunctionDeclarationNode is associated with the corresponding FunctionType). */
+    associatedDomainElement?: unknown;
+}
+
+/**
  * Design decisions:
  * - features of types are realized/determined by their kinds
  * - Identifiers of types must be unique!
@@ -53,8 +63,12 @@ export abstract class Type {
     protected readonly edgesIncoming: Map<string, TypeEdge[]> = new Map();
     protected readonly edgesOutgoing: Map<string, TypeEdge[]> = new Map();
 
-    constructor(identifier: string | undefined) {
+    /** An element from the domain might be associated with this type, e.g. the declaration node in the AST. */
+    readonly associatedDomainElement: unknown | undefined;
+
+    constructor(identifier: string | undefined, typeDetails: TypeDetails) {
         this.identifier = identifier;
+        this.associatedDomainElement = typeDetails.associatedDomainElement;
     }
 
 

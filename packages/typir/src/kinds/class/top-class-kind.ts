@@ -4,13 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeDetails } from '../../graph/type-node.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { TopClassType } from './top-class-type.js';
 
-export interface TopClassTypeDetails {
+export interface TopClassTypeDetails extends TypeDetails {
     inferenceRules?: InferTopClassType | InferTopClassType[]
 }
 
@@ -62,7 +63,7 @@ export class TopClassKind implements Kind {
             // note, that the given inference rules are ignored in this case!
             return this.instance;
         }
-        const topType = new TopClassType(this, this.calculateIdentifier(typeDetails));
+        const topType = new TopClassType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.instance = topType;
         this.services.infrastructure.Graph.addNode(topType);
 

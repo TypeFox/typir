@@ -42,7 +42,8 @@ export class ClassType extends Type {
     constructor(kind: ClassKind, typeDetails: ClassTypeDetails) {
         super(kind.options.typing === 'Nominal'
             ? kind.calculateIdentifierWithClassNameOnly(typeDetails) // use the name of the class as identifier already now
-            : undefined); // the identifier for structurally typed classes will be set later after resolving all fields and methods
+            : undefined, // the identifier for structurally typed classes will be set later after resolving all fields and methods
+        typeDetails);
         this.kind = kind;
         this.className = typeDetails.className;
 

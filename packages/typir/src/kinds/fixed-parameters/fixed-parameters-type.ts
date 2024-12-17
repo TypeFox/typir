@@ -9,8 +9,8 @@ import { SubTypeProblem } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, checkTypeArrays, createKindConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { assertTrue } from '../../utils/utils.js';
-import { Parameter, FixedParameterKind, isFixedParametersKind } from './fixed-parameters-kind.js';
+import { assertTrue, toArray } from '../../utils/utils.js';
+import { Parameter, FixedParameterKind, isFixedParametersKind, FixedParameterTypeDetails } from './fixed-parameters-kind.js';
 
 export class ParameterValue {
     readonly parameter: Parameter;
@@ -26,11 +26,12 @@ export class FixedParameterType extends Type {
     override readonly kind: FixedParameterKind;
     readonly parameterValues: ParameterValue[] = [];
 
-    constructor(kind: FixedParameterKind, identifier: string, ...typeValues: Type[]) {
-        super(identifier);
+    constructor(kind: FixedParameterKind, identifier: string, typeDetails: FixedParameterTypeDetails) {
+        super(identifier, typeDetails);
         this.kind = kind;
 
         // set the parameter values
+        const typeValues = toArray(typeDetails.parameterTypes);
         assertTrue(kind.parameters.length === typeValues.length);
         for (let i = 0; i < typeValues.length; i++) {
             this.parameterValues.push({

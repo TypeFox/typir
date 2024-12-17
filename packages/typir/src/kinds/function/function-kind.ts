@@ -6,7 +6,7 @@
 
 import { TypeEdge } from '../../graph/type-edge.js';
 import { TypeGraphListener } from '../../graph/type-graph.js';
-import { Type } from '../../graph/type-node.js';
+import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
@@ -42,7 +42,7 @@ export interface CreateParameterDetails {
     type: TypeSelector;
 }
 
-export interface FunctionTypeDetails {
+export interface FunctionTypeDetails extends TypeDetails {
     functionName: string,
     /** The order of parameters is important! */
     outputParameter: CreateParameterDetails | undefined,

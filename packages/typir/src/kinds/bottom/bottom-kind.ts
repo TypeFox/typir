@@ -9,8 +9,9 @@ import { TypirServices } from '../../typir.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
 import { BottomType } from './bottom-type.js';
 import { isKind, Kind } from '../kind.js';
+import { TypeDetails } from '../../graph/type-node.js';
 
-export interface BottomTypeDetails {
+export interface BottomTypeDetails extends TypeDetails {
     /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
     inferenceRules?: InferBottomType | InferBottomType[]
 }
@@ -58,7 +59,7 @@ export class BottomKind implements Kind, BottomFactoryService {
             // note, that the given inference rules are ignored in this case!
             return this.instance;
         }
-        const bottomType = new BottomType(this, this.calculateIdentifier(typeDetails));
+        const bottomType = new BottomType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.instance = bottomType;
         this.services.infrastructure.Graph.addNode(bottomType);
 

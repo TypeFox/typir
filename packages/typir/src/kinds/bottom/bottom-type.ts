@@ -9,13 +9,13 @@ import { SubTypeProblem } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
-import { BottomKind, isBottomKind } from './bottom-kind.js';
+import { BottomKind, BottomTypeDetails, isBottomKind } from './bottom-kind.js';
 
 export class BottomType extends Type {
     override readonly kind: BottomKind;
 
-    constructor(kind: BottomKind, identifier: string) {
-        super(identifier);
+    constructor(kind: BottomKind, identifier: string, typeDetails: BottomTypeDetails) {
+        super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions
     }

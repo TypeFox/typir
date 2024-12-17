@@ -26,7 +26,7 @@ export class FunctionType extends Type {
     readonly inputParameters: ParameterDetails[];
 
     constructor(kind: FunctionKind, typeDetails: FunctionTypeDetails) {
-        super(undefined);
+        super(undefined, typeDetails);
         this.kind = kind;
         this.functionName = typeDetails.functionName;
 

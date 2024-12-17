@@ -179,7 +179,8 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                     matching: (call: MemberCall) => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
                     inputArguments: (call: MemberCall) => call.arguments
                     // TODO does OX support overloaded function declarations? add a scope provider for that ...
-                }
+                },
+                associatedDomainElement: domainElement,
             });
         }
     }

@@ -4,13 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeDetails } from '../../graph/type-node.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { PrimitiveType } from './primitive-type.js';
 
-export interface PrimitiveTypeDetails {
+export interface PrimitiveTypeDetails extends TypeDetails {
     primitiveName: string;
     /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
     inferenceRules?: InferPrimitiveType | InferPrimitiveType[];
@@ -44,7 +45,7 @@ export class PrimitiveKind implements Kind, PrimitiveFactoryService {
         assertTrue(this.get(typeDetails) === undefined);
 
         // create the primitive type
-        const primitiveType = new PrimitiveType(this, this.calculateIdentifier(typeDetails));
+        const primitiveType = new PrimitiveType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.services.infrastructure.Graph.addNode(primitiveType);
 
         this.registerInferenceRules(typeDetails, primitiveType);

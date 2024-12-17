@@ -7,7 +7,7 @@
 import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
 import { CreateFieldDetails, CreateFunctionTypeDetails, CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationMessageDetails, createNoSuperClassCyclesValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
-import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from '../generated/ast.js';
+import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export class LoxTypeCreator extends AbstractLangiumTypeCreator {
@@ -225,6 +225,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 // inference rule for accessing fields
                 inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element!.ref.$container === node
                     ? domainElement.element!.ref.name : InferenceRuleNotApplicable,
+                associatedDomainElement: node,
             });
 
             // explicitly declare, that 'nil' can be assigned to any Class variable
@@ -255,6 +256,7 @@ function createFunctionDetails(node: FunctionDeclaration | MethodMember): Create
                 && domainElement.explicitOperationCall && domainElement.element!.ref.name === callableName,
             inputArguments: (domainElement: MemberCall) => domainElement.arguments
         },
+        associatedDomainElement: node,
     };
 }
 

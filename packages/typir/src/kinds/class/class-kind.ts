@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
+import { TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
@@ -16,8 +17,7 @@ import { CreateFunctionTypeDetails, FunctionFactoryService } from '../function/f
 import { Kind, isKind } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
 import { ClassType, isClassType } from './class-type.js';
-import { TopClassKind, TopClassKindName, TopClassTypeDetails, isTopClassKind } from './top-class-kind.js';
-import { TopClassType } from './top-class-type.js';
+import { TopClassKind, TopClassKindName, isTopClassKind } from './top-class-kind.js';
 
 export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
@@ -35,7 +35,7 @@ export interface CreateFieldDetails {
     type: TypeSelector;
 }
 
-export interface ClassTypeDetails<T = unknown> {
+export interface ClassTypeDetails<T = unknown> extends TypeDetails {
     className: string,
     superClasses?: TypeSelector | TypeSelector[],
     fields: CreateFieldDetails[],
