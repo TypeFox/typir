@@ -63,15 +63,6 @@ export class FixedParameterKind implements Kind {
         return this.services.infrastructure.Graph.getType(key) as FixedParameterType;
     }
 
-    getOrCreateFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
-        const typeWithParameters = this.getFixedParameterType(typeDetails);
-        if (typeWithParameters) {
-            this.registerInferenceRules(typeDetails, typeWithParameters);
-            return typeWithParameters;
-        }
-        return this.createFixedParameterType(typeDetails);
-    }
-
     // the order of parameters matters!
     createFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
         assertTrue(this.getFixedParameterType(typeDetails) === undefined);

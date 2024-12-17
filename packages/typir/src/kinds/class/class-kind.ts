@@ -184,10 +184,6 @@ export class ClassKind implements Kind, ClassFactoryService {
         return this.services.factory.Functions;
     }
 
-    getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
-        return this.getTopClassKind().getOrCreateTopClassType(typeDetails);
-    }
-
     getTopClassKind(): TopClassKind {
         // ensure, that Typir uses the predefined 'TopClass' kind
         const kind = this.services.infrastructure.Kinds.get(TopClassKindName);

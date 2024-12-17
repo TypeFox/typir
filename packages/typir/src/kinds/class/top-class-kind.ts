@@ -46,15 +46,6 @@ export class TopClassKind implements Kind {
         return this.services.infrastructure.Graph.getType(key) as TopClassType;
     }
 
-    getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
-        const topType = this.getTopClassType(typeDetails);
-        if (topType) {
-            this.registerInferenceRules(typeDetails, topType);
-            return topType;
-        }
-        return this.createTopClassType(typeDetails);
-    }
-
     createTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
         assertTrue(this.getTopClassType(typeDetails) === undefined);
 

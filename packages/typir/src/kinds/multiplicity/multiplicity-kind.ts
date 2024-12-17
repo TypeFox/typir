@@ -49,15 +49,6 @@ export class MultiplicityKind implements Kind {
         return this.services.infrastructure.Graph.getType(key) as MultiplicityType;
     }
 
-    getOrCreateMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
-        const typeWithMultiplicity = this.getMultiplicityType(typeDetails);
-        if (typeWithMultiplicity) {
-            this.registerInferenceRules(typeDetails, typeWithMultiplicity);
-            return typeWithMultiplicity;
-        }
-        return this.createMultiplicityType(typeDetails);
-    }
-
     createMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
         // check input
         assertTrue(this.getMultiplicityType(typeDetails) === undefined);
