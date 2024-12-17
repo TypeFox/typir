@@ -6,11 +6,11 @@
 
 import { TypeGraph } from './graph/type-graph.js';
 import { DefaultTypeResolver, TypeResolvingService } from './initialization/type-selector.js';
-import { BottomFactoryService, BottomKind } from './kinds/bottom/bottom-kind.js';
-import { ClassFactoryService, ClassKind } from './kinds/class/class-kind.js';
-import { FunctionKind, FunctionFactoryService } from './kinds/function/function-kind.js';
-import { PrimitiveFactoryService, PrimitiveKind } from './kinds/primitive/primitive-kind.js';
-import { TopFactoryService, TopKind } from './kinds/top/top-kind.js';
+import { BottomFactoryService, BottomKind, BottomKindName } from './kinds/bottom/bottom-kind.js';
+import { ClassFactoryService, ClassKind, ClassKindName } from './kinds/class/class-kind.js';
+import { FunctionFactoryService, FunctionKind, FunctionKindName } from './kinds/function/function-kind.js';
+import { PrimitiveFactoryService, PrimitiveKind, PrimitiveKindName } from './kinds/primitive/primitive-kind.js';
+import { TopFactoryService, TopKind, TopKindName } from './kinds/top/top-kind.js';
 import { DefaultTypeAssignability, TypeAssignability } from './services/assignability.js';
 import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './services/caching.js';
 import { DefaultTypeConversion, TypeConversion } from './services/conversion.js';
@@ -86,16 +86,16 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
         Constraints: (services) => new DefaultValidationConstraints(services),
     },
     factory: {
-        Primitives: (services) => new PrimitiveKind(services),
-        Functions: (services) => new FunctionKind(services),
-        Classes: (services) => new ClassKind(services, { typing: 'Nominal' }),
-        Top: (services) => new TopKind(services),
-        Bottom: (services) => new BottomKind(services),
+        Primitives: (services) => services.infrastructure.Kinds.getOrCreateKind(PrimitiveKindName, services => new PrimitiveKind(services)),
+        Functions: (services) => services.infrastructure.Kinds.getOrCreateKind(FunctionKindName, services => new FunctionKind(services)),
+        Classes: (services) => services.infrastructure.Kinds.getOrCreateKind(ClassKindName, services => new ClassKind(services, { typing: 'Nominal' })),
+        Top: (services) => services.infrastructure.Kinds.getOrCreateKind(TopKindName, services => new TopKind(services)),
+        Bottom: (services) => services.infrastructure.Kinds.getOrCreateKind(BottomKindName, services => new BottomKind(services)),
         Operators: (services) => new DefaultOperatorFactory(services),
     },
     infrastructure: {
         Graph: () =>  new TypeGraph(),
-        Kinds: () => new DefaultKindRegistry(),
+        Kinds: (services) => new DefaultKindRegistry(services),
         TypeResolver: (services) => new DefaultTypeResolver(services),
     },
 };
