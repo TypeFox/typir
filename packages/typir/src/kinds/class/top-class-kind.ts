@@ -33,7 +33,11 @@ export class TopClassKind implements Kind {
         this.$name = TopClassKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = {
+        this.options = this.collectOptions(options);
+    }
+
+    protected collectOptions(options?: Partial<TopClassKindOptions>): TopClassKindOptions {
+        return {
             // the default values:
             name: 'TopClass',
             // the actually overriden values:

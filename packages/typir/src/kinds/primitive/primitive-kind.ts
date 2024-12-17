@@ -11,6 +11,10 @@ import { assertTrue, toArray } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { PrimitiveType } from './primitive-type.js';
 
+export interface PrimitiveKindOptions {
+    // empty for now
+}
+
 export interface PrimitiveTypeDetails extends TypeDetails {
     primitiveName: string;
     /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
@@ -29,11 +33,19 @@ export interface PrimitiveFactoryService {
 export class PrimitiveKind implements Kind, PrimitiveFactoryService {
     readonly $name: 'PrimitiveKind';
     readonly services: TypirServices;
+    readonly options: PrimitiveKindOptions;
 
-    constructor(services: TypirServices) {
+    constructor(services: TypirServices, options?: Partial<PrimitiveKindOptions>) {
         this.$name = PrimitiveKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
+        this.options = this.collectOptions(options);
+    }
+
+    protected collectOptions(options?: Partial<PrimitiveKindOptions>): PrimitiveKindOptions {
+        return {
+            ...options,
+        };
     }
 
     get(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined {

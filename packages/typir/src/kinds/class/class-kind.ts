@@ -81,7 +81,12 @@ export class ClassKind implements Kind, ClassFactoryService {
         this.$name = ClassKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = { // TODO in eigene Methode auslagern!
+        this.options = this.collectOptions(options);
+        assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
+    }
+
+    protected collectOptions(options?: Partial<ClassKindOptions>): ClassKindOptions {
+        return {
             // the default values:
             typing: 'Nominal',
             maximumNumberOfSuperClasses: 1,
@@ -90,7 +95,6 @@ export class ClassKind implements Kind, ClassFactoryService {
             // the actually overriden values:
             ...options
         };
-        assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
 
     /**

@@ -46,16 +46,20 @@ export class FixedParameterKind implements Kind {
         this.services = typir;
         this.services.infrastructure.Kinds.register(this);
         this.baseName = baseName;
-        this.options = {
+        this.options = this.collectOptions(options);
+        this.parameters = parameterNames.map((name, index) => <Parameter>{ name, index });
+
+        // check input
+        assertTrue(this.parameters.length >= 1);
+    }
+
+    protected collectOptions(options?: Partial<FixedParameterKindOptions>): FixedParameterKindOptions {
+        return {
             // the default values:
             parameterSubtypeCheckingStrategy: 'EQUAL_TYPE',
             // the actually overriden values:
             ...options
         };
-        this.parameters = parameterNames.map((name, index) => <Parameter>{ name, index });
-
-        // check input
-        assertTrue(this.parameters.length >= 1);
     }
 
     getFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType | undefined {

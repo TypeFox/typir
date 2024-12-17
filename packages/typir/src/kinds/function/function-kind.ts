@@ -137,17 +137,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         this.$name = FunctionKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = {
-            // the default values:
-            enforceFunctionName: false,
-            enforceInputParameterNames: false,
-            enforceOutputParameterName: false,
-            identifierPrefix: 'function',
-            typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR',
-            subtypeParameterChecking: 'SUB_TYPE',
-            // the actually overriden values:
-            ...options
-        };
+        this.options = this.collectOptions(options);
 
         // register Validations for input arguments of function calls (must be done here to support overloaded functions)
         this.services.validation.Collector.addValidationRule(
@@ -243,6 +233,20 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                 return resultAll;
             }
         );
+    }
+
+    protected collectOptions(options?: Partial<FunctionKindOptions>): FunctionKindOptions {
+        return {
+            // the default values:
+            enforceFunctionName: false,
+            enforceInputParameterNames: false,
+            enforceOutputParameterName: false,
+            identifierPrefix: 'function',
+            typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR',
+            subtypeParameterChecking: 'SUB_TYPE',
+            // the actually overriden values:
+            ...options
+        };
     }
 
     get(typeDetails: FunctionTypeDetails): TypeReference<FunctionType> {

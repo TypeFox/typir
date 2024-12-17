@@ -39,7 +39,11 @@ export class BottomKind implements Kind, BottomFactoryService {
         this.$name = BottomKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = {
+        this.options = this.collectOptions(options);
+    }
+
+    protected collectOptions(options?: Partial<BottomKindOptions>): BottomKindOptions {
+        return {
             // the default values:
             name: 'never',
             // the actually overriden values:

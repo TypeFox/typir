@@ -36,7 +36,11 @@ export class MultiplicityKind implements Kind {
         this.$name = MultiplicityKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = {
+        this.options = this.collectOptions(options);
+    }
+
+    protected collectOptions(options?: Partial<MultiplicityKindOptions>): MultiplicityKindOptions {
+        return {
             // the default values:
             symbolForUnlimited: '*',
             // the actually overriden values:
