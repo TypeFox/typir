@@ -215,8 +215,8 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     .map(member => createFunctionDetails(member)), // same logic as for functions, since the LOX grammar defines them very similar
                 // inference rule for declaration
                 inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node,
-                // inference ruleS(?) for objects/class literals conforming to the current class
-                inferenceRuleForLiteral: { // <InferClassLiteral<MemberCall>>
+                // inference rule for constructor calls (i.e. class literals) conforming to the current class
+                inferenceRuleForConstructor: { // <InferClassLiteral<MemberCall>>
                     filter: isMemberCall,
                     matching: (domainElement: MemberCall) => isClass(domainElement.element?.ref) && domainElement.element!.ref.name === className && domainElement.explicitOperationCall,
                     inputValuesForFields: (_domainElement: MemberCall) => new Map(), // values for fields don't matter for nominal typing

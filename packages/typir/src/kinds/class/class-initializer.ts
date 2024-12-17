@@ -110,13 +110,13 @@ function createInferenceRules<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, 
                 }
             },
             inferTypeWithChildrensTypes(_domainElement, _childrenTypes, _typir) {
-                // TODO check values for fields for nominal typing!
+                // TODO check values for fields for structual typing!
                 return classType;
             },
         });
     }
-    if (typeDetails.inferenceRuleForLiteral) {
-        result.push(createInferenceRuleForLiteral(typeDetails.inferenceRuleForLiteral, classKind, classType));
+    if (typeDetails.inferenceRuleForConstructor) {
+        result.push(createInferenceRuleForLiteral(typeDetails.inferenceRuleForConstructor, classKind, classType));
     }
     if (typeDetails.inferenceRuleForReference) {
         result.push(createInferenceRuleForLiteral(typeDetails.inferenceRuleForReference, classKind, classType));
