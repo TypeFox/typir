@@ -11,6 +11,7 @@ import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module
 import { LoxScopeProvider } from './lox-scope.js';
 import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
 import { createLoxTypirModule } from './lox-type-checking.js';
+import { LoxLinker } from './lox-linker.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -45,7 +46,8 @@ export function createLoxModule(shared: LangiumSharedCoreServices): Module<LoxSe
             createLoxTypirModule(shared), // custom Typir services for LOX
         )),
         references: {
-            ScopeProvider: (services) => new LoxScopeProvider(services)
+            ScopeProvider: (services) => new LoxScopeProvider(services),
+            Linker: (services) => new LoxLinker(services),
         },
     };
 }

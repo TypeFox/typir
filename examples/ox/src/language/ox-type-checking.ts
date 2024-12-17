@@ -177,8 +177,8 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 inferenceRuleForCalls: {
                     filter: isMemberCall,
                     matching: (call: MemberCall) => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
-                    inputArguments: (call: MemberCall) => call.arguments
-                    // TODO does OX support overloaded function declarations? add a scope provider for that ...
+                    inputArguments: (call: MemberCall) => call.arguments // they are needed to validate, that the given arguments are assignable to the parameters
+                    // Note that OX does not support overloaded function declarations for simplicity: Look into LOX to see how to handle overloaded functions and methods!
                 },
                 associatedDomainElement: domainElement,
             });

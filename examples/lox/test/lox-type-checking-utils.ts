@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { EmptyFileSystem } from 'langium';
+import { EmptyFileSystem, LangiumDocument } from 'langium';
 import { parseDocument } from 'langium/test';
 import { expectTypirTypes, isClassType, isFunctionType } from 'typir';
 import { deleteAllDocuments } from 'typir-langium';
@@ -24,7 +24,7 @@ afterEach(async () => {
     expectTypirTypes(loxServices.typir, isFunctionType, ...operatorNames);
 });
 
-export async function validateLox(lox: string, errors: number | string | string[], warnings: number | string | string[] = 0) {
+export async function validateLox(lox: string, errors: number | string | string[], warnings: number | string | string[] = 0): Promise<LangiumDocument> {
     const document = await parseDocument(loxServices, lox.trim());
     const diagnostics: Diagnostic[] = await loxServices.validation.DocumentValidator.validateDocument(document);
 
@@ -35,6 +35,8 @@ export async function validateLox(lox: string, errors: number | string | string[
     // warnings
     const diagnosticsWarnings: string[] = diagnostics.filter(d => d.severity === DiagnosticSeverity.Warning).map(d => d.message);
     checkIssues(diagnosticsWarnings, warnings);
+
+    return document;
 }
 
 function checkIssues(diagnosticsErrors: string[], errors: number | string | string[]): void {

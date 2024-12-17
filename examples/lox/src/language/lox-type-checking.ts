@@ -91,7 +91,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     severity: 'warning' }),
             });
         }
-        // = for SuperType = SubType (Note that LOX designed assignments as operators!)
+        // = for SuperType = SubType (Note that this implementation of LOX realized assignments as operators!)
         this.typir.factory.Operators.createBinary({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }, inferenceRule: binaryInferenceRule,
             // this validation will be checked for each call of this operator!
             validationRule: (node, _opName, _opType, typir) => typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{
@@ -135,6 +135,10 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 } else {
                     return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
                 }
+            }
+            // ... parameters
+            if (isParameter(domainElement)) {
+                return domainElement.type;
             }
             return InferenceRuleNotApplicable;
         });
@@ -214,7 +218,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 // inference ruleS(?) for objects/class literals conforming to the current class
                 inferenceRuleForLiteral: { // <InferClassLiteral<MemberCall>>
                     filter: isMemberCall,
-                    matching: (domainElement: MemberCall) => isClass(domainElement.element?.ref) && domainElement.element!.ref.name === className,
+                    matching: (domainElement: MemberCall) => isClass(domainElement.element?.ref) && domainElement.element!.ref.name === className && domainElement.explicitOperationCall,
                     inputValuesForFields: (_domainElement: MemberCall) => new Map(), // values for fields don't matter for nominal typing
                 },
                 inferenceRuleForReference: { // <InferClassLiteral<TypeReference>>
@@ -223,7 +227,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     inputValuesForFields: (_domainElement: TypeReference) => new Map(), // values for fields don't matter for nominal typing
                 },
                 // inference rule for accessing fields
-                inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element!.ref.$container === node
+                inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element!.ref.$container === node && !domainElement.explicitOperationCall
                     ? domainElement.element!.ref.name : InferenceRuleNotApplicable,
                 associatedDomainElement: node,
             });

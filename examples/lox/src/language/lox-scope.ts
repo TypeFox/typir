@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { DefaultScopeProvider, EMPTY_SCOPE, AstUtils, ReferenceInfo, Scope } from 'langium';
-import { Class, isClass, MemberCall } from './generated/ast.js';
+import { Class, isClass, isMemberCall, MemberCall } from './generated/ast.js';
 import { getClassChain } from './lox-utils.js';
 import { LoxServices } from './lox-module.js';
 import { TypirServices } from '../../../../packages/typir/lib/typir.js';
@@ -23,7 +23,7 @@ export class LoxScopeProvider extends DefaultScopeProvider {
 
     override getScope(context: ReferenceInfo): Scope {
         // target element of member calls
-        if (context.property === 'element') {
+        if (context.property === 'element' && isMemberCall(context.container)) {
             // for now, `this` and `super` simply target the container class type
             if (context.reference.$refText === 'this' || context.reference.$refText === 'super') {
                 const classItem = AstUtils.getContainerOfType(context.container, isClass);
