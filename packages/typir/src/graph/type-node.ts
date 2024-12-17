@@ -63,7 +63,11 @@ export abstract class Type {
     protected readonly edgesIncoming: Map<string, TypeEdge[]> = new Map();
     protected readonly edgesOutgoing: Map<string, TypeEdge[]> = new Map();
 
-    /** An element from the domain might be associated with this type, e.g. the declaration node in the AST. */
+    /**
+     * An element from the domain might be associated with this type, e.g. the declaration node in the AST.
+     * This domain element is _not_ used for managing the lifecycles of this type,
+     * since it should be usable for any domain-specific purpose.
+     */
     readonly associatedDomainElement: unknown | undefined;
 
     constructor(identifier: string | undefined, typeDetails: TypeDetails) {

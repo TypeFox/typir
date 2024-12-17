@@ -4,15 +4,21 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { DefaultScopeProvider, EMPTY_SCOPE, AstUtils, ReferenceInfo, Scope, LangiumCoreServices } from 'langium';
+import { DefaultScopeProvider, EMPTY_SCOPE, AstUtils, ReferenceInfo, Scope } from 'langium';
 import { Class, isClass, MemberCall } from './generated/ast.js';
-import { isClassType } from './type-system/descriptions.js';
-import { getClassChain, inferType } from './type-system/infer.js';
+import { getClassChain } from './lox-utils.js';
+import { LoxServices } from './lox-module.js';
+import { TypirServices } from '../../../../packages/typir/lib/typir.js';
+import { isClassType } from '../../../../packages/typir/lib/kinds/class/class-type.js';
+// import { isClassType } from './type-system/descriptions.js';
+// import { getClassChain, inferType } from './type-system/infer.js';
 
 export class LoxScopeProvider extends DefaultScopeProvider {
+    protected readonly typir: TypirServices;
 
-    constructor(services: LangiumCoreServices) {
+    constructor(services: LoxServices) {
         super(services);
+        this.typir = services.typir;
     }
 
     override getScope(context: ReferenceInfo): Scope {
@@ -32,9 +38,10 @@ export class LoxScopeProvider extends DefaultScopeProvider {
             if (!previous) {
                 return super.getScope(context);
             }
-            const previousType = inferType(previous, new Map());
+            // use Typir to identify the ClassType of the current expression (including variables, fields of nested classes, ...)
+            const previousType = this.typir.Inference.inferType(previous);
             if (isClassType(previousType)) {
-                return this.scopeClassMembers(previousType.literal);
+                return this.scopeClassMembers(previousType.associatedDomainElement as Class); // the Class was associated with this ClassType during its creation
             }
             return EMPTY_SCOPE;
         }

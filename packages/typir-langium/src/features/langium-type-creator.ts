@@ -43,23 +43,26 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
     constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
         this.typeGraph = typirServices.infrastructure.Graph;
 
-        // for new and updated documents
-        langiumServices.workspace.DocumentBuilder.onBuildPhase(DocumentState.IndexedReferences, async (documents, cancelToken) => {
+        // for new and updated documents:
+        // Create Typir types after completing the Langium 'ComputedScopes' phase, since they need to be available for the following Linking phase
+        langiumServices.workspace.DocumentBuilder.onBuildPhase(DocumentState.ComputedScopes, async (documents, cancelToken) => {
             for (const document of documents) {
                 await interruptAndCheck(cancelToken);
 
                 // notify Typir about each contained node of the processed document
-                this.handleProcessedDocument(document);
+                this.handleProcessedDocument(document); // takes care about the invalid AstNodes as well
             }
         });
-        // for deleted documents
+
+        // for deleted documents:
+        // Delete Typir types which are derived from AstNodes of deleted documents
         langiumServices.workspace.DocumentBuilder.onUpdate((_changed, deleted) => {
             deleted
                 .map(del => getDocumentKeyForURI(del))
                 .forEach(del => this.invalidateTypesOfDocument(del));
         });
 
-        // get informed about added/removed types
+        // get informed about added/removed types in Typir's type graph
         this.typeGraph.addListener(this);
     }
 
