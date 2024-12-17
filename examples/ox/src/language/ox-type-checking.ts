@@ -51,7 +51,6 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         for (const operator of ['+', '-', '*', '/']) {
             this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
         }
-        // TODO better name: overloads, overloadRules, selectors, signatures
         // TODO better name for "inferenceRule": astSelectors
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
@@ -63,7 +62,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         }
         // ==, != for booleans and numbers
         for (const operator of ['==', '!=']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: [
+            this.typir.factory.Operators.createBinary({ name: operator, signatures: [
                 { left: typeNumber, right: typeNumber, return: typeBool },
                 { left: typeBool, right: typeBool, return: typeBool },
             ], inferenceRule: binaryInferenceRule });

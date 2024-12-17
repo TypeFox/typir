@@ -44,7 +44,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 (node: unknown) => isReturnStatement(node) && node.value === undefined
             ] });
         const typeNil = this.typir.factory.Primitives.create({ primitiveName: 'nil',
-            inferenceRules: isNilLiteral }); // From "Crafting Interpreters" no value, like null in other languages. TODO Uninitialised variables default to nil. When the execution reaches the end of the block of a function body without hitting a return, nil is implicitly returned.
+            inferenceRules: isNilLiteral }); // 'nil' is only assignable to variables with a class as type in the LOX implementation here
         const typeAny = this.typir.factory.Top.create({});
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
@@ -63,7 +63,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         for (const operator of ['-', '*', '/']) {
             this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
         }
-        this.typir.factory.Operators.createBinary({ name: '+', signature: [
+        this.typir.factory.Operators.createBinary({ name: '+', signatures: [
             { left: typeNumber, right: typeNumber, return: typeNumber },
             { left: typeString, right: typeString, return: typeString },
             { left: typeNumber, right: typeString, return: typeString },

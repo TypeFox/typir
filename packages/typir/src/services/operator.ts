@@ -35,7 +35,8 @@ export interface AnyOperatorDetails<T> {
 }
 
 export interface UnaryOperatorDetails<T> extends AnyOperatorDetails<T> {
-    signature: UnaryOperatorSignature | UnaryOperatorSignature[];
+    signature?: UnaryOperatorSignature;
+    signatures?: UnaryOperatorSignature[];
     inferenceRule?: InferOperatorWithSingleOperand<T>;
 }
 export interface UnaryOperatorSignature {
@@ -44,7 +45,8 @@ export interface UnaryOperatorSignature {
 }
 
 export interface BinaryOperatorDetails<T> extends AnyOperatorDetails<T> {
-    signature: BinaryOperatorSignature | BinaryOperatorSignature[];
+    signature?: BinaryOperatorSignature;
+    signatures?: BinaryOperatorSignature[];
     inferenceRule?: InferOperatorWithMultipleOperands<T>;
 }
 export interface BinaryOperatorSignature {
@@ -54,7 +56,8 @@ export interface BinaryOperatorSignature {
 }
 
 export interface TernaryOperatorDetails<T> extends AnyOperatorDetails<T> {
-    signature: TernaryOperatorSignature | TernaryOperatorSignature[];
+    signature?: TernaryOperatorSignature;
+    signatures?: TernaryOperatorSignature[];
     inferenceRule?: InferOperatorWithMultipleOperands<T>;
 }
 export interface TernaryOperatorSignature {
@@ -105,7 +108,7 @@ export class DefaultOperatorFactory implements OperatorFactoryService {
     }
 
     createUnary<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type> {
-        const signatures = toArray(typeDetails.signature);
+        const signatures = toSignatureArray(typeDetails);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
             result.push(this.createGeneric({
@@ -122,7 +125,7 @@ export class DefaultOperatorFactory implements OperatorFactoryService {
     }
 
     createBinary<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type> {
-        const signatures = toArray(typeDetails.signature);
+        const signatures = toSignatureArray(typeDetails);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
             result.push(this.createGeneric({
@@ -140,7 +143,7 @@ export class DefaultOperatorFactory implements OperatorFactoryService {
     }
 
     createTernary<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type> {
-        const signatures = toArray(typeDetails.signature);
+        const signatures = toSignatureArray(typeDetails);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
             result.push(this.createGeneric({
@@ -193,4 +196,18 @@ export class DefaultOperatorFactory implements OperatorFactoryService {
     protected getFunctionFactory(): FunctionFactoryService {
         return this.services.factory.Functions;
     }
+}
+
+function toSignatureArray<T>(values: {
+    signature?: T;
+    signatures?: T[];
+}): T[] {
+    const result = toArray(values.signatures);
+    if (values.signature) {
+        result.push(values.signature);
+    }
+    if (result.length <= 0) {
+        throw new Error('At least one signature must be given!');
+    }
+    return result;
 }

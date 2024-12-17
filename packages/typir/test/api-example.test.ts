@@ -20,8 +20,7 @@ describe('Tests for the new API', () => {
         typir.factory.Functions.create({ functionName: 'myFunction', inputParameters: [], outputParameter: undefined });
 
         // operators
-        typir.factory.Operators.createBinary({ name: '&&', signature: [{ left: booleanType, right: booleanType, return: booleanType }] });
-        // typir.operators.createBinary({ name: '&&', signature: [{ left: booleanType, right: booleanType, return: booleanType }] }); // TODO entfernen!
+        typir.factory.Operators.createBinary({ name: '&&', signature: { left: booleanType, right: booleanType, return: booleanType } });
     });
 
 
@@ -38,11 +37,11 @@ describe('Tests for the new API', () => {
             matching: (node, operatorName) => node.operator === operatorName,
             operands: node => [node.left, node.right],
         };
-        typir.factory.Operators.createBinary({ name: '+', signature: [ // operator overloading
+        typir.factory.Operators.createBinary({ name: '+', signatures: [ // operator overloading
             { left: numberType, right: numberType, return: numberType }, // 2 + 3
             { left: stringType, right: stringType, return: stringType }, // "2" + "3"
         ], inferenceRule });
-        typir.factory.Operators.createBinary({ name: '-', signature: [{ left: numberType, right: numberType, return: numberType }], inferenceRule }); // 2 - 3
+        typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }], inferenceRule }); // 2 - 3
 
         // numbers are implicitly convertable to strings
         typir.Conversion.markAsConvertible(numberType, stringType, 'IMPLICIT_EXPLICIT');
