@@ -85,14 +85,14 @@ export type InferFunctionCall<T = unknown> = {
  * - overloaded functions are specific for the function kind => solve it inside the FunctionKind!
  *
  * How many inference rules?
- * - One inference rule for each function type does not work, since TODO ??
+ * - The inference rule for calls of each function type with the same name are grouped together in order to provide better error messages, if none of the variants match.
  * - Checking multiple functions within the same rule (e.g. only one inference rule for the function kind or one inference rule for each function name) does not work,
  *   since multiple different sets of parameters must be returned for overloaded functions!
  * - multiple IR collectors: how to apply all the other rules?!
  *
  * How many validation rules?
  * - For validation, it is enough that at least one of the function variants match!
- * - But checking that is not possible with multiple independent rules.
+ * - But checking that is not possible with independent rules for each function variant.
  * - Therefore, it must be a single validation for each function name (with all type variants).
  * - In order to simplify (de)registering validation rules, only one validation rule for all functions is used here (with an internal loop over all function names).
  *

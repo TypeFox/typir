@@ -138,14 +138,14 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         const functionName = typeDetails.functionName;
         const mapNameTypes = this.kind.mapNameTypes;
         const outputTypeForFunctionCalls = this.kind.getOutputTypeForFunctionCalls(functionType);
-        if (typeDetails.inferenceRuleForCalls) { // TODO warum wird hier nicht einfach "outputTypeForFunctionCalls !== undefined" überprüft??
+        if (typeDetails.inferenceRuleForCalls) {
             /** Preconditions:
              * - there is a rule which specifies how to infer the current function type
              * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
              *   (exception: the options contain a type to return in this special case)
              */
             function check(returnType: Type | undefined): Type {
-                if (returnType) {
+                if (returnType) { // this condition is checked here, since 'undefined' is OK, as long as it is not used; extracting this function is difficult due to TypeScripts strict rules for using 'this'
                     return returnType;
                 } else {
                     throw new Error(`The function ${functionName} is called, but has no output type to infer.`);
