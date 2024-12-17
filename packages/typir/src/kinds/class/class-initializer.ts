@@ -31,7 +31,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
             this.services.infrastructure.Graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));
         }
 
-        this.inferenceRules = createInferenceRules<T, T1, T2>(this.typeDetails, this.kind, this.initialClassType);
+        this.inferenceRules = this.createInferenceRules<T, T1, T2>(this.typeDetails, this.initialClassType);
         // register all the inference rules already now to enable early type inference for this Class type
         this.inferenceRules.forEach(rule => services.Inference.addInferenceRule(rule, undefined)); // 'undefined', since the Identifier is still missing
 
@@ -63,7 +63,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
             this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule, undefined));
             // but re-create the inference rules for the new type!!
             // This is required, since inference rules for different declarations in the AST might be different, but should infer the same Typir type!
-            this.inferenceRules = createInferenceRules(this.typeDetails, this.kind, readyClassType);
+            this.inferenceRules = this.createInferenceRules(this.typeDetails, readyClassType);
             this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule, readyClassType));
         } else {
             // the class type is unchanged (this is the usual case)
@@ -95,105 +95,106 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
     override getTypeInitial(): ClassType {
         return this.initialClassType;
     }
-}
 
-
-function createInferenceRules<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>, classKind: ClassKind, classType: ClassType): TypeInferenceRule[] {
-    const result: TypeInferenceRule[] = [];
-    if (typeDetails.inferenceRuleForDeclaration) {
-        result.push({
-            inferTypeWithoutChildren(domainElement, _typir) {
-                if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
-                    return classType;
-                } else {
-                    return InferenceRuleNotApplicable;
-                }
-            },
-            inferTypeWithChildrensTypes(_domainElement, _childrenTypes, _typir) {
-                // TODO check values for fields for structual typing!
-                return classType;
-            },
-        });
-    }
-    if (typeDetails.inferenceRuleForConstructor) {
-        result.push(createInferenceRuleForLiteral(typeDetails.inferenceRuleForConstructor, classKind, classType));
-    }
-    if (typeDetails.inferenceRuleForReference) {
-        result.push(createInferenceRuleForLiteral(typeDetails.inferenceRuleForReference, classKind, classType));
-    }
-    if (typeDetails.inferenceRuleForFieldAccess) {
-        result.push((domainElement, _typir) => {
-            const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
-            if (result === InferenceRuleNotApplicable) {
-                return InferenceRuleNotApplicable;
-            } else if (typeof result === 'string') {
-                // get the type of the given field name
-                const fieldType = classType.getFields(true).get(result);
-                if (fieldType) {
-                    return fieldType;
-                }
-                return <InferenceProblem>{
-                    $problem: InferenceProblem,
-                    domainElement,
-                    inferenceCandidate: classType,
-                    location: `unknown field '${result}'`,
-                    // rule: this, // this does not work with functions ...
-                    subProblems: [],
-                };
-            } else {
-                return result; // do the type inference for this element instead
-            }
-        });
-    }
-    return result;
-}
-
-function createInferenceRuleForLiteral<T>(rule: InferClassLiteral<T>, classKind: ClassKind, classType: ClassType): TypeInferenceRule {
-    const mapListConverter = new MapListConverter();
-    return {
-        inferTypeWithoutChildren(domainElement, _typir) {
-            const result = rule.filter(domainElement);
-            if (result) {
-                const matching = rule.matching(domainElement);
-                if (matching) {
-                    const inputArguments = rule.inputValuesForFields(domainElement);
-                    if (inputArguments.size >= 1) {
-                        return mapListConverter.toList(inputArguments);
+    protected createInferenceRules<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>, classType: ClassType): TypeInferenceRule[] {
+        const result: TypeInferenceRule[] = [];
+        if (typeDetails.inferenceRuleForDeclaration) {
+            result.push({
+                inferTypeWithoutChildren(domainElement, _typir) {
+                    if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
+                        return classType;
                     } else {
-                        // there are no operands to check
-                        return classType; // this case occurs only, if the current class has no fields (including fields of super types) or is nominally typed
+                        return InferenceRuleNotApplicable;
+                    }
+                },
+                inferTypeWithChildrensTypes(_domainElement, _childrenTypes, _typir) {
+                    // TODO check values for fields for structual typing!
+                    return classType;
+                },
+            });
+        }
+        if (typeDetails.inferenceRuleForConstructor) {
+            result.push(this.createInferenceRuleForLiteral(typeDetails.inferenceRuleForConstructor, classType));
+        }
+        if (typeDetails.inferenceRuleForReference) {
+            result.push(this.createInferenceRuleForLiteral(typeDetails.inferenceRuleForReference, classType));
+        }
+        if (typeDetails.inferenceRuleForFieldAccess) {
+            result.push((domainElement, _typir) => {
+                const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
+                if (result === InferenceRuleNotApplicable) {
+                    return InferenceRuleNotApplicable;
+                } else if (typeof result === 'string') {
+                    // get the type of the given field name
+                    const fieldType = classType.getFields(true).get(result);
+                    if (fieldType) {
+                        return fieldType;
+                    }
+                    return <InferenceProblem>{
+                        $problem: InferenceProblem,
+                        domainElement,
+                        inferenceCandidate: classType,
+                        location: `unknown field '${result}'`,
+                        // rule: this, // this does not work with functions ...
+                        subProblems: [],
+                    };
+                } else {
+                    return result; // do the type inference for this element instead
+                }
+            });
+        }
+        return result;
+    }
+
+    protected createInferenceRuleForLiteral<T>(rule: InferClassLiteral<T>, classType: ClassType): TypeInferenceRule {
+        const mapListConverter = new MapListConverter();
+        const kind = this.kind;
+        return {
+            inferTypeWithoutChildren(domainElement, _typir) {
+                const result = rule.filter(domainElement);
+                if (result) {
+                    const matching = rule.matching(domainElement);
+                    if (matching) {
+                        const inputArguments = rule.inputValuesForFields(domainElement);
+                        if (inputArguments.size >= 1) {
+                            return mapListConverter.toList(inputArguments);
+                        } else {
+                            // there are no operands to check
+                            return classType; // this case occurs only, if the current class has no fields (including fields of super types) or is nominally typed
+                        }
+                    } else {
+                        // the domain element is slightly different
                     }
                 } else {
-                    // the domain element is slightly different
+                    // the domain element has a completely different purpose
                 }
-            } else {
-                // the domain element has a completely different purpose
-            }
-            // does not match at all
-            return InferenceRuleNotApplicable;
-        },
-        inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
-            const allExpectedFields = classType.getFields(true);
-            // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-            const checkedFieldsProblems = checkNameTypesMap(
-                mapListConverter.toMap(childrenTypes),
-                allExpectedFields,
-                createTypeCheckStrategy(classKind.options.subtypeFieldChecking, typir)
-            );
-            if (checkedFieldsProblems.length >= 1) {
-                // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
-                return <InferenceProblem>{
-                    $problem: InferenceProblem,
-                    domainElement,
-                    inferenceCandidate: classType,
-                    location: 'values for fields',
-                    rule: this,
-                    subProblems: checkedFieldsProblems,
-                };
-            } else {
-                // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
-                return classType;
-            }
-        },
-    };
+                // does not match at all
+                return InferenceRuleNotApplicable;
+            },
+            inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
+                const allExpectedFields = classType.getFields(true);
+                // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
+                const checkedFieldsProblems = checkNameTypesMap(
+                    mapListConverter.toMap(childrenTypes),
+                    allExpectedFields,
+                    createTypeCheckStrategy(kind.options.subtypeFieldChecking, typir)
+                );
+                if (checkedFieldsProblems.length >= 1) {
+                    // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
+                    return <InferenceProblem>{
+                        $problem: InferenceProblem,
+                        domainElement,
+                        inferenceCandidate: classType,
+                        location: 'values for fields',
+                        rule: this,
+                        subProblems: checkedFieldsProblems,
+                    };
+                } else {
+                    // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
+                    return classType;
+                }
+            },
+        };
+    }
+
 }
