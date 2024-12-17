@@ -4,6 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+/* eslint-disable @typescript-eslint/parameter-properties */
+
 import { describe, expect, test } from 'vitest';
 import { InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, ValidationMessageDetails } from '../src/index.js';
 import { createTypirServices } from '../src/typir.js';
@@ -97,48 +99,34 @@ abstract class AstElement {
 }
 
 class NumberLiteral extends AstElement {
-    value: number;
-    constructor(value: number) {
-        super();
-        this.value = value;
-    }
+    constructor(
+        public value: number,
+    ) { super(); }
 }
 class StringLiteral extends AstElement {
-    value: string;
-    constructor(value: string) {
-        super();
-        this.value = value;
-    }
+    constructor(
+        public value: string,
+    ) { super(); }
 }
 
 class BinaryExpression extends AstElement {
-    left: AstElement;
-    operator: string;
-    right: AstElement;
-    constructor(left: AstElement, operator: string, right: AstElement) {
-        super();
-        this.left = left;
-        this.operator = operator;
-        this.right = right;
-    }
+    constructor(
+        public left: AstElement,
+        public operator: string,
+        public right: AstElement,
+    ) { super(); }
 }
 
 class Variable extends AstElement {
-    name: string;
-    initialValue: AstElement;
-    constructor(name: string, initialValue: AstElement) {
-        super();
-        this.name = name;
-        this.initialValue = initialValue;
-    }
+    constructor(
+        public name: string,
+        public initialValue: AstElement,
+    ) { super(); }
 }
 
 class AssignmentStatement extends AstElement {
-    left: Variable;
-    right: AstElement;
-    constructor(left: Variable, right: AstElement) {
-        super();
-        this.left = left;
-        this.right = right;
-    }
+    constructor(
+        public left: Variable,
+        public right: AstElement,
+    ) { super(); }
 }
