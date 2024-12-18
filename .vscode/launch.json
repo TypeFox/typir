@@ -28,7 +28,8 @@
             ],
             "sourceMaps": true,
             "outFiles": [
-              "${workspaceFolder}/examples/lox/out/**/*.js"
+              "${workspaceFolder}/examples/lox/out/**/*.js",
+              "${workspaceFolder}/examples/lox/node_modules/langium/**/*.js"
             ]
         },
         {
