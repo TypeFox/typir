@@ -11,7 +11,7 @@ import { BottomType } from './bottom-type.js';
 import { isKind, Kind } from '../kind.js';
 
 export interface BottomTypeDetails {
-    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
+    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already matched. */
     inferenceRules?: InferBottomType | InferBottomType[]
 }
 

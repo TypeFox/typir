@@ -11,7 +11,7 @@ import { isKind, Kind } from '../kind.js';
 import { TopType } from './top-type.js';
 
 export interface TopTypeDetails {
-    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
+    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already matched. */
     inferenceRules?: InferTopType | InferTopType[]
 }
 

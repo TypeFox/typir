@@ -12,7 +12,7 @@ import { PrimitiveType } from './primitive-type.js';
 
 export interface PrimitiveTypeDetails {
     primitiveName: string;
-    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
+    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already matched. */
     inferenceRules?: InferPrimitiveType | InferPrimitiveType[];
 }
 

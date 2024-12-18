@@ -18,7 +18,7 @@ export interface LangiumTypeCreator { // TODO Registry instead?
      */
     onInitialize(): void;
 
-    /** React on updates of the AST in order to add/remove corresponding types from the type system, e.g. user-definied functions. */
+    /** React on updates of the AST in order to add/remove corresponding types from the type system, e.g. user-defined functions. */
     onNewAstNode(domainElement: unknown): void;
 }
 
