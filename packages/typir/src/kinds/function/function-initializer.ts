@@ -155,12 +155,12 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
             // register inference rule for calls of the new function
             // TODO what about the case, that multiple variants match?? after implicit conversion for example?! => overload with the lowest number of conversions wins!
             result.inferenceForCall = {
-                inferTypeWithoutChildren(domainElement, _typir) {
-                    const result = typeDetails.inferenceRuleForCalls!.filter(domainElement);
+                inferTypeWithoutChildren(languageNode, _typir) {
+                    const result = typeDetails.inferenceRuleForCalls!.filter(languageNode);
                     if (result) {
-                        const matching = typeDetails.inferenceRuleForCalls!.matching(domainElement);
+                        const matching = typeDetails.inferenceRuleForCalls!.matching(languageNode);
                         if (matching) {
-                            const inputArguments = typeDetails.inferenceRuleForCalls!.inputArguments(domainElement);
+                            const inputArguments = typeDetails.inferenceRuleForCalls!.inputArguments(languageNode);
                             if (inputArguments && inputArguments.length >= 1) {
                                 // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
                                 const overloadInfos = mapNameTypes.get(functionName);
@@ -182,15 +182,15 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
                                 return check(outputTypeForFunctionCalls);
                             }
                         } else {
-                            // the domain element is slightly different
+                            // the language node is slightly different
                         }
                     } else {
-                        // the domain element has a completely different purpose
+                        // the language node has a completely different purpose
                     }
                     // does not match at all
                     return InferenceRuleNotApplicable;
                 },
-                inferTypeWithChildrensTypes(domainElement, actualInputTypes, typir) {
+                inferTypeWithChildrensTypes(languageNode, actualInputTypes, typir) {
                     const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.TypeResolver.resolve(p.type));
                     // all operands need to be assignable(! not equal) to the required types
                     const comparisonConflicts = checkTypeArrays(actualInputTypes, expectedInputTypes,
@@ -199,7 +199,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
                         // this function type does not match, due to assignability conflicts => return them as errors
                         return {
                             $problem: InferenceProblem,
-                            domainElement,
+                            languageNode: languageNode,
                             inferenceCandidate: functionType,
                             location: 'input parameters',
                             rule: this,
@@ -215,10 +215,10 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         }
 
         if (typeDetails.validationForCall) {
-            result.validationForCall = (domainElement, typir) => {
-                if (typeDetails.inferenceRuleForCalls!.filter(domainElement) && typeDetails.inferenceRuleForCalls!.matching(domainElement)) {
+            result.validationForCall = (languageNode, typir) => {
+                if (typeDetails.inferenceRuleForCalls!.filter(languageNode) && typeDetails.inferenceRuleForCalls!.matching(languageNode)) {
                     // check the input arguments, required for overloaded functions
-                    const inputArguments = typeDetails.inferenceRuleForCalls!.inputArguments(domainElement);
+                    const inputArguments = typeDetails.inferenceRuleForCalls!.inputArguments(languageNode);
                     if (inputArguments && inputArguments.length >= 1) {
                         // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
                         const overloadInfos = mapNameTypes.get(functionName);
@@ -235,18 +235,18 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
                                     (t1, t2) => typir.Assignability.getAssignabilityProblem(t1, t2), true);
                                 if (comparisonConflicts.length <= 0) {
                                     // all arguments are assignable to the expected types of the parameters => this function is really called here => validate this call now
-                                    return typeDetails.validationForCall!(domainElement, functionType, typir);
+                                    return typeDetails.validationForCall!(languageNode, functionType, typir);
                                 }
                             } else {
                                 // at least one argument could not be inferred
                             }
                         } else {
                             // the current function is not overloaded, therefore, the types of their parameters are not required => save time
-                            return typeDetails.validationForCall!(domainElement, functionType, typir);
+                            return typeDetails.validationForCall!(languageNode, functionType, typir);
                         }
                     } else {
                         // there are no operands to check
-                        return typeDetails.validationForCall!(domainElement, functionType, typir);
+                        return typeDetails.validationForCall!(languageNode, functionType, typir);
                     }
                 }
                 return [];
@@ -256,8 +256,8 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         // register inference rule for the declaration of the new function
         // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
         if (typeDetails.inferenceRuleForDeclaration) {
-            result.inferenceForDeclaration = (domainElement, _typir) => {
-                if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
+            result.inferenceForDeclaration = (languageNode, _typir) => {
+                if (typeDetails.inferenceRuleForDeclaration!(languageNode)) {
                     return functionType;
                 } else {
                     return InferenceRuleNotApplicable;

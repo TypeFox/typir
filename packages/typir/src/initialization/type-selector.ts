@@ -15,7 +15,7 @@ export type BasicTypeSelector =
     | string            // identifier of the type (in the type graph/map)
     | TypeInitializer   // delayed creation of types
     | TypeReference     // reference to a (maybe delayed) type
-    | unknown           // domain node to infer the final type from
+    | unknown           // language node to infer the final type from
     ;
 
 /**
@@ -98,7 +98,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
             if (isType(result)) {
                 return result as T;
             } else {
-                throw new Error(`For '${this.services.Printer.printDomainElement(selector, false)}' as TypeSelector, no type can be inferred.`);
+                throw new Error(`For '${this.services.Printer.printLanguageNode(selector, false)}' as TypeSelector, no type can be inferred.`);
             }
         }
     }

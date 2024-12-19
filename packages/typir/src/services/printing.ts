@@ -26,7 +26,7 @@ export interface ProblemPrinter {
     printTypirProblem(problem: TypirProblem): string;
     printTypirProblems(problems: TypirProblem[]): string;
 
-    printDomainElement(domainElement: unknown, sentenceBegin: boolean): string;
+    printLanguageNode(languageNode: unknown, sentenceBegin: boolean): string;
     /**
      * This function should be used by other services, instead of using type.getName().
      * This enables to customize the printing of type names by overriding only this implementation.
@@ -116,7 +116,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     }
 
     printInferenceProblem(problem: InferenceProblem, level: number = 0): string {
-        let result = `While inferring the type for ${this.printDomainElement(problem.domainElement)}, at ${problem.location}`;
+        let result = `While inferring the type for ${this.printLanguageNode(problem.languageNode)}, at ${problem.location}`;
         if (problem.inferenceCandidate) {
             result += ` of the type '${this.printTypeName(problem.inferenceCandidate)}' as candidate to infer`;
         }
@@ -128,7 +128,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
     }
 
     printValidationProblem(problem: ValidationProblem, level: number = 0): string {
-        let result = `While validating ${this.printDomainElement(problem.domainElement)}, this ${problem.severity} is found: ${problem.message}`.trim();
+        let result = `While validating ${this.printLanguageNode(problem.languageNode)}, this ${problem.severity} is found: ${problem.message}`.trim();
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
         return result;
@@ -158,8 +158,8 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         return problems.map(p => this.printTypirProblem(p, level)).join('\n');
     }
 
-    printDomainElement(domainElement: unknown, sentenceBegin: boolean = false): string {
-        return `${sentenceBegin ? 'T' : 't'}he domain element '${domainElement}'`;
+    printLanguageNode(languageNode: unknown, sentenceBegin: boolean = false): string {
+        return `${sentenceBegin ? 'T' : 't'}he language node '${languageNode}'`;
     }
 
     printTypeName(type: Type): string {

@@ -50,12 +50,12 @@ export interface FunctionTypeDetails extends TypeDetails {
 }
 export interface CreateFunctionTypeDetails<T> extends FunctionTypeDetails {
     /** for function declarations => returns the funtion type (the whole signature including all names) */
-    inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
+    inferenceRuleForDeclaration?: (languageNode: unknown) => boolean,
     /** for function calls => returns the return type of the function */
     inferenceRuleForCalls?: InferFunctionCall<T>,
     // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
 
-    /** This validation will be applied to all domain elements which represent calls of the functions. */
+    /** This validation will be applied to all language nodes which represent calls of the functions. */
     validationForCall?: FunctionCallValidationRule<T>,
 }
 
@@ -72,11 +72,11 @@ interface SingleFunctionDetails<T> {
     inferenceRuleForCalls?: InferFunctionCall<T>;
 }
 
-// (domainElement: unknown) => boolean | unknown[]
+// (languageNode: unknown) => boolean | unknown[]
 export type InferFunctionCall<T = unknown> = {
-    filter: (domainElement: unknown) => domainElement is T;
-    matching: (domainElement: T) => boolean;
-    inputArguments: (domainElement: T) => unknown[];
+    filter: (languageNode: unknown) => languageNode is T;
+    matching: (languageNode: T) => boolean;
+    inputArguments: (languageNode: T) => unknown[];
 };
 
 /**
@@ -141,7 +141,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
 
         // register Validations for input arguments of function calls (must be done here to support overloaded functions)
         this.services.validation.Collector.addValidationRule(
-            (domainElement, typir) => {
+            (languageNode, typir) => {
                 const resultAll: ValidationProblem[] = [];
                 for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
                     const resultOverloaded: ValidationProblem[] = [];
@@ -150,11 +150,11 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                         if (singleFunction.inferenceRuleForCalls === undefined) {
                             continue;
                         }
-                        const filter = singleFunction.inferenceRuleForCalls.filter(domainElement);
+                        const filter = singleFunction.inferenceRuleForCalls.filter(languageNode);
                         if (filter) {
-                            const matching = singleFunction.inferenceRuleForCalls.matching(domainElement);
+                            const matching = singleFunction.inferenceRuleForCalls.matching(languageNode);
                             if (matching) {
-                                const inputArguments = singleFunction.inferenceRuleForCalls.inputArguments(domainElement);
+                                const inputArguments = singleFunction.inferenceRuleForCalls.inputArguments(languageNode);
                                 if (inputArguments && inputArguments.length >= 1) {
                                     // partial match:
                                     const expectedParameterTypes = singleFunction.functionType.getInputs();
@@ -164,7 +164,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                                     if (parameterLength.length >= 1) {
                                         currentProblems.push({
                                             $problem: ValidationProblem,
-                                            domainElement,
+                                            languageNode: languageNode,
                                             severity: 'error',
                                             message: 'The number of given parameter values does not match the expected number of input parameters.',
                                             subProblems: parameterLength,
@@ -181,7 +181,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                                                 // create one ValidationProblem for each problematic parameter!
                                                 currentProblems.push({
                                                     $problem: ValidationProblem,
-                                                    domainElement: inputArguments[i],
+                                                    languageNode: inputArguments[i],
                                                     severity: 'error',
                                                     message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
                                                     subProblems: parameterProblems,
@@ -196,7 +196,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                                         // some problems with parameters => this signature does not match
                                         resultOverloaded.push({
                                             $problem: ValidationProblem,
-                                            domainElement,
+                                            languageNode: languageNode,
                                             severity: 'error',
                                             message: `The given operands for the function '${this.services.Printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
                                             subProblems: currentProblems,
@@ -220,7 +220,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                         if (isOverloaded) {
                             resultAll.push({
                                 $problem: ValidationProblem,
-                                domainElement,
+                                languageNode: languageNode,
                                 severity: 'error',
                                 message: `The given operands for the overloaded function '${overloadedName}' match the expected types only partially.`,
                                 subProblems: resultOverloaded,

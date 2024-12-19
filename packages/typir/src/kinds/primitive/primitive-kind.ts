@@ -17,11 +17,11 @@ export interface PrimitiveKindOptions {
 
 export interface PrimitiveTypeDetails extends TypeDetails {
     primitiveName: string;
-    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
+    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already matched. */
     inferenceRules?: InferPrimitiveType | InferPrimitiveType[];
 }
 
-export type InferPrimitiveType = (domainElement: unknown) => boolean;
+export type InferPrimitiveType = (languageNode: unknown) => boolean;
 
 export const PrimitiveKindName = 'PrimitiveKind';
 
@@ -69,9 +69,9 @@ export class PrimitiveKind implements Kind, PrimitiveFactoryService {
     protected registerInferenceRules(typeDetails: PrimitiveTypeDetails, primitiveType: PrimitiveType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.services.Inference.addInferenceRule((domainElement, _typir) => {
+            this.services.Inference.addInferenceRule((languageNode, _typir) => {
                 for (const inferenceRule of rules) {
-                    if (inferenceRule(domainElement)) {
+                    if (inferenceRule(languageNode)) {
                         return primitiveType;
                     }
                 }

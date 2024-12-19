@@ -12,7 +12,7 @@ import { isKind, Kind } from '../kind.js';
 import { TypeDetails } from '../../graph/type-node.js';
 
 export interface BottomTypeDetails extends TypeDetails {
-    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
+    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already matched. */
     inferenceRules?: InferBottomType | InferBottomType[]
 }
 
@@ -20,7 +20,7 @@ export interface BottomKindOptions {
     name: string;
 }
 
-export type InferBottomType = (domainElement: unknown) => boolean;
+export type InferBottomType = (languageNode: unknown) => boolean;
 
 export const BottomKindName = 'BottomKind';
 
@@ -76,9 +76,9 @@ export class BottomKind implements Kind, BottomFactoryService {
     protected registerInferenceRules(typeDetails: BottomTypeDetails, bottomType: BottomType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.services.Inference.addInferenceRule((domainElement, _typir) => {
+            this.services.Inference.addInferenceRule((languageNode, _typir) => {
                 for (const inferenceRule of rules) {
-                    if (inferenceRule(domainElement)) {
+                    if (inferenceRule(languageNode)) {
                         return bottomType;
                     }
                 }

@@ -16,9 +16,9 @@ import { ProblemPrinter } from './printing.js';
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
 export interface ValidationMessageDetails {
-    domainElement: unknown;
-    domainProperty?: string; // name of a property of the domain element; TODO make this type-safe!
-    domainIndex?: number; // index, if this property is an Array property
+    languageNode: unknown;
+    languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
+    languageIndex?: number; // index, if this property is an Array property
     severity: Severity;
     message: string;
 }
@@ -32,12 +32,12 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
     return isSpecificTypirProblem(problem, ValidationProblem);
 }
 
-export type ValidationRule<T = unknown> = (domainElement: T, typir: TypirServices) => ValidationProblem[];
+export type ValidationRule<T = unknown> = (languageNode: T, typir: TypirServices) => ValidationProblem[];
 
-export interface ValidationRuleWithBeforeAfter<ElementType = unknown, RootType = ElementType> {
-    beforeValidation(domainRoot: RootType, typir: TypirServices): ValidationProblem[];
-    validation: ValidationRule<ElementType>;
-    afterValidation(domainRoot: RootType, typir: TypirServices): ValidationProblem[];
+export interface ValidationRuleWithBeforeAfter<LanguageType = unknown, RootType = LanguageType> {
+    beforeValidation(languageRoot: RootType, typir: TypirServices): ValidationProblem[];
+    validation: ValidationRule<LanguageType>;
+    afterValidation(languageRoot: RootType, typir: TypirServices): ValidationProblem[];
 }
 
 /** Annotate types after the validation with additional information in order to ease the creation of usefull messages. */
@@ -56,7 +56,7 @@ export interface ValidationConstraints {
     ensureNodeHasNotType(sourceNode: unknown | undefined, notExpected: Type | undefined | unknown,
         message: ValidationMessageProvider): ValidationProblem[];
 
-    ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean,
+    ensureNodeRelatedWithType(languageNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean,
         message: ValidationMessageProvider): ValidationProblem[];
 }
 
@@ -86,10 +86,10 @@ export class DefaultValidationConstraints implements ValidationConstraints {
         return this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, message);
     }
 
-    ensureNodeRelatedWithType(domainNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean,
+    ensureNodeRelatedWithType(languageNode: unknown | undefined, expected: Type | undefined | unknown, strategy: TypeCheckStrategy, negated: boolean,
         message: ValidationMessageProvider): ValidationProblem[] {
-        if (domainNode !== undefined && expected !== undefined) {
-            const actualType = isType(domainNode) ? domainNode : this.inference.inferType(domainNode);
+        if (languageNode !== undefined && expected !== undefined) {
+            const actualType = isType(languageNode) ? languageNode : this.inference.inferType(languageNode);
             const expectedType = isType(expected) ? expected : this.inference.inferType(expected);
             if (isType(actualType) && isType(expectedType)) {
                 const strategyLogic = createTypeCheckStrategy(strategy, this.services);
@@ -101,9 +101,9 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
                         return [{
                             $problem: ValidationProblem,
-                            domainElement: details.domainElement ?? domainNode,
-                            domainProperty: details.domainProperty,
-                            domainIndex: details.domainIndex,
+                            languageNode: details.languageNode ?? languageNode,
+                            languageProperty: details.languageProperty,
+                            languageIndex: details.languageIndex,
                             severity: details.severity ?? 'error',
                             message: details.message ?? `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
                             subProblems: [comparisonResult]
@@ -114,9 +114,9 @@ export class DefaultValidationConstraints implements ValidationConstraints {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
                         return [{
                             $problem: ValidationProblem,
-                            domainElement: details.domainElement ?? domainNode,
-                            domainProperty: details.domainProperty,
-                            domainIndex: details.domainIndex,
+                            languageNode: details.languageNode ?? languageNode,
+                            languageProperty: details.languageProperty,
+                            languageIndex: details.languageIndex,
                             severity: details.severity ?? 'error',
                             message: details.message ?? `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
                             subProblems: [] // no sub-problems are available!
@@ -142,10 +142,10 @@ export class DefaultValidationConstraints implements ValidationConstraints {
 }
 
 
-export interface ValidationCollector<ElementType = unknown, RootType = ElementType> {
-    validateBefore(domainRoot: RootType): ValidationProblem[];
-    validate(domainElement: ElementType): ValidationProblem[];
-    validateAfter(domainRoot: RootType): ValidationProblem[];
+export interface ValidationCollector<LanguageType = unknown, RootType = LanguageType> {
+    validateBefore(languageNode: RootType): ValidationProblem[];
+    validate(languageNode: LanguageType): ValidationProblem[];
+    validateAfter(languageNode: RootType): ValidationProblem[];
 
     /**
      * Registers a validation rule.
@@ -153,8 +153,8 @@ export interface ValidationCollector<ElementType = unknown, RootType = ElementTy
      * @param boundToType an optional type, if the new validation rule is dedicated for exactly this type.
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
-    addValidationRule(rule: ValidationRule<ElementType>, boundToType?: Type): void;
-    removeValidationRule(rule: ValidationRule<ElementType>, boundToType?: Type): void;
+    addValidationRule(rule: ValidationRule<LanguageType>, boundToType?: Type): void;
+    removeValidationRule(rule: ValidationRule<LanguageType>, boundToType?: Type): void;
 
     /**
      * Registers a validation rule which will be called once before and once after the whole validation.
@@ -162,56 +162,56 @@ export interface ValidationCollector<ElementType = unknown, RootType = ElementTy
      * @param boundToType an optional type, if the new validation rule is dedicated for exactly this type.
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
-    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<ElementType, RootType>, boundToType?: Type): void;
-    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<ElementType, RootType>, boundToType?: Type): void;
+    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<LanguageType, RootType>, boundToType?: Type): void;
+    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<LanguageType, RootType>, boundToType?: Type): void;
 }
 
-export class DefaultValidationCollector<ElementType = unknown, RootType = ElementType> implements ValidationCollector<ElementType, RootType>, TypeGraphListener {
+export class DefaultValidationCollector<LanguageType = unknown, RootType = LanguageType> implements ValidationCollector<LanguageType, RootType>, TypeGraphListener {
     protected readonly services: TypirServices;
-    protected readonly validationRules: Map<string, Array<ValidationRule<ElementType>>> = new Map(); // type identifier (otherwise '') -> validation rules
-    protected readonly validationRulesBeforeAfter: Map<string, Array<ValidationRuleWithBeforeAfter<ElementType, RootType>>> = new Map(); // type identifier (otherwise '') -> validation rules
+    protected readonly validationRules: Map<string, Array<ValidationRule<LanguageType>>> = new Map(); // type identifier (otherwise '') -> validation rules
+    protected readonly validationRulesBeforeAfter: Map<string, Array<ValidationRuleWithBeforeAfter<LanguageType, RootType>>> = new Map(); // type identifier (otherwise '') -> validation rules
 
     constructor(services: TypirServices) {
         this.services = services;
         this.services.infrastructure.Graph.addListener(this);
     }
 
-    validateBefore(domainRoot: RootType): ValidationProblem[] {
+    validateBefore(languageRoot: RootType): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
         for (const rules of this.validationRulesBeforeAfter.values()) {
             for (const rule of rules) {
-                problems.push(...rule.beforeValidation(domainRoot, this.services));
+                problems.push(...rule.beforeValidation(languageRoot, this.services));
             }
         }
         return problems;
     }
 
-    validate(domainElement: ElementType): ValidationProblem[] {
+    validate(languageNode: LanguageType): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
         for (const rules of this.validationRules.values()) {
             for (const rule of rules) {
-                problems.push(...rule(domainElement, this.services));
+                problems.push(...rule(languageNode, this.services));
             }
         }
         for (const rules of this.validationRulesBeforeAfter.values()) {
             for (const rule of rules) {
-                problems.push(...rule.validation(domainElement, this.services));
+                problems.push(...rule.validation(languageNode, this.services));
             }
         }
         return problems;
     }
 
-    validateAfter(domainRoot: RootType): ValidationProblem[] {
+    validateAfter(languageRoot: RootType): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
         for (const rules of this.validationRulesBeforeAfter.values()) {
             for (const rule of rules) {
-                problems.push(...rule.afterValidation(domainRoot, this.services));
+                problems.push(...rule.afterValidation(languageRoot, this.services));
             }
         }
         return problems;
     }
 
-    addValidationRule(rule: ValidationRule<ElementType>, boundToType?: Type): void {
+    addValidationRule(rule: ValidationRule<LanguageType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
         let rules = this.validationRules.get(key);
         if (!rules) {
@@ -221,7 +221,7 @@ export class DefaultValidationCollector<ElementType = unknown, RootType = Elemen
         rules.push(rule);
     }
 
-    removeValidationRule(rule: ValidationRule<ElementType>, boundToType?: Type): void {
+    removeValidationRule(rule: ValidationRule<LanguageType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
         const rules = this.validationRules.get(key);
         if (rules) {
@@ -232,7 +232,7 @@ export class DefaultValidationCollector<ElementType = unknown, RootType = Elemen
         }
     }
 
-    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<ElementType, RootType>, boundToType?: Type): void {
+    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<LanguageType, RootType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
         let rules = this.validationRulesBeforeAfter.get(key);
         if (!rules) {
@@ -242,7 +242,7 @@ export class DefaultValidationCollector<ElementType = unknown, RootType = Elemen
         rules.push(rule);
     }
 
-    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<ElementType, RootType>, boundToType?: Type): void {
+    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<LanguageType, RootType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
         const rules = this.validationRulesBeforeAfter.get(key);
         if (rules) {

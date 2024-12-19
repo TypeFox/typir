@@ -102,20 +102,20 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
 
 
 /**
- * Domain element-to-Type caching for type inference.
+ * Language node-to-Type caching for type inference.
  */
-export interface DomainElementInferenceCaching {
-    cacheSet(domainElement: unknown, type: Type): void;
-    cacheGet(domainElement: unknown): Type | undefined;
-    pendingSet(domainElement: unknown): void;
-    pendingClear(domainElement: unknown): void;
-    pendingGet(domainElement: unknown): boolean;
+export interface LanguageNodeInferenceCaching {
+    cacheSet(languageNode: unknown, type: Type): void;
+    cacheGet(languageNode: unknown): Type | undefined;
+    pendingSet(languageNode: unknown): void;
+    pendingClear(languageNode: unknown): void;
+    pendingGet(languageNode: unknown): boolean;
 }
 
 export type CachePending = 'CACHE_PENDING';
 export const CachePending = 'CACHE_PENDING';
 
-export class DefaultDomainElementInferenceCaching implements DomainElementInferenceCaching {
+export class DefaultLanguageNodeInferenceCaching implements LanguageNodeInferenceCaching {
     protected cache: Map<unknown, Type | CachePending>;
 
     constructor() {
@@ -126,32 +126,32 @@ export class DefaultDomainElementInferenceCaching implements DomainElementInfere
         this.cache = new Map();
     }
 
-    cacheSet(domainElement: unknown, type: Type): void {
-        this.pendingClear(domainElement);
-        this.cache.set(domainElement, type);
+    cacheSet(languageNode: unknown, type: Type): void {
+        this.pendingClear(languageNode);
+        this.cache.set(languageNode, type);
     }
 
-    cacheGet(domainElement: unknown): Type | undefined {
-        if (this.pendingGet(domainElement)) {
+    cacheGet(languageNode: unknown): Type | undefined {
+        if (this.pendingGet(languageNode)) {
             return undefined;
         } else {
-            return this.cache.get(domainElement) as (Type | undefined);
+            return this.cache.get(languageNode) as (Type | undefined);
         }
     }
 
-    pendingSet(domainElement: unknown): void {
-        this.cache.set(domainElement, CachePending);
+    pendingSet(languageNode: unknown): void {
+        this.cache.set(languageNode, CachePending);
     }
 
-    pendingClear(domainElement: unknown): void {
-        if (this.cache.get(domainElement) !== CachePending) {
+    pendingClear(languageNode: unknown): void {
+        if (this.cache.get(languageNode) !== CachePending) {
             // do nothing
         } else {
-            this.cache.delete(domainElement);
+            this.cache.delete(languageNode);
         }
     }
 
-    pendingGet(domainElement: unknown): boolean {
-        return this.cache.has(domainElement) && this.cache.get(domainElement) === CachePending;
+    pendingGet(languageNode: unknown): boolean {
+        return this.cache.has(languageNode) && this.cache.get(languageNode) === CachePending;
     }
 }

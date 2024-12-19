@@ -15,7 +15,7 @@ export interface TopClassTypeDetails extends TypeDetails {
     inferenceRules?: InferTopClassType | InferTopClassType[]
 }
 
-export type InferTopClassType = (domainElement: unknown) => boolean;
+export type InferTopClassType = (anguageNode: unknown) => boolean;
 
 export interface TopClassKindOptions {
     name: string;
@@ -71,9 +71,9 @@ export class TopClassKind implements Kind {
     protected registerInferenceRules(typeDetails: TopClassTypeDetails, topType: TopClassType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.services.Inference.addInferenceRule((domainElement, _typir) => {
+            this.services.Inference.addInferenceRule((languageNode, _typir) => {
                 for (const inferenceRule of rules) {
-                    if (inferenceRule(domainElement)) {
+                    if (inferenceRule(languageNode)) {
                         return topType;
                     }
                 }

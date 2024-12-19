@@ -6,7 +6,7 @@
 
 import { LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
 import { DeepPartial, DefaultTypirServiceModule, Module, PartialTypirServices, TypirServices } from 'typir';
-import { LangiumDomainElementInferenceCaching } from './features/langium-caching.js';
+import { LangiumLanguageNodeInferenceCaching } from './features/langium-caching.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
 import { LangiumTypeCreator, PlaceholderLangiumTypeCreator } from './features/langium-type-creator.js';
 import { DefaultLangiumTypirValidator, LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
@@ -29,7 +29,7 @@ export function createLangiumSpecificTypirServicesModule(langiumServices: Langiu
     const LangiumSpecifics: Module<TypirServices, PartialTypirServices> = {
         Printer: () => new LangiumProblemPrinter(),
         caching: {
-            DomainElementInference: () => new LangiumDomainElementInferenceCaching(langiumServices),
+            LanguageNodeInference: () => new LangiumLanguageNodeInferenceCaching(langiumServices),
         },
     };
     return Module.merge(

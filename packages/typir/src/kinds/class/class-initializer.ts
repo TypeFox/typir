@@ -100,14 +100,14 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         const result: TypeInferenceRule[] = [];
         if (typeDetails.inferenceRuleForDeclaration) {
             result.push({
-                inferTypeWithoutChildren(domainElement, _typir) {
-                    if (typeDetails.inferenceRuleForDeclaration!(domainElement)) {
+                inferTypeWithoutChildren(languageNode, _typir) {
+                    if (typeDetails.inferenceRuleForDeclaration!(languageNode)) {
                         return classType;
                     } else {
                         return InferenceRuleNotApplicable;
                     }
                 },
-                inferTypeWithChildrensTypes(_domainElement, _childrenTypes, _typir) {
+                inferTypeWithChildrensTypes(_languageNode, _childrenTypes, _typir) {
                     // TODO check values for fields for structual typing!
                     return classType;
                 },
@@ -120,8 +120,8 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
             result.push(this.createInferenceRuleForLiteral(typeDetails.inferenceRuleForReference, classType));
         }
         if (typeDetails.inferenceRuleForFieldAccess) {
-            result.push((domainElement, _typir) => {
-                const result = typeDetails.inferenceRuleForFieldAccess!(domainElement);
+            result.push((languageNode, _typir) => {
+                const result = typeDetails.inferenceRuleForFieldAccess!(languageNode);
                 if (result === InferenceRuleNotApplicable) {
                     return InferenceRuleNotApplicable;
                 } else if (typeof result === 'string') {
@@ -132,14 +132,14 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
                     }
                     return <InferenceProblem>{
                         $problem: InferenceProblem,
-                        domainElement,
+                        languageNode: languageNode,
                         inferenceCandidate: classType,
                         location: `unknown field '${result}'`,
                         // rule: this, // this does not work with functions ...
                         subProblems: [],
                     };
                 } else {
-                    return result; // do the type inference for this element instead
+                    return result; // do the type inference for this language node instead
                 }
             });
         }
@@ -150,12 +150,12 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         const mapListConverter = new MapListConverter();
         const kind = this.kind;
         return {
-            inferTypeWithoutChildren(domainElement, _typir) {
-                const result = rule.filter(domainElement);
+            inferTypeWithoutChildren(languageNode, _typir) {
+                const result = rule.filter(languageNode);
                 if (result) {
-                    const matching = rule.matching(domainElement);
+                    const matching = rule.matching(languageNode);
                     if (matching) {
-                        const inputArguments = rule.inputValuesForFields(domainElement);
+                        const inputArguments = rule.inputValuesForFields(languageNode);
                         if (inputArguments.size >= 1) {
                             return mapListConverter.toList(inputArguments);
                         } else {
@@ -163,15 +163,15 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
                             return classType; // this case occurs only, if the current class has no fields (including fields of super types) or is nominally typed
                         }
                     } else {
-                        // the domain element is slightly different
+                        // the language node is slightly different
                     }
                 } else {
-                    // the domain element has a completely different purpose
+                    // the language node has a completely different purpose
                 }
                 // does not match at all
                 return InferenceRuleNotApplicable;
             },
-            inferTypeWithChildrensTypes(domainElement, childrenTypes, typir) {
+            inferTypeWithChildrensTypes(languageNode, childrenTypes, typir) {
                 const allExpectedFields = classType.getFields(true);
                 // this class type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
                 const checkedFieldsProblems = checkNameTypesMap(
@@ -183,7 +183,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
                     // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
                     return <InferenceProblem>{
                         $problem: InferenceProblem,
-                        domainElement,
+                        languageNode: languageNode,
                         inferenceCandidate: classType,
                         location: 'values for fields',
                         rule: this,

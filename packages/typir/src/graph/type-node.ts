@@ -38,9 +38,9 @@ export interface PreconditionsForInitializationState {
  * i.e. it is used for specifying details of all types to create.
  */
 export interface TypeDetails {
-    /** An element from the domain might be associated with the new type to create,
+    /** A node from the language might be associated with the new type to create,
      * e.g. the declaration node in the AST (e.g. a FunctionDeclarationNode is associated with the corresponding FunctionType). */
-    associatedDomainElement?: unknown;
+    associatedLanguageNode?: unknown;
 }
 
 /**
@@ -64,16 +64,17 @@ export abstract class Type {
     protected readonly edgesOutgoing: Map<string, TypeEdge[]> = new Map();
 
     /**
-     * The current type might be associated with an element from the domain, e.g. the corresponding declaration node in the AST.
-     * This domain element is _not_ used for managing the lifecycles of this type,
+     * A node from the language might be associated with the current type,
+     * e.g. the declaration node in the AST (e.g. a FunctionDeclarationNode is associated with the corresponding FunctionType)
+     * This language node is _not_ used for managing the lifecycles of this type,
      * since it should be usable for any domain-specific purpose.
      * Therefore, the use and update of this feature is under the responsibility of the user of Typir.
      */
-    readonly associatedDomainElement: unknown | undefined;
+    readonly associatedLanguageNode: unknown | undefined;
 
     constructor(identifier: string | undefined, typeDetails: TypeDetails) {
         this.identifier = identifier;
-        this.associatedDomainElement = typeDetails.associatedDomainElement;
+        this.associatedLanguageNode = typeDetails.associatedLanguageNode;
     }
 
 
@@ -88,7 +89,7 @@ export abstract class Type {
     }
 
     /**
-     * Returns a string value containing a short representation of the type to be shown to users of the type-checked elements.
+     * Returns a string value containing a short representation of the type to be shown to users of the type-checked language nodes.
      * This value don't need to be unique for all types.
      * This name should be quite short.
      * Services should not call this function directly, but typir.printer.printTypeName(...) instead.
@@ -97,7 +98,7 @@ export abstract class Type {
     abstract getName(): string;
 
     /**
-     * Calculates a string value which might be shown to users of the type-checked elements.
+     * Calculates a string value which might be shown to users of the type-checked language nodes.
      * This value don't need to be unique for all types.
      * This representation might be longer and show lots of details of the type.
      * Services should not call this function directly, but typir.printer.printTypeUserRepresentation(...) instead.

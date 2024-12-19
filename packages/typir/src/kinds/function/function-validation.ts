@@ -14,30 +14,30 @@ import { isFunctionType, FunctionType } from './function-type.js';
 export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
     protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
     protected readonly services: TypirServices;
-    protected readonly isRelevant: (domainElement: unknown) => boolean; // using this check improves performance a lot
+    protected readonly isRelevant: (languageNode: unknown) => boolean; // using this check improves performance a lot
 
-    constructor(services: TypirServices, isRelevant: (domainElement: unknown) => boolean) {
+    constructor(services: TypirServices, isRelevant: (languageNode: unknown) => boolean) {
         this.services = services;
         this.isRelevant = isRelevant;
     }
 
-    beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+    beforeValidation(_languageRoot: unknown, _typir: TypirServices): ValidationProblem[] {
         this.foundDeclarations.clear();
         return [];
     }
 
-    validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
-        if (this.isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
-            const type = this.services.Inference.inferType(domainElement);
+    validation(languageNode: unknown, _typir: TypirServices): ValidationProblem[] {
+        if (this.isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
+            const type = this.services.Inference.inferType(languageNode);
             if (isFunctionType(type)) {
-                // register domain elements which have FunctionTypes with a key for their uniques
+                // register language nodes which have FunctionTypes with a key for their uniques
                 const key = this.calculateFunctionKey(type);
                 let entries = this.foundDeclarations.get(key);
                 if (!entries) {
                     entries = [];
                     this.foundDeclarations.set(key, entries);
                 }
-                entries.push(domainElement);
+                entries.push(languageNode);
             }
         }
         return [];
@@ -54,14 +54,14 @@ export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
         return `${func.functionName}(${func.getInputs().map(param => param.type.getIdentifier())})`;
     }
 
-    afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+    afterValidation(_languageRoot: unknown, _typir: TypirServices): ValidationProblem[] {
         const result: ValidationProblem[] = [];
         for (const [key, functions] of this.foundDeclarations.entries()) {
             if (functions.length >= 2) {
                 for (const func of functions) {
                     result.push({
                         $problem: ValidationProblem,
-                        domainElement: func,
+                        languageNode: func,
                         severity: 'error',
                         message: `Declared functions need to be unique (${key}).`,
                     });

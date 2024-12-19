@@ -84,10 +84,10 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
          */
 
         // additional inference rules ...
-        this.typir.Inference.addInferenceRule((domainElement: unknown) => {
+        this.typir.Inference.addInferenceRule((languageNode: unknown) => {
             // ... for member calls (which are used in expressions)
-            if (isMemberCall(domainElement)) {
-                const ref = domainElement.element.ref;
+            if (isMemberCall(languageNode)) {
+                const ref = languageNode.element.ref;
                 if (isVariableDeclaration(ref)) {
                     // use variables inside expressions!
                     return ref;
@@ -104,13 +104,13 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 }
             }
             // ... variable declarations
-            if (isVariableDeclaration(domainElement)) {
-                if (domainElement.type) {
+            if (isVariableDeclaration(languageNode)) {
+                if (languageNode.type) {
                     // the user declared this variable with a type
-                    return domainElement.type;
-                } else if (domainElement.value) {
+                    return languageNode.type;
+                } else if (languageNode.value) {
                     // the didn't declared a type for this variable => do type inference of the assigned value instead!
-                    return domainElement.value;
+                    return languageNode.value;
                 } else {
                     return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
                 }
@@ -123,21 +123,21 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
             (node: unknown, typir: TypirServices) => {
                 if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
                     return typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool,
-                        () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", domainProperty: 'condition' });
+                        () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
                 }
                 if (isVariableDeclaration(node)) {
                     return [
                         ...typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid,
-                            () => <ValidationMessageDetails>{ message: "Variables can't be declared with the type 'void'.", domainProperty: 'type' }),
+                            () => <ValidationMessageDetails>{ message: "Variables can't be declared with the type 'void'.", languageProperty: 'type' }),
                         ...typir.validation.Constraints.ensureNodeIsAssignable(node.value, node,
-                            (actual, expected) => <ValidationMessageDetails>{ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, domainProperty: 'value' })
+                            (actual, expected) => <ValidationMessageDetails>{ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, languageProperty: 'value' })
                     ];
                 }
                 if (isAssignmentStatement(node) && node.varRef.ref) {
                     return typir.validation.Constraints.ensureNodeIsAssignable(node.value, node.varRef.ref,
                         (actual, expected) => <ValidationMessageDetails>{
                             message: `The expression '${node.value.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.varRef.ref!.name}' with type '${expected.name}'.`,
-                            domainProperty: 'value',
+                            languageProperty: 'value',
                         });
                 }
                 if (isReturnStatement(node)) {
@@ -145,7 +145,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                     if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                         // the return value must fit to the return type of the function
                         return typir.validation.Constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType,
-                            () => <ValidationMessageDetails>{ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, domainProperty: 'value' });
+                            () => <ValidationMessageDetails>{ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, languageProperty: 'value' });
                     }
                 }
                 return [];
@@ -156,19 +156,19 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         this.typir.validation.Collector.addValidationRuleWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
     }
 
-    onNewAstNode(domainElement: AstNode): void {
+    onNewAstNode(languageNode: AstNode): void {
         // define function types
         // they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
-        if (isFunctionDeclaration(domainElement)) {
-            const functionName = domainElement.name;
+        if (isFunctionDeclaration(languageNode)) {
+            const functionName = languageNode.name;
             // define function type
             this.typir.factory.Functions.create({
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
-                outputParameter: { name: NO_PARAMETER_NAME, type: domainElement.returnType },
-                inputParameters: domainElement.parameters.map(p => (<CreateParameterDetails>{ name: p.name, type: p.type })),
+                outputParameter: { name: NO_PARAMETER_NAME, type: languageNode.returnType },
+                inputParameters: languageNode.parameters.map(p => (<CreateParameterDetails>{ name: p.name, type: p.type })),
                 // inference rule for function declaration:
-                inferenceRuleForDeclaration: (node: unknown) => node === domainElement, // only the current function declaration matches!
+                inferenceRuleForDeclaration: (node: unknown) => node === languageNode, // only the current function declaration matches!
                 /** inference rule for funtion calls:
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
                  * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
@@ -179,7 +179,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                     inputArguments: (call: MemberCall) => call.arguments // they are needed to validate, that the given arguments are assignable to the parameters
                     // Note that OX does not support overloaded function declarations for simplicity: Look into LOX to see how to handle overloaded functions and methods!
                 },
-                associatedDomainElement: domainElement,
+                associatedLanguageNode: languageNode,
             });
         }
     }
