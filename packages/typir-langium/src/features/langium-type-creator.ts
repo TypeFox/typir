@@ -28,7 +28,7 @@ export interface LangiumTypeCreator {
 
     /**
      * React on updates of the AST in order to add/remove corresponding types from the type system,
-     * e.g. for user-definied functions to create corresponding function types in the type graph.
+     * e.g. for user-defined functions to create corresponding function types in the type graph.
      * @param domainElement an AstNode of the current AST
      */
     onNewAstNode(domainElement: AstNode): void;

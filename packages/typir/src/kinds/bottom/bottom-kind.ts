@@ -12,7 +12,7 @@ import { isKind, Kind } from '../kind.js';
 import { TypeDetails } from '../../graph/type-node.js';
 
 export interface BottomTypeDetails extends TypeDetails {
-    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
+    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already matched. */
     inferenceRules?: InferBottomType | InferBottomType[]
 }
 

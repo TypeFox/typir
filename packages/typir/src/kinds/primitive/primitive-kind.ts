@@ -17,7 +17,7 @@ export interface PrimitiveKindOptions {
 
 export interface PrimitiveTypeDetails extends TypeDetails {
     primitiveName: string;
-    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
+    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already matched. */
     inferenceRules?: InferPrimitiveType | InferPrimitiveType[];
 }
 
