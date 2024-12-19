@@ -17,30 +17,30 @@ export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
     protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
 
     protected readonly services: TypirServices;
-    protected readonly isRelevant: (domainElement: unknown) => boolean; // using this check improves performance a lot
+    protected readonly isRelevant: (languageNode: unknown) => boolean; // using this check improves performance a lot
 
-    constructor(services: TypirServices, isRelevant: (domainElement: unknown) => boolean) {
+    constructor(services: TypirServices, isRelevant: (languageNode: unknown) => boolean) {
         this.services = services;
         this.isRelevant = isRelevant;
     }
 
-    beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+    beforeValidation(_languageRoot: unknown, _typir: TypirServices): ValidationProblem[] {
         this.foundDeclarations.clear();
         return [];
     }
 
-    validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
-        if (this.isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
-            const type = this.services.Inference.inferType(domainElement);
+    validation(languageNode: unknown, _typir: TypirServices): ValidationProblem[] {
+        if (this.isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
+            const type = this.services.Inference.inferType(languageNode);
             if (isClassType(type)) {
-                // register domain elements which have ClassTypes with a key for their uniques
+                // register language nodes which have ClassTypes with a key for their uniques
                 const key = this.calculateClassKey(type);
                 let entries = this.foundDeclarations.get(key);
                 if (!entries) {
                     entries = [];
                     this.foundDeclarations.set(key, entries);
                 }
-                entries.push(domainElement);
+                entries.push(languageNode);
             }
         }
         return [];
@@ -58,14 +58,14 @@ export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
         return `${clas.className}`;
     }
 
-    afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+    afterValidation(_languageRoot: unknown, _typir: TypirServices): ValidationProblem[] {
         const result: ValidationProblem[] = [];
         for (const [key, classes] of this.foundDeclarations.entries()) {
             if (classes.length >= 2) {
                 for (const clas of classes) {
                     result.push({
                         $problem: ValidationProblem,
-                        domainElement: clas,
+                        languageNode: clas,
                         severity: 'error',
                         message: `Declared classes need to be unique (${key}).`,
                     });
@@ -84,7 +84,7 @@ export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
 }
 
 interface UniqueMethodValidationEntry {
-    domainElement: unknown;
+    languageNode: unknown;
     classType: ClassType;
 }
 
@@ -95,15 +95,15 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
     protected readonly foundDeclarations: Map<string, UniqueMethodValidationEntry[]> = new Map();
 
     protected readonly services: TypirServices;
-    /** Determines domain elements which represent declared methods, improves performance a lot. */
-    protected readonly isMethodDeclaration: (domainElement: unknown) => domainElement is T;
-    /** Determines the corresponding domain element of the class declaration, so that Typir can infer its ClassType */
-    protected readonly getClassOfMethod: (domainElement: T, methodType: FunctionType) => unknown;
+    /** Determines language nodes which represent declared methods, improves performance a lot. */
+    protected readonly isMethodDeclaration: (languageNode: unknown) => languageNode is T;
+    /** Determines the corresponding language node of the class declaration, so that Typir can infer its ClassType */
+    protected readonly getClassOfMethod: (languageNode: T, methodType: FunctionType) => unknown;
     protected readonly uniqueClassValidator: UniqueClassValidation | undefined;
 
     constructor(services: TypirServices,
-        isMethodDeclaration: (domainElement: unknown) => domainElement is T,
-        getClassOfMethod: (domainElement: T, methodType: FunctionType) => unknown,
+        isMethodDeclaration: (languageNode: unknown) => languageNode is T,
+        getClassOfMethod: (languageNode: T, methodType: FunctionType) => unknown,
         uniqueClassValidator?: UniqueClassValidation,
     ) {
         this.services = services;
@@ -112,16 +112,16 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
         this.uniqueClassValidator = uniqueClassValidator;
     }
 
-    beforeValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+    beforeValidation(_languageRoot: unknown, _typir: TypirServices): ValidationProblem[] {
         this.foundDeclarations.clear();
         return [];
     }
 
-    validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
-        if (this.isMethodDeclaration(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
-            const methodType = this.services.Inference.inferType(domainElement);
+    validation(languageNode: unknown, _typir: TypirServices): ValidationProblem[] {
+        if (this.isMethodDeclaration(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
+            const methodType = this.services.Inference.inferType(languageNode);
             if (isFunctionType(methodType)) {
-                const classDeclaration = this.getClassOfMethod(domainElement, methodType);
+                const classDeclaration = this.getClassOfMethod(languageNode, methodType);
                 const classType = this.services.Inference.inferType(classDeclaration);
                 if (isClassType(classType)) {
                     const key = this.calculateMethodKey(classType, methodType);
@@ -131,7 +131,7 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
                         this.foundDeclarations.set(key, entries);
                     }
                     entries.push({
-                        domainElement,
+                        languageNode: languageNode,
                         classType,
                     });
                 }
@@ -153,7 +153,7 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
         return `${clas.getIdentifier()}.${func.functionName}(${func.getInputs().map(param => param.type.getIdentifier())})`;
     }
 
-    afterValidation(_domainRoot: unknown, _typir: TypirServices): ValidationProblem[] {
+    afterValidation(_LanguageRoot: unknown, _typir: TypirServices): ValidationProblem[] {
         const result: ValidationProblem[] = [];
         for (const [key, methods] of this.foundDeclarations.entries()) {
             if (methods.length >= 2) {
@@ -163,7 +163,7 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
                     } else {
                         result.push({
                             $problem: ValidationProblem,
-                            domainElement: method.domainElement,
+                            languageNode: method.languageNode,
                             severity: 'error',
                             message: `Declared methods need to be unique (${key}).`,
                         });
@@ -184,17 +184,17 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
  * is parameter is the reasons, why this validation cannot be registered by default by Typir for classes, since this parameter is DSL-specific
  * @returns a validation rule which checks for any class declaration/type, whether they have no cycles in their sub-super-class-relationships
  */
-export function createNoSuperClassCyclesValidation(isRelevant: (domainElement: unknown) => boolean): ValidationRule {
-    return (domainElement: unknown, typir: TypirServices) => {
+export function createNoSuperClassCyclesValidation(isRelevant: (languageNode: unknown) => boolean): ValidationRule {
+    return (languageNode: unknown, typir: TypirServices) => {
         const result: ValidationProblem[] = [];
-        if (isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
-            const classType = typir.Inference.inferType(domainElement);
+        if (isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
+            const classType = typir.Inference.inferType(languageNode);
             if (isClassType(classType) && classType.isInStateOrLater('Completed')) {
                 // check for cycles in sub-type-relationships
                 if (classType.hasSubSuperClassCycles()) {
                     result.push({
                         $problem: ValidationProblem,
-                        domainElement,
+                        languageNode: languageNode,
                         severity: 'error',
                         message: `Cycles in super-sub-class-relationships are not allowed: ${classType.getName()}`,
                     });

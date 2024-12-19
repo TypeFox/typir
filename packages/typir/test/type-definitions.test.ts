@@ -31,7 +31,7 @@ describe('Tests for Typir', () => {
         // create some primitive types
         const typeInt = typir.factory.Primitives.create({ primitiveName: 'Integer' });
         const typeString = typir.factory.Primitives.create({ primitiveName: 'String',
-            inferenceRules: domainElement => typeof domainElement === 'string'}); // combine type definition with a dedicated inference rule for it
+            inferenceRules: languageNode => typeof languageNode === 'string'}); // combine type definition with a dedicated inference rule for it
         const typeBoolean = typir.factory.Primitives.create({ primitiveName: 'Boolean' });
 
         // create class type Person with 1 firstName and 1..2 lastNames and an age properties
@@ -71,9 +71,9 @@ describe('Tests for Typir', () => {
         const opLess = typir.factory.Operators.createBinary({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } });
         const opEqualInt = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean },
             inferenceRule: {
-                filter: (domainElement): domainElement is string => typeof domainElement === 'string',
-                matching: domainElement => domainElement.includes('=='),
-                operands: domainElement => []
+                filter: (languageNode): languageNode is string => typeof languageNode === 'string',
+                matching: languageNode => languageNode.includes('=='),
+                operands: languageNode => []
             }});
         // binary operators on Booleans
         const opEqualBool = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
@@ -81,9 +81,9 @@ describe('Tests for Typir', () => {
         // unary operators
         const opNotBool = typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBoolean, return: typeBoolean },
             inferenceRule: {
-                filter: (domainElement): domainElement is string => typeof domainElement === 'string',
-                matching: domainElement => domainElement.includes('NOT'),
-                operand: domainElement => []
+                filter: (languageNode): languageNode is string => typeof languageNode === 'string',
+                matching: languageNode => languageNode.includes('NOT'),
+                operand: languageNode => []
             }});
         // ternary operator
         const opTernaryIf = typir.factory.Operators.createTernary({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } });

@@ -21,17 +21,17 @@ export interface LangiumTypeCreator {
 
     /**
      * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules,
-     * which are constant and don't depend on the actual domain elements.
-     * This method will be executed once before the first added/updated/removed domain element.
+     * which are constant and don't depend on the actual language nodes.
+     * This method will be executed once before the first added/updated/removed language node.
      */
     onInitialize(): void;
 
     /**
      * React on updates of the AST in order to add/remove corresponding types from the type system,
      * e.g. for user-defined functions to create corresponding function types in the type graph.
-     * @param domainElement an AstNode of the current AST
+     * @param languageNode an AstNode of the current AST
      */
-    onNewAstNode(domainElement: AstNode): void;
+    onNewAstNode(languageNode: AstNode): void;
 }
 
 export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, TypeGraphListener {
@@ -68,7 +68,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
 
     abstract onInitialize(): void;
 
-    abstract onNewAstNode(domainElement: AstNode): void;
+    abstract onNewAstNode(languageNode: AstNode): void;
 
     /**
      * Starts the initialization.
@@ -141,7 +141,7 @@ export class PlaceholderLangiumTypeCreator extends AbstractLangiumTypeCreator {
     override onInitialize(): void {
         throw new Error('This method needs to be implemented! Extend the AbstractLangiumTypeCreator and register it in the Typir module: TypeCreator: (typirServices) => new MyLangiumTypeCreator(typirServices, langiumServices)');
     }
-    override onNewAstNode(_domainElement: AstNode): void {
+    override onNewAstNode(_languageNode: AstNode): void {
         throw new Error('This method needs to be implemented! Extend the AbstractLangiumTypeCreator and register it in the Typir module: TypeCreator: (typirServices) => new MyLangiumTypeCreator(typirServices, langiumServices)');
     }
 }

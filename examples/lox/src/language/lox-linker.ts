@@ -53,7 +53,7 @@ export class LoxLinker extends DefaultLinker {
                 // the following approach does not work, since the container's cross-references are required for type inference, but they are not yet resolved
                 // const type = this.typir.Inference.inferType(container);
                 // if (isFunctionType(type)) {
-                //     return type.associatedDomainElement;
+                //     return type.associatedLanguageNode
                 // }
             }
             return this.createLinkingError(refInfo);

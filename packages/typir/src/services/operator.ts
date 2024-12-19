@@ -13,17 +13,17 @@ import { NameTypePair, TypeInitializers } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
 import { ValidationProblem } from './validation.js';
 
-// export type InferOperatorWithSingleOperand = (domainElement: unknown, operatorName: string) => boolean | unknown;
+// export type InferOperatorWithSingleOperand = (languageNode: unknown, operatorName: string) => boolean | unknown;
 export type InferOperatorWithSingleOperand<T = unknown> = {
-    filter: (domainElement: unknown, operatorName: string) => domainElement is T;
-    matching: (domainElement: T, operatorName: string) => boolean;
-    operand: (domainElement: T, operatorName: string) => unknown;
+    filter: (languageNode: unknown, operatorName: string) => languageNode is T;
+    matching: (languageNode: T, operatorName: string) => boolean;
+    operand: (languageNode: T, operatorName: string) => unknown;
 };
-// export type InferOperatorWithMultipleOperands = (domainElement: unknown, operatorName: string) => boolean | unknown[];
+// export type InferOperatorWithMultipleOperands = (languageNode: unknown, operatorName: string) => boolean | unknown[];
 export type InferOperatorWithMultipleOperands<T = unknown> = {
-    filter: (domainElement: unknown, operatorName: string) => domainElement is T;
-    matching: (domainElement: T, operatorName: string) => boolean;
-    operands: (domainElement: T, operatorName: string) => unknown[];
+    filter: (languageNode: unknown, operatorName: string) => languageNode is T;
+    matching: (languageNode: T, operatorName: string) => boolean;
+    operands: (languageNode: T, operatorName: string) => unknown[];
 };
 
 export type OperatorValidationRule<T> = (operatorCall: T, operatorName: string, operatorType: Type, typir: TypirServices) => ValidationProblem[];
@@ -174,9 +174,9 @@ export class DefaultOperatorFactory implements OperatorFactoryService {
             inferenceRuleForDeclaration: undefined, // operators have no declaration in the code => no inference rule for the operator declaration!
             inferenceRuleForCalls: typeDetails.inferenceRule // but infer the operator when the operator is called!
                 ? {
-                    filter: (domainElement: unknown): domainElement is T => typeDetails.inferenceRule!.filter(domainElement, typeDetails.name),
-                    matching: (domainElement: T) => typeDetails.inferenceRule!.matching(domainElement, typeDetails.name),
-                    inputArguments: (domainElement: T) => this.getInputArguments(typeDetails, domainElement),
+                    filter: (languageNode: unknown): languageNode is T => typeDetails.inferenceRule!.filter(languageNode, typeDetails.name),
+                    matching: (languageNode: T) => typeDetails.inferenceRule!.matching(languageNode, typeDetails.name),
+                    inputArguments: (languageNode: T) => this.getInputArguments(typeDetails, languageNode),
                 }
                 : undefined,
             validationForCall: typeDetails.validationRule
@@ -187,10 +187,10 @@ export class DefaultOperatorFactory implements OperatorFactoryService {
         return newOperatorType as unknown as TypeInitializer<Type>;
     }
 
-    protected getInputArguments<T>(typeDetails: GenericOperatorDetails<T>, domainElement: unknown): unknown[] {
+    protected getInputArguments<T>(typeDetails: GenericOperatorDetails<T>, languageNode: unknown): unknown[] {
         return 'operands' in typeDetails.inferenceRule!
-            ? (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(domainElement, typeDetails.name)
-            : [(typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(domainElement, typeDetails.name)];
+            ? (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(languageNode, typeDetails.name)
+            : [(typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(languageNode, typeDetails.name)];
     }
 
     protected getFunctionFactory(): FunctionFactoryService {

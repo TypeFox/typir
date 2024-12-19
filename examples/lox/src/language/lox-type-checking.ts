@@ -86,8 +86,8 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 // show a warning to the user, if something like "3 == false" is compared, since different types already indicate, that the IF condition will be evaluated to false
                 validationRule: (node, _operatorName, _operatorType, typir) => typir.validation.Constraints.ensureNodeIsEquals(node.left, node.right, (actual, expected) => <ValidationMessageDetails>{
                     message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
-                    domainElement: node, // inside the BinaryExpression ...
-                    domainProperty: 'operator', // ... mark the '==' or '!=' token, i.e. the 'operator' property
+                    languageNode: node, // inside the BinaryExpression ...
+                    languageProperty: 'operator', // ... mark the '==' or '!=' token, i.e. the 'operator' property
                     severity: 'warning' }),
                 // (The use of "node.right" and "node.left" without casting is possible, since the type checks of the given 'inferenceRule' are reused for the 'validationRule'.
                 //  This approach saves the duplication of checks for inference and validation, but makes the validation rules depending on the inference rule.)
@@ -98,7 +98,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             // this validation will be checked for each call of this operator!
             validationRule: (node, _opName, _opType, typir) => typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{
                 message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left.$cstNode?.text}' with type '${expected.name}'`,
-                domainProperty: 'value' }),
+                languageProperty: 'value' }),
         });
 
         // unary operators
@@ -106,10 +106,10 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         this.typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
 
         // additional inference rules for ...
-        this.typir.Inference.addInferenceRule((domainElement: unknown) => {
+        this.typir.Inference.addInferenceRule((languageNode: unknown) => {
             // ... member calls
-            if (isMemberCall(domainElement)) {
-                const ref = domainElement.element?.ref;
+            if (isMemberCall(languageNode)) {
+                const ref = languageNode.element?.ref;
                 if (isClass(ref)) {
                     return InferenceRuleNotApplicable; // not required anymore
                 } else if (isFieldMember(ref)) {
@@ -129,18 +129,18 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 }
             }
             // ... variable declarations
-            if (isVariableDeclaration(domainElement)) {
-                if (domainElement.type) {
-                    return domainElement.type; // the user declared this variable with a type
-                } else if (domainElement.value) {
-                    return domainElement.value; // the user didn't declare a type for this variable => do type inference of the assigned value instead!
+            if (isVariableDeclaration(languageNode)) {
+                if (languageNode.type) {
+                    return languageNode.type; // the user declared this variable with a type
+                } else if (languageNode.value) {
+                    return languageNode.value; // the user didn't declare a type for this variable => do type inference of the assigned value instead!
                 } else {
                     return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
                 }
             }
             // ... parameters
-            if (isParameter(domainElement)) {
-                return domainElement.type;
+            if (isParameter(languageNode)) {
+                return languageNode.type;
             }
             return InferenceRuleNotApplicable;
         });
@@ -150,15 +150,15 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             (node: unknown, typir: TypirServices) => {
                 if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
                     return typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool,
-                        () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", domainProperty: 'condition' });
+                        () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
                 }
                 if (isVariableDeclaration(node)) {
                     return [
                         ...typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid,
-                            () => <ValidationMessageDetails>{ message: "Variable can't be declared with a type 'void'.", domainProperty: 'type' }),
+                            () => <ValidationMessageDetails>{ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' }),
                         ...typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, (actual, expected) => <ValidationMessageDetails>{
                             message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
-                            domainProperty: 'value' }),
+                            languageProperty: 'value' }),
                     ];
                 }
                 if (isReturnStatement(node)) {
@@ -167,7 +167,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                         // the return value must fit to the return type of the function / method
                         return typir.validation.Constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, (actual, expected) => <ValidationMessageDetails>{
                             message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
-                            domainProperty: 'value' });
+                            languageProperty: 'value' });
                     }
                 }
                 return [];
@@ -216,22 +216,22 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     .filter(isMethodMember) // only Methods, no Fields
                     .map(member => createFunctionDetails(member)), // same logic as for functions, since the LOX grammar defines them very similar
                 // inference rule for declaration
-                inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node,
+                inferenceRuleForDeclaration: (languageNode: unknown) => languageNode === node,
                 // inference rule for constructor calls (i.e. class literals) conforming to the current class
                 inferenceRuleForConstructor: { // <InferClassLiteral<MemberCall>>
                     filter: isMemberCall,
-                    matching: (domainElement: MemberCall) => isClass(domainElement.element?.ref) && domainElement.element!.ref.name === className && domainElement.explicitOperationCall,
-                    inputValuesForFields: (_domainElement: MemberCall) => new Map(), // values for fields don't matter for nominal typing
+                    matching: (languageNode: MemberCall) => isClass(languageNode.element?.ref) && languageNode.element!.ref.name === className && languageNode.explicitOperationCall,
+                    inputValuesForFields: (_languageNode: MemberCall) => new Map(), // values for fields don't matter for nominal typing
                 },
                 inferenceRuleForReference: { // <InferClassLiteral<TypeReference>>
                     filter: isTypeReference,
-                    matching: (domainElement: TypeReference) => isClass(domainElement.reference?.ref) && domainElement.reference!.ref.name === className,
-                    inputValuesForFields: (_domainElement: TypeReference) => new Map(), // values for fields don't matter for nominal typing
+                    matching: (languageNode: TypeReference) => isClass(languageNode.reference?.ref) && languageNode.reference!.ref.name === className,
+                    inputValuesForFields: (_languageNode: TypeReference) => new Map(), // values for fields don't matter for nominal typing
                 },
                 // inference rule for accessing fields
-                inferenceRuleForFieldAccess: (domainElement: unknown) => isMemberCall(domainElement) && isFieldMember(domainElement.element?.ref) && domainElement.element!.ref.$container === node && !domainElement.explicitOperationCall
-                    ? domainElement.element!.ref.name : InferenceRuleNotApplicable,
-                associatedDomainElement: node,
+                inferenceRuleForFieldAccess: (languageNode: unknown) => isMemberCall(languageNode) && isFieldMember(languageNode.element?.ref) && languageNode.element!.ref.$container === node && !languageNode.explicitOperationCall
+                    ? languageNode.element!.ref.name : InferenceRuleNotApplicable,
+                associatedLanguageNode: node,
             });
 
             // explicitly declare, that 'nil' can be assigned to any Class variable
@@ -251,18 +251,18 @@ function createFunctionDetails(node: FunctionDeclaration | MethodMember): Create
         outputParameter: { name: NO_PARAMETER_NAME, type: node.returnType },
         inputParameters: node.parameters.map(p => (<CreateParameterDetails>{ name: p.name, type: p.type })),
         // inference rule for function declaration:
-        inferenceRuleForDeclaration: (domainElement: unknown) => domainElement === node, // only the current function/method declaration matches!
+        inferenceRuleForDeclaration: (languageNode: unknown) => languageNode === node, // only the current function/method declaration matches!
         /** inference rule for funtion/method calls:
          * - inferring of overloaded functions works only, if the actual arguments have the expected types!
          * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
          * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
         inferenceRuleForCalls: {
             filter: isMemberCall,
-            matching: (domainElement: MemberCall) => (isFunctionDeclaration(domainElement.element?.ref) || isMethodMember(domainElement.element?.ref))
-                && domainElement.explicitOperationCall && domainElement.element!.ref.name === callableName,
-            inputArguments: (domainElement: MemberCall) => domainElement.arguments
+            matching: (languageNode: MemberCall) => (isFunctionDeclaration(languageNode.element?.ref) || isMethodMember(languageNode.element?.ref))
+                && languageNode.explicitOperationCall && languageNode.element!.ref.name === callableName,
+            inputArguments: (languageNode: MemberCall) => languageNode.arguments
         },
-        associatedDomainElement: node,
+        associatedLanguageNode: node,
     };
 }
 

@@ -33,7 +33,7 @@ export function registerTypirValidationChecks(langiumServices: LangiumDefaultCor
 * Improved Validation API for Langium:
 * - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // use this signature for Langium?
 * - register validations for AST node $types (similar as Langium does it) => this is much more performant
-* - [<VariableDeclaration>{ selector: isVariableDeclaration, result: domainElement => domainElement.type }, <BinaryExpression>{}]      Array<InferenceRule<T>>
+* - [<VariableDeclaration>{ selector: isVariableDeclaration, result: languageNode => languageNode.type }, <BinaryExpression>{}]      Array<InferenceRule<T>>
 * - discriminator rule: $type '$VariableDeclaration' + record / "Sprungtabelle" for the Langium-binding (or both in core)? for improved performance (?)
 * - alternativ discriminator rule: unknown => string; AstNode => node.$type; Vorsicht mit Sub-Typen (Vollständigkeit+Updates, no abstract types)!
 * Apply the same ideas for InferenceRules as well!
@@ -86,7 +86,7 @@ export class DefaultLangiumTypirValidator implements LangiumTypirValidator {
         // print all found problems for the given AST node
         for (const problem of problems) {
             const message = this.services.Printer.printValidationProblem(problem);
-            accept(problem.severity, message, { node, property: problem.domainProperty, index: problem.domainIndex });
+            accept(problem.severity, message, { node, property: problem.languageProperty, index: problem.languageIndex });
         }
     }
 }

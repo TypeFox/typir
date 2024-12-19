@@ -41,7 +41,7 @@ export class LoxScopeProvider extends DefaultScopeProvider {
             // use Typir to identify the ClassType of the current expression (including variables, fields of nested classes, ...)
             const previousType = this.typir.Inference.inferType(previous);
             if (isClassType(previousType)) {
-                return this.scopeClassMembers(previousType.associatedDomainElement as Class); // the Class was associated with this ClassType during its creation
+                return this.scopeClassMembers(previousType.associatedLanguageNode as Class); // the Class was associated with this ClassType during its creation
             }
             return EMPTY_SCOPE;
         }

@@ -5,45 +5,45 @@
  ******************************************************************************/
 
 import { AstNode, DocumentCache, DocumentState, LangiumSharedCoreServices } from 'langium';
-import { CachePending, DomainElementInferenceCaching, Type } from 'typir';
+import { CachePending, LanguageNodeInferenceCaching, Type } from 'typir';
 import { getDocumentKey } from '../utils/typir-langium-utils.js';
 
 // cache AstNodes
-export class LangiumDomainElementInferenceCaching implements DomainElementInferenceCaching {
+export class LangiumLanguageNodeInferenceCaching implements LanguageNodeInferenceCaching {
     protected readonly cache: DocumentCache<unknown, Type | CachePending>; // removes cached AstNodes, if their underlying LangiumDocuments are invalidated
 
     constructor(langiumServices: LangiumSharedCoreServices) {
         this.cache = new DocumentCache(langiumServices, DocumentState.IndexedReferences);
     }
 
-    cacheSet(domainElement: AstNode, type: Type): void {
-        this.pendingClear(domainElement);
-        this.cache.set(getDocumentKey(domainElement), domainElement, type);
+    cacheSet(languageNode: AstNode, type: Type): void {
+        this.pendingClear(languageNode);
+        this.cache.set(getDocumentKey(languageNode), languageNode, type);
     }
 
-    cacheGet(domainElement: AstNode): Type | undefined {
-        if (this.pendingGet(domainElement)) {
+    cacheGet(languageNode: AstNode): Type | undefined {
+        if (this.pendingGet(languageNode)) {
             return undefined;
         } else {
-            return this.cache.get(getDocumentKey(domainElement), domainElement) as (Type | undefined);
+            return this.cache.get(getDocumentKey(languageNode), languageNode) as (Type | undefined);
         }
     }
 
-    pendingSet(domainElement: AstNode): void {
-        this.cache.set(getDocumentKey(domainElement), domainElement, CachePending);
+    pendingSet(languageNode: AstNode): void {
+        this.cache.set(getDocumentKey(languageNode), languageNode, CachePending);
     }
 
-    pendingClear(domainElement: AstNode): void {
-        const key = getDocumentKey(domainElement);
-        if (this.cache.get(key, domainElement) !== CachePending) {
+    pendingClear(languageNode: AstNode): void {
+        const key = getDocumentKey(languageNode);
+        if (this.cache.get(key, languageNode) !== CachePending) {
             // do nothing
         } else {
-            this.cache.delete(key, domainElement);
+            this.cache.delete(key, languageNode);
         }
     }
 
-    pendingGet(domainElement: AstNode): boolean {
-        const key = getDocumentKey(domainElement);
-        return this.cache.has(key, domainElement) && this.cache.get(key, domainElement) === CachePending;
+    pendingGet(languageNode: AstNode): boolean {
+        const key = getDocumentKey(languageNode);
+        return this.cache.has(key, languageNode) && this.cache.get(key, languageNode) === CachePending;
     }
 }

@@ -12,7 +12,7 @@ import { FunctionFactoryService, FunctionKind, FunctionKindName } from './kinds/
 import { PrimitiveFactoryService, PrimitiveKind, PrimitiveKindName } from './kinds/primitive/primitive-kind.js';
 import { TopFactoryService, TopKind, TopKindName } from './kinds/top/top-kind.js';
 import { DefaultTypeAssignability, TypeAssignability } from './services/assignability.js';
-import { DefaultDomainElementInferenceCaching, DefaultTypeRelationshipCaching, DomainElementInferenceCaching, TypeRelationshipCaching } from './services/caching.js';
+import { DefaultLanguageNodeInferenceCaching, DefaultTypeRelationshipCaching, LanguageNodeInferenceCaching, TypeRelationshipCaching } from './services/caching.js';
 import { DefaultTypeConversion, TypeConversion } from './services/conversion.js';
 import { DefaultTypeEquality, TypeEquality } from './services/equality.js';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './services/inference.js';
@@ -48,7 +48,7 @@ export type TypirServices = {
     readonly Inference: TypeInferenceCollector;
     readonly caching: {
         readonly TypeRelationships: TypeRelationshipCaching;
-        readonly DomainElementInference: DomainElementInferenceCaching;
+        readonly LanguageNodeInference: LanguageNodeInferenceCaching;
     };
     readonly Printer: ProblemPrinter;
     readonly validation: {
@@ -78,7 +78,7 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
     Inference: (services) => new DefaultTypeInferenceCollector(services),
     caching: {
         TypeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
-        DomainElementInference: () => new DefaultDomainElementInferenceCaching(),
+        LanguageNodeInference: () => new DefaultLanguageNodeInferenceCaching(),
     },
     Printer: () => new DefaultTypeConflictPrinter(),
     validation: {

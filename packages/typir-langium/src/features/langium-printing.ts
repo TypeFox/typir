@@ -9,12 +9,12 @@ import { DefaultTypeConflictPrinter } from 'typir';
 
 export class LangiumProblemPrinter extends DefaultTypeConflictPrinter {
 
-    /** When printing a domain element, i.e. an AstNode, print the text of the corresponding CstNode. */
-    override printDomainElement(domainElement: unknown, sentenceBegin?: boolean | undefined): string {
-        if (isAstNode(domainElement)) {
-            return `${sentenceBegin ? 'T' : 't'}he AstNode '${domainElement.$cstNode?.text}'`;
+    /** When printing a language node, i.e. an AstNode, print the text of the corresponding CstNode. */
+    override printLanguageNode(languageNode: unknown, sentenceBegin?: boolean | undefined): string {
+        if (isAstNode(languageNode)) {
+            return `${sentenceBegin ? 'T' : 't'}he AstNode '${languageNode.$cstNode?.text}'`;
         }
-        return super.printDomainElement(domainElement, sentenceBegin);
+        return super.printLanguageNode(languageNode, sentenceBegin);
     }
 
 }

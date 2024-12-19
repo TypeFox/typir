@@ -10,11 +10,11 @@ import { TypeGraphListener } from '../graph/type-graph.js';
 import { isType, Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
-import { DomainElementInferenceCaching } from './caching.js';
+import { LanguageNodeInferenceCaching } from './caching.js';
 
 export interface InferenceProblem extends TypirProblem {
     $problem: 'InferenceProblem';
-    domainElement: unknown;
+    languageNode: unknown;
     inferenceCandidate?: Type;
     location: string;
     rule?: TypeInferenceRule; // for debugging only, since rules have no names (so far); TODO this does not really work with TypeInferenceRuleWithoutInferringChildren
@@ -32,9 +32,9 @@ export const InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 type TypeInferenceResultWithoutInferringChildren =
     /** the identified type */
     Type |
-    /** 'N/A' to indicate, that the current inference rule is not applicable for the given domain element at all */
+    /** 'N/A' to indicate, that the current inference rule is not applicable for the given language node at all */
     InferenceRuleNotApplicable |
-    /** a domain element whose type should be inferred instead */
+    /** a language node whose type should be inferred instead */
     unknown |
     /** an inference problem */
     InferenceProblem;
@@ -46,8 +46,8 @@ type TypeInferenceResultWithInferringChildren =
 
 /**
  * Represents a single rule for inference,
- * i.e. only a single type (or no type at all) can be inferred for a given domain element.
- * There are inference rules which dependent on types of children of the given domain element (e.g. calls of overloaded functions depend on the types of the current arguments)
+ * i.e. only a single type (or no type at all) can be inferred for a given language node.
+ * There are inference rules which dependent on types of children of the given language node (e.g. calls of overloaded functions depend on the types of the current arguments)
  * and there are inference rules without this need.
  *
  * Within inference rules, don't take the initialization state of the inferred type into account,
@@ -56,7 +56,7 @@ type TypeInferenceResultWithInferringChildren =
 export type TypeInferenceRule = TypeInferenceRuleWithoutInferringChildren | TypeInferenceRuleWithInferringChildren;
 
 /** Usual inference rule which don't depend on children's types. */
-export type TypeInferenceRuleWithoutInferringChildren = (domainElement: unknown, typir: TypirServices) => TypeInferenceResultWithoutInferringChildren;
+export type TypeInferenceRuleWithoutInferringChildren = (languageNode: unknown, typir: TypirServices) => TypeInferenceResultWithoutInferringChildren;
 
 /**
  * Inference rule which requires for the type inference of the given parent to take the types of its children into account.
@@ -64,26 +64,26 @@ export type TypeInferenceRuleWithoutInferringChildren = (domainElement: unknown,
  */
 export interface TypeInferenceRuleWithInferringChildren {
     /**
-     * 1st step is to check, whether this inference rule is applicable to the given domain element.
-     * @param domainElement the element whose type shall be inferred
+     * 1st step is to check, whether this inference rule is applicable to the given language node.
+     * @param languageNode the language node whose type shall be inferred
      * @param typir the current Typir instance
-     * @returns Only in the case, that children elements are return,
+     * @returns Only in the case, that child language nodes are returned,
      * the other function will be called for step 2, otherwise, it is skipped.
      */
-    inferTypeWithoutChildren(domainElement: unknown, typir: TypirServices): TypeInferenceResultWithInferringChildren;
+    inferTypeWithoutChildren(languageNode: unknown, typir: TypirServices): TypeInferenceResultWithInferringChildren;
 
     /**
      * 2nd step is to finally decide about the inferred type.
-     * When the 1st step returned a list of elements to resolve their types,
+     * When the 1st step returned a list of language nodes to resolve their types,
      * this function is called in order to complete this inference rule, otherwise, this step is not called.
-     * Advantage of this step is to split it to allow a postponed inferrence of the additional elements by Typir.
-     * Disadvantage of this step is, that already checked TS types of domainElement cannot be reused.
-     * @param domainElement the element whose type shall be inferred
-     * @param childrenTypes the types which are inferred from the elements of the 1st step (in the same order!)
+     * Advantage of this step is to split it to allow a postponed inferrence of the additional language nodes by Typir.
+     * Disadvantage of this step is, that already checked TS types of languageNode cannot be reused.
+     * @param languageNode the language node whose type shall be inferred
+     * @param childrenTypes the types which are inferred from the language nodes of the 1st step (in the same order!)
      * @param typir the current Typir instance
      * @returns the finally inferred type or a problem, why this inference rule is finally not applicable
      */
-    inferTypeWithChildrensTypes(domainElement: unknown, childrenTypes: Array<Type | undefined>, typir: TypirServices): Type | InferenceProblem
+    inferTypeWithChildrensTypes(languageNode: unknown, childrenTypes: Array<Type | undefined>, typir: TypirServices): Type | InferenceProblem
 }
 
 
@@ -94,19 +94,19 @@ export interface TypeInferenceCollectorListener {
 
 /**
  * Collects an arbitrary number of inference rules
- * and allows to infer a type for a given domain element.
+ * and allows to infer a type for a given language node.
  */
 export interface TypeInferenceCollector {
     /**
-     * Infers a type for the given element.
-     * @param domainElement the element whose type shall be inferred
+     * Infers a type for the given language node.
+     * @param languageNode the language node whose type shall be inferred
      * @returns the found Type or some inference problems (might be empty), when none of the inference rules were able to infer a type
      */
-    inferType(domainElement: unknown): Type | InferenceProblem[]
+    inferType(languageNode: unknown): Type | InferenceProblem[]
 
     /**
      * Registers an inference rule.
-     * When inferring the type for an element, all registered inference rules are checked until the first match.
+     * When inferring the type for a language node, all registered inference rules are checked until the first match.
      * @param rule a new inference rule
      * @param boundToType an optional type, if the new inference rule is dedicated for exactly this type.
      * If the given type is removed from the type system, this rule will be automatically removed as well.
@@ -121,13 +121,13 @@ export interface TypeInferenceCollector {
 
 export class DefaultTypeInferenceCollector implements TypeInferenceCollector, TypeGraphListener {
     protected readonly inferenceRules: Map<string, TypeInferenceRule[]> = new Map(); // type identifier (otherwise '') -> inference rules
-    protected readonly domainElementInference: DomainElementInferenceCaching;
+    protected readonly languageNodeInference: LanguageNodeInferenceCaching;
     protected readonly services: TypirServices;
     protected readonly listeners: TypeInferenceCollectorListener[] = [];
 
     constructor(services: TypirServices) {
         this.services = services;
-        this.domainElementInference = services.caching.DomainElementInference;
+        this.languageNodeInference = services.caching.LanguageNodeInference;
         this.services.infrastructure.Graph.addListener(this);
     }
 
@@ -157,46 +157,46 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         return boundToType?.getIdentifier() ?? '';
     }
 
-    inferType(domainElement: unknown): Type | InferenceProblem[] {
+    inferType(languageNode: unknown): Type | InferenceProblem[] {
         // is the result already in the cache?
-        const cached = this.cacheGet(domainElement);
+        const cached = this.cacheGet(languageNode);
         if (cached) {
             return cached;
         }
 
         // handle recursion loops
-        if (this.pendingGet(domainElement)) {
-            throw new Error(`There is a recursion loop for inferring the type from ${domainElement}! Probably, there are multiple interfering inference rules.`);
+        if (this.pendingGet(languageNode)) {
+            throw new Error(`There is a recursion loop for inferring the type from ${languageNode}! Probably, there are multiple interfering inference rules.`);
         }
-        this.pendingSet(domainElement);
+        this.pendingSet(languageNode);
 
         // do the actual type inference
-        const result = this.inferTypeLogic(domainElement);
+        const result = this.inferTypeLogic(languageNode);
 
         // the calculation is done
-        this.pendingClear(domainElement);
+        this.pendingClear(languageNode);
 
         // remember the calculated type in the cache
         if (isType(result)) {
-            this.cacheSet(domainElement, result);
+            this.cacheSet(languageNode, result);
         }
         return result;
     }
 
-    protected checkForError(domainElement: unknown): void {
-        if (domainElement === undefined || domainElement === null) {
-            throw new Error('Element must be not undefined/null!');
+    protected checkForError(languageNode: unknown): void {
+        if (languageNode === undefined || languageNode === null) {
+            throw new Error('Language node must be not undefined/null!');
         }
     }
 
-    protected inferTypeLogic(domainElement: unknown): Type | InferenceProblem[] {
-        this.checkForError(domainElement);
+    protected inferTypeLogic(languageNode: unknown): Type | InferenceProblem[] {
+        this.checkForError(languageNode);
 
         // check all rules
         const collectedInferenceProblems: InferenceProblem[] = [];
         for (const rules of this.inferenceRules.values()) {
             for (const rule of rules) {
-                const result = this.executeSingleInferenceRuleLogic(rule, domainElement, collectedInferenceProblems);
+                const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
                 if (result) {
                     return result; // return the first inferred type
                 } else {
@@ -210,7 +210,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
             // document the reason, why neither a type nor inference problems are found
             collectedInferenceProblems.push({
                 $problem: InferenceProblem,
-                domainElement,
+                languageNode: languageNode,
                 location: 'found no applicable inference rules',
                 subProblems: [],
             });
@@ -218,20 +218,20 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         return collectedInferenceProblems;
     }
 
-    protected executeSingleInferenceRuleLogic(rule: TypeInferenceRule, domainElement: unknown, collectedInferenceProblems: InferenceProblem[]): Type | undefined {
+    protected executeSingleInferenceRuleLogic(rule: TypeInferenceRule, languageNode: unknown, collectedInferenceProblems: InferenceProblem[]): Type | undefined {
         if (typeof rule === 'function') {
             // simple case without type inference for children
-            const ruleResult: TypeInferenceResultWithoutInferringChildren = rule(domainElement, this.services);
+            const ruleResult: TypeInferenceResultWithoutInferringChildren = rule(languageNode, this.services);
             this.checkForError(ruleResult);
             return this.inferTypeLogicWithoutChildren(ruleResult, collectedInferenceProblems);
         } else if (typeof rule === 'object') {
             // more complex case with inferring the type for children
-            const ruleResult: TypeInferenceResultWithInferringChildren = rule.inferTypeWithoutChildren(domainElement, this.services);
+            const ruleResult: TypeInferenceResultWithInferringChildren = rule.inferTypeWithoutChildren(languageNode, this.services);
             if (Array.isArray(ruleResult)) {
                 // this rule might match => continue applying this rule
                 // resolve the requested child types
-                const childElements = ruleResult;
-                const childTypes: Array<Type | InferenceProblem[]> = childElements.map(child => this.services.Inference.inferType(child));
+                const childLanguageNodes = ruleResult;
+                const childTypes: Array<Type | InferenceProblem[]> = childLanguageNodes.map(child => this.services.Inference.inferType(child));
                 // check, whether inferring the children resulted in some other inference problems
                 const childTypeProblems: InferenceProblem[] = [];
                 for (let i = 0; i < childTypes.length; i++) {
@@ -239,8 +239,8 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                     if (Array.isArray(child)) {
                         childTypeProblems.push({
                             $problem: InferenceProblem,
-                            domainElement: childElements[i],
-                            location: `child element ${i}`,
+                            languageNode: childLanguageNodes[i],
+                            location: `child language node ${i}`,
                             rule,
                             subProblems: child,
                         });
@@ -249,7 +249,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                 if (childTypeProblems.length >= 1) {
                     collectedInferenceProblems.push({
                         $problem: InferenceProblem,
-                        domainElement,
+                        languageNode: languageNode,
                         location: 'inferring depending children',
                         rule,
                         subProblems: childTypeProblems,
@@ -257,7 +257,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                     return undefined;
                 } else {
                     // the types of all children are successfully inferred
-                    const finalInferenceResult = rule.inferTypeWithChildrensTypes(domainElement, childTypes as Type[], this.services);
+                    const finalInferenceResult = rule.inferTypeWithChildrensTypes(languageNode, childTypes as Type[], this.services);
                     if (isType(finalInferenceResult)) {
                         // type is inferred!
                         return finalInferenceResult;
@@ -287,7 +287,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
             collectedInferenceProblems.push(result);
             return undefined;
         } else {
-            // this 'result' domain element is used instead to infer its type, which is the type for the current domain element as well
+            // this 'result' language node is used instead to infer its type, which is the type for the current language node as well
             const recursiveResult = this.inferType(result);
             if (Array.isArray(recursiveResult)) {
                 collectedInferenceProblems.push(...recursiveResult);
@@ -333,22 +333,22 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     /* By default, the central cache of Typir is used. */
 
-    protected cacheSet(domainElement: unknown, type: Type): void {
-        this.domainElementInference.cacheSet(domainElement, type);
+    protected cacheSet(languageNode: unknown, type: Type): void {
+        this.languageNodeInference.cacheSet(languageNode, type);
     }
 
-    protected cacheGet(domainElement: unknown): Type | undefined {
-        return this.domainElementInference.cacheGet(domainElement);
+    protected cacheGet(languageNode: unknown): Type | undefined {
+        return this.languageNodeInference.cacheGet(languageNode);
     }
 
-    protected pendingSet(domainElement: unknown): void {
-        this.domainElementInference.pendingSet(domainElement);
+    protected pendingSet(languageNode: unknown): void {
+        this.languageNodeInference.pendingSet(languageNode);
     }
-    protected pendingClear(domainElement: unknown): void {
-        this.domainElementInference.pendingClear(domainElement);
+    protected pendingClear(languageNode: unknown): void {
+        this.languageNodeInference.pendingClear(languageNode);
     }
-    protected pendingGet(domainElement: unknown): boolean {
-        return this.domainElementInference.pendingGet(domainElement);
+    protected pendingGet(languageNode: unknown): boolean {
+        return this.languageNodeInference.pendingGet(languageNode);
     }
 }
 
@@ -362,13 +362,13 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 export class CompositeTypeInferenceRule extends DefaultTypeInferenceCollector implements TypeInferenceRuleWithInferringChildren {
 
     // do not check "pending" (again), since it is already checked by the "parent" DefaultTypeInferenceCollector!
-    override pendingGet(_domainElement: unknown): boolean {
+    override pendingGet(_languageNode: unknown): boolean {
         return false;
     }
 
-    inferTypeWithoutChildren(domainElement: unknown, _typir: TypirServices): TypeInferenceResultWithInferringChildren {
+    inferTypeWithoutChildren(languageNode: unknown, _typir: TypirServices): TypeInferenceResultWithInferringChildren {
         // do the type inference
-        const result = this.inferType(domainElement);
+        const result = this.inferType(languageNode);
         if (isType(result)) {
             return result;
         } else {
@@ -379,7 +379,7 @@ export class CompositeTypeInferenceRule extends DefaultTypeInferenceCollector im
             } else {
                 return <InferenceProblem>{
                     $problem: InferenceProblem,
-                    domainElement,
+                    languageNode: languageNode,
                     location: 'sub-rules for inference',
                     rule: this,
                     subProblems: result,
@@ -388,7 +388,7 @@ export class CompositeTypeInferenceRule extends DefaultTypeInferenceCollector im
         }
     }
 
-    inferTypeWithChildrensTypes(_domainElement: unknown, _childrenTypes: Array<Type | undefined>, _typir: TypirServices): Type | InferenceProblem {
+    inferTypeWithChildrensTypes(_languageNode: unknown, _childrenTypes: Array<Type | undefined>, _typir: TypirServices): Type | InferenceProblem {
         throw new Error('This function will not be called.');
     }
 }

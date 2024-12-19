@@ -42,10 +42,10 @@ export interface ClassTypeDetails<T = unknown> extends TypeDetails {
     methods: Array<CreateFunctionTypeDetails<T>>, // all details of functions can be configured for methods as well, in particular, inference rules for function/method calls!
 }
 export interface CreateClassTypeDetails<T = unknown, T1 = unknown, T2 = unknown> extends ClassTypeDetails<T> { // TODO the generics look very bad!
-    inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
+    inferenceRuleForDeclaration?: (languageNode: unknown) => boolean,
     inferenceRuleForConstructor?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
     inferenceRuleForReference?: InferClassLiteral<T2>,
-    inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | InferenceRuleNotApplicable, // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
+    inferenceRuleForFieldAccess?: (languageNode: unknown) => string | unknown | InferenceRuleNotApplicable, // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
     // inference rules for Method calls are part of "methods: CreateFunctionTypeDetails[]" above!
 }
 
@@ -54,9 +54,9 @@ export interface CreateClassTypeDetails<T = unknown, T1 = unknown, T2 = unknown>
  * different values might be specified, e.g. 'inputValuesForFields' could be empty for nominal classes.
  */
 export type InferClassLiteral<T = unknown> = {
-    filter: (domainElement: unknown) => domainElement is T;
-    matching: (domainElement: T) => boolean;
-    inputValuesForFields: (domainElement: T) => Map<string, unknown>; // simple field name (including inherited fields) => value for this field!
+    filter: (languageNode: unknown) => languageNode is T;
+    matching: (languageNode: T) => boolean;
+    inputValuesForFields: (languageNode: T) => Map<string, unknown>; // simple field name (including inherited fields) => value for this field!
 };
 
 

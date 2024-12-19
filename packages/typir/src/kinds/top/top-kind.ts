@@ -20,7 +20,7 @@ export interface TopKindOptions {
     name: string;
 }
 
-export type InferTopType = (domainElement: unknown) => boolean;
+export type InferTopType = (languageNode: unknown) => boolean;
 
 export const TopKindName = 'TopKind';
 
@@ -77,9 +77,9 @@ export class TopKind implements Kind, TopFactoryService {
     protected registerInferenceRules(typeDetails: TopTypeDetails, topType: TopType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.services.Inference.addInferenceRule((domainElement, _typir) => {
+            this.services.Inference.addInferenceRule((languageNode, _typir) => {
                 for (const inferenceRule of rules) {
-                    if (inferenceRule(domainElement)) {
+                    if (inferenceRule(languageNode)) {
                         return topType;
                     }
                 }
