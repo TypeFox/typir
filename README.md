@@ -21,8 +21,13 @@ As a stand-alone library, Typir provides a TypeScript-API for language engineers
 
 Typir provides these core features:
 
-- Predefined types: primitives, functions, classes, top, bottom (more are planned)
-- Solutions for: circular type definitions, caching
+- Predefined types:
+  - primitives
+  - functions (with overloading)
+  - classes
+  - top, bottom
+  - (more are planned)
+- Solutions for: circular type definitions, caching, operators
 - Meaningful and customizable error messages
 - The provided default implementations are customizable by dependency injection
 

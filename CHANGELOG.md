@@ -20,11 +20,11 @@ It serves as first version to experiment with Typir and to gather feedback to gu
   - Caching
 - [Predefined types](/packages/typir/src/kinds/) to reuse:
   - Primitives
-  - Functions
+  - Functions (with overloading)
   - Classes (nominally typed)
   - Top, bottom
   - (some more are under development)
-  - Operators (which are mapped to Functions)
+  - Operators (which are mapped to Functions, with overloading)
 - Application examples:
   - LOX (without lambdas)
   - OX

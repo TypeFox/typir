@@ -64,9 +64,10 @@ export abstract class Type {
     protected readonly edgesOutgoing: Map<string, TypeEdge[]> = new Map();
 
     /**
-     * An element from the domain might be associated with this type, e.g. the declaration node in the AST.
+     * The current type might be associated with an element from the domain, e.g. the corresponding declaration node in the AST.
      * This domain element is _not_ used for managing the lifecycles of this type,
      * since it should be usable for any domain-specific purpose.
+     * Therefore, the use and update of this feature is under the responsibility of the user of Typir.
      */
     readonly associatedDomainElement: unknown | undefined;
 

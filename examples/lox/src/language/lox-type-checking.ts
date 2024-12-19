@@ -86,9 +86,11 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 // show a warning to the user, if something like "3 == false" is compared, since different types already indicate, that the IF condition will be evaluated to false
                 validationRule: (node, _operatorName, _operatorType, typir) => typir.validation.Constraints.ensureNodeIsEquals(node.left, node.right, (actual, expected) => <ValidationMessageDetails>{
                     message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
-                    domainElement: node, // mark the 'operator' property! (note that "node.right" and "node.left" are the input for Typir)
-                    domainProperty: 'operator',
+                    domainElement: node, // inside the BinaryExpression ...
+                    domainProperty: 'operator', // ... mark the '==' or '!=' token, i.e. the 'operator' property
                     severity: 'warning' }),
+                // (The use of "node.right" and "node.left" without casting is possible, since the type checks of the given 'inferenceRule' are reused for the 'validationRule'.
+                //  This approach saves the duplication of checks for inference and validation, but makes the validation rules depending on the inference rule.)
             });
         }
         // = for SuperType = SubType (Note that this implementation of LOX realized assignments as operators!)
@@ -131,7 +133,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 if (domainElement.type) {
                     return domainElement.type; // the user declared this variable with a type
                 } else if (domainElement.value) {
-                    return domainElement.value; // the user didn't declared a type for this variable => do type inference of the assigned value instead!
+                    return domainElement.value; // the user didn't declare a type for this variable => do type inference of the assigned value instead!
                 } else {
                     return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
                 }
