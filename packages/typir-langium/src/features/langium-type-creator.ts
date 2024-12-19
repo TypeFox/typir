@@ -4,22 +4,34 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument } from 'langium';
-import { LangiumSharedServices } from 'langium/lsp';
+import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument, LangiumSharedCoreServices } from 'langium';
 import { Type, TypeEdge, TypeGraph, TypeGraphListener, TypirServices } from 'typir';
 import { getDocumentKeyForDocument, getDocumentKeyForURI } from '../utils/typir-langium-utils.js';
 
-export interface LangiumTypeCreator { // TODO Registry instead?
+/**
+ * This service provides the API to define the actual types, inference rules and validation rules
+ * for a textual DSL developed with Langium in order to include them into the Langium lifecycle.
+ */
+export interface LangiumTypeCreator {
+    /**
+     * This function needs to be called once to trigger the initialization process.
+     * Depending on the implemention, it might or might not call onInitialize().
+     */
     triggerInitialization(): void;
 
     /**
-     * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules.
-     * This method will be executed once before the 1st added/updated/removed domain element.
+     * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules,
+     * which are constant and don't depend on the actual domain elements.
+     * This method will be executed once before the first added/updated/removed domain element.
      */
     onInitialize(): void;
 
-    /** React on updates of the AST in order to add/remove corresponding types from the type system, e.g. user-definied functions. */
-    onNewAstNode(domainElement: unknown): void;
+    /**
+     * React on updates of the AST in order to add/remove corresponding types from the type system,
+     * e.g. for user-definied functions to create corresponding function types in the type graph.
+     * @param domainElement an AstNode of the current AST
+     */
+    onNewAstNode(domainElement: AstNode): void;
 }
 
 export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, TypeGraphListener {
@@ -28,26 +40,29 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
     protected readonly documentTypesMap: Map<string, Type[]> = new Map();
     protected readonly typeGraph: TypeGraph;
 
-    constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
-        this.typeGraph = typirServices.graph;
+    constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
+        this.typeGraph = typirServices.infrastructure.Graph;
 
-        // for new and updated documents
-        langiumServices.workspace.DocumentBuilder.onBuildPhase(DocumentState.IndexedReferences, async (documents, cancelToken) => {
+        // for new and updated documents:
+        // Create Typir types after completing the Langium 'ComputedScopes' phase, since they need to be available for the following Linking phase
+        langiumServices.workspace.DocumentBuilder.onBuildPhase(DocumentState.ComputedScopes, async (documents, cancelToken) => {
             for (const document of documents) {
                 await interruptAndCheck(cancelToken);
 
                 // notify Typir about each contained node of the processed document
-                this.handleProcessedDocument(document);
+                this.handleProcessedDocument(document); // takes care about the invalid AstNodes as well
             }
         });
-        // for deleted documents
+
+        // for deleted documents:
+        // Delete Typir types which are derived from AstNodes of deleted documents
         langiumServices.workspace.DocumentBuilder.onUpdate((_changed, deleted) => {
             deleted
                 .map(del => getDocumentKeyForURI(del))
                 .forEach(del => this.invalidateTypesOfDocument(del));
         });
 
-        // get informed about added/removed types
+        // get informed about added/removed types in Typir's type graph
         this.typeGraph.addListener(this);
     }
 
@@ -120,7 +135,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
 }
 
 export class PlaceholderLangiumTypeCreator extends AbstractLangiumTypeCreator {
-    constructor(typirServices: TypirServices, langiumServices: LangiumSharedServices) {
+    constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
         super(typirServices, langiumServices);
     }
     override onInitialize(): void {

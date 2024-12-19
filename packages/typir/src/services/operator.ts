@@ -7,9 +7,11 @@
 import { Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { FunctionFactoryService, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
+import { FunctionType } from '../kinds/function/function-type.js';
 import { TypirServices } from '../typir.js';
 import { NameTypePair, TypeInitializers } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
+import { ValidationProblem } from './validation.js';
 
 // export type InferOperatorWithSingleOperand = (domainElement: unknown, operatorName: string) => boolean | unknown;
 export type InferOperatorWithSingleOperand<T = unknown> = {
@@ -24,9 +26,17 @@ export type InferOperatorWithMultipleOperands<T = unknown> = {
     operands: (domainElement: T, operatorName: string) => unknown[];
 };
 
-export interface UnaryOperatorDetails<T> {
+export type OperatorValidationRule<T> = (operatorCall: T, operatorName: string, operatorType: Type, typir: TypirServices) => ValidationProblem[];
+
+export interface AnyOperatorDetails<T> {
     name: string;
-    signature: UnaryOperatorSignature | UnaryOperatorSignature[];
+    // TODO Review: should OperatorValidationRule and InferOperatorWithSingleOperand/InferOperatorWithMultipleOperands be merged/combined, since they shared the same type parameter T ?
+    validationRule?: OperatorValidationRule<T>;
+}
+
+export interface UnaryOperatorDetails<T> extends AnyOperatorDetails<T> {
+    signature?: UnaryOperatorSignature;
+    signatures?: UnaryOperatorSignature[];
     inferenceRule?: InferOperatorWithSingleOperand<T>;
 }
 export interface UnaryOperatorSignature {
@@ -34,9 +44,9 @@ export interface UnaryOperatorSignature {
     return: Type;
 }
 
-export interface BinaryOperatorDetails<T> {
-    name: string;
-    signature: BinaryOperatorSignature | BinaryOperatorSignature[];
+export interface BinaryOperatorDetails<T> extends AnyOperatorDetails<T> {
+    signature?: BinaryOperatorSignature;
+    signatures?: BinaryOperatorSignature[];
     inferenceRule?: InferOperatorWithMultipleOperands<T>;
 }
 export interface BinaryOperatorSignature {
@@ -45,9 +55,9 @@ export interface BinaryOperatorSignature {
     return: Type;
 }
 
-export interface TernaryOperatorDetails<T> {
-    name: string;
-    signature: TernaryOperatorSignature | TernaryOperatorSignature[];
+export interface TernaryOperatorDetails<T> extends AnyOperatorDetails<T> {
+    signature?: TernaryOperatorSignature;
+    signatures?: TernaryOperatorSignature[];
     inferenceRule?: InferOperatorWithMultipleOperands<T>;
 }
 export interface TernaryOperatorSignature {
@@ -57,15 +67,13 @@ export interface TernaryOperatorSignature {
     return: Type;
 }
 
-export interface GenericOperatorDetails<T> {
-    name: string;
+export interface GenericOperatorDetails<T> extends AnyOperatorDetails<T> {
     outputType: Type;
     inputParameter: NameTypePair[];
     inferenceRule?: InferOperatorWithSingleOperand<T> | InferOperatorWithMultipleOperands<T>;
 }
 
-// TODO rename it to "OperatorFactory", when there are no more responsibilities!
-export interface OperatorManager {
+export interface OperatorFactoryService {
     createUnary<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type>
     createBinary<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type>
     createTernary<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type>
@@ -92,7 +100,7 @@ export interface OperatorManager {
  *
  * All operands are mandatory.
  */
-export class DefaultOperatorManager implements OperatorManager {
+export class DefaultOperatorFactory implements OperatorFactoryService {
     protected readonly services: TypirServices;
 
     constructor(services: TypirServices) {
@@ -100,7 +108,7 @@ export class DefaultOperatorManager implements OperatorManager {
     }
 
     createUnary<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type> {
-        const signatures = toArray(typeDetails.signature);
+        const signatures = toSignatureArray(typeDetails);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
             result.push(this.createGeneric({
@@ -109,14 +117,15 @@ export class DefaultOperatorManager implements OperatorManager {
                 inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
                 inputParameter: [
                     { name: 'operand', type: signature.operand },
-                ]
+                ],
+                validationRule: typeDetails.validationRule,
             }));
         }
         return result.length === 1 ? result[0] : result;
     }
 
     createBinary<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type> {
-        const signatures = toArray(typeDetails.signature);
+        const signatures = toSignatureArray(typeDetails);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
             result.push(this.createGeneric({
@@ -126,14 +135,15 @@ export class DefaultOperatorManager implements OperatorManager {
                 inputParameter: [
                     { name: 'left', type: signature.left},
                     { name: 'right', type: signature.right}
-                ]
+                ],
+                validationRule: typeDetails.validationRule,
             }));
         }
         return result.length === 1 ? result[0] : result;
     }
 
     createTernary<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type> {
-        const signatures = toArray(typeDetails.signature);
+        const signatures = toSignatureArray(typeDetails);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
             result.push(this.createGeneric({
@@ -144,7 +154,8 @@ export class DefaultOperatorManager implements OperatorManager {
                     { name: 'first', type: signature.first },
                     { name: 'second', type: signature.second },
                     { name: 'third', type: signature.third },
-                ]
+                ],
+                validationRule: typeDetails.validationRule,
             }));
         }
         return result.length === 1 ? result[0] : result;
@@ -153,10 +164,11 @@ export class DefaultOperatorManager implements OperatorManager {
     createGeneric<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type> {
         // define/register the wanted operator as "special" function
         const functionFactory = this.getFunctionFactory();
+        const operatorName = typeDetails.name;
 
         // create the operator as type of kind 'function'
         const newOperatorType = functionFactory.create({
-            functionName: typeDetails.name,
+            functionName: operatorName,
             outputParameter: { name: NO_PARAMETER_NAME, type: typeDetails.outputType },
             inputParameters: typeDetails.inputParameter,
             inferenceRuleForDeclaration: undefined, // operators have no declaration in the code => no inference rule for the operator declaration!
@@ -164,17 +176,38 @@ export class DefaultOperatorManager implements OperatorManager {
                 ? {
                     filter: (domainElement: unknown): domainElement is T => typeDetails.inferenceRule!.filter(domainElement, typeDetails.name),
                     matching: (domainElement: T) => typeDetails.inferenceRule!.matching(domainElement, typeDetails.name),
-                    inputArguments: (domainElement: T) => 'operands' in typeDetails.inferenceRule!
-                        ? (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(domainElement, typeDetails.name)
-                        : [(typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(domainElement, typeDetails.name)],
+                    inputArguments: (domainElement: T) => this.getInputArguments(typeDetails, domainElement),
                 }
-                : undefined
+                : undefined,
+            validationForCall: typeDetails.validationRule
+                ? (functionCall: T, functionType: FunctionType, typir: TypirServices) => typeDetails.validationRule!(functionCall, operatorName, functionType, typir)
+                : undefined,
         });
 
         return newOperatorType as unknown as TypeInitializer<Type>;
     }
 
-    protected getFunctionFactory(): FunctionFactoryService {
-        return this.services.factory.functions;
+    protected getInputArguments<T>(typeDetails: GenericOperatorDetails<T>, domainElement: unknown): unknown[] {
+        return 'operands' in typeDetails.inferenceRule!
+            ? (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(domainElement, typeDetails.name)
+            : [(typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(domainElement, typeDetails.name)];
     }
+
+    protected getFunctionFactory(): FunctionFactoryService {
+        return this.services.factory.Functions;
+    }
+}
+
+function toSignatureArray<T>(values: {
+    signature?: T;
+    signatures?: T[];
+}): T[] {
+    const result = toArray(values.signatures);
+    if (values.signature) {
+        result.push(values.signature);
+    }
+    if (result.length <= 0) {
+        throw new Error('At least one signature must be given!');
+    }
+    return result;
 }

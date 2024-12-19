@@ -88,34 +88,6 @@ fun returnSum(a: number, b: number): number {
     return a + b;
 }
 
-// Closures
-
-fun identity(a: (number, number) => number): (number, number) => number {
-    return a;
-}
-
-print identity(returnSum)(1, 2); // prints "3";
-
-fun outerFunction(): void {
-    fun localFunction(): void {
-        print "I'm local!";
-    }
-    localFunction();
-}
-
-fun returnFunction(): () => void {
-    var outside = "outside";
-
-    fun inner(): void {
-        print outside;
-    }
-
-    return inner;
-}
-
-var fn = returnFunction();
-fn();
-
 // Classes WIP
 
 class SuperClass {

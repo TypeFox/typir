@@ -28,7 +28,7 @@ export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
 
     validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
         if (this.isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
-            const type = this.services.inference.inferType(domainElement);
+            const type = this.services.Inference.inferType(domainElement);
             if (isFunctionType(type)) {
                 // register domain elements which have FunctionTypes with a key for their uniques
                 const key = this.calculateFunctionKey(type);

@@ -9,15 +9,16 @@ import { SubTypeProblem } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
-import { TopClassKind, isTopClassKind } from './top-class-kind.js';
+import { TopClassKind, TopClassTypeDetails, isTopClassKind } from './top-class-kind.js';
 import { isClassType } from './class-type.js';
 
 export class TopClassType extends Type {
     override readonly kind: TopClassKind;
 
-    constructor(kind: TopClassKind, identifier: string) {
-        super(identifier);
+    constructor(kind: TopClassKind, identifier: string, typeDetails: TopClassTypeDetails) {
+        super(identifier, typeDetails);
         this.kind = kind;
+        this.defineTheInitializationProcessOfThisType({}); // no preconditions
     }
 
     override getName(): string {

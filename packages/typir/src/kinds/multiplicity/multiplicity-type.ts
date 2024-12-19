@@ -9,7 +9,7 @@ import { SubTypeProblem } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
-import { MultiplicityKind, isMultiplicityKind } from './multiplicity-kind.js';
+import { MultiplicityKind, MultiplicityTypeDetails, isMultiplicityKind } from './multiplicity-kind.js';
 
 export class MultiplicityType extends Type {
     override readonly kind: MultiplicityKind;
@@ -17,13 +17,12 @@ export class MultiplicityType extends Type {
     readonly lowerBound: number;
     readonly upperBound: number;
 
-    constructor(kind: MultiplicityKind, identifier: string,
-        constrainedType: Type, lowerBound: number, upperBound: number) {
-        super(identifier);
+    constructor(kind: MultiplicityKind, identifier: string, typeDetails: MultiplicityTypeDetails) {
+        super(identifier, typeDetails);
         this.kind = kind;
-        this.constrainedType = constrainedType;
-        this.lowerBound = lowerBound;
-        this.upperBound = upperBound;
+        this.constrainedType = typeDetails.constrainedType;
+        this.lowerBound = typeDetails.lowerBound;
+        this.upperBound = typeDetails.upperBound;
         this.defineTheInitializationProcessOfThisType({}); // TODO preconditions
     }
 
@@ -42,7 +41,7 @@ export class MultiplicityType extends Type {
             conflicts.push(...checkValueForConflict(this.getLowerBound(), this.getLowerBound(), 'lower bound'));
             conflicts.push(...checkValueForConflict(this.getUpperBound(), this.getUpperBound(), 'upper bound'));
             // check the constrained type
-            const constrainedTypeConflict = this.kind.services.equality.getTypeEqualityProblem(this.getConstrainedType(), this.getConstrainedType());
+            const constrainedTypeConflict = this.kind.services.Equality.getTypeEqualityProblem(this.getConstrainedType(), this.getConstrainedType());
             if (constrainedTypeConflict !== undefined) {
                 conflicts.push(constrainedTypeConflict);
             }
@@ -89,7 +88,7 @@ export class MultiplicityType extends Type {
         conflicts.push(...checkValueForConflict(subType.getLowerBound(), superType.getLowerBound(), 'lower bound', this.kind.isBoundGreaterEquals));
         conflicts.push(...checkValueForConflict(subType.getUpperBound(), superType.getUpperBound(), 'upper bound', this.kind.isBoundGreaterEquals));
         // check the constrained type
-        const constrainedTypeConflict = this.kind.services.subtype.getSubTypeProblem(subType.getConstrainedType(), superType.getConstrainedType());
+        const constrainedTypeConflict = this.kind.services.Subtype.getSubTypeProblem(subType.getConstrainedType(), superType.getConstrainedType());
         if (constrainedTypeConflict !== undefined) {
             conflicts.push(constrainedTypeConflict);
         }

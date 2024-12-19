@@ -17,7 +17,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 children: Node
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'Node');
+        expectTypirTypes(loxServices.typir, isClassType, 'Node');
     });
 
     test('Two Classes with fields with the other Class as type', async () => {
@@ -29,7 +29,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 prop2: A
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B');
     });
 
     test('Three Classes with fields with one of the other Classes as type', async () => {
@@ -44,7 +44,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 prop3: A
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B', 'C');
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B', 'C');
     });
 
     test('Three Classes with fields with two of the other Classes as type', async () => {
@@ -62,7 +62,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 prop6: B
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B', 'C');
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B', 'C');
     });
 
     test('Class with field of its own type and another dependency', async () => {
@@ -75,7 +75,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 children: Node
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'Node', 'Another');
+        expectTypirTypes(loxServices.typir, isClassType, 'Node', 'Another');
     });
 
     test('Two Classes with a field of its own type and cyclic dependencies to each other', async () => {
@@ -89,7 +89,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 another: Node
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'Node', 'Another');
+        expectTypirTypes(loxServices.typir, isClassType, 'Node', 'Another');
     });
 
     test('Having two declarations for the delayed class A, but only one type A in the type system', async () => {
@@ -106,7 +106,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
             'Declared classes need to be unique (A).',
         ]);
         // check, that there is only one class type A in the type graph:
-        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B');
     });
 
     test('Having three declarations for the delayed class A, but only one type A in the type system', async () => {
@@ -127,7 +127,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
             'Declared classes need to be unique (A).',
         ]);
         // check, that there is only one class type A in the type graph:
-        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B');
     });
 
     test('Having two declarations for class A waiting for B, while B itself depends on A', async () => {
@@ -146,7 +146,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
             'Declared classes need to be unique (A).',
         ]);
         // check, that there is only one class type A in the type graph:
-        expectTypirTypes(loxServices, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B');
     });
 
     test('Class with method: cycle with return type', async () => {
@@ -155,8 +155,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 myMethod(input: number): Node {}
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'Node');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'Node');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', ...operatorNames);
     });
 
     test('Class with method: cycle with input parameter type', async () => {
@@ -165,8 +165,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 myMethod(input: Node): number {}
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'Node');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'Node');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', ...operatorNames);
     });
 
     test('Two different Classes with the same method (type) should result in only one method type', async () => {
@@ -180,8 +180,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 myMethod(input: number): boolean {}
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', ...operatorNames);
     });
 
     test('Two different Classes depend on each other regarding their methods return type', async () => {
@@ -195,8 +195,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 myMethod(input: number): A {}
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', 'myMethod', ...operatorNames);
     });
 
     test('Two different Classes with the same method which has one of these classes as return type', async () => {
@@ -210,8 +210,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 myMethod(input: number): B {}
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', ...operatorNames);
     });
 
     test('Same delayed function type is used by a function declaration and a method declaration', async () => {
@@ -222,8 +222,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
             fun myMethod(input: number): B {}
             class B { }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', ...operatorNames);
     });
 
     test('Two class declarations A with the same delayed method which depends on the class B', async () => {
@@ -240,8 +240,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
             'Declared classes need to be unique (A).',
         ]);
         // check, that there is only one class type A in the type graph:
-        expectTypirTypes(loxServices, isClassType, 'A', 'B');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', ...operatorNames);
     });
 
     test('Mix of dependencies in classes: 1 method and 1 field', async () => {
@@ -253,8 +253,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 propB1: A
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B1');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B1');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', ...operatorNames);
     });
 
     test('Mix of dependencies in classes: 1 method and 2 fields (order 1)', async () => {
@@ -269,8 +269,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 myMethod(input: number): B1 {}
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B1', 'B2');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B1', 'B2');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', ...operatorNames);
     });
 
     test('Mix of dependencies in classes: 1 method and 2 fields (order 2)', async () => {
@@ -285,8 +285,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 propB1: A
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B1', 'B2');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B1', 'B2');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', ...operatorNames);
     });
 
     test('The same class is involved into two dependency cycles', async () => {
@@ -308,8 +308,8 @@ describe('Cyclic type definitions where a Class is declared and already used', (
                 methodC2(p: A): void {}
             }
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'A', 'B1', 'B2', 'C1', 'C2');
-        expectTypirTypes(loxServices, isFunctionType, 'myMethod', 'methodC1', 'methodC2', ...operatorNames);
+        expectTypirTypes(loxServices.typir, isClassType, 'A', 'B1', 'B2', 'C1', 'C2');
+        expectTypirTypes(loxServices.typir, isFunctionType, 'myMethod', 'methodC1', 'methodC2', ...operatorNames);
     });
 
     test('Class inheritance and the order of type definitions', async () => {
@@ -318,7 +318,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
             class MyClass1 {}
             class MyClass2 < MyClass1 {}
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2');
     });
 
     test('Class inheritance and the order of type definitions', async () => {
@@ -327,7 +327,7 @@ describe('Cyclic type definitions where a Class is declared and already used', (
             class MyClass2 < MyClass1 {}
             class MyClass1 {}
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2');
     });
 });
 
@@ -342,7 +342,7 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
             'Cycles in super-sub-class-relationships are not allowed: MyClass2',
             'Cycles in super-sub-class-relationships are not allowed: MyClass3',
         ]);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2', 'MyClass3');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2', 'MyClass3');
     });
 
     test('Two involved classes: 1 -> 2 -> 1', async () => {
@@ -353,14 +353,14 @@ describe('Test internal validation of Typir for cycles in the class inheritance 
             'Cycles in super-sub-class-relationships are not allowed: MyClass1',
             'Cycles in super-sub-class-relationships are not allowed: MyClass2',
         ]);
-        expectTypirTypes(loxServices, isClassType, 'MyClass1', 'MyClass2');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2');
     });
 
     test('One involved class: 1 -> 1', async () => {
         await validateLox(`
             class MyClass1 < MyClass1 { }
         `, 'Cycles in super-sub-class-relationships are not allowed: MyClass1');
-        expectTypirTypes(loxServices, isClassType, 'MyClass1');
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 });
 
@@ -402,7 +402,7 @@ describe('longer LOX examples with classes regarding ordering', () => {
             var superType: SuperClass = x;
             print superType.a;
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'SuperClass', 'SubClass', 'NestedClass');
+        expectTypirTypes(loxServices.typir, isClassType, 'SuperClass', 'SubClass', 'NestedClass');
     });
 
     test('complete with easy order of classes', async () => {
@@ -442,6 +442,6 @@ describe('longer LOX examples with classes regarding ordering', () => {
             var superType: SuperClass = x;
             print superType.a;
         `, []);
-        expectTypirTypes(loxServices, isClassType, 'SuperClass', 'SubClass', 'NestedClass');
+        expectTypirTypes(loxServices.typir, isClassType, 'SuperClass', 'SubClass', 'NestedClass');
     });
 });

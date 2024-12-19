@@ -12,6 +12,11 @@ npm install typir
 
 Will follow!
 
+Important design decisions:
+
+- Typir is a stand-alone library and has no dependencies to any existing language workbench.
+
+
 ## Examples
 
 Look at the examples in the `examples` folder of the repo ([here](../../examples)). There we have some demo projects for you to get started.

@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from '../../graph/type-node.js';
+import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
@@ -21,7 +21,7 @@ export class Parameter {
     }
 }
 
-export interface FixedParameterTypeDetails {
+export interface FixedParameterTypeDetails extends TypeDetails {
     parameterTypes: Type | Type[]
 }
 
@@ -44,32 +44,27 @@ export class FixedParameterKind implements Kind {
     constructor(typir: TypirServices, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
         this.$name = `${FixedParameterKindName}-${baseName}`;
         this.services = typir;
-        this.services.kinds.register(this);
+        this.services.infrastructure.Kinds.register(this);
         this.baseName = baseName;
-        this.options = {
-            // the default values:
-            parameterSubtypeCheckingStrategy: 'EQUAL_TYPE',
-            // the actually overriden values:
-            ...options
-        };
+        this.options = this.collectOptions(options);
         this.parameters = parameterNames.map((name, index) => <Parameter>{ name, index });
 
         // check input
         assertTrue(this.parameters.length >= 1);
     }
 
-    getFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType | undefined {
-        const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as FixedParameterType;
+    protected collectOptions(options?: Partial<FixedParameterKindOptions>): FixedParameterKindOptions {
+        return {
+            // the default values:
+            parameterSubtypeCheckingStrategy: 'EQUAL_TYPE',
+            // the actually overriden values:
+            ...options
+        };
     }
 
-    getOrCreateFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
-        const typeWithParameters = this.getFixedParameterType(typeDetails);
-        if (typeWithParameters) {
-            this.registerInferenceRules(typeDetails, typeWithParameters);
-            return typeWithParameters;
-        }
-        return this.createFixedParameterType(typeDetails);
+    getFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType | undefined {
+        const key = this.calculateIdentifier(typeDetails);
+        return this.services.infrastructure.Graph.getType(key) as FixedParameterType;
     }
 
     // the order of parameters matters!
@@ -77,8 +72,8 @@ export class FixedParameterKind implements Kind {
         assertTrue(this.getFixedParameterType(typeDetails) === undefined);
 
         // create the class type
-        const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), ...toArray(typeDetails.parameterTypes));
-        this.services.graph.addNode(typeWithParameters);
+        const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), typeDetails);
+        this.services.infrastructure.Graph.addNode(typeWithParameters);
 
         this.registerInferenceRules(typeDetails, typeWithParameters);
 

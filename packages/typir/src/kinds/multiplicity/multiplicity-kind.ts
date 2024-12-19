@@ -4,13 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from '../../graph/type-node.js';
+import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { assertTrue } from '../../utils/utils.js';
 import { Kind, isKind } from '../kind.js';
 import { MultiplicityType } from './multiplicity-type.js';
 
-export interface MultiplicityTypeDetails {
+export interface MultiplicityTypeDetails extends TypeDetails {
     constrainedType: Type,
     lowerBound: number,
     upperBound: number
@@ -35,8 +35,12 @@ export class MultiplicityKind implements Kind {
     constructor(services: TypirServices, options?: Partial<MultiplicityKindOptions>) {
         this.$name = MultiplicityKindName;
         this.services = services;
-        this.services.kinds.register(this);
-        this.options = {
+        this.services.infrastructure.Kinds.register(this);
+        this.options = this.collectOptions(options);
+    }
+
+    protected collectOptions(options?: Partial<MultiplicityKindOptions>): MultiplicityKindOptions {
+        return {
             // the default values:
             symbolForUnlimited: '*',
             // the actually overriden values:
@@ -46,16 +50,7 @@ export class MultiplicityKind implements Kind {
 
     getMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as MultiplicityType;
-    }
-
-    getOrCreateMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
-        const typeWithMultiplicity = this.getMultiplicityType(typeDetails);
-        if (typeWithMultiplicity) {
-            this.registerInferenceRules(typeDetails, typeWithMultiplicity);
-            return typeWithMultiplicity;
-        }
-        return this.createMultiplicityType(typeDetails);
+        return this.services.infrastructure.Graph.getType(key) as MultiplicityType;
     }
 
     createMultiplicityType(typeDetails: MultiplicityTypeDetails): MultiplicityType {
@@ -66,8 +61,8 @@ export class MultiplicityKind implements Kind {
         }
 
         // create the type with multiplicities
-        const typeWithMultiplicity = new MultiplicityType(this, this.calculateIdentifier(typeDetails), typeDetails.constrainedType, typeDetails.lowerBound, typeDetails.upperBound);
-        this.services.graph.addNode(typeWithMultiplicity);
+        const typeWithMultiplicity = new MultiplicityType(this, this.calculateIdentifier(typeDetails), typeDetails);
+        this.services.infrastructure.Graph.addNode(typeWithMultiplicity);
 
         this.registerInferenceRules(typeDetails, typeWithMultiplicity);
 

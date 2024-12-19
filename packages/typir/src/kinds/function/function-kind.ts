@@ -6,9 +6,9 @@
 
 import { TypeEdge } from '../../graph/type-edge.js';
 import { TypeGraphListener } from '../../graph/type-graph.js';
-import { Type } from '../../graph/type-node.js';
+import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
-import { TypeReference, resolveTypeSelector } from '../../initialization/type-reference.js';
+import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
 import { ValidationProblem } from '../../services/validation.js';
@@ -35,12 +35,14 @@ export interface FunctionKindOptions {
 
 export const FunctionKindName = 'FunctionKind';
 
+export type FunctionCallValidationRule<T> = (functionCall: T, functionType: FunctionType, typir: TypirServices) => ValidationProblem[];
+
 export interface CreateParameterDetails {
     name: string;
     type: TypeSelector;
 }
 
-export interface FunctionTypeDetails {
+export interface FunctionTypeDetails extends TypeDetails {
     functionName: string,
     /** The order of parameters is important! */
     outputParameter: CreateParameterDetails | undefined,
@@ -52,6 +54,9 @@ export interface CreateFunctionTypeDetails<T> extends FunctionTypeDetails {
     /** for function calls => returns the return type of the function */
     inferenceRuleForCalls?: InferFunctionCall<T>,
     // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
+
+    /** This validation will be applied to all domain elements which represent calls of the functions. */
+    validationForCall?: FunctionCallValidationRule<T>,
 }
 
 /** Collects all functions with the same name */
@@ -80,14 +85,14 @@ export type InferFunctionCall<T = unknown> = {
  * - overloaded functions are specific for the function kind => solve it inside the FunctionKind!
  *
  * How many inference rules?
- * - One inference rule for each function type does not work, since TODO ??
+ * - The inference rule for calls of each function type with the same name are grouped together in order to provide better error messages, if none of the variants match.
  * - Checking multiple functions within the same rule (e.g. only one inference rule for the function kind or one inference rule for each function name) does not work,
  *   since multiple different sets of parameters must be returned for overloaded functions!
  * - multiple IR collectors: how to apply all the other rules?!
  *
  * How many validation rules?
  * - For validation, it is enough that at least one of the function variants match!
- * - But checking that is not possible with multiple independent rules.
+ * - But checking that is not possible with independent rules for each function variant.
  * - Therefore, it must be a single validation for each function name (with all type variants).
  * - In order to simplify (de)registering validation rules, only one validation rule for all functions is used here (with an internal loop over all function names).
  *
@@ -131,21 +136,11 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
     constructor(services: TypirServices, options?: Partial<FunctionKindOptions>) {
         this.$name = FunctionKindName;
         this.services = services;
-        this.services.kinds.register(this);
-        this.options = {
-            // the default values:
-            enforceFunctionName: false,
-            enforceInputParameterNames: false,
-            enforceOutputParameterName: false,
-            identifierPrefix: 'function',
-            typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR',
-            subtypeParameterChecking: 'SUB_TYPE',
-            // the actually overriden values:
-            ...options
-        };
+        this.services.infrastructure.Kinds.register(this);
+        this.options = this.collectOptions(options);
 
         // register Validations for input arguments of function calls (must be done here to support overloaded functions)
-        this.services.validation.collector.addValidationRule(
+        this.services.validation.Collector.addValidationRule(
             (domainElement, typir) => {
                 const resultAll: ValidationProblem[] = [];
                 for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
@@ -176,7 +171,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                                         });
                                     } else {
                                         // there are parameter values to check their types
-                                        const inferredParameterTypes = inputArguments.map(p => typir.inference.inferType(p));
+                                        const inferredParameterTypes = inputArguments.map(p => typir.Inference.inferType(p));
                                         for (let i = 0; i < inputArguments.length; i++) {
                                             const expectedType = expectedParameterTypes[i];
                                             const inferredType = inferredParameterTypes[i];
@@ -203,7 +198,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                                             $problem: ValidationProblem,
                                             domainElement,
                                             severity: 'error',
-                                            message: `The given operands for the function '${this.services.printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
+                                            message: `The given operands for the function '${this.services.Printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
                                             subProblems: currentProblems,
                                         });
                                     } else {
@@ -240,6 +235,20 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         );
     }
 
+    protected collectOptions(options?: Partial<FunctionKindOptions>): FunctionKindOptions {
+        return {
+            // the default values:
+            enforceFunctionName: false,
+            enforceInputParameterNames: false,
+            enforceOutputParameterName: false,
+            identifierPrefix: 'function',
+            typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR',
+            subtypeParameterChecking: 'SUB_TYPE',
+            // the actually overriden values:
+            ...options
+        };
+    }
+
     get(typeDetails: FunctionTypeDetails): TypeReference<FunctionType> {
         return new TypeReference(() => this.calculateIdentifier(typeDetails), this.services);
     }
@@ -254,7 +263,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
             // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
             (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR'
                 ? undefined
-                : resolveTypeSelector(this.services, this.options.typeToInferForCallsOfFunctionsWithoutOutput));
+                : this.services.infrastructure.TypeResolver.resolve(this.options.typeToInferForCallsOfFunctionsWithoutOutput));
     }
 
 
@@ -289,9 +298,9 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         // function name, if wanted
         const functionName = this.hasFunctionName(typeDetails.functionName) ? typeDetails.functionName : '';
         // inputs: type identifiers in defined order
-        const inputsString = typeDetails.inputParameters.map(input => resolveTypeSelector(this.services, input.type).getIdentifier()).join(',');
+        const inputsString = typeDetails.inputParameters.map(input => this.services.infrastructure.TypeResolver.resolve(input.type).getIdentifier()).join(',');
         // output: type identifier
-        const outputString = typeDetails.outputParameter ? resolveTypeSelector(this.services, typeDetails.outputParameter.type).getIdentifier() : '';
+        const outputString = typeDetails.outputParameter ? this.services.infrastructure.TypeResolver.resolve(typeDetails.outputParameter.type).getIdentifier() : '';
         // complete signature
         return `${prefix}${functionName}(${inputsString}):${outputString}`;
     }

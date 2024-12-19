@@ -4,13 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeDetails } from '../../graph/type-node.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { TopClassType } from './top-class-type.js';
 
-export interface TopClassTypeDetails {
+export interface TopClassTypeDetails extends TypeDetails {
     inferenceRules?: InferTopClassType | InferTopClassType[]
 }
 
@@ -31,8 +32,12 @@ export class TopClassKind implements Kind {
     constructor(services: TypirServices, options?: Partial<TopClassKindOptions>) {
         this.$name = TopClassKindName;
         this.services = services;
-        this.services.kinds.register(this);
-        this.options = {
+        this.services.infrastructure.Kinds.register(this);
+        this.options = this.collectOptions(options);
+    }
+
+    protected collectOptions(options?: Partial<TopClassKindOptions>): TopClassKindOptions {
+        return {
             // the default values:
             name: 'TopClass',
             // the actually overriden values:
@@ -42,16 +47,7 @@ export class TopClassKind implements Kind {
 
     getTopClassType(typeDetails: TopClassTypeDetails): TopClassType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as TopClassType;
-    }
-
-    getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
-        const topType = this.getTopClassType(typeDetails);
-        if (topType) {
-            this.registerInferenceRules(typeDetails, topType);
-            return topType;
-        }
-        return this.createTopClassType(typeDetails);
+        return this.services.infrastructure.Graph.getType(key) as TopClassType;
     }
 
     createTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
@@ -62,9 +58,9 @@ export class TopClassKind implements Kind {
             // note, that the given inference rules are ignored in this case!
             return this.instance;
         }
-        const topType = new TopClassType(this, this.calculateIdentifier(typeDetails));
+        const topType = new TopClassType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.instance = topType;
-        this.services.graph.addNode(topType);
+        this.services.infrastructure.Graph.addNode(topType);
 
         this.registerInferenceRules(typeDetails, topType);
 
@@ -75,7 +71,7 @@ export class TopClassKind implements Kind {
     protected registerInferenceRules(typeDetails: TopClassTypeDetails, topType: TopClassType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.services.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.Inference.addInferenceRule((domainElement, _typir) => {
                 for (const inferenceRule of rules) {
                     if (inferenceRule(domainElement)) {
                         return topType;

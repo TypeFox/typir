@@ -5,8 +5,9 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
+import { TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
-import { TypeReference, resolveTypeSelector } from '../../initialization/type-reference.js';
+import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
@@ -16,8 +17,7 @@ import { CreateFunctionTypeDetails, FunctionFactoryService } from '../function/f
 import { Kind, isKind } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
 import { ClassType, isClassType } from './class-type.js';
-import { TopClassKind, TopClassKindName, TopClassTypeDetails, isTopClassKind } from './top-class-kind.js';
-import { TopClassType } from './top-class-type.js';
+import { TopClassKind, TopClassKindName, isTopClassKind } from './top-class-kind.js';
 
 export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
@@ -35,26 +35,28 @@ export interface CreateFieldDetails {
     type: TypeSelector;
 }
 
-export interface ClassTypeDetails<T = unknown> {
+export interface ClassTypeDetails<T = unknown> extends TypeDetails {
     className: string,
     superClasses?: TypeSelector | TypeSelector[],
     fields: CreateFieldDetails[],
     methods: Array<CreateFunctionTypeDetails<T>>, // all details of functions can be configured for methods as well, in particular, inference rules for function/method calls!
 }
 export interface CreateClassTypeDetails<T = unknown, T1 = unknown, T2 = unknown> extends ClassTypeDetails<T> { // TODO the generics look very bad!
-    inferenceRuleForDeclaration?: (domainElement: unknown) => boolean, // TODO what is the purpose for this? what is the difference to literals?
-    // TODO rename to Constructor call??
-    inferenceRuleForLiteral?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
+    inferenceRuleForDeclaration?: (domainElement: unknown) => boolean,
+    inferenceRuleForConstructor?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
     inferenceRuleForReference?: InferClassLiteral<T2>,
     inferenceRuleForFieldAccess?: (domainElement: unknown) => string | unknown | InferenceRuleNotApplicable, // name of the field | element to infer the type of the field (e.g. the type) | rule not applicable
     // inference rules for Method calls are part of "methods: CreateFunctionTypeDetails[]" above!
 }
 
-// TODO nominal vs structural typing ??
+/**
+ * Depending on whether the class is structurally or nominally typed,
+ * different values might be specified, e.g. 'inputValuesForFields' could be empty for nominal classes.
+ */
 export type InferClassLiteral<T = unknown> = {
     filter: (domainElement: unknown) => domainElement is T;
     matching: (domainElement: T) => boolean;
-    inputValuesForFields: (domainElement: T) => Map<string, unknown>; // simple field name (including inherited fields) => value for this field! TODO implement that, [] for nominal typing
+    inputValuesForFields: (domainElement: T) => Map<string, unknown>; // simple field name (including inherited fields) => value for this field!
 };
 
 
@@ -78,8 +80,13 @@ export class ClassKind implements Kind, ClassFactoryService {
     constructor(services: TypirServices, options?: Partial<ClassKindOptions>) {
         this.$name = ClassKindName;
         this.services = services;
-        this.services.kinds.register(this);
-        this.options = { // TODO in eigene Methode auslagern!
+        this.services.infrastructure.Kinds.register(this);
+        this.options = this.collectOptions(options);
+        assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
+    }
+
+    protected collectOptions(options?: Partial<ClassKindOptions>): ClassKindOptions {
+        return {
             // the default values:
             typing: 'Nominal',
             maximumNumberOfSuperClasses: 1,
@@ -88,7 +95,6 @@ export class ClassKind implements Kind, ClassFactoryService {
             // the actually overriden values:
             ...options
         };
-        assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
 
     /**
@@ -139,7 +145,7 @@ export class ClassKind implements Kind, ClassFactoryService {
         if (this.options.typing === 'Structural') {
             // fields
             const fields: string = typeDetails.fields
-                .map(f => `${f.name}:${resolveTypeSelector(this.services, f.type)}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
+                .map(f => `${f.name}:${this.services.infrastructure.TypeResolver.resolve(f.type)}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
                 .sort() // the order of fields does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
             // methods
@@ -153,7 +159,7 @@ export class ClassKind implements Kind, ClassFactoryService {
             // super classes (TODO oder strukturell per getAllSuperClassX lösen?!)
             const superClasses: string = toArray(typeDetails.superClasses)
                 .map(selector => {
-                    const type = resolveTypeSelector(this.services, selector);
+                    const type = this.services.infrastructure.TypeResolver.resolve(selector);
                     assertType(type, isClassType);
                     return type.getIdentifier();
                 })
@@ -181,16 +187,12 @@ export class ClassKind implements Kind, ClassFactoryService {
     }
 
     getMethodFactory(): FunctionFactoryService {
-        return this.services.factory.functions;
-    }
-
-    getOrCreateTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
-        return this.getTopClassKind().getOrCreateTopClassType(typeDetails);
+        return this.services.factory.Functions;
     }
 
     getTopClassKind(): TopClassKind {
         // ensure, that Typir uses the predefined 'TopClass' kind
-        const kind = this.services.kinds.get(TopClassKindName);
+        const kind = this.services.infrastructure.Kinds.get(TopClassKindName);
         return isTopClassKind(kind) ? kind : new TopClassKind(this.services);
     }
 

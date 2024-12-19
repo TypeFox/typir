@@ -34,9 +34,9 @@ export class DefaultTypeAssignability implements TypeAssignability {
     protected readonly equality: TypeEquality;
 
     constructor(services: TypirServices) {
-        this.conversion = services.conversion;
-        this.subtype = services.subtype;
-        this.equality = services.equality;
+        this.conversion = services.Conversion;
+        this.subtype = services.Subtype;
+        this.equality = services.Equality;
     }
 
     isAssignable(source: Type, target: Type): boolean {

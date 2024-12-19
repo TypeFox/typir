@@ -3,20 +3,20 @@ grammar Lox
 entry LoxProgram:
     elements+=LoxElement*;
 
-LoxElement: 
+LoxElement:
     Class |
-    ExpressionBlock | 
+    ExpressionBlock |
     IfStatement |
     WhileStatement |
     ForStatement |
     FunctionDeclaration |
-    VariableDeclaration ';' | 
-    PrintStatement ';' | 
-    ReturnStatement ';' | 
+    VariableDeclaration ';' |
+    PrintStatement ';' |
+    ReturnStatement ';' |
     Expression ';'
 ;
 
-IfStatement: 
+IfStatement:
     'if' '(' condition=Expression ')' block=ExpressionBlock
     ('else' elseBlock=ExpressionBlock)?
 ;
@@ -61,7 +61,7 @@ Comparison infers Expression:
 MemberCall infers Expression:
     Primary
 	(
-        {infer MemberCall.previous=current} 
+        {infer MemberCall.previous=current}
         // Member call with function call
         (
             "." element=[NamedElement:ID]
@@ -93,7 +93,6 @@ Primary infers Expression:
     NilLiteral |
     FeatureCall;
 
-// TODO "FeatureCall" is never used ?!
 FeatureCall infers Expression:
 	{infer MemberCall}
 	(element=[NamedElement:ID] | element=[NamedElement:'this'] | element=[NamedElement:'super'])
@@ -130,8 +129,8 @@ FieldMember:
     name=ID ':' type=TypeReference;
 
 TypeReference:
-      reference=[Class:ID] 
-    | primitive=("string" | "number" | "boolean" | "void") 
+      reference=[Class:ID]
+    | primitive=("string" | "number" | "boolean" | "void")
     | '(' ( parameters+=LambdaParameter (',' parameters+=LambdaParameter)*)? ')' '=>' returnType=TypeReference;
 
 LambdaParameter: (name=ID ':')? type=TypeReference;

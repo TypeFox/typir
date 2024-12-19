@@ -105,8 +105,8 @@ export class DefaultTypeConversion implements TypeConversion {
     protected readonly graph: TypeGraph;
 
     constructor(services: TypirServices) {
-        this.equality = services.equality;
-        this.graph = services.graph;
+        this.equality = services.Equality;
+        this.graph = services.infrastructure.Graph;
     }
 
     markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionModeForSpecification): void {

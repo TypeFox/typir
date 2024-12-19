@@ -31,7 +31,7 @@ export class UniqueClassValidation implements ValidationRuleWithBeforeAfter {
 
     validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
         if (this.isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
-            const type = this.services.inference.inferType(domainElement);
+            const type = this.services.Inference.inferType(domainElement);
             if (isClassType(type)) {
                 // register domain elements which have ClassTypes with a key for their uniques
                 const key = this.calculateClassKey(type);
@@ -119,10 +119,10 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
 
     validation(domainElement: unknown, _typir: TypirServices): ValidationProblem[] {
         if (this.isMethodDeclaration(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
-            const methodType = this.services.inference.inferType(domainElement);
+            const methodType = this.services.Inference.inferType(domainElement);
             if (isFunctionType(methodType)) {
                 const classDeclaration = this.getClassOfMethod(domainElement, methodType);
-                const classType = this.services.inference.inferType(classDeclaration);
+                const classType = this.services.Inference.inferType(classDeclaration);
                 if (isClassType(classType)) {
                     const key = this.calculateMethodKey(classType, methodType);
                     let entries = this.foundDeclarations.get(key);
@@ -188,7 +188,7 @@ export function createNoSuperClassCyclesValidation(isRelevant: (domainElement: u
     return (domainElement: unknown, typir: TypirServices) => {
         const result: ValidationProblem[] = [];
         if (isRelevant(domainElement)) { // improves performance, since type inference need to be done only for relevant elements
-            const classType = typir.inference.inferType(domainElement);
+            const classType = typir.Inference.inferType(domainElement);
             if (isClassType(classType) && classType.isInStateOrLater('Completed')) {
                 // check for cycles in sub-type-relationships
                 if (classType.hasSubSuperClassCycles()) {

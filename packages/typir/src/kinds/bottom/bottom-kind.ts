@@ -9,8 +9,9 @@ import { TypirServices } from '../../typir.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
 import { BottomType } from './bottom-type.js';
 import { isKind, Kind } from '../kind.js';
+import { TypeDetails } from '../../graph/type-node.js';
 
-export interface BottomTypeDetails {
+export interface BottomTypeDetails extends TypeDetails {
     /** In case of multiple inference rules, later rules are not evaluated anymore, if an earler rule already matched. */
     inferenceRules?: InferBottomType | InferBottomType[]
 }
@@ -37,8 +38,12 @@ export class BottomKind implements Kind, BottomFactoryService {
     constructor(services: TypirServices, options?: Partial<BottomKindOptions>) {
         this.$name = BottomKindName;
         this.services = services;
-        this.services.kinds.register(this);
-        this.options = {
+        this.services.infrastructure.Kinds.register(this);
+        this.options = this.collectOptions(options);
+    }
+
+    protected collectOptions(options?: Partial<BottomKindOptions>): BottomKindOptions {
+        return {
             // the default values:
             name: 'never',
             // the actually overriden values:
@@ -48,7 +53,7 @@ export class BottomKind implements Kind, BottomFactoryService {
 
     get(typeDetails: BottomTypeDetails): BottomType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.graph.getType(key) as BottomType;
+        return this.services.infrastructure.Graph.getType(key) as BottomType;
     }
 
     create(typeDetails: BottomTypeDetails): BottomType {
@@ -58,9 +63,9 @@ export class BottomKind implements Kind, BottomFactoryService {
             // note, that the given inference rules are ignored in this case!
             return this.instance;
         }
-        const bottomType = new BottomType(this, this.calculateIdentifier(typeDetails));
+        const bottomType = new BottomType(this, this.calculateIdentifier(typeDetails), typeDetails);
         this.instance = bottomType;
-        this.services.graph.addNode(bottomType);
+        this.services.infrastructure.Graph.addNode(bottomType);
 
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
         this.registerInferenceRules(typeDetails, bottomType);
@@ -71,7 +76,7 @@ export class BottomKind implements Kind, BottomFactoryService {
     protected registerInferenceRules(typeDetails: BottomTypeDetails, bottomType: BottomType) {
         const rules = toArray(typeDetails.inferenceRules);
         if (rules.length >= 1) {
-            this.services.inference.addInferenceRule((domainElement, _typir) => {
+            this.services.Inference.addInferenceRule((domainElement, _typir) => {
                 for (const inferenceRule of rules) {
                     if (inferenceRule(domainElement)) {
                         return bottomType;

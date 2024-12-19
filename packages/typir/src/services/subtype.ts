@@ -13,7 +13,6 @@ import { TypeEdge, isTypeEdge } from '../graph/type-edge.js';
 
 export interface SubTypeProblem extends TypirProblem {
     $problem: 'SubTypeProblem';
-    // 'undefined' means type or information is missing, 'string' is for data which are no Types
     superType: Type;
     subType: Type;
     subProblems: TypirProblem[]; // might be empty
@@ -51,7 +50,7 @@ export class DefaultSubType implements SubType {
     protected readonly typeRelationships: TypeRelationshipCaching;
 
     constructor(services: TypirServices) {
-        this.typeRelationships = services.caching.typeRelationships;
+        this.typeRelationships = services.caching.TypeRelationships;
     }
 
     isSubType(subType: Type, superType: Type): boolean {

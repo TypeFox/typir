@@ -40,14 +40,14 @@ export abstract class TypeInitializer<T extends Type = Type> {
         if (!key) {
             throw new Error('missing identifier!');
         }
-        const existingType = this.services.graph.getType(key);
+        const existingType = this.services.infrastructure.Graph.getType(key);
         if (existingType) {
             // ensure, that the same type is not duplicated!
             this.typeToReturn = existingType as T;
             newType.dispose();
         } else {
             this.typeToReturn = newType;
-            this.services.graph.addNode(this.typeToReturn);
+            this.services.infrastructure.Graph.addNode(this.typeToReturn);
         }
 
         // inform and clear all listeners
