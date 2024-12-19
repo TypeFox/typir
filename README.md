@@ -13,7 +13,7 @@
 
 Typir is a library for type systems and type checking for software languages in the web.
 
-Typir is OpenSource, written in TypeScript, and follows pragmatic approaches for easing type checking in practical language engineering projects by providing default implementations for recurring problems.
+Typir is OpenSource, written in TypeScript, and follows pragmatic approaches for simplifying type checking in practical language engineering projects by providing default implementations for recurring problems.
 As a stand-alone library, Typir provides a TypeScript-API for language engineers without an additional, external DSL for formalizing types.
 
 
@@ -22,20 +22,27 @@ As a stand-alone library, Typir provides a TypeScript-API for language engineers
 Typir provides these core features:
 
 - Predefined types:
-  - primitives
-  - functions (with overloading)
-  - classes
-  - top, bottom
+  - Primitives
+  - Functions (with overloading)
+  - Classes
+  - Top, bottom
   - (more are planned)
+- Implementations for core type-checking services:
+  - Assignability
+  - Equality
+  - Conversion (implicit/coercion and explicit/casting)
+  - Type inference, i.e. determining the Typir type for a language node (e.g. an element of the current AST)
+  - Sub-typing
+  - Validation
 - Solutions for: circular type definitions, caching, operators
 - Meaningful and customizable error messages
 - The provided default implementations are customizable by dependency injection
 
 Typir does intentionally _not_ include ...
 
-- rules engines and constraint solving
-- formal proofs
-- external DSLs for formalizing types
+- Rule engines and constraint solving
+- Formal proofs
+- External DSLs for formalizing types
 
 
 ## NPM workspace
