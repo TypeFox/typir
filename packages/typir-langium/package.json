@@ -49,6 +49,6 @@
   "bugs": "https://github.com/TypeFox/typir/issues",
   "dependencies": {
     "langium": "~3.3.0",
-    "typir": "~0.0.2"
+    "typir": "~0.1.0"
   }
 }
