@@ -4,6 +4,12 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
 
+## v0.1.1 (December 2024)
+
+- Improved the READMEs in the packages `typir` and `typir-langium`.
+- Improved the CONTRIBUTING.md.
+
+
 ## v0.1.0 (December 2024)
 
 This is the first official release of Typir.
