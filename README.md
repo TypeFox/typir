@@ -61,7 +61,7 @@ This repository contains the following stand-alone applications, which demonstra
 
 ## Tiny Typir Example
 
-Both the LOX and OX examples have been created with Langium. Here is a very small example for using Typir with a tiny expression language, which is independent from any language workbench like Langium. We show how to use the Typir API for type checking of Tiny Typir. You can also find the example in the repository, implemented in form of an executable [test case](/packages/typir/test/api-example.test.ts).
+Both the LOX and OX examples have been created with Langium. Here is a very small example for using Typir with a tiny expression language, which is independent from any language workbench like Langium. We show how to use the Typir API for type checking of Tiny Typir. You can also find the example in the repository, implemented in form of an executable [test case](./packages/typir/test/api-example.test.ts).
 Our Tiny Typir language has only a few concepts (all are realized as `AstElement`s), namely numbers (`NumberLiteral`), strings (`StringLiteral`), binary expressions (`BinaryExpression`), variables (`Variable`), and assignments (`AssignmentStatement`). They are implemented in a very simple way, see for example our `BinaryExpression`:
 
 ```typescript
@@ -74,7 +74,7 @@ class BinaryExpression extends AstElement {
 }
 ```
 
-Feel free to check out the others in the [test code](/packages/typir/test/api-example.test.ts), but a little spoiler: no surprises there.
+Feel free to check out the others in the [test code](./packages/typir/test/api-example.test.ts), but a little spoiler: no surprises there.
 
 Let's head into setting up the Typir type system and creating the primitive types for our NumberLiteral and StringLiteral, which is a one line of code job each, as we use the Typir's predefined Primitives factory service:
 
@@ -169,8 +169,8 @@ expect(errors2[0].message).toBe("The type 'string' is not assignable to the type
 
 Typir is presented in these talks:
 
-- [LangDev'24](https://langdevcon.org/2024/program#26): [Video](https://www.youtube.com/watch?v=CL8EbJYeyTE), [slides](/resources/talks/2024-10-17-LangDev.pdf) (2024-10-17)
-- [OCX/EclipseCon'24](https://www.ocxconf.org/event/778b82cc-6834-48a4-a58e-f883c5a7b8c9/agenda?session=23b97df9-0435-4fab-8a01-e0a9cf3e3831&shareLink=true): [Video](https://www.youtube.com/watch?v=WLzXAhcl-aY&list=PLy7t4z5SYNaRRGVdF83feN-_uHLwvGvgw&index=23), [slides](/resources/talks/2024-10-24-EclipseCon.pdf) (2024-10-24)
+- [LangDev'24](https://langdevcon.org/2024/program#26): [Video](https://www.youtube.com/watch?v=CL8EbJYeyTE), [slides](./resources/talks/2024-10-17-LangDev.pdf) (2024-10-17)
+- [OCX/EclipseCon'24](https://www.ocxconf.org/event/778b82cc-6834-48a4-a58e-f883c5a7b8c9/agenda?session=23b97df9-0435-4fab-8a01-e0a9cf3e3831&shareLink=true): [Video](https://www.youtube.com/watch?v=WLzXAhcl-aY&list=PLy7t4z5SYNaRRGVdF83feN-_uHLwvGvgw&index=23), [slides](./resources/talks/2024-10-24-EclipseCon.pdf) (2024-10-24)
 
 
 ## Roadmap
@@ -183,7 +183,7 @@ The roadmap include, among other, these features:
 - Calculate types, e.g. operators whose return types depend on their current input types
 - Optimized APIs to register rules for inference and validation
 
-For the released versions of Typir, see the [CHANGELOG.md](/CHANGELOG.md).
+For the released versions of Typir, see the [CHANGELOG.md](./CHANGELOG.md).
 
 
 ## Contributing
@@ -195,4 +195,4 @@ We also have a release process described in [RELEASE.md](./RELEASE.md).
 
 ## License
 
-Typir is fully [MIT licensed](/LICENSE).
+Typir is fully [MIT licensed](./LICENSE).

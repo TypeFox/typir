@@ -15,7 +15,7 @@ npm install typir-langium
 
 ## Documentation
 
-For an overview about the core features of Typir with a simple application example, see the [root README.md of the Typir project](/README.md).
+For an overview about the core features of Typir with a simple application example, see the [root README.md of the Typir project](../../README.md).
 
 Important design decision for Typir-Langium:
 Typir-Langium does not depend on `langium/lsp`, i.e. Typir-Langium can be used even for Langium-based DSLs which don't use LSP.
@@ -39,4 +39,4 @@ Look at the examples in the `examples/` folder of the repo ([here](../../example
 
 ## License
 
-[MIT License](/LICENSE)
+[MIT License](../../LICENSE)

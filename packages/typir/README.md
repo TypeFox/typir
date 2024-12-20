@@ -15,7 +15,7 @@ npm install typir
 
 ## Documentation
 
-For an overview about the core features of Typir with a simple application example, see the [root README.md of the Typir project](/README.md).
+For an overview about the core features of Typir with a simple application example, see the [root README.md of the Typir project](../../README.md).
 
 Important design decision:
 Typir is a stand-alone library and has no dependencies to any existing language workbench.
@@ -28,4 +28,4 @@ Look at the examples in the `examples` folder of the repo ([here](../../examples
 
 ## License
 
-[MIT License](/LICENSE)
+[MIT License](../../LICENSE)
