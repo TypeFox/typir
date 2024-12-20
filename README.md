@@ -61,8 +61,111 @@ This repository contains the following stand-alone applications, which demonstra
 
 ## Tiny Typir Example
 
-[TODO](/packages/typir/test/api-example.test.ts)
+Both the LOX and OX examples have been created with Langium. Here comes a very small Langium independent example for the usage of Typir with a tiny expression language. We show how to use the Typir API for its Tiny Typir type checking. You can also find the example in the repository code, implemented in form of a [test](/packages/typir/test/api-example.test.ts).
 
+Our Tiny Typir language has only a few possible AstElements, namely NumberLiteral, StringLiteral, BinaryExpression, Variable, and AssignmentStatement. They are implemented in a very simple way, see for example our BinaryExpression:
+
+```
+class BinaryExpression extends AstElement {
+    constructor(
+        public left: AstElement,
+        public operator: string,
+        public right: AstElement,
+    ) { super(); }
+}
+```
+
+Feel free to check out the others in the [test code](/packages/typir/test/api-example.test.ts), but a little spoiler: no surprises there.
+
+Let's head into setting up the Typir type system and creating the primitive types for our NumberLiteral and StringLiteral, which is a one line of code job each, as we use the Typir's predefined Primitives factory service:
+
+```
+const typir = createTypirServices();
+
+const numberType = typir.factory.Primitives.create({ primitiveName: 'number', inferenceRules: node => node instanceof NumberLiteral });
+
+const stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
+```
+
+Note that the inference rules are included in this. For the operators this is a bit longer, as we have to take care of the left and right operand and the operator of the binary expression, so we
+extract it:
+
+```
+const inferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
+    filter: node => node instanceof BinaryExpression,
+    matching: (node, operatorName) => node.operator === operatorName,
+    operands: node => [node.left, node.right],
+};
+```
+
+We wish to have two operators, the `+` operator, which should be overloaded to accept either two numbers to add or two strings to concatenate. This can be expressed with an array of signatures with different types for the operands and the return type of the operator. Furthermore, there is going to be a `-` operator with only one signature, as we need no overloading. Both refer to the inferenceRule we defined above:
+
+```
+typir.factory.Operators.createBinary({ name: '+', signatures: [
+    { left: numberType, right: numberType, return: numberType },
+    { left: stringType, right: stringType, return: stringType },
+], inferenceRule });
+typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }], inferenceRule });
+```
+
+As we'd like to be able to convert number to strings implicitly, we add the following line. Note that this will for example make it possible to concatenate numbers and strings with the `+` operator, though it as no signature for a number and a string parameter.
+
+```
+typir.Conversion.markAsConvertible(numberType, stringType,'IMPLICIT_EXPLICIT');
+```
+
+Furthermore we can specify how Typir should infer the variable type. We decided that the type of the variable should be the type if its initial value.
+
+```
+typir.Inference.addInferenceRule(node => {
+    if (node instanceof Variable) {
+        return node.initialValue; // the type of the variable is the type of its initial value
+    }
+    return InferenceRuleNotApplicable;
+});
+```
+
+Finally, we add a type related validation rule for our small example: In case we have an AssignmentStatement, we check whether the type to be assigned is an assignmable match for the variable type. We can do that with a custom message. An error with this message will show up for example when we try to assign "hello" to a number variable. It will not show up in case we assign 123 to a string variable, as we have defined the implicit convertability above.
+
+```
+typir.validation.Collector.addValidationRule(node => {
+    if (node instanceof AssignmentStatement) {
+        return typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
+                    `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
+    }
+    return [];
+});
+```
+
+Wrapping this up, these are the test examples for the language usage with the expected type checking outcome:
+
+```
+// 2 + 3 => OK
+const example1 = new BinaryExpression(new NumberLiteral(2), '+', new NumberLiteral(3));
+expect(typir.validation.Collector.validate(example1)).toHaveLength(0);
+
+// 2 + "3" => OK
+const example2 = new BinaryExpression(new NumberLiteral(2), '+', new StringLiteral('3'));
+expect(typir.validation.Collector.validate(example2)).toHaveLength(0);
+
+// 2 - "3" => wrong
+const example3 = new BinaryExpression(new NumberLiteral(2), '-', new StringLiteral('3'));
+const errors1 = typir.validation.Collector.validate(example3);
+const errorStack = typir.Printer.printTypirProblem(errors1[0]); // the problem comes with detailed "sub-problems"
+expect(errorStack).includes("The parameter 'right' at index 1 got a value with a wrong type.");
+expect(errorStack).includes("For property 'right', the types 'string' and 'number' do not match.");
+
+// 123 is assignable to a string variable
+const varString = new Variable('v1', new StringLiteral('Hello'));
+const assignNumberToString = new AssignmentStatement(varString, new NumberLiteral(123));
+expect(typir.validation.Collector.validate(assignNumberToString)).toHaveLength(0);
+
+// "123" is not assignable to a number variable
+const varNumber = new Variable('v2', new NumberLiteral(456));
+const assignStringToNumber = new AssignmentStatement(varNumber, new StringLiteral('123'));
+const errors2 = typir.validation.Collector.validate(assignStringToNumber);
+expect(errors2[0].message).toBe("The type 'string' is not assignable to the type 'number'.");
+```
 
 ## Resources
 
