@@ -64,7 +64,7 @@ This repository contains the following stand-alone applications, which demonstra
 Both the LOX and OX examples have been created with Langium. Here is a very small example for using Typir with a tiny expression language, which is independent from any language workbench like Langium. We show how to use the Typir API for type checking of Tiny Typir. You can also find the example in the repository, implemented in form of an executable [test case](/packages/typir/test/api-example.test.ts).
 Our Tiny Typir language has only a few concepts (all are realized as `AstElement`s), namely numbers (`NumberLiteral`), strings (`StringLiteral`), binary expressions (`BinaryExpression`), variables (`Variable`), and assignments (`AssignmentStatement`). They are implemented in a very simple way, see for example our `BinaryExpression`:
 
-```
+```typescript
 class BinaryExpression extends AstElement {
     constructor(
         public left: AstElement,
@@ -72,60 +72,60 @@ class BinaryExpression extends AstElement {
         public right: AstElement,
     ) { super(); }
 }
-```typescript
+```
 
 Feel free to check out the others in the [test code](/packages/typir/test/api-example.test.ts), but a little spoiler: no surprises there.
 
 Let's head into setting up the Typir type system and creating the primitive types for our NumberLiteral and StringLiteral, which is a one line of code job each, as we use the Typir's predefined Primitives factory service:
 
-```
+```typescript
 const typir = createTypirServices();
 
 const numberType = typir.factory.Primitives.create({ primitiveName: 'number', inferenceRules: node => node instanceof NumberLiteral });
 
 const stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
-```typescript
+```
 
 Note that the inference rules are included in this. For the operators this is a bit longer, as we have to take care of the left and right operand and the operator of the binary expression, so we extract it and will resuse it later for both the `+` and `-` operators:
 
-```
+```typescript
 const inferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
     filter: node => node instanceof BinaryExpression,
     matching: (node, operatorName) => node.operator === operatorName,
     operands: node => [node.left, node.right],
 };
-```typescript
+```
 
 We wish to have two operators, the `+` operator, which should be overloaded to accept either two numbers to add or two strings to concatenate. This can be expressed with an array of signatures with different types for the operands and the return type of the operator. Furthermore, there is going to be a `-` operator with only one signature, since there is only subtraction of numbers. Both operators refer to the inferenceRule we defined above. `numberType` and `stringType` are the primitive types we defined above.
 
-```
+```typescript
 typir.factory.Operators.createBinary({ name: '+', signatures: [
     { left: numberType, right: numberType, return: numberType },
     { left: stringType, right: stringType, return: stringType },
 ], inferenceRule });
 typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }], inferenceRule });
-```typescript
+```
 
 As we'd like to be able to convert numbers to strings implicitly, we add the following line. Note that this will for example make it possible to concatenate numbers and strings with the `+` operator, though it has no signature for a number and a string parameter in the operator definition above.
 
-```
-typir.Conversion.markAsConvertible(numberType, stringType,'IMPLICIT_EXPLICIT');
 ```typescript
+typir.Conversion.markAsConvertible(numberType, stringType,'IMPLICIT_EXPLICIT');
+```
 
 Furthermore we can specify how Typir should infer the variable type. We decided that the type of the variable should be the type of its initial value. Typir internally considers the inference rules for primitives and operators as well, when recursively inferring the given AstElement.
 
-```
+```typescript
 typir.Inference.addInferenceRule(node => {
     if (node instanceof Variable) {
         return node.initialValue; // the type of the variable is the type of its initial value
     }
     return InferenceRuleNotApplicable;
 });
-```typescript
+```
 
 Finally, we add a type related validation rule for our small example: In case we have an AssignmentStatement, we check whether the type to be assigned is an assignable match for the variable type. We can do that with a custom message. An error with this message will show up for example when we try to assign the string literal "hello" to a number variable. It will not show up in case we assign the number literal 123 to a string variable, as we have defined the implicit conversion above.
 
-```
+```typescript
 typir.validation.Collector.addValidationRule(node => {
     if (node instanceof AssignmentStatement) {
         return typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
@@ -133,11 +133,11 @@ typir.validation.Collector.addValidationRule(node => {
     }
     return [];
 });
-```typescript
+```
 
 Wrapping this up, these are the test examples for the language usage with the expected type checking outcome:
 
-```
+```typescript
 // 2 + 3 => OK
 const example1 = new BinaryExpression(new NumberLiteral(2), '+', new NumberLiteral(3));
 expect(typir.validation.Collector.validate(example1)).toHaveLength(0);
@@ -163,7 +163,7 @@ const varNumber = new Variable('v2', new NumberLiteral(456));
 const assignStringToNumber = new AssignmentStatement(varNumber, new StringLiteral('123'));
 const errors2 = typir.validation.Collector.validate(assignStringToNumber);
 expect(errors2[0].message).toBe("The type 'string' is not assignable to the type 'number'.");
-```typescript
+```
 
 ## Resources
 
