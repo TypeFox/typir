@@ -10,23 +10,9 @@ import { describe, expect, test } from 'vitest';
 import { InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, ValidationMessageDetails } from '../src/index.js';
 import { createTypirServices } from '../src/typir.js';
 
-describe('Tests for the new API', () => {
-    test('Experiments', async () => {
-        const typir = createTypirServices();
+describe('Tiny Typir', () => {
 
-        const booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean' });
-        expect(booleanType).toBeTruthy();
-        const getBool = typir.factory.Primitives.get({ primitiveName: 'boolean' });
-        expect(getBool).toBe(booleanType);
-
-        typir.factory.Functions.create({ functionName: 'myFunction', inputParameters: [], outputParameter: undefined });
-
-        // operators
-        typir.factory.Operators.createBinary({ name: '&&', signature: { left: booleanType, right: booleanType, return: booleanType } });
-    });
-
-
-    test('Tiny Typir', async () => {
+    test('Set-up and test some expressions', async () => {
         const typir = createTypirServices(); // set-up the type system
 
         // primitive types

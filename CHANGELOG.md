@@ -8,6 +8,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 
 - Improved the READMEs in the packages `typir` and `typir-langium`.
 - Improved the CONTRIBUTING.md.
+- Improved source code for Tiny Typir in `api-example.test.ts`.
 
 
 ## v0.1.0 (December 2024)
