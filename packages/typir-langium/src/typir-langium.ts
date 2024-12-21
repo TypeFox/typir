@@ -48,7 +48,7 @@ export type PartialTypirLangiumServices<Specifics extends TypirLangiumSpecifics>
 
 /**
  * Creates a module that replaces some implementations of the core Typir services in order to be used with Langium.
- * @param langiumServices Typir-Langium needs to interact with the Langium lifecycle
+ * @param _langiumServices Typir-Langium needs to interact with the Langium lifecycle
  * @returns (only) the replaced implementations
  */
 export function createLangiumSpecificTypirServicesModule<Specifics extends TypirLangiumSpecifics>(_langiumServices: LangiumSharedCoreServices): Module<TypirLangiumServices<Specifics>, PartialTypirServices<Specifics>> {

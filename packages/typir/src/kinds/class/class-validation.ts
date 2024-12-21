@@ -81,7 +81,7 @@ export class UniqueClassValidation<Specifics extends TypirSpecifics> implements 
     }
 }
 
-interface UniqueMethodValidationEntry<Specifics extends TypirSpecifics> {
+export interface UniqueMethodValidationEntry<Specifics extends TypirSpecifics> {
     languageNode: Specifics['LanguageType'];
     classType: ClassType;
 }

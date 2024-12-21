@@ -28,7 +28,7 @@ export interface RuleOptions {
 }
 
 // corresponding information in a slightly different structure, which is easier to handle internally
-interface InternalRuleOptions {
+export interface InternalRuleOptions {
     languageKeyUndefined: boolean;
     languageKeys: string[];
     boundToTypes: Type[];

@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 export * from './typir.js';
+export * from './graph/graph-algorithms.js';
 export * from './graph/type-edge.js';
 export * from './graph/type-graph.js';
 export * from './graph/type-node.js';
