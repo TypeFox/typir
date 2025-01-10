@@ -22,10 +22,19 @@ export function isAssignabilityProblem(problem: unknown): problem is Assignabili
     return isSpecificTypirProblem(problem, AssignabilityProblem);
 }
 
+export type AssignabilitySuccess =
+    | 'EQUAL'
+    | 'IMPLICIT_CONVERSION'
+    | 'SUB_TYPE'
+    ;
+
+export type AssignabilityResult = AssignabilitySuccess | AssignabilityProblem;
+
 export interface TypeAssignability {
     // target := source;
     isAssignable(source: Type, target: Type): boolean;
     getAssignabilityProblem(source: Type, target: Type): AssignabilityProblem | undefined;
+    getAssignabilityResult(source: Type, target: Type): AssignabilityResult;
 }
 
 export class DefaultTypeAssignability implements TypeAssignability {
@@ -40,24 +49,29 @@ export class DefaultTypeAssignability implements TypeAssignability {
     }
 
     isAssignable(source: Type, target: Type): boolean {
-        return this.getAssignabilityProblem(source, target) === undefined;
+        return isAssignabilityProblem(this.getAssignabilityProblem(source, target)) === false;
     }
 
     getAssignabilityProblem(source: Type, target: Type): AssignabilityProblem | undefined {
+        const result = this.getAssignabilityResult(source, target);
+        return isAssignabilityProblem(result) ? result : undefined;
+    }
+
+    getAssignabilityResult(source: Type, target: Type): AssignabilityResult {
         // 1. are both types equal?
         if (this.equality.areTypesEqual(source, target)) {
-            return undefined;
+            return 'EQUAL';
         }
 
         // 2. implicit conversion from source to target possible?
         if (this.conversion.isImplicitExplicitConvertible(source, target)) {
-            return undefined;
+            return 'IMPLICIT_CONVERSION';
         }
 
         // 3. is the source a sub-type of the target?
         const subTypeResult = this.subtype.getSubTypeProblem(source, target);
         if (subTypeResult === undefined) {
-            return undefined;
+            return 'SUB_TYPE';
         } else {
             // return the found sub-type issues
             return {
