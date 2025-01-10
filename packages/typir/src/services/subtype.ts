@@ -10,6 +10,7 @@ import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
 import { TypeEdge, isTypeEdge } from '../graph/type-edge.js';
+import { toArray } from '../utils/utils.js';
 
 export interface SubTypeProblem extends TypirProblem {
     $problem: 'SubTypeProblem';
@@ -44,6 +45,8 @@ export interface SubType {
     - terminology: "no sub-type" is not a problem in general ("it is a qualified NO"), it is just a property! This is a general issue of the current design!
     */
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined;
+
+    markAsSubType(subType: Type | Type[], superType: Type | Type[]): void;
 }
 
 export class DefaultSubType implements SubType {
@@ -131,12 +134,41 @@ export class DefaultSubType implements SubType {
         if (resultSuper.length <= 0) {
             return undefined;
         }
+
+        // no sub-type relationship
         return {
             $problem: SubTypeProblem,
             superType,
             subType,
             subProblems: [...resultSuper, ...resultSub], // return the sub-type problems of both types
         };
+    }
+
+    markAsSubType(subType: Type | Type[], superType: Type | Type[]): void {
+        const allSub = toArray(subType);
+        const allSuper = toArray(superType);
+        for (const subT of allSub) {
+            for (const superT of allSuper) {
+                this.markAsSubTypeSingle(subT, superT);
+            }
+        }
+    }
+
+    protected markAsSubTypeSingle(subType: Type, superType: Type): void {
+        const cache = this.typeRelationships;
+        let edge = cache.getRelationshipUnidirectional<SubTypeEdge>(subType, superType, SubTypeEdge);
+        if (!edge) {
+            edge = {
+                $relation: SubTypeEdge,
+                from: subType,
+                to: superType,
+                cachingInformation: 'LINK_EXISTS',
+                error: undefined,
+            };
+        }
+        cache.setOrUpdateUnidirectionalRelationship(edge, 'LINK_EXISTS');
+
+        // TODO check for cycles!
     }
 }
 
