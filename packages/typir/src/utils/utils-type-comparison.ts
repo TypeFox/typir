@@ -6,11 +6,11 @@
 
 import { assertUnreachable } from 'langium';
 import { isType, Type } from '../graph/type-node.js';
+import { Kind } from '../kinds/kind.js';
+import { InferenceProblem } from '../services/inference.js';
 import { TypirServices } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
-import { isSpecificTypirProblem, isNameTypePair, NameTypePair, TypirProblem } from './utils-definitions.js';
-import { InferenceProblem } from '../services/inference.js';
-import { Kind } from '../kinds/kind.js';
+import { isNameTypePair, isSpecificTypirProblem, NameTypePair, TypirProblem } from './utils-definitions.js';
 
 export type TypeCheckStrategy =
     'EQUAL_TYPE' | // the most strict checking
@@ -164,11 +164,11 @@ export function checkTypes(left: TypeToCheck, right: TypeToCheck,
 }
 
 export function checkTypeArrays(leftTypes: TypeToCheck[], rightTypes: TypeToCheck[],
-    relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
+    relationToCheck: (l: Type, r: Type, index: number) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
     for (let i = 0; i < Math.min(leftTypes.length, rightTypes.length); i++) {
-        const currentProblems = checkTypes(leftTypes[i], rightTypes[i], relationToCheck, checkNamesOfNameTypePairs);
+        const currentProblems = checkTypes(leftTypes[i], rightTypes[i], (l, r) => relationToCheck(l, r, i), checkNamesOfNameTypePairs);
         currentProblems.forEach(p => p.propertyIndex = i); // add the index
         conflicts.push(...currentProblems);
     }

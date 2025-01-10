@@ -104,13 +104,15 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
  * Creates the TypirServices with the default module containing the default implements for Typir, which might be exchanged by the given optional customized modules.
  * @param customization1 optional Typir module with customizations
  * @param customization2 optional Typir module with customizations
+ * @param customization3 optional Typir module with customizations
  * @returns a Typir instance, i.e. the TypirServices with implementations
  */
 export function createTypirServices(
     customization1: Module<TypirServices, PartialTypirServices> = {},
-    customization2: Module<TypirServices, PartialTypirServices> = {}
+    customization2: Module<TypirServices, PartialTypirServices> = {},
+    customization3: Module<TypirServices, PartialTypirServices> = {},
 ): TypirServices {
-    return inject(DefaultTypirServiceModule, customization1, customization2);
+    return inject(DefaultTypirServiceModule, customization1, customization2, customization3);
 }
 
 /**
