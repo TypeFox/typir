@@ -6,7 +6,9 @@
 
 import { expect } from 'vitest';
 import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TestProblemPrinter } from '../test/predefined-language-nodes.js';
+import { createTypirServices, DefaultTypirServiceModule, PartialTypirServices, TypirServices } from '../typir.js';
+import { Module } from './dependency-injection.js';
 
 /**
  * Testing utility to check, that exactly the expected types are in the type system.
@@ -29,4 +31,32 @@ export function expectTypirTypes(services: TypirServices, filterTypes: (type: Ty
     }
     expect(typeNames, `There are more types than expected: ${typeNames.join(', ')}`).toHaveLength(0);
     return types;
+}
+
+export function expectType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails: (t: T) => boolean): void {
+    if (checkType(type)) {
+        if (checkDetails(type)) {
+            // everything is fine
+        } else {
+            expect.fail(`'${type.getIdentifier()}' is the expected Typir type, but the details are wrong`);
+        }
+    } else {
+        expect.fail(`'${type}' is not the expected Typir type`);
+    }
+}
+
+/**
+ * Creates TypirServices dedicated for testing purposes,
+ * with the default module containing the default implements for Typir, which might be exchanged by the given optional customized module.
+ * @param customizationForTesting specific customizations for the current test case
+ * @returns a Typir instance, i.e. the TypirServices with implementations
+ */
+export function createTypirServicesForTesting(
+    customizationForTesting: Module<TypirServices, PartialTypirServices> = {},
+): TypirServices {
+    return createTypirServices(
+        DefaultTypirServiceModule,                      // all default core implementations
+        { Printer: () => new TestProblemPrinter() },    // use the dedicated printer for TestLanguageNode's
+        customizationForTesting,                        // specific customizations for the current test case
+    );
 }
