@@ -231,11 +231,11 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                 // this rule might match => continue applying this rule
                 // resolve the requested child types
                 const childLanguageNodes = ruleResult;
-                const childTypes: Array<Type | InferenceProblem[]> = childLanguageNodes.map(child => this.services.Inference.inferType(child));
+                const actualChildTypes: Array<Type | InferenceProblem[]> = childLanguageNodes.map(child => this.services.Inference.inferType(child));
                 // check, whether inferring the children resulted in some other inference problems
                 const childTypeProblems: InferenceProblem[] = [];
-                for (let i = 0; i < childTypes.length; i++) {
-                    const child = childTypes[i];
+                for (let i = 0; i < actualChildTypes.length; i++) {
+                    const child = actualChildTypes[i];
                     if (Array.isArray(child)) {
                         childTypeProblems.push({
                             $problem: InferenceProblem,
@@ -257,7 +257,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                     return undefined;
                 } else {
                     // the types of all children are successfully inferred
-                    const finalInferenceResult = rule.inferTypeWithChildrensTypes(languageNode, childTypes as Type[], this.services);
+                    const finalInferenceResult = rule.inferTypeWithChildrensTypes(languageNode, actualChildTypes as Type[], this.services);
                     if (isType(finalInferenceResult)) {
                         // type is inferred!
                         return finalInferenceResult;
@@ -280,7 +280,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
             // this rule is not applicable at all => ignore this rule
             return undefined;
         } else if (isType(result)) {
-            // the result type is already found!
+            // the result type is found!
             return result;
         } else if (isInferenceProblem(result)) {
             // found some inference problems
