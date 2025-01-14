@@ -30,7 +30,7 @@ export abstract class TestLanguageNode {
 
     protected printObject(obj: unknown): string {
         if (Array.isArray(obj)) {
-            const entries = obj.values().toArray().map(v => this.printObject(v)).join(', ');
+            const entries = Array.from(obj.values()).map(v => this.printObject(v)).join(', ');
             return `[${entries}]`;
         }
         if (obj instanceof TestLanguageNode) {
