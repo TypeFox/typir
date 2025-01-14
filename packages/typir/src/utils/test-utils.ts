@@ -33,7 +33,7 @@ export function expectTypirTypes(services: TypirServices, filterTypes: (type: Ty
     return types;
 }
 
-export function expectType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails: (t: T) => boolean): void {
+export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails: (t: T) => boolean): void {
     if (checkType(type)) {
         if (checkDetails(type)) {
             // everything is fine
