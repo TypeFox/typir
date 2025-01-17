@@ -93,6 +93,14 @@ export interface TypeConversion {
      * @returns true if the implicit or explicit conversion is possible or the types are equal, false otherwise
      */
     isConvertible(from: Type, to: Type): boolean;
+
+    /**
+     * Returns all other types to which the given type can be recursively converted.
+     * @param from the source type, which is convertible to the returned types
+     * @param mode only conversion rules with the given conversion mode are considered
+     * @returns the set of recursively reachable types for conversion ("conversion targets")
+     */
+    getConvertibleTo(from: Type, mode: ConversionModeForSpecification): Set<Type>;
 }
 
 /**
@@ -176,6 +184,28 @@ export class DefaultTypeConversion implements TypeConversion {
         return 'NONE';
     }
 
+    protected collectReachableTypes(from: Type, mode: ConversionModeForSpecification): Set<Type> {
+        const result: Set<Type> = new Set();
+        const remainingToCheck: Type[] = [from];
+
+        while (remainingToCheck.length > 0) {
+            const current = remainingToCheck.pop()!;
+            const outgoingEdges = current.getOutgoingEdges<ConversionEdge>(ConversionEdge);
+            for (const edge of outgoingEdges) {
+                if (edge.mode === mode) {
+                    if (result.has(edge.to)) {
+                        // already checked
+                    } else {
+                        result.add(edge.to); // this type is reachable
+                        remainingToCheck.push(edge.to); // check it for recursive conversions
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
     protected existsEdgePath(from: Type, to: Type, mode: ConversionModeForSpecification): boolean {
         const visited: Set<Type> = new Set();
         const stack: Type[] = [from];
@@ -237,6 +267,10 @@ export class DefaultTypeConversion implements TypeConversion {
 
     protected getConversionEdge(from: Type, to: Type): ConversionEdge | undefined {
         return from.getOutgoingEdges<ConversionEdge>(ConversionEdge).find(edge => edge.to === to);
+    }
+
+    getConvertibleTo(from: Type, mode: ConversionModeForSpecification): Set<Type> {
+        return this.collectReachableTypes(from, mode);
     }
 }
 
