@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { DefaultGraphAlgorithms, GraphAlgorithms } from './graph/graph-algorithms.js';
 import { TypeGraph } from './graph/type-graph.js';
 import { DefaultTypeResolver, TypeResolvingService } from './initialization/type-selector.js';
 import { BottomFactoryService, BottomKind, BottomKindName } from './kinds/bottom/bottom-kind.js';
@@ -65,6 +66,7 @@ export type TypirServices = {
     };
     readonly infrastructure: {
         readonly Graph: TypeGraph;
+        readonly GraphAlgorithms: GraphAlgorithms;
         readonly Kinds: KindRegistry;
         readonly TypeResolver: TypeResolvingService;
     };
@@ -95,6 +97,7 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
     },
     infrastructure: {
         Graph: () =>  new TypeGraph(),
+        GraphAlgorithms: (services) => new DefaultGraphAlgorithms(services),
         Kinds: (services) => new DefaultKindRegistry(services),
         TypeResolver: (services) => new DefaultTypeResolver(services),
     },

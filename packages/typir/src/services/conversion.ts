@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { GraphAlgorithms } from '../graph/graph-algorithms.js';
 import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
@@ -111,10 +112,12 @@ export interface TypeConversion {
 export class DefaultTypeConversion implements TypeConversion {
     protected readonly equality: TypeEquality;
     protected readonly graph: TypeGraph;
+    protected readonly algorithms: GraphAlgorithms;
 
     constructor(services: TypirServices) {
         this.equality = services.Equality;
         this.graph = services.infrastructure.Graph;
+        this.algorithms = services.infrastructure.GraphAlgorithms;
     }
 
     markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionModeForSpecification): void {
@@ -185,58 +188,11 @@ export class DefaultTypeConversion implements TypeConversion {
     }
 
     protected collectReachableTypes(from: Type, mode: ConversionModeForSpecification): Set<Type> {
-        const result: Set<Type> = new Set();
-        const remainingToCheck: Type[] = [from];
-
-        while (remainingToCheck.length > 0) {
-            const current = remainingToCheck.pop()!;
-            const outgoingEdges = current.getOutgoingEdges<ConversionEdge>(ConversionEdge);
-            for (const edge of outgoingEdges) {
-                if (edge.mode === mode) {
-                    if (result.has(edge.to)) {
-                        // already checked
-                    } else {
-                        result.add(edge.to); // this type is reachable
-                        remainingToCheck.push(edge.to); // check it for recursive conversions
-                    }
-                }
-            }
-        }
-
-        return result;
+        return this.algorithms.collectReachableTypes(from, [ConversionEdge], edge => (edge as ConversionEdge).mode === mode);
     }
 
     protected existsEdgePath(from: Type, to: Type, mode: ConversionModeForSpecification): boolean {
-        const visited: Set<Type> = new Set();
-        const stack: Type[] = [from];
-
-        while (stack.length > 0) {
-            const current = stack.pop()!;
-            visited.add(current);
-
-            const outgoingEdges = current.getOutgoingEdges<ConversionEdge>(ConversionEdge);
-            for (const edge of outgoingEdges) {
-                if (edge.mode === mode) {
-                    if (edge.to === to) {
-                        /* It was possible to reach our goal type using this path.
-                         * Base case that also catches the case in which start and end are the same
-                         * (is there a cycle?). Therefore it is allowed to have been "visited".
-                         * True will only be returned if there is a real path (cycle) made up of edges
-                         */
-                        return true;
-                    }
-                    if (!visited.has(edge.to)) {
-                        /* The target node of this edge has not been visited before and is also not our goal node
-                         * Add it to the stack and investigate this path later.
-                         */
-                        stack.push(edge.to);
-                    }
-                }
-            }
-        }
-
-        // Fall through means that we could not reach the goal type
-        return false;
+        return this.algorithms.existsEdgePath(from, to, [ConversionEdge], edge => (edge as ConversionEdge).mode === mode);
     }
 
     protected isTransitivelyConvertable(from: Type, to: Type, mode: ConversionModeForSpecification): boolean {
