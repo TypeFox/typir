@@ -7,29 +7,41 @@
 import { GraphAlgorithms } from '../graph/graph-algorithms.js';
 import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 import { ConversionEdge, TypeConversion } from './conversion.js';
 import { TypeEquality } from './equality.js';
-import { isSubTypeSuccess, SubType, SubTypeEdge } from './subtype.js';
+import { SubType, SubTypeEdge } from './subtype.js';
 
 export interface AssignabilityProblem extends TypirProblem {
     $problem: 'AssignabilityProblem';
+    $result: 'AssignabilityResult';
     source: Type;
     target: Type;
+    result: false;
     subProblems: TypirProblem[];
 }
 export const AssignabilityProblem = 'AssignabilityProblem';
 export function isAssignabilityProblem(problem: unknown): problem is AssignabilityProblem {
-    return isSpecificTypirProblem(problem, AssignabilityProblem);
+    return isAssignabilityResult(problem) && problem.result === false;
 }
 
-export type AssignabilitySuccess =
-    | 'EQUAL'
-    | 'IMPLICIT_CONVERSION'
-    | 'SUB_TYPE'
-    ;
+export interface AssignabilitySuccess {
+    $result: 'AssignabilityResult';
+    source: Type;
+    target: Type;
+    result: true;
+    path: Array<SubTypeEdge | ConversionEdge>;
+}
+export function isAssignabilitySuccess(success: unknown): success is AssignabilitySuccess {
+    return isAssignabilityResult(success) && success.result === true;
+}
 
 export type AssignabilityResult = AssignabilitySuccess | AssignabilityProblem;
+export const AssignabilityResult = 'AssignabilityResult';
+export function isAssignabilityResult(result: unknown): result is AssignabilityResult {
+    return typeof result === 'object' && result !== null && ((result as AssignabilityResult).$result === AssignabilityResult);
+}
+
 
 export interface TypeAssignability {
     // target := source;
@@ -67,32 +79,35 @@ export class DefaultTypeAssignability implements TypeAssignability {
     getAssignabilityResult(source: Type, target: Type): AssignabilityResult {
         // 1. are both types equal?
         if (this.equality.areTypesEqual(source, target)) {
-            return 'EQUAL';
-        }
-
-        // 2. implicit conversion from source to target possible?
-        if (this.conversion.isImplicitExplicitConvertible(source, target)) {
-            return 'IMPLICIT_CONVERSION';
-        }
-
-        // 3. is the source a sub-type of the target?
-        const subTypeResult = this.subtype.getSubTypeResult(source, target);
-        if (isSubTypeSuccess(subTypeResult)) {
-            return 'SUB_TYPE';
-        }
-
-        // 4. any path of implicit conversion and sub-type relationships
-        const graphSearch = this.algorithms.existsEdgePath(source, target, [ConversionEdge, SubTypeEdge]);
-        if (graphSearch) {
-            return 'SUB_TYPE'; // TODO path
-        } else {
-            // return the found sub-type issues
-            return {
-                $problem: AssignabilityProblem,
+            return <AssignabilitySuccess>{
+                $result: AssignabilityResult,
                 source,
                 target,
-                subProblems: [subTypeResult]
+                result: true,
+                path: [],
             };
         }
+
+        // 2. any path of implicit conversion and sub-type relationships
+        const path = this.algorithms.getEdgePath(source, target, [ConversionEdge, SubTypeEdge]);
+        if (path.length >= 1) {
+            return <AssignabilitySuccess>{
+                $result: AssignabilityResult,
+                source,
+                target,
+                result: true,
+                path, // report the found path in the graph
+            };
+        }
+
+        // return the found sub-type issues
+        return <AssignabilityProblem>{
+            $problem: AssignabilityProblem,
+            $result: AssignabilityResult,
+            source,
+            target,
+            result: false,
+            subProblems: [], // TODO
+        };
     }
 }

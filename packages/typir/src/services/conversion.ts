@@ -192,7 +192,7 @@ export class DefaultTypeConversion implements TypeConversion {
     }
 
     protected existsEdgePath(from: Type, to: Type, mode: ConversionModeForSpecification): boolean {
-        return this.algorithms.existsEdgePath(from, to, [ConversionEdge], edge => (edge as ConversionEdge).mode === mode);
+        return this.algorithms.existsEdgePath(from, to, [ConversionEdge], edge => (edge as ConversionEdge).mode === mode && edge.cachingInformation === 'LINK_EXISTS');
     }
 
     protected isTransitivelyConvertable(from: Type, to: Type, mode: ConversionModeForSpecification): boolean {

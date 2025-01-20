@@ -21,8 +21,8 @@ export interface SubTypeProblem extends TypirProblem {
     subProblems: TypirProblem[]; // might be empty
 }
 export const SubTypeProblem = 'SubTypeProblem';
-export function isSubTypeProblem(result: unknown): result is SubTypeProblem {
-    return isSubTypeResult(result) && result.result === false;
+export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
+    return isSubTypeResult(problem) && problem.result === false;
 }
 
 export interface SubTypeSuccess {
@@ -32,8 +32,8 @@ export interface SubTypeSuccess {
     result: true;
     path: SubTypeEdge[];
 }
-export function isSubTypeSuccess(result: unknown): result is SubTypeSuccess {
-    return isSubTypeResult(result) && result.result === true;
+export function isSubTypeSuccess(success: unknown): success is SubTypeSuccess {
+    return isSubTypeResult(success) && success.result === true;
 }
 
 export type SubTypeResult = SubTypeSuccess | SubTypeProblem;
@@ -58,10 +58,6 @@ export function isSubTypeResult(result: unknown): result is SubTypeResult {
  */
 export interface SubType {
     isSubType(subType: Type, superType: Type): boolean;
-    /* TODO:
-    - no problem ==> sub-type relationship exists
-    - terminology: "no sub-type" is not a problem in general ("it is a qualified NO"), it is just a property! This is a general issue of the current design!
-    */
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined;
     getSubTypeResult(subType: Type, superType: Type): SubTypeResult;
 
@@ -93,13 +89,14 @@ export class DefaultSubType implements SubType {
 
     getSubTypeResult(subType: Type, superType: Type): SubTypeResult {
         // search for a transitive sub-type relationship
-        if (this.algorithms.existsEdgePath(subType, superType, [SubTypeEdge])) {
+        const path = this.algorithms.getEdgePath(subType, superType, [SubTypeEdge]);
+        if (path.length >= 1) {
             return <SubTypeSuccess>{
                 $result: SubTypeResult,
                 result: true,
                 subType,
                 superType,
-                path: [], // TODO insert the path here
+                path, // return the found path
             };
         } else {
             return <SubTypeProblem>{
@@ -142,8 +139,13 @@ export class DefaultSubType implements SubType {
             edge.cachingInformation = 'LINK_EXISTS';
         }
 
-        // TODO check for cycles!
+        // TODO check for cycles: invalidates existing test cases
+        // const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [SubTypeEdge], edge => edge.cachingInformation === 'LINK_EXISTS');
+        // if (hasIntroducedCycle) {
+        //     throw new Error(`Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`);
+        // }
     }
+
 }
 
 export interface SubTypeEdge extends TypeEdge {

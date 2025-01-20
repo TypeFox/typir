@@ -7,11 +7,13 @@
 import { isType, Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { AssignabilitySuccess, isAssignabilityProblem } from '../../services/assignability.js';
+import { isConversionEdge } from '../../services/conversion.js';
 import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule, TypeInferenceRuleWithInferringChildren } from '../../services/inference.js';
+import { isSubTypeEdge } from '../../services/subtype.js';
 import { ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
-import { assertType } from '../../utils/utils.js';
+import { assertType, assertUnreachable } from '../../utils/utils.js';
 import { CreateFunctionTypeDetails, FunctionKind, OverloadedFunctionDetails } from './function-kind.js';
 import { FunctionType, isFunctionType } from './function-type.js';
 
@@ -398,8 +400,9 @@ export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInference
 
     protected calculateCost(match: OverloadedMatch): number {
         return match.rule.assignabilitySuccess
-            // equal types are better than sub-types, sub-types are better than conversions
-            .map(value => (value === 'EQUAL' ? 0 : value === 'SUB_TYPE' ? 1 : 2) as number)
+            .flatMap(s => s?.path ?? []) // collect all conversion/sub-type edges which are required to map actual types to the expected types of the parameters
+            // equal types (i.e. an empty path) are better than sub-types, sub-types are better than conversions
+            .map(edge => (isSubTypeEdge(edge) ? 1 : isConversionEdge(edge) ? 2 : assertUnreachable(edge)) as number)
             .reduce((l, r) => l + r, 0);
     }
 }
