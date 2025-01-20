@@ -43,6 +43,14 @@ export function isSubTypeResult(result: unknown): result is SubTypeResult {
 }
 
 
+export interface MarkSubTypeOptions {
+    /** If selected, it will be checked, whether cycles in sub-type relationships exists now at the involved types.
+     * Types which internally manage their sub-type relationships themselves usually don't check for cycles,
+     * since there might be already (other) cycles by user-defined types (e.g. classes with sub-super classes) and which are reported with dedicated validations.
+     */
+    checkForCycles: boolean;
+}
+
 /**
  * Analyzes, whether there is a sub type-relationship between two types.
  *
@@ -61,7 +69,7 @@ export interface SubType {
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined;
     getSubTypeResult(subType: Type, superType: Type): SubTypeResult;
 
-    markAsSubType(subType: Type | Type[], superType: Type | Type[]): void;
+    markAsSubType(subType: Type | Type[], superType: Type | Type[], options?: Partial<MarkSubTypeOptions>): void;
 }
 
 
@@ -114,17 +122,27 @@ export class DefaultSubType implements SubType {
         return from.getOutgoingEdges<SubTypeEdge>(SubTypeEdge).find(edge => edge.to === to);
     }
 
-    markAsSubType(subType: Type | Type[], superType: Type | Type[]): void {
+    markAsSubType(subType: Type | Type[], superType: Type | Type[], options?: Partial<MarkSubTypeOptions>): void {
         const allSub = toArray(subType);
         const allSuper = toArray(superType);
+        const actualOptions = this.collectMarkSubTypeOptions(options);
         for (const subT of allSub) {
             for (const superT of allSuper) {
-                this.markAsSubTypeSingle(subT, superT);
+                this.markAsSubTypeSingle(subT, superT, actualOptions);
             }
         }
     }
 
-    protected markAsSubTypeSingle(subType: Type, superType: Type): void {
+    protected collectMarkSubTypeOptions(options?: Partial<MarkSubTypeOptions>): MarkSubTypeOptions {
+        return {
+            // the default values:
+            checkForCycles: true,
+            // the actually overriden values:
+            ...options
+        };
+    }
+
+    protected markAsSubTypeSingle(subType: Type, superType: Type, options: MarkSubTypeOptions): void {
         let edge = this.getSubTypeEdge(subType, superType);
         if (!edge) {
             edge = {
@@ -139,11 +157,13 @@ export class DefaultSubType implements SubType {
             edge.cachingInformation = 'LINK_EXISTS';
         }
 
-        // TODO check for cycles: invalidates existing test cases
-        // const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [SubTypeEdge], edge => edge.cachingInformation === 'LINK_EXISTS');
-        // if (hasIntroducedCycle) {
-        //     throw new Error(`Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`);
-        // }
+        // check for cycles
+        if (options.checkForCycles) {
+            const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [SubTypeEdge], edge => edge.cachingInformation === 'LINK_EXISTS');
+            if (hasIntroducedCycle) {
+                throw new Error(`Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`);
+            }
+        }
     }
 
 }

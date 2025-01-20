@@ -33,7 +33,7 @@ export class TopType extends Type implements TypeGraphListener {
 
     protected markAsSubType(type: Type): void {
         if (type !== this) {
-            this.kind.services.Subtype.markAsSubType(type, this);
+            this.kind.services.Subtype.markAsSubType(type, this, { checkForCycles: false });
         }
     }
 

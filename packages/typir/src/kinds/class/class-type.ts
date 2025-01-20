@@ -57,7 +57,8 @@ export class ClassType extends Type {
                 onTypeReferenceResolved(_reference, superType) {
                     // after the super-class is complete ...
                     superType.subClasses.push(thisType); // register this class as sub-class for that super-class
-                    kind.services.Subtype.markAsSubType(thisType, superType); // register the sub-type relationship in the type graph
+                    kind.services.Subtype.markAsSubType(thisType, superType, // register the sub-type relationship in the type graph
+                        { checkForCycles: false }); // ignore cycles in sub-super-class relationships for now, since they are reported with a dedicated validation for the user
                 },
                 onTypeReferenceInvalidated(_reference, superType) {
                     if (superType) {
