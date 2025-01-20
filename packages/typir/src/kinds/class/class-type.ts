@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem } from '../../services/subtype.js';
+import { SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
@@ -55,13 +55,15 @@ export class ClassType extends Type {
             const superRef = new TypeReference<ClassType>(superr, kind.services);
             superRef.addListener({
                 onTypeReferenceResolved(_reference, superType) {
-                    // after the super-class is complete, register this class as sub-class for that super-class
-                    superType.subClasses.push(thisType);
+                    // after the super-class is complete ...
+                    superType.subClasses.push(thisType); // register this class as sub-class for that super-class
+                    kind.services.Subtype.markAsSubType(thisType, superType); // register the sub-type relationship in the type graph
                 },
                 onTypeReferenceInvalidated(_reference, superType) {
                     if (superType) {
-                        // if the superType gets invalid, de-register this class as sub-class of the super-class
-                        superType.subClasses.splice(superType.subClasses.indexOf(thisType), 1);
+                        // if the superType gets invalid ...
+                        superType.subClasses.splice(superType.subClasses.indexOf(thisType), 1); // de-register this class as sub-class of the super-class
+                        // TODO unmark sub-type relationship (or already done automatically, since the type is removed from the graph?? gibt es noch andere Möglichkeiten eine Reference zu invalidieren außer dass der Type entfernt wurde??)
                     } else {
                         // initially do nothing
                     }
@@ -185,8 +187,10 @@ export class ClassType extends Type {
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
+                $result: SubTypeResult,
                 superType,
                 subType: this,
+                result: false,
                 subProblems: [createKindConflict(this, superType)],
             }];
         }
@@ -198,8 +202,10 @@ export class ClassType extends Type {
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
+                $result: SubTypeResult,
                 superType: this,
                 subType,
+                result: false,
                 subProblems: [createKindConflict(subType, this)],
             }];
         }

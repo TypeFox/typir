@@ -5,19 +5,49 @@
  ******************************************************************************/
 
 import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem } from '../../services/subtype.js';
+import { SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
 import { TopKind, TopTypeDetails, isTopKind } from './top-kind.js';
+import { TypeGraphListener } from '../../graph/type-graph.js';
+import { TypeEdge } from '../../graph/type-edge.js';
 
-export class TopType extends Type {
+export class TopType extends Type implements TypeGraphListener {
     override readonly kind: TopKind;
 
     constructor(kind: TopKind, identifier: string, typeDetails: TopTypeDetails) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions
+
+        // ensure, that all (other) types are a sub-type of this Top type:
+        const graph = kind.services.infrastructure.Graph;
+        graph.getAllRegisteredTypes().forEach(t => this.markAsSubType(t)); // the already existing types
+        graph.addListener(this); // all upcomping types
+    }
+
+    override dispose(): void {
+        this.kind.services.infrastructure.Graph.removeListener(this);
+    }
+
+    protected markAsSubType(type: Type): void {
+        if (type !== this) {
+            this.kind.services.Subtype.markAsSubType(type, this);
+        }
+    }
+
+    addedType(type: Type, _key: string): void {
+        this.markAsSubType(type);
+    }
+    removedType(_type: Type, _key: string): void {
+        // empty
+    }
+    addedEdge(_edge: TypeEdge): void {
+        // empty
+    }
+    removedEdge(_edge: TypeEdge): void {
+        // empty
     }
 
     override getName(): string {
@@ -48,8 +78,10 @@ export class TopType extends Type {
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
+                $result: SubTypeResult,
                 superType,
                 subType: this,
+                result: false,
                 subProblems: [createKindConflict(superType, this)],
             }];
         }

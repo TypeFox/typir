@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem } from '../../services/subtype.js';
+import { SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
@@ -47,8 +47,10 @@ export class PrimitiveType extends Type {
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
+                $result: SubTypeResult,
                 superType,
                 subType: this,
+                result: false,
                 subProblems: [createKindConflict(this, superType)],
             }];
         }
@@ -60,8 +62,10 @@ export class PrimitiveType extends Type {
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
+                $result: SubTypeResult,
                 superType: this,
                 subType,
+                result: false,
                 subProblems: [createKindConflict(subType, this)],
             }];
         }

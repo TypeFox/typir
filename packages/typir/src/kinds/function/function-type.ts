@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem } from '../../services/subtype.js';
+import { SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
 import { Type, isType } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypirProblem, NameTypePair } from '../../utils/utils-definitions.js';
@@ -131,8 +131,10 @@ export class FunctionType extends Type {
         }
         return [<SubTypeProblem>{
             $problem: SubTypeProblem,
+            $result: SubTypeResult,
             superType,
             subType: this,
+            result: false,
             subProblems: [createKindConflict(this, superType)],
         }];
     }
@@ -143,8 +145,10 @@ export class FunctionType extends Type {
         }
         return [<SubTypeProblem>{
             $problem: SubTypeProblem,
+            $result: SubTypeResult,
             superType: this,
             subType,
+            result: false,
             subProblems: [createKindConflict(subType, this)],
         }];
     }

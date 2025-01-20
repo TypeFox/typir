@@ -4,12 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { GraphAlgorithms } from '../graph/graph-algorithms.js';
 import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
-import { TypeConversion } from './conversion.js';
+import { ConversionEdge, TypeConversion } from './conversion.js';
 import { TypeEquality } from './equality.js';
-import { SubType } from './subtype.js';
+import { isSubTypeSuccess, SubType, SubTypeEdge } from './subtype.js';
 
 export interface AssignabilityProblem extends TypirProblem {
     $problem: 'AssignabilityProblem';
@@ -37,15 +38,21 @@ export interface TypeAssignability {
     getAssignabilityResult(source: Type, target: Type): AssignabilityResult;
 }
 
+
+/**
+ * This implementation for assignability checks step-by-step (1) equality, (2) implicit conversion, and (3) sub-type relationships of the source and target type.
+ */
 export class DefaultTypeAssignability implements TypeAssignability {
     protected readonly conversion: TypeConversion;
     protected readonly subtype: SubType;
     protected readonly equality: TypeEquality;
+    protected readonly algorithms: GraphAlgorithms;
 
     constructor(services: TypirServices) {
         this.conversion = services.Conversion;
         this.subtype = services.Subtype;
         this.equality = services.Equality;
+        this.algorithms = services.infrastructure.GraphAlgorithms;
     }
 
     isAssignable(source: Type, target: Type): boolean {
@@ -69,9 +76,15 @@ export class DefaultTypeAssignability implements TypeAssignability {
         }
 
         // 3. is the source a sub-type of the target?
-        const subTypeResult = this.subtype.getSubTypeProblem(source, target);
-        if (subTypeResult === undefined) {
+        const subTypeResult = this.subtype.getSubTypeResult(source, target);
+        if (isSubTypeSuccess(subTypeResult)) {
             return 'SUB_TYPE';
+        }
+
+        // 4. any path of implicit conversion and sub-type relationships
+        const graphSearch = this.algorithms.existsEdgePath(source, target, [ConversionEdge, SubTypeEdge]);
+        if (graphSearch) {
+            return 'SUB_TYPE'; // TODO path
         } else {
             // return the found sub-type issues
             return {

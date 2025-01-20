@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem } from '../../services/subtype.js';
+import { isSubTypeProblem, SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
@@ -62,8 +62,10 @@ export class MultiplicityType extends Type {
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
+                $result: SubTypeResult,
                 superType,
                 subType: this,
+                result: false,
                 subProblems: [createKindConflict(this, superType)],
             }];
         }
@@ -75,8 +77,10 @@ export class MultiplicityType extends Type {
         } else {
             return [<SubTypeProblem>{
                 $problem: SubTypeProblem,
+                $result: SubTypeResult,
                 superType: this,
                 subType,
+                result: false,
                 subProblems: [createKindConflict(subType, this)],
             }];
         }
@@ -88,8 +92,8 @@ export class MultiplicityType extends Type {
         conflicts.push(...checkValueForConflict(subType.getLowerBound(), superType.getLowerBound(), 'lower bound', this.kind.isBoundGreaterEquals));
         conflicts.push(...checkValueForConflict(subType.getUpperBound(), superType.getUpperBound(), 'upper bound', this.kind.isBoundGreaterEquals));
         // check the constrained type
-        const constrainedTypeConflict = this.kind.services.Subtype.getSubTypeProblem(subType.getConstrainedType(), superType.getConstrainedType());
-        if (constrainedTypeConflict !== undefined) {
+        const constrainedTypeConflict = this.kind.services.Subtype.getSubTypeResult(subType.getConstrainedType(), superType.getConstrainedType());
+        if (isSubTypeProblem(constrainedTypeConflict)) {
             conflicts.push(constrainedTypeConflict);
         }
         return conflicts;
