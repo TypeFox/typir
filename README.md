@@ -40,9 +40,12 @@ Typir provides these core features:
 
 Typir does intentionally _not_ include ...
 
-- Rule engines and constraint solving
+- Rule engines and constraint solving,
+  since type inference is calculate in a recursive manner and does not use unification/substitution
 - Formal proofs
 - External DSLs for formalizing types
+- Support for dynamic type systems, which do typing during the execution of the DSL.
+  Typir aims at static type systems, which do typing during the writing of the DSL.
 
 
 ## NPM workspace
@@ -109,7 +112,7 @@ typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberTyp
 As we'd like to be able to convert numbers to strings implicitly, we add the following line. Note that this will for example make it possible to concatenate numbers and strings with the `+` operator, though it has no signature for a number and a string parameter in the operator definition above.
 
 ```typescript
-typir.Conversion.markAsConvertible(numberType, stringType,'IMPLICIT_EXPLICIT');
+typir.Conversion.markAsConvertible(numberType, stringType, 'IMPLICIT_EXPLICIT');
 ```
 
 Furthermore we can specify how Typir should infer the variable type. We decided that the type of the variable should be the type of its initial value. Typir internally considers the inference rules for primitives and operators as well, when recursively inferring the given AstElement.
