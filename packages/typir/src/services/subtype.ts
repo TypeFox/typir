@@ -159,7 +159,7 @@ export class DefaultSubType implements SubType {
 
         // check for cycles
         if (options.checkForCycles) {
-            const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [SubTypeEdge], edge => edge.cachingInformation === 'LINK_EXISTS');
+            const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [SubTypeEdge]);
             if (hasIntroducedCycle) {
                 throw new Error(`Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`);
             }

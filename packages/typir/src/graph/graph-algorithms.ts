@@ -9,6 +9,10 @@ import { TypeEdge } from './type-edge.js';
 import { TypeGraph } from './type-graph.js';
 import { Type } from './type-node.js';
 
+/**
+ * Graph algorithms to do calculations on the type graph.
+ * All algorithms are robust regarding cycles.
+ */
 export interface GraphAlgorithms {
     collectReachableTypes(from: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): Set<Type>;
     existsEdgePath(from: Type, to: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): boolean;
@@ -30,7 +34,7 @@ export class DefaultGraphAlgorithms implements GraphAlgorithms {
             const current = remainingToCheck.pop()!;
             const outgoingEdges = $relations.flatMap(r => current.getOutgoingEdges(r));
             for (const edge of outgoingEdges) {
-                if (filterEdges === undefined || filterEdges(edge)) {
+                if (edge.cachingInformation === 'LINK_EXISTS' && (filterEdges === undefined || filterEdges(edge))) {
                     if (result.has(edge.to)) {
                         // already checked
                     } else {
@@ -54,7 +58,7 @@ export class DefaultGraphAlgorithms implements GraphAlgorithms {
 
             const outgoingEdges = $relations.flatMap(r => current.getOutgoingEdges(r));
             for (const edge of outgoingEdges) {
-                if (filterEdges === undefined || filterEdges(edge)) {
+                if (edge.cachingInformation === 'LINK_EXISTS' && (filterEdges === undefined || filterEdges(edge))) {
                     if (edge.to === to) {
                         /* It was possible to reach our goal type using this path.
                          * Base case that also catches the case in which start and end are the same
@@ -87,7 +91,7 @@ export class DefaultGraphAlgorithms implements GraphAlgorithms {
 
             const outgoingEdges = $relations.flatMap(r => current.getOutgoingEdges(r));
             for (const edge of outgoingEdges) {
-                if (filterEdges === undefined || filterEdges(edge)) {
+                if (edge.cachingInformation === 'LINK_EXISTS' && (filterEdges === undefined || filterEdges(edge))) {
                     if (edge.to === to) {
                         /* It was possible to reach our goal type using this path.
                          * Base case that also catches the case in which start and end are the same
