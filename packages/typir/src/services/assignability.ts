@@ -8,7 +8,7 @@ import { GraphAlgorithms } from '../graph/graph-algorithms.js';
 import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
-import { ConversionEdge, TypeConversion } from './conversion.js';
+import { ConversionEdge, isConversionEdge, TypeConversion } from './conversion.js';
 import { TypeEquality } from './equality.js';
 import { SubType, SubTypeEdge } from './subtype.js';
 
@@ -89,7 +89,8 @@ export class DefaultTypeAssignability implements TypeAssignability {
         }
 
         // 2. any path of implicit conversion and sub-type relationships
-        const path = this.algorithms.getEdgePath(source, target, [ConversionEdge, SubTypeEdge]);
+        const path = this.algorithms.getEdgePath(source, target, [ConversionEdge, SubTypeEdge],
+            edge => isConversionEdge(edge) ? edge.mode === 'IMPLICIT_EXPLICIT' : true); // no explicit conversion
         if (path.length >= 1) {
             return <AssignabilitySuccess>{
                 $result: AssignabilityResult,

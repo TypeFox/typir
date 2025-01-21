@@ -56,13 +56,6 @@ export interface MarkSubTypeOptions {
  *
  * The sub-type relationship might be direct or indirect (transitive).
  * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself (by definition).
- *
- * In theory, the difference between sub type-relationships and super type-relationships are only switched types.
- * But in practise, the default implementation will ask both involved types (if they have different kinds),
- * whether there is a sub type-relationship respectively a super type-relationship.
- * If at least one type reports a relationship, a sub type-relationship is assumed.
- * This simplifies the implementation of TopTypes and the implementation of new types (or customization of existing types),
- * since unchanged types don't need to be customized to report sub type-relationships accordingly.
  */
 export interface SubType {
     isSubType(subType: Type, superType: Type): boolean;
@@ -75,6 +68,9 @@ export interface SubType {
 
 /**
  * The default implementation for the SubType service.
+ * It assumes that all known types and all their sub-type relationships are explicitly encoded in the type graph.
+ * Cycles in the sub-type relationships are supported,
+ * so that DSL users might accidentally define e.g. classes with cyclic sub-super classes, resulting in validation errors shown to them.
  * This implementation does not cache any computed sub-type-relationships.
  */
 export class DefaultSubType implements SubType {
