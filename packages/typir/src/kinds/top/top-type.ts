@@ -4,14 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
+import { TypeEdge } from '../../graph/type-edge.js';
+import { TypeGraphListener } from '../../graph/type-graph.js';
 import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
-import { TopKind, TopTypeDetails, isTopKind } from './top-kind.js';
-import { TypeGraphListener } from '../../graph/type-graph.js';
-import { TypeEdge } from '../../graph/type-edge.js';
+import { isTopKind, TopKind, TopTypeDetails } from './top-kind.js';
 
 export class TopType extends Type implements TypeGraphListener {
     override readonly kind: TopKind;
@@ -69,27 +68,6 @@ export class TopType extends Type implements TypeGraphListener {
                 subProblems: [createKindConflict(otherType, this)],
             }];
         }
-    }
-
-    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isTopType(superType)) {
-            // special case by definition: TopType is sub-type of TopType
-            return [];
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                $result: SubTypeResult,
-                superType,
-                subType: this,
-                result: false,
-                subProblems: [createKindConflict(superType, this)],
-            }];
-        }
-    }
-
-    override analyzeIsSuperTypeOf(_subType: Type): TypirProblem[] {
-        // a TopType is the super type of all types!
-        return [];
     }
 
 }

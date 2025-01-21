@@ -4,15 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
+import { TypeEdge } from '../../graph/type-edge.js';
+import { TypeGraphListener } from '../../graph/type-graph.js';
 import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
-import { TopClassKind, TopClassTypeDetails, isTopClassKind } from './top-class-kind.js';
 import { isClassType } from './class-type.js';
-import { TypeGraphListener } from '../../graph/type-graph.js';
-import { TypeEdge } from '../../graph/type-edge.js';
+import { isTopClassKind, TopClassKind, TopClassTypeDetails } from './top-class-kind.js';
 
 export class TopClassType extends Type implements TypeGraphListener {
     override readonly kind: TopClassKind;
@@ -68,38 +67,6 @@ export class TopClassType extends Type implements TypeGraphListener {
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(otherType, this)],
-            }];
-        }
-    }
-
-    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isTopClassType(superType)) {
-            // special case by definition: TopClassType is sub-type of TopClassType
-            return [];
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                $result: SubTypeResult,
-                superType,
-                subType: this,
-                result: false,
-                subProblems: [createKindConflict(superType, this)],
-            }];
-        }
-    }
-
-    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
-        // an TopClassType is the super type of all ClassTypes!
-        if (isClassType(subType)) {
-            return [];
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                $result: SubTypeResult,
-                superType: this,
-                subType,
-                result: false,
-                subProblems: [createKindConflict(this, subType)],
             }];
         }
     }

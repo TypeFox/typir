@@ -331,28 +331,6 @@ export abstract class Type {
      */
     abstract analyzeTypeEqualityProblems(otherType: Type): TypirProblem[];
 
-    /**
-     * Analyzes, whether there is a sub type-relationship between two types.
-     * The difference between sub type-relationships and super type-relationships are only switched types.
-     * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself (by definition).
-     *
-     * @param superType the super type, while the current type is the sub type
-     * @returns an empty array, if the relationship exists, otherwise some problems which might point to violations of the investigated relationship.
-     * These problems are presented to users in order to support them with useful information about the result of this analysis.
-     */
-    abstract analyzeIsSubTypeOf(superType: Type): TypirProblem[];
-
-    /**
-     * Analyzes, whether there is a super type-relationship between two types.
-     * The difference between sub type-relationships and super type-relationships are only switched types.
-     * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself (by definition).
-     *
-     * @param subType the sub type, while the current type is super type
-     * @returns an empty array, if the relationship exists, otherwise some problems which might point to violations of the investigated relationship.
-     * These problems are presented to users in order to support them with useful information about the result of this analysis.
-     */
-    abstract analyzeIsSuperTypeOf(subType: Type): TypirProblem[];
-
 
     addIncomingEdge(edge: TypeEdge): void {
         const key = edge.$relation;

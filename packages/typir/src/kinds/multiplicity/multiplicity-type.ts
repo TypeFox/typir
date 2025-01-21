@@ -4,12 +4,12 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { isSubTypeProblem, SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import { isSubTypeProblem } from '../../services/subtype.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
-import { MultiplicityKind, MultiplicityTypeDetails, isMultiplicityKind } from './multiplicity-kind.js';
+import { isMultiplicityKind, MultiplicityKind, MultiplicityTypeDetails } from './multiplicity-kind.js';
 
 export class MultiplicityType extends Type {
     override readonly kind: MultiplicityKind;
@@ -52,36 +52,6 @@ export class MultiplicityType extends Type {
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(otherType, this)],
-            }];
-        }
-    }
-
-    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isMultiplicityType(superType)) {
-            return this.analyzeSubTypeProblems(this, superType);
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                $result: SubTypeResult,
-                superType,
-                subType: this,
-                result: false,
-                subProblems: [createKindConflict(this, superType)],
-            }];
-        }
-    }
-
-    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
-        if (isMultiplicityType(subType)) {
-            return this.analyzeSubTypeProblems(subType, this);
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                $result: SubTypeResult,
-                superType: this,
-                subType,
-                result: false,
-                subProblems: [createKindConflict(subType, this)],
             }];
         }
     }

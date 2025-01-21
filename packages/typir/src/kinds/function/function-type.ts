@@ -4,12 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
 import { Type, isType } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
-import { TypirProblem, NameTypePair } from '../../utils/utils-definitions.js';
-import { checkValueForConflict, checkTypes, checkTypeArrays, createKindConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import { NameTypePair, TypirProblem } from '../../utils/utils-definitions.js';
+import { checkTypeArrays, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertUnreachable } from '../../utils/utils.js';
 import { FunctionKind, FunctionTypeDetails, isFunctionKind } from './function-kind.js';
 
@@ -123,34 +122,6 @@ export class FunctionType extends Type {
                 subProblems: [createKindConflict(otherType, this)],
             }];
         }
-    }
-
-    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isFunctionType(superType)) {
-            return this.analyzeSubTypeProblems(this, superType);
-        }
-        return [<SubTypeProblem>{
-            $problem: SubTypeProblem,
-            $result: SubTypeResult,
-            superType,
-            subType: this,
-            result: false,
-            subProblems: [createKindConflict(this, superType)],
-        }];
-    }
-
-    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
-        if (isFunctionType(subType)) {
-            return this.analyzeSubTypeProblems(subType, this);
-        }
-        return [<SubTypeProblem>{
-            $problem: SubTypeProblem,
-            $result: SubTypeResult,
-            superType: this,
-            subType,
-            result: false,
-            subProblems: [createKindConflict(subType, this)],
-        }];
     }
 
     protected analyzeSubTypeProblems(subType: FunctionType, superType: FunctionType): TypirProblem[] {

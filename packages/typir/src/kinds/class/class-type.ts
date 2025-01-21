@@ -4,13 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
-import { checkNameTypesMap, checkValueForConflict, createKindConflict, IndexedTypeConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { toArray, assertUnreachable } from '../../utils/utils.js';
+import { checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy, IndexedTypeConflict } from '../../utils/utils-type-comparison.js';
+import { assertUnreachable, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
 import { ClassKind, ClassTypeDetails, isClassKind } from './class-kind.js';
 
@@ -178,36 +177,6 @@ export class ClassType extends Type {
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(otherType, this)],
-            }];
-        }
-    }
-
-    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isClassType(superType)) {
-            return this.analyzeSubTypeProblems(this, superType);
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                $result: SubTypeResult,
-                superType,
-                subType: this,
-                result: false,
-                subProblems: [createKindConflict(this, superType)],
-            }];
-        }
-    }
-
-    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
-        if (isClassType(subType)) {
-            return this.analyzeSubTypeProblems(subType, this);
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                $result: SubTypeResult,
-                superType: this,
-                subType,
-                result: false,
-                subProblems: [createKindConflict(subType, this)],
             }];
         }
     }

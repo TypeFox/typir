@@ -4,14 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem, SubTypeResult } from '../../services/subtype.js';
+import { TypeEdge } from '../../graph/type-edge.js';
+import { TypeGraphListener } from '../../graph/type-graph.js';
 import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
 import { BottomKind, BottomTypeDetails, isBottomKind } from './bottom-kind.js';
-import { TypeGraphListener } from '../../graph/type-graph.js';
-import { TypeEdge } from '../../graph/type-edge.js';
 
 export class BottomType extends Type implements TypeGraphListener {
     override readonly kind: BottomKind;
@@ -67,27 +66,6 @@ export class BottomType extends Type implements TypeGraphListener {
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(this, otherType)],
-            }];
-        }
-    }
-
-    override analyzeIsSubTypeOf(_superType: Type): TypirProblem[] {
-        // a BottomType is the sub type of all types!
-        return [];
-    }
-
-    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
-        if (isBottomType(subType)) {
-            // special case by definition: BottomType is sub-type of BottomType
-            return [];
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                $result: SubTypeResult,
-                superType: this,
-                subType: subType,
-                result: false,
-                subProblems: [createKindConflict(this, subType)],
             }];
         }
     }
