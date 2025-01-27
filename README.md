@@ -41,7 +41,7 @@ Typir provides these core features:
 Typir does intentionally _not_ include ...
 
 - Rule engines and constraint solving,
-  since type inference is calculate in a recursive manner and does not use unification/substitution
+  since type inference is calculated in a recursive manner and does not use unification/substitution
 - Formal proofs
 - External DSLs for formalizing types
 - Support for dynamic type systems, which do typing during the execution of the DSL.
