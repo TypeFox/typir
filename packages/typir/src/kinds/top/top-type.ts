@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEdge } from '../../graph/type-edge.js';
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
@@ -38,15 +37,6 @@ export class TopType extends Type implements TypeGraphListener {
 
     onAddedType(type: Type, _key: string): void {
         this.markAsSubType(type);
-    }
-    onRemovedType(_type: Type, _key: string): void {
-        // empty
-    }
-    onAddedEdge(_edge: TypeEdge): void {
-        // empty
-    }
-    onRemovedEdge(_edge: TypeEdge): void {
-        // empty
     }
 
     override getName(): string {

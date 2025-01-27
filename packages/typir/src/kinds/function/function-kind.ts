@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEdge } from '../../graph/type-edge.js';
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
@@ -270,10 +269,6 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
 
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
-
-    onAddedType(_newType: Type, _key: string): void {
-        // do nothing
-    }
     onRemovedType(type: Type, _key: string): void {
         if (isFunctionType(type)) {
             const overloads = this.mapNameTypes.get(type.functionName);
@@ -286,12 +281,6 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                 // its inference rule is removed by the CompositeTypeInferenceRule => nothing to do here
             }
         }
-    }
-    onAddedEdge(_edge: TypeEdge): void {
-        // do nothing
-    }
-    onRemovedEdge(_edge: TypeEdge): void {
-        // do nothing
     }
 
 

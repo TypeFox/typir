@@ -5,7 +5,6 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { isType, Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
@@ -311,10 +310,6 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
-
-    onAddedType(_newType: Type, _key: string): void {
-        // do nothing
-    }
     onRemovedType(type: Type, _key: string): void {
         const key = this.getBoundToTypeKey(type);
         const rulesToRemove = this.inferenceRules.get(key);
@@ -322,12 +317,6 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         this.inferenceRules.delete(key);
         // inform listeners about removed inference rules
         (rulesToRemove ?? []).forEach(rule => this.listeners.forEach(listener => listener.removedInferenceRule(rule, type)));
-    }
-    onAddedEdge(_edge: TypeEdge): void {
-        // do nothing
-    }
-    onRemovedEdge(_edge: TypeEdge): void {
-        // do nothing
     }
 
 

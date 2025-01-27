@@ -43,7 +43,7 @@ export class TypeGraph {
             }
         } else {
             this.nodes.set(mapKey, type);
-            this.listeners.forEach(listener => listener.onAddedType(type, mapKey));
+            this.listeners.forEach(listener => listener.onAddedType?.call(listener, type, mapKey));
         }
     }
 
@@ -63,7 +63,7 @@ export class TypeGraph {
         // remove the type itself
         const contained = this.nodes.delete(mapKey);
         if (contained) {
-            this.listeners.slice().forEach(listener => listener.onRemovedType(typeToRemove, mapKey));
+            this.listeners.slice().forEach(listener => listener.onRemovedType?.call(listener, typeToRemove, mapKey));
             typeToRemove.dispose();
         } else {
             throw new Error(`Type does not exist: ${mapKey}`);
@@ -94,7 +94,7 @@ export class TypeGraph {
         edge.to.addIncomingEdge(edge);
         edge.from.addOutgoingEdge(edge);
 
-        this.listeners.forEach(listener => listener.onAddedEdge(edge));
+        this.listeners.forEach(listener => listener.onAddedEdge?.call(listener, edge));
     }
 
     removeEdge(edge: TypeEdge): void {
@@ -105,7 +105,7 @@ export class TypeGraph {
         const index = this.edges.indexOf(edge);
         if (index >= 0) {
             this.edges.splice(index, 1);
-            this.listeners.forEach(listener => listener.onRemovedEdge(edge));
+            this.listeners.forEach(listener => listener.onRemovedEdge?.call(listener, edge));
         } else {
             throw new Error(`Edge does not exist: ${edge.$relation}`);
         }
@@ -138,9 +138,9 @@ export class TypeGraph {
 
 }
 
-export interface TypeGraphListener {
+export type TypeGraphListener = Partial<{
     onAddedType(type: Type, key: string): void;
     onRemovedType(type: Type, key: string): void;
     onAddedEdge(edge: TypeEdge): void;
     onRemovedEdge(edge: TypeEdge): void;
-}
+}>

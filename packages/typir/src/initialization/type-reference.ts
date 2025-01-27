@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
 import { TypeInferenceCollectorListener, TypeInferenceRule } from '../services/inference.js';
@@ -145,13 +144,6 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
             // start resolving the type again
             this.startResolving();
         }
-    }
-
-    onAddedEdge(_edge: TypeEdge): void {
-        // only types are relevant
-    }
-    onRemovedEdge(_edge: TypeEdge): void {
-        // only types are relevant
     }
 
     addedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
