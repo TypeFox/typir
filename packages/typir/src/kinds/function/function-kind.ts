@@ -271,10 +271,10 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
 
-    addedType(_newType: Type, _key: string): void {
+    onAddedType(_newType: Type, _key: string): void {
         // do nothing
     }
-    removedType(type: Type, _key: string): void {
+    onRemovedType(type: Type, _key: string): void {
         if (isFunctionType(type)) {
             const overloads = this.mapNameTypes.get(type.functionName);
             if (overloads) {
@@ -287,10 +287,10 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
             }
         }
     }
-    addedEdge(_edge: TypeEdge): void {
+    onAddedEdge(_edge: TypeEdge): void {
         // do nothing
     }
-    removedEdge(_edge: TypeEdge): void {
+    onRemovedEdge(_edge: TypeEdge): void {
         // do nothing
     }
 

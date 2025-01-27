@@ -108,7 +108,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
         this.documentTypesMap.delete(documentKey);
     }
 
-    addedType(newType: Type): void {
+    onAddedType(newType: Type): void {
         // the TypeGraph notifies about newly created Types
         if (this.currentDocumentKey) {
             // associate the new type with the current Langium document!
@@ -123,13 +123,13 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
         }
     }
 
-    removedType(_type: Type): void {
+    onRemovedType(_type: Type): void {
         // since this type creator actively removes types from the type graph itself, there is no need to react on removed types
     }
-    addedEdge(_edge: TypeEdge): void {
+    onAddedEdge(_edge: TypeEdge): void {
         // this type creator does not care about edges => do nothing
     }
-    removedEdge(_edge: TypeEdge): void {
+    onRemovedEdge(_edge: TypeEdge): void {
         // this type creator does not care about edges => do nothing
     }
 }

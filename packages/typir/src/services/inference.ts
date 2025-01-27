@@ -312,10 +312,10 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
 
-    addedType(_newType: Type, _key: string): void {
+    onAddedType(_newType: Type, _key: string): void {
         // do nothing
     }
-    removedType(type: Type, _key: string): void {
+    onRemovedType(type: Type, _key: string): void {
         const key = this.getBoundToTypeKey(type);
         const rulesToRemove = this.inferenceRules.get(key);
         // remove the inference rules associated to the deleted type
@@ -323,10 +323,10 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         // inform listeners about removed inference rules
         (rulesToRemove ?? []).forEach(rule => this.listeners.forEach(listener => listener.removedInferenceRule(rule, type)));
     }
-    addedEdge(_edge: TypeEdge): void {
+    onAddedEdge(_edge: TypeEdge): void {
         // do nothing
     }
-    removedEdge(_edge: TypeEdge): void {
+    onRemovedEdge(_edge: TypeEdge): void {
         // do nothing
     }
 

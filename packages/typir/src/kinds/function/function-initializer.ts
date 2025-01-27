@@ -66,7 +66,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         return this.initialFunctionType;
     }
 
-    switchedToIdentifiable(functionType: Type): void {
+    onSwitchedToIdentifiable(functionType: Type): void {
         const functionName = this.typeDetails.functionName;
         assertType(functionType, isFunctionType);
         const readyFunctionType = this.producedType(functionType);
@@ -101,11 +101,11 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         });
     }
 
-    switchedToCompleted(functionType: Type): void {
+    onSwitchedToCompleted(functionType: Type): void {
         functionType.removeListener(this);
     }
 
-    switchedToInvalid(_functionType: Type): void {
+    onSwitchedToInvalid(_functionType: Type): void {
         // nothing specific needs to be done for Functions here, since the base implementation takes already care about all relevant stuff
     }
 

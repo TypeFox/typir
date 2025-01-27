@@ -259,17 +259,17 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
 
     /* Get informed about deleted types in order to remove validation rules which are bound to them. */
 
-    addedType(_newType: Type, _key: string): void {
+    onAddedType(_newType: Type, _key: string): void {
         // do nothing
     }
-    removedType(type: Type, _key: string): void {
+    onRemovedType(type: Type, _key: string): void {
         this.validationRules.delete(this.getBoundToTypeKey(type));
         this.validationRulesBeforeAfter.delete(this.getBoundToTypeKey(type));
     }
-    addedEdge(_edge: TypeEdge): void {
+    onAddedEdge(_edge: TypeEdge): void {
         // do nothing
     }
-    removedEdge(_edge: TypeEdge): void {
+    onRemovedEdge(_edge: TypeEdge): void {
         // do nothing
     }
 }

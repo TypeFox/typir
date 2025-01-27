@@ -36,16 +36,16 @@ export class BottomType extends Type implements TypeGraphListener {
         }
     }
 
-    addedType(type: Type, _key: string): void {
+    onAddedType(type: Type, _key: string): void {
         this.markAsSubType(type);
     }
-    removedType(_type: Type, _key: string): void {
+    onRemovedType(_type: Type, _key: string): void {
         // empty
     }
-    addedEdge(_edge: TypeEdge): void {
+    onAddedEdge(_edge: TypeEdge): void {
         // empty
     }
-    removedEdge(_edge: TypeEdge): void {
+    onRemovedEdge(_edge: TypeEdge): void {
         // empty
     }
 
