@@ -71,6 +71,26 @@ export class StringLiteral extends TestExpressionNode {
     ) { super(); }
 }
 
+// some predefined literals
+export const integer2 = new IntegerLiteral(2);
+export const integer3 = new IntegerLiteral(3);
+export const integer123 = new IntegerLiteral(123);
+export const integer456 = new IntegerLiteral(456);
+
+export const double123_0 = new DoubleLiteral(123.0);
+export const double456_0 = new DoubleLiteral(456.0);
+export const double2_0 = new DoubleLiteral(2.0);
+export const double3_0 = new DoubleLiteral(3.0);
+
+export const booleanTrue = new BooleanLiteral(true);
+export const booleanFalse = new BooleanLiteral(false);
+
+export const string123 = new StringLiteral('123');
+export const string456 = new StringLiteral('456');
+export const string2 = new StringLiteral('2');
+export const string3 = new StringLiteral('3');
+
+
 export class BinaryExpression extends TestExpressionNode {
     constructor(
         public left: TestExpressionNode,
@@ -83,7 +103,7 @@ export class BinaryExpression extends TestExpressionNode {
 export class Variable extends TestLanguageNode {
     constructor(
         public name: string,
-        public initialValue: TestExpressionNode,
+        public initialValue: TestExpressionNode, // the type of this initialization expression is used as type of the variable
     ) { super(); }
 }
 

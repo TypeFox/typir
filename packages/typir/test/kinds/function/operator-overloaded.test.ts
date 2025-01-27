@@ -10,7 +10,7 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import { assertTrue, ConversionEdge, isAssignabilitySuccess, isPrimitiveType, isType, SubTypeEdge } from '../../../src/index.js';
 import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
 import { ValidationMessageDetails } from '../../../src/services/validation.js';
-import { AssignmentStatement, BinaryExpression, BooleanLiteral, DoubleLiteral, InferenceRuleBinaryExpression, IntegerLiteral, StringLiteral, TestExpressionNode, Variable } from '../../../src/test/predefined-language-nodes.js';
+import { AssignmentStatement, BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, double123_0, double2_0, double3_0, double456_0, DoubleLiteral, InferenceRuleBinaryExpression, integer123, integer2, integer3, integer456, IntegerLiteral, string123, string2, string3, string456, StringLiteral, TestExpressionNode, Variable } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting, expectToBeType } from '../../../src/utils/test-utils.js';
 
@@ -60,55 +60,55 @@ describe('Multiple best matches for overloaded operators', () => {
 
     describe('tests all cases for assignability and the checks the found assignability paths', () => {
         test('integer to integer', () => {
-            expectAssignmentValid(new IntegerLiteral(123), new IntegerLiteral(456));
+            expectAssignmentValid(integer123, integer456);
         });
         test('double to integer', () => {
-            expectAssignmentError(new DoubleLiteral(123.0), new IntegerLiteral(456));
+            expectAssignmentError(double123_0, integer456);
         });
         test('string to integer', () => {
-            expectAssignmentError(new StringLiteral('123'), new IntegerLiteral(456));
+            expectAssignmentError(string123, integer456);
         });
         test('boolean to integer', () => {
-            expectAssignmentValid(new BooleanLiteral(true), new IntegerLiteral(456), 'ConversionEdge');
+            expectAssignmentValid(booleanTrue, integer456, 'ConversionEdge');
         });
 
         test('integer to double', () => {
-            expectAssignmentValid(new IntegerLiteral(123), new DoubleLiteral(456.0), 'SubTypeEdge');
+            expectAssignmentValid(integer123, double456_0, 'SubTypeEdge');
         });
         test('double to double', () => {
-            expectAssignmentValid(new DoubleLiteral(123.0), new DoubleLiteral(456.0));
+            expectAssignmentValid(double123_0, double456_0);
         });
         test('string to double', () => {
-            expectAssignmentError(new StringLiteral('123'), new DoubleLiteral(456.0));
+            expectAssignmentError(string123, double456_0);
         });
         test('boolean to double', () => {
-            expectAssignmentValid(new BooleanLiteral(true), new DoubleLiteral(456.0), 'ConversionEdge', 'SubTypeEdge');
+            expectAssignmentValid(booleanTrue, double456_0, 'ConversionEdge', 'SubTypeEdge');
         });
 
         test('integer to string', () => {
-            expectAssignmentValid(new IntegerLiteral(123), new StringLiteral('456'), 'SubTypeEdge', 'ConversionEdge');
+            expectAssignmentValid(integer123, string456, 'SubTypeEdge', 'ConversionEdge');
         });
         test('double to string', () => {
-            expectAssignmentValid(new DoubleLiteral(123.0), new StringLiteral('456'), 'ConversionEdge');
+            expectAssignmentValid(double123_0, string456, 'ConversionEdge');
         });
         test('string to string', () => {
-            expectAssignmentValid(new StringLiteral('123'), new StringLiteral('456'));
+            expectAssignmentValid(string123, string456);
         });
         test('boolean to string', () => {
-            expectAssignmentValid(new BooleanLiteral(true), new StringLiteral('456'), 'ConversionEdge', 'SubTypeEdge', 'ConversionEdge');
+            expectAssignmentValid(booleanTrue, string456, 'ConversionEdge', 'SubTypeEdge', 'ConversionEdge');
         });
 
         test('integer to boolean', () => {
-            expectAssignmentError(new IntegerLiteral(123), new BooleanLiteral(false));
+            expectAssignmentError(integer123, booleanFalse);
         });
         test('double to boolean', () => {
-            expectAssignmentError(new DoubleLiteral(123.0), new BooleanLiteral(false));
+            expectAssignmentError(double123_0, booleanFalse);
         });
         test('string to boolean', () => {
-            expectAssignmentError(new StringLiteral('123'), new BooleanLiteral(false));
+            expectAssignmentError(string123, booleanFalse);
         });
         test('boolean to boolean', () => {
-            expectAssignmentValid(new BooleanLiteral(true), new BooleanLiteral(false));
+            expectAssignmentValid(booleanTrue, booleanFalse);
         });
 
 
@@ -154,35 +154,35 @@ describe('Multiple best matches for overloaded operators', () => {
 
     describe('Test multiple matches for overloaded operators and ensures that the best match is chosen', () => {
         test('2 + 3 => both are integers', () => {
-            expectOverload(new IntegerLiteral(2), new IntegerLiteral(3), 'integer');
+            expectOverload(integer2, integer3, 'integer');
         });
 
         test('2.0 + 3.0 => both are doubles', () => {
-            expectOverload(new DoubleLiteral(2.0), new DoubleLiteral(3.0), 'double');
+            expectOverload(double2_0, double3_0, 'double');
         });
 
         test('"2" + "3" => both are strings', () => {
-            expectOverload(new StringLiteral('2'), new StringLiteral('3'), 'string');
+            expectOverload(string2, string3, 'string');
         });
 
         test('TRUE + FALSE => both are booleans', () => {
-            expectOverload(new BooleanLiteral(true), new BooleanLiteral(false), 'boolean');
+            expectOverload(booleanTrue, booleanFalse, 'boolean');
         });
 
         test('2 + TRUE => convert boolean to integer', () => {
-            expectOverload(new IntegerLiteral(2), new BooleanLiteral(true), 'integer');
+            expectOverload(integer2, booleanTrue, 'integer');
         });
 
         test('2.0 + 3 => integers are doubles', () => {
-            expectOverload(new DoubleLiteral(2.0), new IntegerLiteral(3), 'double');
+            expectOverload(double2_0, integer3, 'double');
         });
 
         test('2.0 + "3" => convert double to string', () => {
-            expectOverload(new DoubleLiteral(2.0), new StringLiteral('3'), 'string');
+            expectOverload(double2_0, string3, 'string');
         });
 
         test('2 + "3" => integer is sub-type of double, which is convertible to string', () => {
-            expectOverload(new IntegerLiteral(2), new StringLiteral('3'), 'string');
+            expectOverload(integer2, string3, 'string');
         });
 
 
