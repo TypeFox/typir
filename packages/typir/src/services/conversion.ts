@@ -9,7 +9,6 @@ import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { toArray } from '../utils/utils.js';
 import { TypeEquality } from './equality.js';
 
 /**
@@ -50,7 +49,7 @@ export interface TypeConversion {
      * @param mode the desired conversion relationship between the two given types
      * @throws an error, if a cycle was introduced
      */
-    markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionModeForSpecification): void;
+    markAsConvertible(from: Type, to: Type, mode: ConversionModeForSpecification): void;
 
     /**
      * Identifies the existing conversion relationship between two given types.
@@ -121,17 +120,7 @@ export class DefaultTypeConversion implements TypeConversion {
         this.algorithms = services.infrastructure.GraphAlgorithms;
     }
 
-    markAsConvertible(from: Type | Type[], to: Type | Type[], mode: ConversionModeForSpecification): void {
-        const allFrom = toArray(from);
-        const allTo = toArray(to);
-        for (const f of allFrom) {
-            for (const t of allTo) {
-                this.markAsConvertibleSingle(f, t, mode);
-            }
-        }
-    }
-
-    protected markAsConvertibleSingle(from: Type, to: Type, mode: ConversionModeForSpecification): void {
+    markAsConvertible(from: Type, to: Type, mode: ConversionModeForSpecification): void {
         let edge = this.getConversionEdge(from, to);
         if (!edge) {
             // create a missing edge (with the desired mode)

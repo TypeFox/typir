@@ -10,7 +10,6 @@ import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
-import { toArray } from '../utils/utils.js';
 
 export interface SubTypeProblem extends TypirProblem {
     $problem: 'SubTypeProblem';
@@ -62,7 +61,7 @@ export interface SubType {
     getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined;
     getSubTypeResult(subType: Type, superType: Type): SubTypeResult;
 
-    markAsSubType(subType: Type | Type[], superType: Type | Type[], options?: Partial<MarkSubTypeOptions>): void;
+    markAsSubType(subType: Type, superType: Type, options?: Partial<MarkSubTypeOptions>): void;
 }
 
 
@@ -118,17 +117,6 @@ export class DefaultSubType implements SubType {
         return from.getOutgoingEdges<SubTypeEdge>(SubTypeEdge).find(edge => edge.to === to);
     }
 
-    markAsSubType(subType: Type | Type[], superType: Type | Type[], options?: Partial<MarkSubTypeOptions>): void {
-        const allSub = toArray(subType);
-        const allSuper = toArray(superType);
-        const actualOptions = this.collectMarkSubTypeOptions(options);
-        for (const subT of allSub) {
-            for (const superT of allSuper) {
-                this.markAsSubTypeSingle(subT, superT, actualOptions);
-            }
-        }
-    }
-
     protected collectMarkSubTypeOptions(options?: Partial<MarkSubTypeOptions>): MarkSubTypeOptions {
         return {
             // the default values:
@@ -138,7 +126,8 @@ export class DefaultSubType implements SubType {
         };
     }
 
-    protected markAsSubTypeSingle(subType: Type, superType: Type, options: MarkSubTypeOptions): void {
+    markAsSubType(subType: Type, superType: Type, options: MarkSubTypeOptions): void {
+        const actualOptions = this.collectMarkSubTypeOptions(options);
         let edge = this.getSubTypeEdge(subType, superType);
         if (!edge) {
             edge = {
@@ -154,7 +143,7 @@ export class DefaultSubType implements SubType {
         }
 
         // check for cycles
-        if (options.checkForCycles) {
+        if (actualOptions.checkForCycles) {
             const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [SubTypeEdge]);
             if (hasIntroducedCycle) {
                 throw new Error(`Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`);

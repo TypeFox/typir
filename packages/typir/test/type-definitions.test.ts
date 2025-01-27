@@ -89,8 +89,7 @@ describe('Tests for Typir', () => {
         const opTernaryIf = typir.factory.Operators.createTernary({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } });
 
         // automated conversion from int to string
-        // it is possible to define multiple sources and/or targets at the same time:
-        typir.Conversion.markAsConvertible([typeInt, typeInt], [typeString, typeString, typeString], 'EXPLICIT');
+        typir.Conversion.markAsConvertible(typeInt, typeString, 'EXPLICIT');
         // single relationships are possible as well
         typir.Conversion.markAsConvertible(typeInt, typeString, 'IMPLICIT_EXPLICIT');
 
