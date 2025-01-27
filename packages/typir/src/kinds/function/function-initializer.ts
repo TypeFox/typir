@@ -349,28 +349,29 @@ export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInference
         } else {
             // multiple matches => determine the one to return
 
-            // 1. sort the found matches
-            matchingOverloads.sort((l, r) => this.compareMatchingOverloads(l, r));
-
-            // 2. identify the best matches at the beginning of the list
-            let index = 1;
-            while (index < matchingOverloads.length) {
-                if (this.compareMatchingOverloads(matchingOverloads[index - 1], matchingOverloads[index]) === 0) {
-                    index++; // same priority
+            // 1. identify and collect the best matches
+            const bestMatches: OverloadedMatch[] = [ matchingOverloads[0] ];
+            for (let i = 1; i < matchingOverloads.length; i++) {
+                const currentMatch = matchingOverloads[i];
+                const comparison = this.compareMatchingOverloads(bestMatches[0], currentMatch);
+                if (comparison < 0) {
+                    // the existing matches are better than the current one => keep the existing best matches
+                } else if (comparison > 0) {
+                    // the current match is better than the already collect ones => replace the existing best matches by the current one
+                    bestMatches.splice(0, bestMatches.length, currentMatch);
                 } else {
-                    break; // lower priority => skip them
+                    // the current and the existing matches are both good => collect both
+                    bestMatches.push(currentMatch);
                 }
             }
-            matchingOverloads.splice(index); // keep only the matches with the same highest priority
-            // TODO review: should we make this implementation more efficient?
 
-            // 3. evaluate remaining best matches
-            if (matchingOverloads.length === 0) {
+            // 2. evaluate the remaining best matches
+            if (bestMatches.length === 0) {
                 // return the single remaining match
-                return matchingOverloads[0].result;
+                return bestMatches[0].result;
             } else {
                 // decide how to deal with multiple best matches
-                const result = this.handleMultipleBestMatches(matchingOverloads);
+                const result = this.handleMultipleBestMatches(bestMatches);
                 if (result) {
                     // return the chosen match
                     return result.result;
@@ -379,7 +380,7 @@ export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInference
                     return [{
                         $problem: InferenceProblem,
                         languageNode: languageNode,
-                        location: `Found ${matchingOverloads.length} best matching overloads: ${matchingOverloads.map(m => m.result.getIdentifier()).join(', ')}`,
+                        location: `Found ${bestMatches.length} best matching overloads: ${bestMatches.map(m => m.result.getIdentifier()).join(', ')}`,
                         subProblems: [], // there are no real sub-problems, since the relevant overloads match ...
                     }];
                 }
