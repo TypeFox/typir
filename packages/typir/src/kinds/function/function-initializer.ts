@@ -228,39 +228,37 @@ class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferringChil
 
     inferTypeWithoutChildren(languageNode: unknown, _typir: TypirServices): unknown {
         this.assignabilitySuccess.fill(undefined); // reset the entries
+        // 1. Does the filter of the inference rule accept the current language node?
         const result = this.typeDetails.inferenceRuleForCalls!.filter(languageNode);
-        if (result) {
-            const matching = this.typeDetails.inferenceRuleForCalls!.matching(languageNode);
-            if (matching) {
-                const inputArguments = this.typeDetails.inferenceRuleForCalls!.inputArguments(languageNode);
-                if (inputArguments && inputArguments.length >= 1) {
-                    // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-                    const overloadInfos = this.mapNameTypes.get(this.typeDetails.functionName);
-                    if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
-                        // (only) for overloaded functions:
-                        if (overloadInfos.sameOutputType) {
-                            // exception: all(!) overloaded functions have the same(!) output type, save performance and return this type!
-                            return overloadInfos.sameOutputType;
-                        } else {
-                            // otherwise: the types of the parameters need to be inferred in order to determine an exact match
-                            return inputArguments;
-                        }
-                    } else {
-                        // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
-                        return this.check(this.getOutputTypeForFunctionCalls());
-                    }
-                } else {
-                    // there are no operands to check
-                    return this.check(this.getOutputTypeForFunctionCalls());
-                }
-            } else {
-                // the language node is slightly different
-            }
-        } else {
+        if (!result) {
             // the language node has a completely different purpose
+            return InferenceRuleNotApplicable;
         }
-        // does not match at all
-        return InferenceRuleNotApplicable;
+        // 2. Does the inference rule match this language node?
+        const matching = this.typeDetails.inferenceRuleForCalls!.matching(languageNode);
+        if (!matching) {
+            // the language node is slightly different
+            return InferenceRuleNotApplicable;
+        }
+        // 3. Check whether the current arguments fit to the expected parameter types
+        const inputArguments = this.typeDetails.inferenceRuleForCalls!.inputArguments(languageNode);
+        if (inputArguments.length <= 0) {
+            // there are no operands to check
+            return this.check(this.getOutputTypeForFunctionCalls());
+        }
+        // at least one operand => this function type might match, to be sure, resolve the types of the values for the parameters
+        const overloadInfos = this.mapNameTypes.get(this.typeDetails.functionName);
+        if (overloadInfos === undefined || overloadInfos.overloadedFunctions.length <= 1) {
+            // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
+            return this.check(this.getOutputTypeForFunctionCalls());
+        }
+        // two or more overloaded functions
+        if (overloadInfos.sameOutputType) {
+            // exception: all(!) overloaded functions have the same(!) output type, save performance and return this type!
+            return overloadInfos.sameOutputType;
+        }
+        // the types of the parameters need to be inferred in order to determine an exact match
+        return inputArguments;
     }
 
     inferTypeWithChildrensTypes(languageNode: unknown, actualInputTypes: Array<Type | undefined>, typir: TypirServices): Type | InferenceProblem {
