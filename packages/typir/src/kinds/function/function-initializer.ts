@@ -46,7 +46,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         } else {
             const overloaded: OverloadedFunctionDetails = {
                 overloadedFunctions: [],
-                inference: new OverloadedFunctionsTypeInferenceRule(this.services),
+                inference: this.createInferenceRuleForOverloads(),
                 sameOutputType: undefined,
             };
             this.kind.mapNameTypes.set(functionName, overloaded);
@@ -60,6 +60,10 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         this.registerInferenceRules(functionName, undefined);
 
         this.initialFunctionType.addListener(this, true);
+    }
+
+    protected createInferenceRuleForOverloads(): CompositeTypeInferenceRule {
+        return new OverloadedFunctionsTypeInferenceRule(this.services);
     }
 
     override getTypeInitial(): FunctionType {
@@ -208,7 +212,11 @@ interface FunctionInferenceRules {
 }
 
 
-/** Preconditions:
+/**
+ * Dedicated inference rule for calls of a single function signature.
+ * It takes into account, that all parameters match and provides information, how parameters are matching ('assignabilitySuccess').
+ *
+ * Preconditions:
  * - there is a rule which specifies how to infer the current function type
  * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
  *   (exception: the options contain a type to return in this special case)
@@ -310,6 +318,12 @@ class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferringChil
 }
 
 
+/**
+ * Custom inference rule for functions, which consists of one inference rule for each overload/signature for a function with same name.
+ * When deadling with multiple inference rules, usually the first successful inference rule is applied and following inference rules are ignored.
+ * In order to deal with multiple matching inference rules for overloaded functions,
+ * all available inference rules need to be executed and all successful inference rules need to be collected.
+ */
 export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInferenceRule {
 
     protected override inferTypeLogic(languageNode: unknown): Type | InferenceProblem[] {

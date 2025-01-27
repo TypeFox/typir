@@ -14,7 +14,7 @@ export function assertTrue(condition: boolean, msg?: string): asserts condition 
 }
 
 export function toArray<T>(value: undefined | T | T[]): T[] {
-    if (!value) {
+    if (value === undefined) {
         return [];
     }
     if (Array.isArray(value)) {

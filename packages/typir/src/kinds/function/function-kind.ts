@@ -9,12 +9,13 @@ import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
+import { CompositeTypeInferenceRule } from '../../services/inference.js';
 import { ValidationProblem } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { NameTypePair } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy, checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { Kind, isKind } from '../kind.js';
-import { FunctionTypeInitializer, OverloadedFunctionsTypeInferenceRule } from './function-initializer.js';
+import { FunctionTypeInitializer } from './function-initializer.js';
 import { FunctionType, isFunctionType } from './function-type.js';
 
 
@@ -64,7 +65,7 @@ export interface CreateFunctionTypeDetails<T> extends FunctionTypeDetails {
 export interface OverloadedFunctionDetails {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     overloadedFunctions: Array<SingleFunctionDetails<any>>;
-    inference: OverloadedFunctionsTypeInferenceRule; // collects the inference rules for all functions with the same name
+    inference: CompositeTypeInferenceRule; // collects the inference rules for all functions with the same name
     sameOutputType: Type | undefined; // if all overloaded functions with the same name have the same output/return type, this type is remembered here (for performance optimization)
 }
 
