@@ -7,24 +7,28 @@
 /* eslint-disable @typescript-eslint/parameter-properties */
 
 import { beforeAll, describe, expect, test } from 'vitest';
-import { assertTrue, ConversionEdge, isAssignabilitySuccess, isPrimitiveType, isType, SubTypeEdge } from '../../../src/index.js';
+import { assertTrue, ConversionEdge, isAssignabilityProblem, isAssignabilitySuccess, isPrimitiveType, PrimitiveType, SubTypeEdge, Type } from '../../../src/index.js';
 import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
 import { ValidationMessageDetails } from '../../../src/services/validation.js';
-import { AssignmentStatement, BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, double123_0, double2_0, double3_0, double456_0, DoubleLiteral, InferenceRuleBinaryExpression, integer123, integer2, integer3, integer456, IntegerLiteral, string123, string2, string3, string456, StringLiteral, TestExpressionNode, Variable } from '../../../src/test/predefined-language-nodes.js';
+import { AssignmentStatement, BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, double2_0, double3_0, DoubleLiteral, InferenceRuleBinaryExpression, integer2, integer3, IntegerLiteral, string2, string3, StringLiteral, TestExpressionNode, Variable } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting, expectToBeType } from '../../../src/utils/test-utils.js';
 
 describe('Multiple best matches for overloaded operators', () => {
     let typir: TypirServices;
+    let integerType: PrimitiveType;
+    let doubleType: PrimitiveType;
+    let stringType: PrimitiveType;
+    let booleanType: PrimitiveType;
 
     beforeAll(() => {
         typir = createTypirServicesForTesting();
 
         // primitive types
-        const integerType = typir.factory.Primitives.create({ primitiveName: 'integer', inferenceRules: node => node instanceof IntegerLiteral });
-        const doubleType = typir.factory.Primitives.create({ primitiveName: 'double', inferenceRules: node => node instanceof DoubleLiteral });
-        const stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
-        const booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean', inferenceRules: node => node instanceof BooleanLiteral });
+        integerType = typir.factory.Primitives.create({ primitiveName: 'integer', inferenceRules: node => node instanceof IntegerLiteral });
+        doubleType = typir.factory.Primitives.create({ primitiveName: 'double', inferenceRules: node => node instanceof DoubleLiteral });
+        stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
+        booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean', inferenceRules: node => node instanceof BooleanLiteral });
 
         // operators
         typir.factory.Operators.createBinary({ name: '+', signatures: [ // operator overloading
@@ -60,70 +64,61 @@ describe('Multiple best matches for overloaded operators', () => {
 
     describe('tests all cases for assignability and the checks the found assignability paths', () => {
         test('integer to integer', () => {
-            expectAssignmentValid(integer123, integer456);
+            expectAssignmentValid(integerType, integerType);
         });
         test('double to integer', () => {
-            expectAssignmentError(double123_0, integer456);
+            expectAssignmentError(doubleType, integerType);
         });
         test('string to integer', () => {
-            expectAssignmentError(string123, integer456);
+            expectAssignmentError(stringType, integerType);
         });
         test('boolean to integer', () => {
-            expectAssignmentValid(booleanTrue, integer456, 'ConversionEdge');
+            expectAssignmentValid(booleanType, integerType, 'ConversionEdge');
         });
 
         test('integer to double', () => {
-            expectAssignmentValid(integer123, double456_0, 'SubTypeEdge');
+            expectAssignmentValid(integerType, doubleType, 'SubTypeEdge');
         });
         test('double to double', () => {
-            expectAssignmentValid(double123_0, double456_0);
+            expectAssignmentValid(doubleType, doubleType);
         });
         test('string to double', () => {
-            expectAssignmentError(string123, double456_0);
+            expectAssignmentError(stringType, doubleType);
         });
         test('boolean to double', () => {
-            expectAssignmentValid(booleanTrue, double456_0, 'ConversionEdge', 'SubTypeEdge');
+            expectAssignmentValid(booleanType, doubleType, 'ConversionEdge', 'SubTypeEdge');
         });
 
         test('integer to string', () => {
-            expectAssignmentValid(integer123, string456, 'SubTypeEdge', 'ConversionEdge');
+            expectAssignmentValid(integerType, stringType, 'SubTypeEdge', 'ConversionEdge');
         });
         test('double to string', () => {
-            expectAssignmentValid(double123_0, string456, 'ConversionEdge');
+            expectAssignmentValid(doubleType, stringType, 'ConversionEdge');
         });
         test('string to string', () => {
-            expectAssignmentValid(string123, string456);
+            expectAssignmentValid(stringType, stringType);
         });
         test('boolean to string', () => {
-            expectAssignmentValid(booleanTrue, string456, 'ConversionEdge', 'SubTypeEdge', 'ConversionEdge');
+            expectAssignmentValid(booleanType, stringType, 'ConversionEdge', 'SubTypeEdge', 'ConversionEdge');
         });
 
         test('integer to boolean', () => {
-            expectAssignmentError(integer123, booleanFalse);
+            expectAssignmentError(integerType, booleanType);
         });
         test('double to boolean', () => {
-            expectAssignmentError(double123_0, booleanFalse);
+            expectAssignmentError(doubleType, booleanType);
         });
         test('string to boolean', () => {
-            expectAssignmentError(string123, booleanFalse);
+            expectAssignmentError(stringType, booleanType);
         });
         test('boolean to boolean', () => {
-            expectAssignmentValid(booleanTrue, booleanFalse);
+            expectAssignmentValid(booleanType, booleanType);
         });
 
 
-        function expectAssignmentValid(value: TestExpressionNode, variableInitType: TestExpressionNode, ...expectedPath: Array<SubTypeEdge['$relation']|ConversionEdge['$relation']>): void {
-            const variable = new Variable('v1', variableInitType);
-            const assignment = new AssignmentStatement(variable, value);
-            expect(typir.validation.Collector.validate(assignment)).toHaveLength(0);
-
-            // do type inference
-            const valueType = typir.Inference.inferType(value);
-            assertTrue(isType(valueType));
-            const variableType = typir.Inference.inferType(variable);
-            assertTrue(isType(variableType));
+        function expectAssignmentValid(sourceType: Type, targetType: Type, ...expectedPath: Array<SubTypeEdge['$relation']|ConversionEdge['$relation']>): void {
             // check the resulting assignability path
-            const assignabilityResult = typir.Assignability.getAssignabilityResult(valueType, variableType);
+            const assignabilityResult = typir.Assignability.getAssignabilityResult(sourceType, targetType);
             assertTrue(isAssignabilitySuccess(assignabilityResult));
             const actualPath = assignabilityResult.path;
             const msg = `Actual assignability path is ${actualPath.map(e => e.$relation).join(' --> ')}.`;
@@ -137,17 +132,14 @@ describe('Multiple best matches for overloaded operators', () => {
             }
             // check beginning and end of the path
             if (actualPath.length >= 1) {
-                expect(actualPath[0].from).toBe(valueType);
-                expect(actualPath[actualPath.length - 1].to).toBe(variableType);
+                expect(actualPath[0].from).toBe(sourceType);
+                expect(actualPath[actualPath.length - 1].to).toBe(targetType);
             }
         }
 
-        function expectAssignmentError(value: TestExpressionNode, variableInitType: TestExpressionNode): void {
-            const variable = new Variable('v1', variableInitType);
-            const assignment = new AssignmentStatement(variable, value);
-            const errors = typir.validation.Collector.validate(assignment);
-            expect(errors).toHaveLength(1);
-            expect(errors[0].message).includes('is not assignable to');
+        function expectAssignmentError(sourceType: Type, targetType: Type): void {
+            const assignabilityResult = typir.Assignability.getAssignabilityResult(sourceType, targetType);
+            assertTrue(isAssignabilityProblem(assignabilityResult));
         }
     });
 
