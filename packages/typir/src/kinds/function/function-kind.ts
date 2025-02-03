@@ -142,7 +142,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         this.options = this.collectOptions(options);
 
         // register Validations for input arguments of function calls (must be done here to support overloaded functions)
-        this.services.validation.Collector.addValidationRule(
+        this.services.validation.Collector.addValidationRule( // this validation rule exists "for ever", since it validates all function types
             (languageNode, typir) => {
                 const resultAll: ValidationProblem[] = [];
                 for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
