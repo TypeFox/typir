@@ -4,12 +4,12 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import { isSubTypeProblem } from '../../services/subtype.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
-import { MultiplicityKind, MultiplicityTypeDetails, isMultiplicityKind } from './multiplicity-kind.js';
+import { isMultiplicityKind, MultiplicityKind, MultiplicityTypeDetails } from './multiplicity-kind.js';
 
 export class MultiplicityType extends Type {
     override readonly kind: MultiplicityKind;
@@ -56,40 +56,14 @@ export class MultiplicityType extends Type {
         }
     }
 
-    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isMultiplicityType(superType)) {
-            return this.analyzeSubTypeProblems(this, superType);
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                superType,
-                subType: this,
-                subProblems: [createKindConflict(this, superType)],
-            }];
-        }
-    }
-
-    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
-        if (isMultiplicityType(subType)) {
-            return this.analyzeSubTypeProblems(subType, this);
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                superType: this,
-                subType,
-                subProblems: [createKindConflict(subType, this)],
-            }];
-        }
-    }
-
     protected analyzeSubTypeProblems(subType: MultiplicityType, superType: MultiplicityType): TypirProblem[] {
         const conflicts: TypirProblem[] = [];
         // check the multiplicities
         conflicts.push(...checkValueForConflict(subType.getLowerBound(), superType.getLowerBound(), 'lower bound', this.kind.isBoundGreaterEquals));
         conflicts.push(...checkValueForConflict(subType.getUpperBound(), superType.getUpperBound(), 'upper bound', this.kind.isBoundGreaterEquals));
         // check the constrained type
-        const constrainedTypeConflict = this.kind.services.Subtype.getSubTypeProblem(subType.getConstrainedType(), superType.getConstrainedType());
-        if (constrainedTypeConflict !== undefined) {
+        const constrainedTypeConflict = this.kind.services.Subtype.getSubTypeResult(subType.getConstrainedType(), superType.getConstrainedType());
+        if (isSubTypeProblem(constrainedTypeConflict)) {
             conflicts.push(constrainedTypeConflict);
         }
         return conflicts;

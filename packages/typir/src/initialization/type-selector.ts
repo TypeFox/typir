@@ -23,7 +23,7 @@ export type BasicTypeSelector =
  */
 export type TypeSelector =
     | BasicTypeSelector             // all base type selectors
-    | (() => BasicTypeSelector)    // all type selectors might be given as functions as well, in order to ease delayed specifications
+    | (() => BasicTypeSelector)     // all type selectors might be given as functions as well, in order to ease delayed specifications
     ;
 
 
@@ -33,7 +33,7 @@ export interface TypeResolvingService {
      * This method does not care about the initialization state of the found type,
      * this method is restricted to just search and find any type according to the given TypeSelector.
      * @param selector the specification for the desired type
-     * @returns the found type or undefined, it there is no such type in the type system
+     * @returns the found type; or undefined, if there is no such type in the type system
      */
     tryToResolve<T extends Type = Type>(selector: TypeSelector): T | undefined;
 

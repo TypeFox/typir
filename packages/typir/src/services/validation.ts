@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
@@ -258,18 +257,8 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
     }
 
     /* Get informed about deleted types in order to remove validation rules which are bound to them. */
-
-    addedType(_newType: Type, _key: string): void {
-        // do nothing
-    }
-    removedType(type: Type, _key: string): void {
+    onRemovedType(type: Type, _key: string): void {
         this.validationRules.delete(this.getBoundToTypeKey(type));
         this.validationRulesBeforeAfter.delete(this.getBoundToTypeKey(type));
-    }
-    addedEdge(_edge: TypeEdge): void {
-        // do nothing
-    }
-    removedEdge(_edge: TypeEdge): void {
-        // do nothing
     }
 }

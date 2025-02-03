@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
 import { TypeInferenceCollectorListener, TypeInferenceRule } from '../services/inference.js';
@@ -132,12 +131,12 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
     }
 
 
-    addedType(_addedType: Type, _key: string): void {
+    onAddedType(_addedType: Type, _key: string): void {
         // after adding a new type, try to resolve the type
         this.resolve(); // possible performance optimization: is it possible to do this more performant by looking at the "addedType"?
     }
 
-    removedType(removedType: Type, _key: string): void {
+    onRemovedType(removedType: Type, _key: string): void {
         // the resolved type of this TypeReference is removed!
         if (removedType === this.resolvedType) {
             // notify observers, that the type reference is broken
@@ -145,13 +144,6 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
             // start resolving the type again
             this.startResolving();
         }
-    }
-
-    addedEdge(_edge: TypeEdge): void {
-        // only types are relevant
-    }
-    removedEdge(_edge: TypeEdge): void {
-        // only types are relevant
     }
 
     addedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {

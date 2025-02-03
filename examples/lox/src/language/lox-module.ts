@@ -18,7 +18,7 @@ import { LoxLinker } from './lox-linker.js';
  */
 export type LoxAddedServices = {
     validation: {
-        LoxValidator: LoxValidator
+        LoxValidator: LoxValidator,
     },
     typir: LangiumServicesForTypirBinding,
 }
@@ -38,7 +38,7 @@ export function createLoxModule(shared: LangiumSharedCoreServices): Module<LoxSe
     return {
         validation: {
             ValidationRegistry: (services) => new LoxValidationRegistry(services),
-            LoxValidator: () => new LoxValidator()
+            LoxValidator: () => new LoxValidator(),
         },
         // For type checking with Typir, inject and merge these modules:
         typir: () => inject(Module.merge(
@@ -73,7 +73,7 @@ export function createLoxServices(context: DefaultSharedModuleContext): {
 } {
     const shared = inject(
         createDefaultSharedModule(context),
-        LoxGeneratedSharedModule
+        LoxGeneratedSharedModule,
     );
     const Lox = inject(
         createDefaultCoreModule({ shared }),

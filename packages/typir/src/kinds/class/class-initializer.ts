@@ -38,7 +38,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         this.initialClassType.addListener(this, true); // trigger directly, if some initialization states are already reached!
     }
 
-    switchedToIdentifiable(classType: Type): void {
+    onSwitchedToIdentifiable(classType: Type): void {
         /* Important explanations:
          * - This logic here (and 'producedType(...)') ensures, that the same ClassType is not registered twice in the type graph.
          * - By waiting untile the new class has its identifier, 'producedType(...)' is able to check, whether this class type is already existing!
@@ -74,7 +74,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         }
     }
 
-    switchedToCompleted(classType: Type): void {
+    onSwitchedToCompleted(classType: Type): void {
         // If there is no inference rule for the declaration of a class, such a class is probably a library or builtIn class.
         // Therefore, no validation errors can be shown for the classes and exceptions are thrown instead.
         if (this.typeDetails.inferenceRuleForDeclaration === null) {
@@ -88,7 +88,7 @@ export class ClassTypeInitializer<T = unknown, T1 = unknown, T2 = unknown> exten
         classType.removeListener(this);
     }
 
-    switchedToInvalid(_previousClassType: Type): void {
+    onSwitchedToInvalid(_previousClassType: Type): void {
         // nothing specific needs to be done for Classes here, since the base implementation takes already care about all relevant stuff
     }
 

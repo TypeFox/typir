@@ -4,21 +4,40 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem } from '../../services/subtype.js';
+import { TypeGraphListener } from '../../graph/type-graph.js';
 import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
-import { TopClassKind, TopClassTypeDetails, isTopClassKind } from './top-class-kind.js';
 import { isClassType } from './class-type.js';
+import { isTopClassKind, TopClassKind, TopClassTypeDetails } from './top-class-kind.js';
 
-export class TopClassType extends Type {
+export class TopClassType extends Type implements TypeGraphListener {
     override readonly kind: TopClassKind;
 
     constructor(kind: TopClassKind, identifier: string, typeDetails: TopClassTypeDetails) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions
+
+        // ensure, that all (other) Class types are a sub-type of this TopClass type:
+        const graph = kind.services.infrastructure.Graph;
+        graph.getAllRegisteredTypes().forEach(t => this.markAsSubType(t)); // the already existing types
+        graph.addListener(this); // all upcomping types
+    }
+
+    override dispose(): void {
+        this.kind.services.infrastructure.Graph.removeListener(this);
+    }
+
+    protected markAsSubType(type: Type): void {
+        if (type !== this && isClassType(type)) {
+            this.kind.services.Subtype.markAsSubType(type, this, { checkForCycles: false });
+        }
+    }
+
+    onAddedType(type: Type, _key: string): void {
+        this.markAsSubType(type);
     }
 
     override getName(): string {
@@ -38,34 +57,6 @@ export class TopClassType extends Type {
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(otherType, this)],
-            }];
-        }
-    }
-
-    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isTopClassType(superType)) {
-            // special case by definition: TopClassType is sub-type of TopClassType
-            return [];
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                superType,
-                subType: this,
-                subProblems: [createKindConflict(superType, this)],
-            }];
-        }
-    }
-
-    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
-        // an TopClassType is the super type of all ClassTypes!
-        if (isClassType(subType)) {
-            return [];
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                superType: this,
-                subType,
-                subProblems: [createKindConflict(this, subType)],
             }];
         }
     }

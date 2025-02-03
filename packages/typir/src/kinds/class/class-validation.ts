@@ -181,7 +181,7 @@ export class UniqueMethodValidation<T> implements ValidationRuleWithBeforeAfter 
 /**
  * Predefined validation to produce errors for all those class declarations, whose class type have cycles in their super-classes.
  * @param isRelevant helps to filter out declarations of classes in the user AST,
- * is parameter is the reasons, why this validation cannot be registered by default by Typir for classes, since this parameter is DSL-specific
+ * this parameter is the reason, why this validation cannot be registered by default by Typir for classes, since this parameter is DSL-specific
  * @returns a validation rule which checks for any class declaration/type, whether they have no cycles in their sub-super-class-relationships
  */
 export function createNoSuperClassCyclesValidation(isRelevant: (languageNode: unknown) => boolean): ValidationRule {

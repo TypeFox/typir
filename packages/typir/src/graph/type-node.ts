@@ -165,11 +165,11 @@ export abstract class Type {
                     // don't inform about the Invalid state!
                     break;
                 case 'Identifiable':
-                    newListeners.switchedToIdentifiable(this);
+                    newListeners.onSwitchedToIdentifiable(this);
                     break;
                 case 'Completed':
-                    newListeners.switchedToIdentifiable(this); // inform about both Identifiable and Completed!
-                    newListeners.switchedToCompleted(this);
+                    newListeners.onSwitchedToIdentifiable(this); // inform about both Identifiable and Completed!
+                    newListeners.onSwitchedToCompleted(this);
                     break;
                 default:
                     assertUnreachable(currentState);
@@ -298,21 +298,21 @@ export abstract class Type {
         this.assertState('Invalid');
         this.onIdentification();
         this.initializationState = 'Identifiable';
-        this.stateListeners.slice().forEach(listener => listener.switchedToIdentifiable(this)); // slice() prevents issues with removal of listeners during notifications
+        this.stateListeners.slice().forEach(listener => listener.onSwitchedToIdentifiable(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromIdentifiableToCompleted(): void {
         this.assertState('Identifiable');
         this.onCompletion();
         this.initializationState = 'Completed';
-        this.stateListeners.slice().forEach(listener => listener.switchedToCompleted(this)); // slice() prevents issues with removal of listeners during notifications
+        this.stateListeners.slice().forEach(listener => listener.onSwitchedToCompleted(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromCompleteOrIdentifiableToInvalid(): void {
         if (this.isNotInState('Invalid')) {
             this.onInvalidation();
             this.initializationState = 'Invalid';
-            this.stateListeners.slice().forEach(listener => listener.switchedToInvalid(this)); // slice() prevents issues with removal of listeners during notifications
+            this.stateListeners.slice().forEach(listener => listener.onSwitchedToInvalid(this)); // slice() prevents issues with removal of listeners during notifications
             // add the types again, since the initialization process started again
             this.waitForIdentifiable.addTypesToIgnoreForCycles(new Set([this]));
             this.waitForCompleted.addTypesToIgnoreForCycles(new Set([this]));
@@ -330,28 +330,6 @@ export abstract class Type {
      * These problems are presented to users in order to support them with useful information about the result of this analysis.
      */
     abstract analyzeTypeEqualityProblems(otherType: Type): TypirProblem[];
-
-    /**
-     * Analyzes, whether there is a sub type-relationship between two types.
-     * The difference between sub type-relationships and super type-relationships are only switched types.
-     * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself (by definition).
-     *
-     * @param superType the super type, while the current type is the sub type
-     * @returns an empty array, if the relationship exists, otherwise some problems which might point to violations of the investigated relationship.
-     * These problems are presented to users in order to support them with useful information about the result of this analysis.
-     */
-    abstract analyzeIsSubTypeOf(superType: Type): TypirProblem[];
-
-    /**
-     * Analyzes, whether there is a super type-relationship between two types.
-     * The difference between sub type-relationships and super type-relationships are only switched types.
-     * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself (by definition).
-     *
-     * @param subType the sub type, while the current type is super type
-     * @returns an empty array, if the relationship exists, otherwise some problems which might point to violations of the investigated relationship.
-     * These problems are presented to users in order to support them with useful information about the result of this analysis.
-     */
-    abstract analyzeIsSuperTypeOf(subType: Type): TypirProblem[];
 
 
     addIncomingEdge(edge: TypeEdge): void {
@@ -435,7 +413,7 @@ export function isType(type: unknown): type is Type {
 
 
 export interface TypeStateListener {
-    switchedToInvalid(type: Type): void;
-    switchedToIdentifiable(type: Type): void;
-    switchedToCompleted(type: Type): void;
+    onSwitchedToInvalid(type: Type): void;
+    onSwitchedToIdentifiable(type: Type): void;
+    onSwitchedToCompleted(type: Type): void;
 }

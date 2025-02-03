@@ -4,13 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { SubTypeProblem } from '../../services/subtype.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
-import { checkNameTypesMap, checkValueForConflict, createKindConflict, IndexedTypeConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { toArray, assertUnreachable } from '../../utils/utils.js';
+import { checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy, IndexedTypeConflict } from '../../utils/utils-type-comparison.js';
+import { assertUnreachable, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
 import { ClassKind, ClassTypeDetails, isClassKind } from './class-kind.js';
 
@@ -55,13 +54,16 @@ export class ClassType extends Type {
             const superRef = new TypeReference<ClassType>(superr, kind.services);
             superRef.addListener({
                 onTypeReferenceResolved(_reference, superType) {
-                    // after the super-class is complete, register this class as sub-class for that super-class
-                    superType.subClasses.push(thisType);
+                    // after the super-class is complete ...
+                    superType.subClasses.push(thisType); // register this class as sub-class for that super-class
+                    kind.services.Subtype.markAsSubType(thisType, superType, // register the sub-type relationship in the type graph
+                        { checkForCycles: false }); // ignore cycles in sub-super-class relationships for now, since they are reported with a dedicated validation for the user
                 },
                 onTypeReferenceInvalidated(_reference, superType) {
                     if (superType) {
-                        // if the superType gets invalid, de-register this class as sub-class of the super-class
-                        superType.subClasses.splice(superType.subClasses.indexOf(thisType), 1);
+                        // if the superType gets invalid ...
+                        superType.subClasses.splice(superType.subClasses.indexOf(thisType), 1); // de-register this class as sub-class of the super-class
+                        // TODO unmark sub-type relationship (or already done automatically, since the type is removed from the graph?? gibt es noch andere Möglichkeiten eine Reference zu invalidieren außer dass der Type entfernt wurde??)
                     } else {
                         // initially do nothing
                     }
@@ -175,32 +177,6 @@ export class ClassType extends Type {
                 type1: this,
                 type2: otherType,
                 subProblems: [createKindConflict(otherType, this)],
-            }];
-        }
-    }
-
-    override analyzeIsSubTypeOf(superType: Type): TypirProblem[] {
-        if (isClassType(superType)) {
-            return this.analyzeSubTypeProblems(this, superType);
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                superType,
-                subType: this,
-                subProblems: [createKindConflict(this, superType)],
-            }];
-        }
-    }
-
-    override analyzeIsSuperTypeOf(subType: Type): TypirProblem[] {
-        if (isClassType(subType)) {
-            return this.analyzeSubTypeProblems(subType, this);
-        } else {
-            return [<SubTypeProblem>{
-                $problem: SubTypeProblem,
-                superType: this,
-                subType,
-                subProblems: [createKindConflict(subType, this)],
             }];
         }
     }

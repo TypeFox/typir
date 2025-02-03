@@ -142,17 +142,17 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         }
     }
 
-    switchedToIdentifiable(_type: Type): void {
+    onSwitchedToIdentifiable(_type: Type): void {
         // check, whether all TypeReferences are resolved and the resolved types are in the expected state
         this.checkIfFulfilled();
         // TODO is a more performant solution possible, e.g. by counting or using "resolvedType"?
     }
-    switchedToCompleted(_type: Type): void {
+    onSwitchedToCompleted(_type: Type): void {
         // check, whether all TypeReferences are resolved and the resolved types are in the expected state
         this.checkIfFulfilled();
         // TODO is a more performant solution possible, e.g. by counting or using "resolvedType"?
     }
-    switchedToInvalid(_type: Type): void {
+    onSwitchedToInvalid(_type: Type): void {
         // since at least one TypeReference was reset, the listeners might be informed (again), when all TypeReferences reached the desired state (again)
         this.switchToNotFulfilled();
     }

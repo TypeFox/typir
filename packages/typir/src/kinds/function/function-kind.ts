@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEdge } from '../../graph/type-edge.js';
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
@@ -59,12 +58,15 @@ export interface CreateFunctionTypeDetails<T> extends FunctionTypeDetails {
     validationForCall?: FunctionCallValidationRule<T>,
 }
 
-/** Collects all functions with the same name */
-interface OverloadedFunctionDetails {
+/**
+ * Collects information about all functions with the same name.
+ * This is required to handle overloaded functions.
+ */
+export interface OverloadedFunctionDetails {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     overloadedFunctions: Array<SingleFunctionDetails<any>>;
     inference: CompositeTypeInferenceRule; // collects the inference rules for all functions with the same name
-    sameOutputType: Type | undefined; // if all overloaded functions with the same name have the same output/return type, this type is remembered here
+    sameOutputType: Type | undefined; // if all overloaded functions with the same name have the same output/return type, this type is remembered here (for performance optimization)
 }
 
 interface SingleFunctionDetails<T> {
@@ -268,11 +270,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
 
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
-
-    addedType(_newType: Type, _key: string): void {
-        // do nothing
-    }
-    removedType(type: Type, _key: string): void {
+    onRemovedType(type: Type, _key: string): void {
         if (isFunctionType(type)) {
             const overloads = this.mapNameTypes.get(type.functionName);
             if (overloads) {
@@ -284,12 +282,6 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                 // its inference rule is removed by the CompositeTypeInferenceRule => nothing to do here
             }
         }
-    }
-    addedEdge(_edge: TypeEdge): void {
-        // do nothing
-    }
-    removedEdge(_edge: TypeEdge): void {
-        // do nothing
     }
 
 

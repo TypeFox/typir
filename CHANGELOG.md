@@ -4,19 +4,35 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
 
-## v0.1.2 (December 2024)
+## v0.2.0 (upcoming)
+
+### New features
+
+- Users of Typir are able to explicitly define sub-type relationships via the `SubTypeService` (#58)
+- Arbitrary paths of implicit conversion and sub-type relationships are considered for assignability now (#58)
+- Control the behaviour in case of multiple matching overloads of functions (and operators) (#58)
+- Moved the existing graph algorithms into its own dedicated service in order to reuse and to customize them (#58)
+
+### Breaking changes
+
+- `TypeConversion.markAsConvertible` accepts only one type for source and target now in order to simplify the API (#58)
+- Methods in listeners (`TypeGraphListener`, `TypeStateListener`) are prefixed with `on` (#58)
+
+
+## v0.1.2 (2024-12-20)
 
 - Replaced absolute paths in READMEs by relative paths, which is a requirement for correct links on NPM
+- Edit: Note that the tag for this release was accidentally added on the branch `jm/v0.1.2`, not on the `main` branch.
 
 
-## v0.1.1 (December 2024)
+## v0.1.1 (2024-12-20)
 
 - Improved the READMEs in the packages `typir` and `typir-langium`.
 - Improved the CONTRIBUTING.md.
 - Improved source code for Tiny Typir in `api-example.test.ts`.
 
 
-## v0.1.0 (December 2024)
+## v0.1.0 (2024-12-20)
 
 This is the first official release of Typir.
 It serves as first version to experiment with Typir and to gather feedback to guide and improve the upcoming versions. We are looking forward to your feedback!
