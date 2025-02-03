@@ -16,7 +16,9 @@ import { DefaultLangiumTypirValidator, LangiumTypirValidator, registerTypirValid
  * in order to be used e.g. for scoping/linking in Langium.
  */
 export type TypirLangiumServices = {
-    readonly TypeValidation: LangiumTypirValidator,
+    readonly validation: {
+        readonly TypeValidation: LangiumTypirValidator,
+    };
     readonly TypeCreator: LangiumTypeCreator,
 }
 
@@ -42,7 +44,9 @@ export function createLangiumSpecificTypirServicesModule(langiumServices: Langiu
 
 export function createDefaultTypirLangiumServices(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, TypirLangiumServices> {
     return {
-        TypeValidation: (typirServices) => new DefaultLangiumTypirValidator(typirServices),
+        validation: {
+            TypeValidation: (typirServices) => new DefaultLangiumTypirValidator(typirServices),
+        },
         TypeCreator: (typirServices) => new PlaceholderLangiumTypeCreator(typirServices, langiumServices),
     };
 }

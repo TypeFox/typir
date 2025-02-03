@@ -5,12 +5,12 @@
  ******************************************************************************/
 
 import { AstNode, LangiumDefaultCoreServices, ValidationAcceptor, ValidationChecks } from 'langium';
-import { TypirServices, ValidationProblem } from 'typir';
+import { TypirServices, ValidationProblem, ValidationRule } from 'typir';
 import { LangiumServicesForTypirBinding } from '../typir-langium.js';
 
 export function registerTypirValidationChecks(langiumServices: LangiumDefaultCoreServices, typirServices: LangiumServicesForTypirBinding) {
     const registry = langiumServices.validation.ValidationRegistry;
-    const validator = typirServices.TypeValidation;
+    const validator = typirServices.validation.TypeValidation;
     registry.registerBeforeDocument(validator.checkTypingProblemsWithTypirBeforeDocument, validator);
     const checks: ValidationChecks<object> = {
         AstNode: validator.checkTypingProblemsWithTypir, // checking each node is not performant, improve the API, see below!
