@@ -31,11 +31,25 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
     return isSpecificTypirProblem(problem, ValidationProblem);
 }
 
-export type ValidationRule<T = unknown> = (languageNode: T, typir: TypirServices) => ValidationProblem[];
+export type ValidationRule<LanguageType = unknown, RootType = LanguageType> =
+    | ValidationRuleStateless<LanguageType>
+    | ValidationRuleWithBeforeAfter<LanguageType, RootType>;
 
+/**
+ * Describes a simple, state-less validation rule,
+ * which might produce an unlimited number of problems.
+ */
+export type ValidationRuleStateless<LanguageType = unknown> = (languageNode: LanguageType, typir: TypirServices) => ValidationProblem[];
+
+/**
+ * Describes a complex validation rule which has a state.
+ * 'beforeValidation' can be used to set-up some data structures like a map,
+ * in order to store some information which are calculated during 'validation',
+ * which are finally evaluated in 'afterValidation'.
+ */
 export interface ValidationRuleWithBeforeAfter<LanguageType = unknown, RootType = LanguageType> {
     beforeValidation(languageRoot: RootType, typir: TypirServices): ValidationProblem[];
-    validation: ValidationRule<LanguageType>;
+    validation: ValidationRuleStateless<LanguageType>;
     afterValidation(languageRoot: RootType, typir: TypirServices): ValidationProblem[];
 }
 
@@ -152,22 +166,13 @@ export interface ValidationCollector<LanguageType = unknown, RootType = Language
      * @param boundToType an optional type, if the new validation rule is dedicated for exactly this type.
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
-    addValidationRule(rule: ValidationRule<LanguageType>, boundToType?: Type): void;
-    removeValidationRule(rule: ValidationRule<LanguageType>, boundToType?: Type): void;
-
-    /**
-     * Registers a validation rule which will be called once before and once after the whole validation.
-     * @param rule a new validation rule
-     * @param boundToType an optional type, if the new validation rule is dedicated for exactly this type.
-     * If the given type is removed from the type system, this rule will be automatically removed as well.
-     */
-    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<LanguageType, RootType>, boundToType?: Type): void;
-    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<LanguageType, RootType>, boundToType?: Type): void;
+    addValidationRule(rule: ValidationRule<LanguageType, RootType>, boundToType?: Type): void;
+    removeValidationRule(rule: ValidationRule<LanguageType, RootType>, boundToType?: Type): void;
 }
 
 export class DefaultValidationCollector<LanguageType = unknown, RootType = LanguageType> implements ValidationCollector<LanguageType, RootType>, TypeGraphListener {
     protected readonly services: TypirServices;
-    protected readonly validationRules: Map<string, Array<ValidationRule<LanguageType>>> = new Map(); // type identifier (otherwise '') -> validation rules
+    protected readonly validationRulesStateless: Map<string, Array<ValidationRuleStateless<LanguageType>>> = new Map(); // type identifier (otherwise '') -> validation rules
     protected readonly validationRulesBeforeAfter: Map<string, Array<ValidationRuleWithBeforeAfter<LanguageType, RootType>>> = new Map(); // type identifier (otherwise '') -> validation rules
 
     constructor(services: TypirServices) {
@@ -187,7 +192,7 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
 
     validate(languageNode: LanguageType): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
-        for (const rules of this.validationRules.values()) {
+        for (const rules of this.validationRulesStateless.values()) {
             for (const rule of rules) {
                 problems.push(...rule(languageNode, this.services));
             }
@@ -210,44 +215,42 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
         return problems;
     }
 
-    addValidationRule(rule: ValidationRule<LanguageType>, boundToType?: Type): void {
+    addValidationRule(rule: ValidationRule<LanguageType, RootType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
-        let rules = this.validationRules.get(key);
-        if (!rules) {
-            rules = [];
-            this.validationRules.set(key, rules);
-        }
-        rules.push(rule);
-    }
-
-    removeValidationRule(rule: ValidationRule<LanguageType>, boundToType?: Type): void {
-        const key = this.getBoundToTypeKey(boundToType);
-        const rules = this.validationRules.get(key);
-        if (rules) {
-            const index = rules.indexOf(rule);
-            if (index >= 0) {
-                rules.splice(index, 1);
+        if (typeof rule === 'function') {
+            let rules = this.validationRulesStateless.get(key);
+            if (!rules) {
+                rules = [];
+                this.validationRulesStateless.set(key, rules);
             }
+            rules.push(rule);
+        } else {
+            let rules = this.validationRulesBeforeAfter.get(key);
+            if (!rules) {
+                rules = [];
+                this.validationRulesBeforeAfter.set(key, rules);
+            }
+            rules.push(rule);
         }
     }
 
-    addValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<LanguageType, RootType>, boundToType?: Type): void {
+    removeValidationRule(rule: ValidationRule<LanguageType, RootType>, boundToType?: Type): void {
         const key = this.getBoundToTypeKey(boundToType);
-        let rules = this.validationRulesBeforeAfter.get(key);
-        if (!rules) {
-            rules = [];
-            this.validationRulesBeforeAfter.set(key, rules);
-        }
-        rules.push(rule);
-    }
-
-    removeValidationRuleWithBeforeAndAfter(rule: ValidationRuleWithBeforeAfter<LanguageType, RootType>, boundToType?: Type): void {
-        const key = this.getBoundToTypeKey(boundToType);
-        const rules = this.validationRulesBeforeAfter.get(key);
-        if (rules) {
-            const index = rules.indexOf(rule);
-            if (index >= 0) {
-                rules.splice(index, 1);
+        if (typeof rule === 'function') {
+            const rules = this.validationRulesStateless.get(key);
+            if (rules) {
+                const index = rules.indexOf(rule);
+                if (index >= 0) {
+                    rules.splice(index, 1);
+                }
+            }
+        } else {
+            const rules = this.validationRulesBeforeAfter.get(key);
+            if (rules) {
+                const index = rules.indexOf(rule);
+                if (index >= 0) {
+                    rules.splice(index, 1);
+                }
             }
         }
     }
@@ -258,7 +261,7 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
 
     /* Get informed about deleted types in order to remove validation rules which are bound to them. */
     onRemovedType(type: Type, _key: string): void {
-        this.validationRules.delete(this.getBoundToTypeKey(type));
+        this.validationRulesStateless.delete(this.getBoundToTypeKey(type));
         this.validationRulesBeforeAfter.delete(this.getBoundToTypeKey(type));
     }
 }

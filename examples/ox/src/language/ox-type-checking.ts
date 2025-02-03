@@ -153,7 +153,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         );
 
         // check for unique function declarations
-        this.typir.validation.Collector.addValidationRuleWithBeforeAndAfter(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
+        this.typir.validation.Collector.addValidationRule(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
     }
 
     onNewAstNode(languageNode: AstNode): void {

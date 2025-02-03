@@ -7,7 +7,7 @@
 import { isType, Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../../services/inference.js';
-import { ValidationRule } from '../../services/validation.js';
+import { ValidationRuleStateless } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
 import { assertType } from '../../utils/utils.js';
@@ -206,6 +206,6 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
 
 interface FunctionInferenceRules {
     inferenceForCall?: TypeInferenceRule;
-    validationForCall?: ValidationRule;
+    validationForCall?: ValidationRuleStateless;
     inferenceForDeclaration?: TypeInferenceRule;
 }
