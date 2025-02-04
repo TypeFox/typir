@@ -27,3 +27,7 @@ export async function deleteAllDocuments(services: LangiumSharedCoreServices) {
         docsToDelete // delete all documents
     );
 }
+
+
+/** Generic super type for the Langium-generated XXXAstType. */
+export type LangiumAstTypes = Record<string, AstNode>;

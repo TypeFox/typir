@@ -118,7 +118,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
             overloaded.inference.addInferenceRule(this.inferenceRules.inferenceForCall, functionType);
         }
         if (this.inferenceRules.validationForCall) {
-            this.kind.services.validation.Collector.addValidationRule(this.inferenceRules.validationForCall, functionType);
+            this.kind.services.validation.Collector.addValidationRule(this.inferenceRules.validationForCall, { boundToType: functionType });
         }
         if (this.inferenceRules.inferenceForDeclaration) {
             this.kind.services.Inference.addInferenceRule(this.inferenceRules.inferenceForDeclaration, functionType);
@@ -131,7 +131,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
             overloaded?.inference.removeInferenceRule(this.inferenceRules.inferenceForCall, functionType);
         }
         if (this.inferenceRules.validationForCall) {
-            this.kind.services.validation.Collector.removeValidationRule(this.inferenceRules.validationForCall, functionType);
+            this.kind.services.validation.Collector.removeValidationRule(this.inferenceRules.validationForCall, { boundToType: functionType });
         }
         if (this.inferenceRules.inferenceForDeclaration) {
             this.kind.services.Inference.removeInferenceRule(this.inferenceRules.inferenceForDeclaration, functionType);

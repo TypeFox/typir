@@ -13,11 +13,17 @@ Note that the versions "0.x.0" probably will include breaking changes.
 - Control the behaviour in case of multiple matching overloads of functions (and operators) (#58)
 - Moved the existing graph algorithms into its own dedicated service in order to reuse and to customize them (#58)
 - New service `LanguageService` to provide Typir some static information about the currently type-checked language/DSL
+- Associate validation rules with language keys for an improved performance
+- Typir-Langium: new API to register validations,
+  e.g. `addValidationsRulesForAstNodes({ ReturnStatement: ..., VariableDeclaration: ... })`, see (L)OX for some examples
 
 ### Breaking changes
 
 - `TypeConversion.markAsConvertible` accepts only one type for source and target now in order to simplify the API (#58)
 - Methods in listeners (`TypeGraphListener`, `TypeStateListener`) are prefixed with `on` (#58)
+- Reworked the API to add/remove validation rules in the `ValidationCollector` service:
+  - Additional arguments need to be specified with an options object now
+  - Unified validation API by defining `ValidationRule = ValidationRuleStateless | ValidationRuleWithBeforeAfter` and removed dedicated `add/removeValidationRuleWithBeforeAndAfter` methods accordingly
 
 
 ## v0.1.2 (2024-12-20)

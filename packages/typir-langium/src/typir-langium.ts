@@ -18,9 +18,10 @@ import { DefaultLangiumTypirValidator, DefaultLangiumValidationCollector, Langiu
  */
 export type TypirLangiumServices = {
     readonly validation: {
-        readonly TypeValidation: LangiumTypirValidator,
+        readonly Collector: LangiumValidationCollector; // concretizes the ValidationCollector for Langium
+        readonly TypeValidation: LangiumTypirValidator;
     };
-    readonly TypeCreator: LangiumTypeCreator,
+    readonly TypeCreator: LangiumTypeCreator;
 }
 
 export type LangiumServicesForTypirBinding = TypirServices & TypirLangiumServices
@@ -47,6 +48,7 @@ export function createLangiumSpecificTypirServicesModule(langiumServices: Langiu
 export function createDefaultTypirLangiumServices(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, TypirLangiumServices> {
     return {
         validation: {
+            Collector: (typirServices) => new DefaultLangiumValidationCollector(typirServices),
             TypeValidation: (typirServices) => new DefaultLangiumTypirValidator(typirServices),
         },
         TypeCreator: (typirServices) => new PlaceholderLangiumTypeCreator(typirServices, langiumServices),

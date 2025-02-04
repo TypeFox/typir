@@ -146,33 +146,35 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         });
 
         // some explicit validations for typing issues with Typir (replaces corresponding functions in the OxValidator!)
-        this.typir.validation.Collector.addValidationRule(
-            (node: unknown, typir: TypirServices) => {
-                if (isIfStatement(node) || isWhileStatement(node) || isForStatement(node)) {
-                    return typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool,
-                        () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
+        this.typir.validation.Collector.addValidationRulesForAstNodes<LoxAstType>({
+            ForStatement: validateCondition,
+            IfStatement: validateCondition,
+            ReturnStatement: (node, typir) => {
+                const callableDeclaration: FunctionDeclaration | MethodMember | undefined = AstUtils.getContainerOfType(node, node => isFunctionDeclaration(node) || isMethodMember(node));
+                if (callableDeclaration && callableDeclaration.returnType.primitive && callableDeclaration.returnType.primitive !== 'void' && node.value) {
+                    // the return value must fit to the return type of the function / method
+                    return typir.validation.Constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, (actual, expected) => <ValidationMessageDetails>{
+                        message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
+                        languageProperty: 'value' });
                 }
-                if (isVariableDeclaration(node)) {
-                    return [
-                        ...typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid,
-                            () => <ValidationMessageDetails>{ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' }),
-                        ...typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, (actual, expected) => <ValidationMessageDetails>{
-                            message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
-                            languageProperty: 'value' }),
-                    ];
-                }
-                if (isReturnStatement(node)) {
-                    const callableDeclaration: FunctionDeclaration | MethodMember | undefined = AstUtils.getContainerOfType(node, node => isFunctionDeclaration(node) || isMethodMember(node));
-                    if (callableDeclaration && callableDeclaration.returnType.primitive && callableDeclaration.returnType.primitive !== 'void' && node.value) {
-                        // the return value must fit to the return type of the function / method
-                        return typir.validation.Constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, (actual, expected) => <ValidationMessageDetails>{
-                            message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
-                            languageProperty: 'value' });
-                    }
-                }
-                return [];
-            }
-        );
+                return []; // TODO Review: this line is a bit ugly, is there a way to get rid of it?
+            },
+            VariableDeclaration: (node, typir) => {
+                return [
+                    ...typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid,
+                        () => <ValidationMessageDetails>{ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' }),
+                    ...typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, (actual, expected) => <ValidationMessageDetails>{
+                        message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
+                        languageProperty: 'value' }),
+                ];
+            },
+            WhileStatement: validateCondition,
+        });
+        function validateCondition(node: IfStatement | WhileStatement | ForStatement, typir: TypirServices): ValidationProblem[] {
+            return typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool,
+                () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
+        }
+        // TODO Review: Should all checks be moved into functions? Should all these validations moved into another file?
 
         // check for unique function declarations
         this.typir.validation.Collector.addValidationRule(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
