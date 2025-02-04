@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { EdgeCachingInformation } from '../services/caching.js';
-import { assertTrue } from '../utils/utils.js';
+import { assertTrue, removeFromArray } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 import { Type } from './type-node.js';
 
@@ -102,9 +102,7 @@ export class TypeGraph {
         edge.to.removeIncomingEdge(edge);
         edge.from.removeOutgoingEdge(edge);
 
-        const index = this.edges.indexOf(edge);
-        if (index >= 0) {
-            this.edges.splice(index, 1);
+        if (removeFromArray(edge, this.edges)) {
             this.listeners.forEach(listener => listener.onRemovedEdge?.call(listener, edge));
         } else {
             throw new Error(`Edge does not exist: ${edge.$relation}`);
@@ -127,10 +125,7 @@ export class TypeGraph {
         this.listeners.push(listener);
     }
     removeListener(listener: TypeGraphListener): void {
-        const index = this.listeners.indexOf(listener);
-        if (index >= 0) {
-            this.listeners.splice(index, 1);
-        }
+        removeFromArray(listener, this.listeners);
     }
 
 

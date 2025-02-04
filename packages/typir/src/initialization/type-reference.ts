@@ -8,6 +8,7 @@ import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
 import { TypeInferenceCollectorListener, TypeInferenceRule } from '../services/inference.js';
 import { TypirServices } from '../typir.js';
+import { removeFromArray } from '../utils/utils.js';
 import { TypeSelector } from './type-selector.js';
 
 /**
@@ -124,10 +125,7 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
     }
 
     removeListener(listener: TypeReferenceListener<T>): void {
-        const index = this.listeners.indexOf(listener);
-        if (index >= 0) {
-            this.listeners.splice(index, 1);
-        }
+        removeFromArray(listener, this.listeners);
     }
 
 

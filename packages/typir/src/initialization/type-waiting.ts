@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type, TypeStateListener } from '../graph/type-node.js';
-import { toArray } from '../utils/utils.js';
+import { removeFromArray, toArray } from '../utils/utils.js';
 import { TypeReferenceListener, TypeReference } from './type-reference.js';
 
 export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<T extends Type = Type> {
@@ -74,10 +74,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
     }
 
     removeListener(listenerToRemove: WaitingForIdentifiableAndCompletedTypeReferencesListener<T>): void {
-        const index = this.listeners.indexOf(listenerToRemove);
-        if (index >= 0) {
-            this.listeners.splice(index, 1);
-        }
+        removeFromArray(listenerToRemove, this.listeners);
     }
 
     /**
@@ -238,10 +235,7 @@ export class WaitingForInvalidTypeReferences<T extends Type = Type> implements T
     }
 
     removeListener(listenerToRemove: WaitingForInvalidTypeReferencesListener<T>): void {
-        const index = this.listeners.indexOf(listenerToRemove);
-        if (index >= 0) {
-            this.listeners.splice(index, 1);
-        }
+        removeFromArray(listenerToRemove, this.listeners);
     }
 
     onTypeReferenceResolved(_reference: TypeReference<Type>, _resolvedType: Type): void {

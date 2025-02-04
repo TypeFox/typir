@@ -8,7 +8,7 @@ import { TypeReference } from '../initialization/type-reference.js';
 import { WaitingForIdentifiableAndCompletedTypeReferences, WaitingForInvalidTypeReferences } from '../initialization/type-waiting.js';
 import { Kind, isKind } from '../kinds/kind.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
-import { assertTrue, assertUnreachable } from '../utils/utils.js';
+import { assertTrue, assertUnreachable, removeFromArray } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 
 /**
@@ -178,10 +178,7 @@ export abstract class Type {
     }
 
     removeListener(listener: TypeStateListener): void {
-        const index = this.stateListeners.indexOf(listener);
-        if (index >= 0) {
-            this.stateListeners.splice(index, 1);
-        }
+        removeFromArray(listener, this.stateListeners);
     }
 
     // initialization logic which is specific for the type to initialize

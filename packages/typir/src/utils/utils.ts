@@ -23,6 +23,19 @@ export function toArray<T>(value: undefined | T | T[]): T[] {
     return [value];
 }
 
+export function removeFromArray<T>(value: T | undefined, array: T[] | undefined): boolean {
+    if (value === undefined || array === undefined) {
+        return false;
+    }
+    const index = array.indexOf(value);
+    if (index >= 0) {
+        array.splice(index, 1);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 export function assertUnreachable(_: never): never {
     throw new Error('Error! The input value was not handled.');
 }

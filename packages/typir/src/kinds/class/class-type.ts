@@ -9,7 +9,7 @@ import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy, IndexedTypeConflict } from '../../utils/utils-type-comparison.js';
-import { assertUnreachable, toArray } from '../../utils/utils.js';
+import { assertUnreachable, removeFromArray, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
 import { ClassKind, ClassTypeDetails, isClassKind } from './class-kind.js';
 
@@ -62,7 +62,7 @@ export class ClassType extends Type {
                 onTypeReferenceInvalidated(_reference, superType) {
                     if (superType) {
                         // if the superType gets invalid ...
-                        superType.subClasses.splice(superType.subClasses.indexOf(thisType), 1); // de-register this class as sub-class of the super-class
+                        removeFromArray(thisType, superType.subClasses); // de-register this class as sub-class of the super-class
                         // TODO unmark sub-type relationship (or already done automatically, since the type is removed from the graph?? gibt es noch andere Möglichkeiten eine Reference zu invalidieren außer dass der Type entfernt wurde??)
                     } else {
                         // initially do nothing

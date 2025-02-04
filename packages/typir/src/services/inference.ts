@@ -10,6 +10,7 @@ import { isType, Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { LanguageNodeInferenceCaching } from './caching.js';
+import { removeFromArray } from '../utils/utils.js';
 
 export interface InferenceProblem extends TypirProblem {
     $problem: 'InferenceProblem';
@@ -145,10 +146,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         const key = this.getBoundToTypeKey(boundToType);
         const rules = this.inferenceRules.get(key);
         if (rules) {
-            const index = rules.indexOf(rule);
-            if (index >= 0) {
-                rules.splice(index, 1);
-            }
+            removeFromArray(rule, rules);
         }
     }
 
@@ -302,10 +300,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         this.listeners.push(listener);
     }
     removeListener(listener: TypeInferenceCollectorListener): void {
-        const index = this.listeners.indexOf(listener);
-        if (index >= 0) {
-            this.listeners.splice(index, 1);
-        }
+        removeFromArray(listener, this.listeners);
     }
 
 
