@@ -144,11 +144,11 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         }
     }
 
-    addedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
+    onAddedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
         // after adding a new inference rule, try to resolve the type
         this.resolve(); // possible performance optimization: use only the new inference rule to resolve the type
     }
-    removedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
+    onRemovedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
         // empty, since removed inference rules don't help to resolve a type
     }
 }

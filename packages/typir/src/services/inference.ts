@@ -88,8 +88,8 @@ export interface TypeInferenceRuleWithInferringChildren {
 
 
 export interface TypeInferenceCollectorListener {
-    addedInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
-    removedInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
+    onAddedInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
+    onRemovedInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
 }
 
 /**
@@ -139,7 +139,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
             this.inferenceRules.set(key, rules);
         }
         rules.push(rule);
-        this.listeners.forEach(listener => listener.addedInferenceRule(rule, boundToType));
+        this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, boundToType));
     }
 
     removeInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void {
@@ -311,7 +311,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         // remove the inference rules associated to the deleted type
         this.inferenceRules.delete(key);
         // inform listeners about removed inference rules
-        (rulesToRemove ?? []).forEach(rule => this.listeners.forEach(listener => listener.removedInferenceRule(rule, type)));
+        (rulesToRemove ?? []).forEach(rule => this.listeners.forEach(listener => listener.onRemovedInferenceRule(rule, type)));
     }
 
 
