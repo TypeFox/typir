@@ -48,7 +48,6 @@
     "workspaces": [
         "packages/typir",
         "packages/typir-langium",
-        "examples/expression",
         "examples/ox",
         "examples/lox",
         "examples/expression"
