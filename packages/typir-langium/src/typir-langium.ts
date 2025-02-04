@@ -7,9 +7,10 @@
 import { LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
 import { DeepPartial, DefaultTypirServiceModule, Module, PartialTypirServices, TypirServices } from 'typir';
 import { LangiumLanguageNodeInferenceCaching } from './features/langium-caching.js';
+import { LangiumLanguageService } from './features/langium-language.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
 import { LangiumTypeCreator, PlaceholderLangiumTypeCreator } from './features/langium-type-creator.js';
-import { DefaultLangiumTypirValidator, LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
+import { DefaultLangiumTypirValidator, DefaultLangiumValidationCollector, LangiumTypirValidator, LangiumValidationCollector, registerTypirValidationChecks } from './features/langium-validation.js';
 
 /**
  * Additional Typir-Langium services to manage the Typir services
@@ -30,6 +31,7 @@ export function createLangiumSpecificTypirServicesModule(langiumServices: Langiu
     // replace some implementations for the core Typir services
     const LangiumSpecifics: Module<TypirServices, PartialTypirServices> = {
         Printer: () => new LangiumProblemPrinter(),
+        Language: () => new LangiumLanguageService(undefined), // replace 'undefined' by your generated XXXAstReflection!
         caching: {
             LanguageNodeInference: () => new LangiumLanguageNodeInferenceCaching(langiumServices),
         },

@@ -39,6 +39,7 @@ export * from './services/conversion.js';
 export * from './services/equality.js';
 export * from './services/inference.js';
 export * from './services/kind-registry.js';
+export * from './services/language.js';
 export * from './services/operator.js';
 export * from './services/printing.js';
 export * from './services/subtype.js';

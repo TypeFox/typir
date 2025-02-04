@@ -5,15 +5,15 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
-import { CreateFieldDetails, CreateFunctionTypeDetails, CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationMessageDetails, createNoSuperClassCyclesValidation } from 'typir';
-import { AbstractLangiumTypeCreator, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
-import { BinaryExpression, FunctionDeclaration, MemberCall, MethodMember, TypeReference, UnaryExpression, isBinaryExpression, isBooleanLiteral, isClass, isFieldMember, isForStatement, isFunctionDeclaration, isIfStatement, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, isWhileStatement } from './generated/ast.js';
+import { CreateFieldDetails, CreateFunctionTypeDetails, CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationMessageDetails, ValidationProblem, createNoSuperClassCyclesValidation } from 'typir';
+import { AbstractLangiumTypeCreator, LangiumLanguageService, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
+import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isClass, isFieldMember, isFunctionDeclaration, isMemberCall, isMethodMember, isNilLiteral, isNumberLiteral, isParameter, isPrintStatement, isReturnStatement, isStringLiteral, isTypeReference, isUnaryExpression, isVariableDeclaration, reflection } from './generated/ast.js';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export class LoxTypeCreator extends AbstractLangiumTypeCreator {
-    protected readonly typir: TypirServices;
+    protected readonly typir: LangiumServicesForTypirBinding;
 
-    constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
+    constructor(typirServices: LangiumServicesForTypirBinding, langiumServices: LangiumSharedCoreServices) {
         super(typirServices, langiumServices);
         this.typir = typirServices;
     }
@@ -269,6 +269,7 @@ function createFunctionDetails(node: FunctionDeclaration | MethodMember): Create
 export function createLoxTypirModule(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, PartialTypirLangiumServices> {
     return {
         // specific configurations for LOX
-        TypeCreator: (typirServices) => new LoxTypeCreator(typirServices, langiumServices),
+        TypeCreator: (typirServices) => new LoxTypeCreator(typirServices, langiumServices), // specify the type system for LOX
+        Language: () => new LangiumLanguageService(reflection), // tell Typir-Langium something about the LOX implementation with Langium
     };
 }

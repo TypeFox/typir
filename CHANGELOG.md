@@ -12,6 +12,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 - Arbitrary paths of implicit conversion and sub-type relationships are considered for assignability now (#58)
 - Control the behaviour in case of multiple matching overloads of functions (and operators) (#58)
 - Moved the existing graph algorithms into its own dedicated service in order to reuse and to customize them (#58)
+- New service `LanguageService` to provide Typir some static information about the currently type-checked language/DSL
 
 ### Breaking changes
 

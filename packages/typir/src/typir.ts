@@ -18,6 +18,7 @@ import { DefaultTypeConversion, TypeConversion } from './services/conversion.js'
 import { DefaultTypeEquality, TypeEquality } from './services/equality.js';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './services/inference.js';
 import { DefaultKindRegistry, KindRegistry } from './services/kind-registry.js';
+import { DefaultLanguageService, LanguageService } from './services/language.js';
 import { DefaultOperatorFactory, OperatorFactoryService } from './services/operator.js';
 import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.js';
 import { DefaultSubType, SubType } from './services/subtype.js';
@@ -52,6 +53,7 @@ export type TypirServices = {
         readonly LanguageNodeInference: LanguageNodeInferenceCaching;
     };
     readonly Printer: ProblemPrinter;
+    readonly Language: LanguageService;
     readonly validation: {
         readonly Collector: ValidationCollector;
         readonly Constraints: ValidationConstraints;
@@ -83,6 +85,7 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
         LanguageNodeInference: () => new DefaultLanguageNodeInferenceCaching(),
     },
     Printer: () => new DefaultTypeConflictPrinter(),
+    Language: () => new DefaultLanguageService(),
     validation: {
         Collector: (services) => new DefaultValidationCollector(services),
         Constraints: (services) => new DefaultValidationConstraints(services),

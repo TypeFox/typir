@@ -5,7 +5,8 @@
  ******************************************************************************/
 
 import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument, LangiumSharedCoreServices } from 'langium';
-import { Type, TypeEdge, TypeGraph, TypeGraphListener, TypirServices } from 'typir';
+import { Type, TypeEdge, TypeGraph, TypeGraphListener } from 'typir';
+import { LangiumServicesForTypirBinding } from '../typir-langium.js';
 import { getDocumentKeyForDocument, getDocumentKeyForURI } from '../utils/typir-langium-utils.js';
 
 /**
@@ -40,7 +41,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
     protected readonly documentTypesMap: Map<string, Type[]> = new Map();
     protected readonly typeGraph: TypeGraph;
 
-    constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
+    constructor(typirServices: LangiumServicesForTypirBinding, langiumServices: LangiumSharedCoreServices) {
         this.typeGraph = typirServices.infrastructure.Graph;
 
         // for new and updated documents:
@@ -135,7 +136,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
 }
 
 export class PlaceholderLangiumTypeCreator extends AbstractLangiumTypeCreator {
-    constructor(typirServices: TypirServices, langiumServices: LangiumSharedCoreServices) {
+    constructor(typirServices: LangiumServicesForTypirBinding, langiumServices: LangiumSharedCoreServices) {
         super(typirServices, langiumServices);
     }
     override onInitialize(): void {
