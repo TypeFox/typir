@@ -47,8 +47,5 @@
     "url": "git+https://github.com/TypeFox/typir.git",
     "directory": "packages/typir"
   },
-  "bugs": "https://github.com/TypeFox/typir/issues",
-  "devDependencies": {
-    "semver": "^7.7.1"
-  }
+  "bugs": "https://github.com/TypeFox/typir/issues"
 }
