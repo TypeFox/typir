@@ -1,15 +1,14 @@
-name: Publish
+name: Publish `next`
 
 permissions:
   id-token: write
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
 
 jobs:
   publish:
-    name: Typir Publish
+    name: Typir Publish `next`
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -31,11 +30,16 @@ jobs:
       shell: bash
       run: |
         npm run test:run
+    - name: Version as `next` packages
+      shell: bash
+      run: |
+        npm run version:next --workspace=typir
+        npm run version:next --workspace=typir-langium
+        npm run version:dependencies
     - name: Publish NPM Packages
       shell: bash
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-      # Update the following list when a new npm package is added
       run: |
-        npm run publish:latest --provenance --workspace=typir
-        npm run publish:latest --provenance --workspace=typir-langium
+        npm run publish:next --provenance --workspace=typir
+        npm run publish:next --provenance --workspace=typir-langium

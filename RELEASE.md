@@ -1,5 +1,7 @@
 # Release Process
 
+## `latest` releases
+
 The release process is mostly automated and requires running only a few commands. After commiting, pushing, tagging and releasing the changes, a GitHub Action will publish all npm packages.
 
 1. Pull the latest changes from the main branch
@@ -17,3 +19,8 @@ The release process is mostly automated and requires running only a few commands
     ```
 
 7. Create a [GitHub release](https://github.com/TypeFox/typir/releases) from the new tag (this will trigger the Github Action and publish all artifacts automatically).
+
+
+## `next` releases
+
+The release process for `next` releases is similar different from the `latest` releases. We configured a GitHub action to publish the `next` packages. It has to be called manually (it is a `workflow_dispatch`).
