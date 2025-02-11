@@ -5,6 +5,9 @@ permissions:
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - 'lotes/next-releases'
 
 jobs:
   publish:
