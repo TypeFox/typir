@@ -12,7 +12,7 @@ import { TypeSelector } from '../../initialization/type-selector.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
 import { ValidationProblem } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
-import { NameTypePair } from '../../utils/utils-definitions.js';
+import { InferCurrentTypeRule, NameTypePair } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy, checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { Kind, isKind } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
@@ -34,6 +34,7 @@ export interface FunctionKindOptions {
 
 export const FunctionKindName = 'FunctionKind';
 
+
 export type FunctionCallValidationRule<T> = (functionCall: T, functionType: FunctionType, typir: TypirServices) => ValidationProblem[];
 
 export interface CreateParameterDetails {
@@ -47,15 +48,10 @@ export interface FunctionTypeDetails extends TypeDetails {
     outputParameter: CreateParameterDetails | undefined,
     inputParameters: CreateParameterDetails[],
 }
-export interface CreateFunctionTypeDetails<T> extends FunctionTypeDetails {
-    /** for function declarations => returns the funtion type (the whole signature including all names) */
-    inferenceRuleForDeclaration?: (languageNode: unknown) => boolean,
-    /** for function calls => returns the return type of the function */
-    inferenceRuleForCalls?: InferFunctionCall<T>,
-    // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
 
-    /** This validation will be applied to all language nodes which represent calls of the functions. */
-    validationForCall?: FunctionCallValidationRule<T>,
+export interface CreateFunctionTypeDetails extends FunctionTypeDetails {
+    inferenceRulesForDeclaration: Array<InferCurrentTypeRule<unknown>>,
+    inferenceRulesForCalls: Array<InferFunctionCall<unknown>>,
 }
 
 /**
@@ -63,23 +59,21 @@ export interface CreateFunctionTypeDetails<T> extends FunctionTypeDetails {
  * This is required to handle overloaded functions.
  */
 export interface OverloadedFunctionDetails {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    overloadedFunctions: Array<SingleFunctionDetails<any>>;
+    overloadedFunctions: SingleFunctionDetails[];
     inference: CompositeTypeInferenceRule; // collects the inference rules for all functions with the same name
-    sameOutputType: Type | undefined; // if all overloaded functions with the same name have the same output/return type, this type is remembered here (for performance optimization)
+    sameOutputType: Type | undefined; // if all overloaded functions with the same name have the same output/return type, this type is remembered here (for a small performance optimization)
 }
 
-interface SingleFunctionDetails<T> {
+interface SingleFunctionDetails {
     functionType: FunctionType;
-    inferenceRuleForCalls?: InferFunctionCall<T>;
+    inferenceRuleForCalls: InferFunctionCall;
 }
 
-// (languageNode: unknown) => boolean | unknown[]
-export type InferFunctionCall<T = unknown> = {
-    filter: (languageNode: unknown) => languageNode is T;
-    matching: (languageNode: T) => boolean;
+export interface InferFunctionCall<T = unknown> extends InferCurrentTypeRule<T> {
     inputArguments: (languageNode: T) => unknown[];
-};
+    /** This validation will be applied to all language nodes which represent calls of the functions according to this inference rule. */
+    validation?: FunctionCallValidationRule<T> | Array<FunctionCallValidationRule<T>>;
+}
 
 /**
  * Architecture of Inference rules:
@@ -104,9 +98,19 @@ export type InferFunctionCall<T = unknown> = {
 
 
 export interface FunctionFactoryService {
-    create<T>(typeDetails: CreateFunctionTypeDetails<T>): TypeInitializer<FunctionType>;
+    create(typeDetails: FunctionTypeDetails): FunctionConfigurationChain;
     get(typeDetails: FunctionTypeDetails): TypeReference<FunctionType>;
     calculateIdentifier(typeDetails: FunctionTypeDetails): string;
+}
+
+export interface FunctionConfigurationChain {
+    /** for function declarations => returns the funtion type (the whole signature including all names) */
+    inferenceRuleForDeclaration<T>(rule: InferCurrentTypeRule<T>): FunctionConfigurationChain;
+    /** for function calls => returns the return type of the function */
+    inferenceRuleForCalls<T>(rule: InferFunctionCall<T>): FunctionConfigurationChain,
+    // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
+
+    finish(): TypeInitializer<FunctionType>;
 }
 
 /**
@@ -129,9 +133,6 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
     readonly $name: 'FunctionKind';
     readonly services: TypirServices;
     readonly options: Readonly<FunctionKindOptions>;
-    /** Limitations
-     * - Works only, if function types are defined using the createFunctionType(...) function below!
-     */
     readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
     // TODO try to replace this map with calculating the required identifier for the function
 
@@ -144,19 +145,19 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         // register Validations for input arguments of function calls (must be done here to support overloaded functions)
         this.services.validation.Collector.addValidationRule( // this validation rule exists "for ever", since it validates all function types
             (languageNode, typir) => {
+                const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
                 const resultAll: ValidationProblem[] = [];
                 for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
                     const resultOverloaded: ValidationProblem[] = [];
                     const isOverloaded = overloadedFunctions.overloadedFunctions.length >= 2;
                     for (const singleFunction of overloadedFunctions.overloadedFunctions) {
-                        if (singleFunction.inferenceRuleForCalls === undefined) {
-                            continue;
-                        }
-                        const filter = singleFunction.inferenceRuleForCalls.filter(languageNode);
-                        if (filter) {
-                            const matching = singleFunction.inferenceRuleForCalls.matching(languageNode);
+                        const inferenceRule = singleFunction.inferenceRuleForCalls;
+                        const keyMatching = languageKey === inferenceRule.languageKey || inferenceRule.languageKey === undefined;
+                        const filter = inferenceRule.filter === undefined || inferenceRule.filter(languageNode);
+                        if (keyMatching && filter) {
+                            const matching = inferenceRule.matching === undefined || inferenceRule.matching(languageNode);
                             if (matching) {
-                                const inputArguments = singleFunction.inferenceRuleForCalls.inputArguments(languageNode);
+                                const inputArguments = inferenceRule.inputArguments(languageNode);
                                 if (inputArguments && inputArguments.length >= 1) {
                                     // partial match:
                                     const expectedParameterTypes = singleFunction.functionType.getInputs();
@@ -234,7 +235,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
                 }
                 return resultAll;
             }
-        );
+        ); // TODO die gemerkten Rules pro Variante ebenfalls performanter mittels languageKey ablegen/abrufen!
     }
 
     protected collectOptions(options?: Partial<FunctionKindOptions>): FunctionKindOptions {
@@ -255,8 +256,8 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         return new TypeReference(() => this.calculateIdentifier(typeDetails), this.services);
     }
 
-    create<T>(typeDetails: CreateFunctionTypeDetails<T>): TypeInitializer<FunctionType> {
-        return new FunctionTypeInitializer(this.services, this, typeDetails);
+    create(typeDetails: FunctionTypeDetails): FunctionConfigurationChain {
+        return new FunctionConfigurationChainImpl(this.services, this, typeDetails);
     }
 
     getOutputTypeForFunctionCalls(functionType: FunctionType): Type | undefined {
@@ -326,10 +327,41 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
 
 }
 
-// when the name is missing (e.g. for functions or their input/output parameters), use these values instead
-export const NO_FUNCTION_NAME = '';
-export const NO_PARAMETER_NAME = '';
-
 export function isFunctionKind(kind: unknown): kind is FunctionKind {
     return isKind(kind) && kind.$name === FunctionKindName;
 }
+
+
+class FunctionConfigurationChainImpl implements FunctionConfigurationChain {
+    protected readonly services: TypirServices;
+    protected readonly kind: FunctionKind;
+    protected readonly currentFunctionDetails: CreateFunctionTypeDetails;
+
+    constructor(services: TypirServices, kind: FunctionKind, typeDetails: FunctionTypeDetails) {
+        this.services = services;
+        this.kind = kind;
+        this.currentFunctionDetails = {
+            ...typeDetails,
+            inferenceRulesForDeclaration: [],
+            inferenceRulesForCalls: [],
+        };
+    }
+
+    inferenceRuleForDeclaration<T>(rule: InferCurrentTypeRule<T>): FunctionConfigurationChain {
+        this.currentFunctionDetails.inferenceRulesForDeclaration.push(rule as InferCurrentTypeRule<unknown>);
+        return this;
+    }
+
+    inferenceRuleForCalls<T>(rule: InferFunctionCall<T>): FunctionConfigurationChain {
+        this.currentFunctionDetails.inferenceRulesForCalls.push(rule as InferFunctionCall<unknown>);
+        return this;
+    }
+
+    finish(): TypeInitializer<FunctionType> {
+        return new FunctionTypeInitializer(this.services, this.kind, this.currentFunctionDetails);
+    }
+}
+
+// when the name is missing (e.g. for functions or their input/output parameters), use these values instead
+export const NO_FUNCTION_NAME = '';
+export const NO_PARAMETER_NAME = '';

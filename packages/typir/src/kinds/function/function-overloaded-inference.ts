@@ -25,8 +25,19 @@ export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInference
         // check all rules in order to search for the best-matching rule, not for the first-matching rule
         const matchingOverloads: OverloadedMatch[] = [];
         const collectedInferenceProblems: InferenceProblem[] = [];
-        for (const rules of this.inferenceRules.values()) {
-            for (const rule of rules) {
+        // execute the rules which are associated to the key of the current language node
+        const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
+        for (const rule of this.languageTypeToRules.get(languageKey) ?? []) {
+            const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
+            if (result) {
+                matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<never> });
+            } else {
+                // no result for this inference rule => check the next inference rules
+            }
+        }
+        // execute all rules which are associated to no language nodes at all (as a fall-back for such rules)
+        if (languageKey !== undefined) {
+            for (const rule of this.languageTypeToRules.get(undefined) ?? []) {
                 const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
                 if (result) {
                     matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<never> });

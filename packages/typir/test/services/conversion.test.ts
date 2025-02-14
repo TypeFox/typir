@@ -12,8 +12,8 @@ describe('Testing conversion', () => {
 
     test('exception in case of cyclic conversion rules', () => {
         const typir: TypirServices = createTypirServicesForTesting();
-        const integerType = typir.factory.Primitives.create({ primitiveName: 'integer' });
-        const doubleType = typir.factory.Primitives.create({ primitiveName: 'double' });
+        const integerType = typir.factory.Primitives.create({ primitiveName: 'integer' }).finish();
+        const doubleType = typir.factory.Primitives.create({ primitiveName: 'double' }).finish();
 
         // define cyclic relationships between types
         typir.Conversion.markAsConvertible(integerType, doubleType, 'IMPLICIT_EXPLICIT');

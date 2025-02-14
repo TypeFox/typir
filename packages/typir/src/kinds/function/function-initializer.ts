@@ -6,23 +6,30 @@
 
 import { isType, Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
-import { CompositeTypeInferenceRule, InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../../services/inference.js';
+import { CompositeTypeInferenceRule, InferenceProblem } from '../../services/inference.js';
 import { ValidationRuleStateless } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
+import { InferenceRuleWithOptions, optionsBoundToType, bindInferCurrentTypeRule } from '../../utils/utils-definitions.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
-import { assertType } from '../../utils/utils.js';
+import { assertType, toArray } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-call-inference.js';
 import { CreateFunctionTypeDetails, FunctionKind, OverloadedFunctionDetails } from './function-kind.js';
 import { OverloadedFunctionsTypeInferenceRule } from './function-overloaded-inference.js';
 import { FunctionType, isFunctionType } from './function-type.js';
 
-export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> implements TypeStateListener {
-    protected readonly typeDetails: CreateFunctionTypeDetails<T>;
+/**
+ * For each call of FunctionKind.create()...finish(), one instance of this class will be created,
+ * which at some point in time returns a new or an existing FunctionType.
+ *
+ * If the function type to create already exists, the given inference rules (and its validation rules) will be registered for the existing function type.
+ */
+export class FunctionTypeInitializer extends TypeInitializer<FunctionType> implements TypeStateListener {
+    protected readonly typeDetails: CreateFunctionTypeDetails;
     protected readonly kind: FunctionKind;
     protected inferenceRules: FunctionInferenceRules;
     protected initialFunctionType: FunctionType;
 
-    constructor(services: TypirServices, kind: FunctionKind, typeDetails: CreateFunctionTypeDetails<T>) {
+    constructor(services: TypirServices, kind: FunctionKind, typeDetails: CreateFunctionTypeDetails) {
         super(services);
         this.typeDetails = typeDetails;
         this.kind = kind;
@@ -30,14 +37,11 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
         const functionName = typeDetails.functionName;
 
         // check the input
-        if (typeDetails.outputParameter === undefined && typeDetails.inferenceRuleForCalls) {
+        if (typeDetails.outputParameter === undefined && typeDetails.inferenceRulesForCalls.length >= 1) {
             // no output parameter => no inference rule for calling this function
             throw new Error(`A function '${functionName}' without output parameter cannot have an inferred type, when this function is called!`);
         }
         kind.enforceFunctionName(functionName, kind.options.enforceFunctionName);
-        if (typeDetails.validationForCall && typeDetails.inferenceRuleForCalls === undefined) {
-            throw new Error(`A function '${functionName}' with validation of its calls need an inference rule which defines these inference calls!`);
-        }
 
         // prepare the overloads
         if (this.kind.mapNameTypes.has(functionName)) {
@@ -98,10 +102,11 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
                 overloaded.sameOutputType = undefined;
             }
         }
-        overloaded.overloadedFunctions.push({
+        // register each inference rule for calls of the function
+        this.typeDetails.inferenceRulesForCalls.forEach(rule => overloaded.overloadedFunctions.push({
             functionType: readyFunctionType,
-            inferenceRuleForCalls: this.typeDetails.inferenceRuleForCalls,
-        });
+            inferenceRuleForCalls: rule,
+        }));
     }
 
     onSwitchedToCompleted(functionType: Type): void {
@@ -113,90 +118,95 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
     }
 
     protected registerInferenceRules(functionName: string, functionType: FunctionType | undefined): void {
-        if (this.inferenceRules.inferenceForCall) {
+        for (const rule of this.inferenceRules.inferenceForCall) {
             const overloaded = this.kind.mapNameTypes.get(functionName)!;
-            overloaded.inference.addInferenceRule(this.inferenceRules.inferenceForCall, functionType);
+            overloaded.inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
         }
-        if (this.inferenceRules.validationForCall) {
-            this.kind.services.validation.Collector.addValidationRule(this.inferenceRules.validationForCall, { boundToType: functionType });
+        for (const check of this.inferenceRules.validationForCall) {
+            this.kind.services.validation.Collector.addValidationRule(check, { boundToType: functionType });
         }
-        if (this.inferenceRules.inferenceForDeclaration) {
-            this.kind.services.Inference.addInferenceRule(this.inferenceRules.inferenceForDeclaration, functionType);
+        for (const rule of this.inferenceRules.inferenceForDeclaration) {
+            this.kind.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
         }
     }
 
     protected deregisterInferenceRules(functionName: string, functionType: FunctionType | undefined): void {
-        if (this.inferenceRules.inferenceForCall) {
+        for (const rule of this.inferenceRules.inferenceForCall) {
             const overloaded = this.kind.mapNameTypes.get(functionName);
-            overloaded?.inference.removeInferenceRule(this.inferenceRules.inferenceForCall, functionType);
+            overloaded?.inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
         }
-        if (this.inferenceRules.validationForCall) {
-            this.kind.services.validation.Collector.removeValidationRule(this.inferenceRules.validationForCall, { boundToType: functionType });
+        for (const check of this.inferenceRules.validationForCall) {
+            this.kind.services.validation.Collector.removeValidationRule(check, { boundToType: functionType });
         }
-        if (this.inferenceRules.inferenceForDeclaration) {
-            this.kind.services.Inference.removeInferenceRule(this.inferenceRules.inferenceForDeclaration, functionType);
+        for (const rule of this.inferenceRules.inferenceForDeclaration) {
+            this.kind.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
         }
     }
 
-    protected createInferenceRules<T>(typeDetails: CreateFunctionTypeDetails<T>, functionType: FunctionType): FunctionInferenceRules {
-        const result: FunctionInferenceRules = {};
+    protected createInferenceRules<T>(typeDetails: CreateFunctionTypeDetails, functionType: FunctionType): FunctionInferenceRules {
+        const result: FunctionInferenceRules = {
+            inferenceForCall: [],
+            validationForCall: [],
+            inferenceForDeclaration: [],
+        };
         const mapNameTypes = this.kind.mapNameTypes;
 
-        // create inference rule for calls of the new function
-        if (typeDetails.inferenceRuleForCalls) {
-            result.inferenceForCall = new FunctionCallInferenceRule(typeDetails, functionType, mapNameTypes);
-        }
+        for (const rule of typeDetails.inferenceRulesForCalls) {
+            // create inference rule for calls of the new function
+            result.inferenceForCall.push({
+                rule: new FunctionCallInferenceRule(typeDetails, rule, functionType, mapNameTypes),
+                options: {
+                    languageKey: rule.languageKey,
+                    // boundToType: ... this property will be specified outside of this method, TODO
+                },
+            });
 
-        // create validation for checking the assignability of arguments to input paramters
-        if (typeDetails.validationForCall) {
-            result.validationForCall = (languageNode, typir) => {
-                if (typeDetails.inferenceRuleForCalls!.filter(languageNode) && typeDetails.inferenceRuleForCalls!.matching(languageNode)) {
-                    // check the input arguments, required for overloaded functions
-                    const inputArguments = typeDetails.inferenceRuleForCalls!.inputArguments(languageNode);
-                    if (inputArguments && inputArguments.length >= 1) {
-                        // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
-                        const overloadInfos = mapNameTypes.get(typeDetails.functionName);
-                        if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
-                            // for overloaded functions: the types of the parameters need to be inferred in order to determine an exact match
-                            // (Note that the short-cut for type inference for function calls, when all overloads return the same output type, does not work here, since the validation here is specific for this single variant!)
-                            // This is also the reason, why the inference rule for call is not reused here.)
-                            const childTypes: Array<Type | InferenceProblem[]> = inputArguments.map(child => typir.Inference.inferType(child));
-                            const actualInputTypes = childTypes.filter(t => isType(t));
-                            if (childTypes.length === actualInputTypes.length) {
-                                const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.TypeResolver.resolve(p.type));
-                                // all operands need to be assignable(! not equal) to the required types
-                                const comparisonConflicts = checkTypeArrays(actualInputTypes, expectedInputTypes,
-                                    (t1, t2) => typir.Assignability.getAssignabilityProblem(t1, t2), true);
-                                if (comparisonConflicts.length <= 0) {
-                                    // all arguments are assignable to the expected types of the parameters => this function is really called here => validate this call now
-                                    return typeDetails.validationForCall!(languageNode, functionType, typir);
+            // create validation for checking the assignability of arguments to input paramters
+            for (const check of toArray(rule.validation)) {
+                // TODO languageKey ??
+                result.validationForCall.push((languageNode, typir) => {
+                    if ((rule.filter === undefined || rule.filter(languageNode)) && (rule.matching === undefined || rule.matching(languageNode as T))) {
+                        // check the input arguments, required for overloaded functions
+                        const inputArguments = rule.inputArguments(languageNode as T);
+                        if (inputArguments && inputArguments.length >= 1) {
+                            // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
+                            const overloadInfos = mapNameTypes.get(typeDetails.functionName);
+                            if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
+                                // for overloaded functions: the types of the parameters need to be inferred in order to determine an exact match
+                                // (Note that the short-cut for type inference for function calls, when all overloads return the same output type, does not work here, since the validation here is specific for this single variant!)
+                                // This is also the reason, why the inference rule for call is not reused here.)
+                                const childTypes: Array<Type | InferenceProblem[]> = inputArguments.map(child => typir.Inference.inferType(child));
+                                const actualInputTypes = childTypes.filter(t => isType(t));
+                                if (childTypes.length === actualInputTypes.length) {
+                                    const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.TypeResolver.resolve(p.type));
+                                    // all operands need to be assignable(! not equal) to the required types
+                                    const comparisonConflicts = checkTypeArrays(actualInputTypes, expectedInputTypes,
+                                        (t1, t2) => typir.Assignability.getAssignabilityProblem(t1, t2), true);
+                                    if (comparisonConflicts.length <= 0) {
+                                        // all arguments are assignable to the expected types of the parameters => this function is really called here => validate this call now
+                                        return check(languageNode as T, functionType, typir);
+                                    }
+                                } else {
+                                    // at least one argument could not be inferred
                                 }
                             } else {
-                                // at least one argument could not be inferred
+                                // the current function is not overloaded, therefore, the types of their parameters are not required => save time
+                                return check(languageNode as T, functionType, typir);
                             }
                         } else {
-                            // the current function is not overloaded, therefore, the types of their parameters are not required => save time
-                            return typeDetails.validationForCall!(languageNode, functionType, typir);
+                            // there are no operands to check
+                            return check(languageNode as T, functionType, typir);
                         }
-                    } else {
-                        // there are no operands to check
-                        return typeDetails.validationForCall!(languageNode, functionType, typir);
                     }
-                }
-                return [];
-            };
+                    return [];
+                });
+            }
         }
 
         // create inference rule for the declaration of the new function
         // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
-        if (typeDetails.inferenceRuleForDeclaration) {
-            result.inferenceForDeclaration = (languageNode, _typir) => {
-                if (typeDetails.inferenceRuleForDeclaration!(languageNode)) {
-                    return functionType;
-                } else {
-                    return InferenceRuleNotApplicable;
-                }
-            };
+        for (const rule of typeDetails.inferenceRulesForDeclaration) {
+            result.inferenceForDeclaration.push(bindInferCurrentTypeRule(rule, functionType));
         }
 
         return result;
@@ -205,7 +215,7 @@ export class FunctionTypeInitializer<T> extends TypeInitializer<FunctionType> im
 }
 
 interface FunctionInferenceRules {
-    inferenceForCall?: TypeInferenceRule;
-    validationForCall?: ValidationRuleStateless;
-    inferenceForDeclaration?: TypeInferenceRule;
+    inferenceForCall: InferenceRuleWithOptions[];
+    validationForCall: ValidationRuleStateless[];
+    inferenceForDeclaration: InferenceRuleWithOptions[];
 }

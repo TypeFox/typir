@@ -5,10 +5,10 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
-import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, UniqueFunctionValidation } from 'typir';
+import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumLanguageService, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationMessageDetails, ValidationProblem } from '../../../../packages/typir/lib/services/validation.js';
-import { BinaryExpression, ForStatement, IfStatement, MemberCall, OxAstType, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isMemberCall, isNumberLiteral, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration, reflection } from './generated/ast.js';
+import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isMemberCall, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration, reflection } from './generated/ast.js';
 
 export class OxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: LangiumServicesForTypirBinding;
@@ -21,18 +21,18 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
     onInitialize(): void {
         // define primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
-        const typeBool = this.typir.factory.Primitives.create({ primitiveName: 'boolean', inferenceRules: [
-            isBooleanLiteral,
-            (node: unknown) => isTypeReference(node) && node.primitive === 'boolean',
-        ]});
+        const typeBool = this.typir.factory.Primitives.create({ primitiveName: 'boolean' })
+            .inferenceRule({ filter: isBooleanLiteral })
+            .inferenceRule({ filter: isTypeReference, matching: node => node.primitive === 'boolean' })
+            .finish();
         // ... but their primitive kind is provided/preset by Typir
-        const typeNumber = this.typir.factory.Primitives.create({ primitiveName: 'number', inferenceRules: [
-            isNumberLiteral,
-            (node: unknown) => isTypeReference(node) && node.primitive === 'number',
-        ]});
-        const typeVoid = this.typir.factory.Primitives.create({ primitiveName: 'void', inferenceRules:
-            (node: unknown) => isTypeReference(node) && node.primitive === 'void'
-        });
+        const typeNumber = this.typir.factory.Primitives.create({ primitiveName: 'number' })
+            .inferenceRule({ languageKey: NumberLiteral })
+            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'number' })
+            .finish();
+        const typeVoid = this.typir.factory.Primitives.create({ primitiveName: 'void' })
+            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'void' })
+            .finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
         const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
@@ -49,28 +49,28 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         // define operators
         // binary operators: numbers => number
         for (const operator of ['+', '-', '*', '/']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
         }
         // TODO better name for "inferenceRule": astSelectors
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
         }
         // binary operators: booleans => boolean
         for (const operator of ['and', 'or']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }, inferenceRule: binaryInferenceRule });
+            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
         }
         // ==, != for booleans and numbers
         for (const operator of ['==', '!=']) {
             this.typir.factory.Operators.createBinary({ name: operator, signatures: [
                 { left: typeNumber, right: typeNumber, return: typeBool },
                 { left: typeBool, right: typeBool, return: typeBool },
-            ], inferenceRule: binaryInferenceRule });
+            ]}).inferenceRule(binaryInferenceRule).finish();
         }
 
         // unary operators
-        this.typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }, inferenceRule: unaryInferenceRule });
-        this.typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
+        this.typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }}).inferenceRule(unaryInferenceRule).finish();
+        this.typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
 
         /** Hints regarding the order of Typir configurations for OX:
          * - In general, Typir aims to not depend on the order of configurations.
@@ -155,9 +155,6 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
             return typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool,
                 () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
         }
-
-        // check for unique function declarations
-        this.typir.validation.Collector.addValidationRule(new UniqueFunctionValidation(this.typir, isFunctionDeclaration));
     }
 
     onNewAstNode(languageNode: AstNode): void {
@@ -171,20 +168,21 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
                 outputParameter: { name: NO_PARAMETER_NAME, type: languageNode.returnType },
                 inputParameters: languageNode.parameters.map(p => (<CreateParameterDetails>{ name: p.name, type: p.type })),
+                associatedLanguageNode: languageNode,
+            })
                 // inference rule for function declaration:
-                inferenceRuleForDeclaration: (node: unknown) => node === languageNode, // only the current function declaration matches!
+                .inferenceRuleForDeclaration({ languageKey: FunctionDeclaration, matching: (node: FunctionDeclaration) => node === languageNode }) // only the current function declaration matches!
                 /** inference rule for funtion calls:
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
                  * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
                  * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
-                inferenceRuleForCalls: {
-                    filter: isMemberCall,
+                .inferenceRuleForCalls({
+                    languageKey: MemberCall,
                     matching: (call: MemberCall) => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
                     inputArguments: (call: MemberCall) => call.arguments // they are needed to validate, that the given arguments are assignable to the parameters
                     // Note that OX does not support overloaded function declarations for simplicity: Look into LOX to see how to handle overloaded functions and methods!
-                },
-                associatedLanguageNode: languageNode,
-            });
+                })
+                .finish();
         }
     }
 }

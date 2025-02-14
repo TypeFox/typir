@@ -4,23 +4,21 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { InferenceRuleNotApplicable } from '../../services/inference.js';
-import { TypirServices } from '../../typir.js';
-import { assertTrue, toArray } from '../../utils/utils.js';
-import { BottomType } from './bottom-type.js';
-import { isKind, Kind } from '../kind.js';
 import { TypeDetails } from '../../graph/type-node.js';
+import { TypirServices } from '../../typir.js';
+import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
+import { assertTrue } from '../../utils/utils.js';
+import { isKind, Kind } from '../kind.js';
+import { BottomType } from './bottom-type.js';
 
 export interface BottomTypeDetails extends TypeDetails {
     /** In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already matched. */
-    inferenceRules?: InferBottomType | InferBottomType[]
+    inferenceRules?: InferCurrentTypeRule | InferCurrentTypeRule[]
 }
 
 export interface BottomKindOptions {
     name: string;
 }
-
-export type InferBottomType = (languageNode: unknown) => boolean;
 
 export const BottomKindName = 'BottomKind';
 
@@ -68,23 +66,9 @@ export class BottomKind implements Kind, BottomFactoryService {
         this.services.infrastructure.Graph.addNode(bottomType);
 
         // register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small)
-        this.registerInferenceRules(typeDetails, bottomType);
+        registerInferCurrentTypeRules(typeDetails.inferenceRules, bottomType, this.services);
 
         return bottomType;
-    }
-
-    protected registerInferenceRules(typeDetails: BottomTypeDetails, bottomType: BottomType) {
-        const rules = toArray(typeDetails.inferenceRules);
-        if (rules.length >= 1) {
-            this.services.Inference.addInferenceRule((languageNode, _typir) => {
-                for (const inferenceRule of rules) {
-                    if (inferenceRule(languageNode)) {
-                        return bottomType;
-                    }
-                }
-                return InferenceRuleNotApplicable;
-            }, bottomType);
-        }
     }
 
     calculateIdentifier(_typeDetails: BottomTypeDetails): string {

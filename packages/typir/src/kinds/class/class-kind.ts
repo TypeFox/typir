@@ -11,9 +11,10 @@ import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
+import { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../../utils/utils.js';
-import { CreateFunctionTypeDetails, FunctionFactoryService } from '../function/function-kind.js';
+import { FunctionType } from '../function/function-type.js';
 import { Kind, isKind } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
 import { ClassType, isClassType } from './class-type.js';
@@ -35,35 +36,50 @@ export interface CreateFieldDetails {
     type: TypeSelector;
 }
 
-export interface ClassTypeDetails<T = unknown> extends TypeDetails {
-    className: string,
-    superClasses?: TypeSelector | TypeSelector[],
-    fields: CreateFieldDetails[],
-    methods: Array<CreateFunctionTypeDetails<T>>, // all details of functions can be configured for methods as well, in particular, inference rules for function/method calls!
+export interface CreateMethodDetails {
+    type: TypeSelector<FunctionType>;
 }
-export interface CreateClassTypeDetails<T = unknown, T1 = unknown, T2 = unknown> extends ClassTypeDetails<T> { // TODO the generics look very bad!
-    inferenceRuleForDeclaration?: (languageNode: unknown) => boolean,
-    inferenceRuleForConstructor?: InferClassLiteral<T1>, // InferClassLiteral<T> | Array<InferClassLiteral<T>>, does not work: https://stackoverflow.com/questions/65129070/defining-an-array-of-differing-generic-types-in-typescript
-    inferenceRuleForReference?: InferClassLiteral<T2>,
-    inferenceRuleForFieldAccess?: (languageNode: unknown) => string | unknown | InferenceRuleNotApplicable, // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
-    // inference rules for Method calls are part of "methods: CreateFunctionTypeDetails[]" above!
+
+export interface ClassTypeDetails extends TypeDetails {
+    className: string;
+    superClasses?: TypeSelector | TypeSelector[];
+    fields: CreateFieldDetails[];
+    methods: CreateMethodDetails[];
+}
+export interface CreateClassTypeDetails extends ClassTypeDetails {
+    // inference rules for the Class
+    inferenceRulesForClassDeclaration: Array<InferCurrentTypeRule<unknown>>;
+    inferenceRulesForClassLiterals: Array<InferClassLiteral<unknown>>; // e.g. Constructor calls, References
+    // inference rules for its Fields (TODO missing support)
+    inferenceRulesForFieldAccess: Array<InferClassFieldAccess<unknown>>;
 }
 
 /**
  * Depending on whether the class is structurally or nominally typed,
  * different values might be specified, e.g. 'inputValuesForFields' could be empty for nominal classes.
  */
-export type InferClassLiteral<T = unknown> = {
-    filter: (languageNode: unknown) => languageNode is T;
-    matching: (languageNode: T) => boolean;
+export interface InferClassLiteral<T = unknown> extends InferCurrentTypeRule<T> {
     inputValuesForFields: (languageNode: T) => Map<string, unknown>; // simple field name (including inherited fields) => value for this field!
-};
+}
 
+export interface InferClassFieldAccess<T = unknown> extends InferCurrentTypeRule<T> {
+    field: (languageNode: T) => string | unknown | InferenceRuleNotApplicable; // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
+}
 
 export interface ClassFactoryService {
-    create<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): TypeInitializer<ClassType>;
-    get<T>(typeDetails: ClassTypeDetails<T> | string): TypeReference<ClassType>;
+    create(typeDetails: ClassTypeDetails): ClassConfigurationChain;
+    get(typeDetails: ClassTypeDetails | string): TypeReference<ClassType>;
 }
+
+export interface ClassConfigurationChain {
+    inferenceRulesForClassDeclaration<T>(rule: InferCurrentTypeRule<T>): ClassConfigurationChain;
+    inferenceRulesForClassLiterals<T>(rule: InferClassLiteral<T>): ClassConfigurationChain;
+
+    inferenceRulesForFieldAccess<T>(rule: InferClassFieldAccess<T>): ClassConfigurationChain;
+
+    finish(): TypeInitializer<ClassType>;
+}
+
 
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
@@ -102,7 +118,7 @@ export class ClassKind implements Kind, ClassFactoryService {
      * @param typeDetails all information needed to identify the class
      * @returns a reference to the class type, which might be resolved in the future, if the class type does not yet exist
      */
-    get<T>(typeDetails: ClassTypeDetails<T> | string): TypeReference<ClassType> { // string for nominal typing
+    get(typeDetails: ClassTypeDetails | string): TypeReference<ClassType> { // string for nominal typing
         if (typeof typeDetails === 'string') {
             // nominal typing
             return new TypeReference(typeDetails, this.services);
@@ -119,12 +135,12 @@ export class ClassKind implements Kind, ClassFactoryService {
      * @param typeDetails all information needed to create a new class
      * @returns an initializer which creates and returns the new class type, when all depending types are resolved
      */
-    create<T, T1, T2>(typeDetails: CreateClassTypeDetails<T, T1, T2>): TypeInitializer<ClassType> {
-        return new ClassTypeInitializer(this.services, this, typeDetails);
+    create(typeDetails: ClassTypeDetails): ClassConfigurationChain {
+        return new ClassConfigurationChainImpl(this.services, this, typeDetails);
     }
 
-    getIdentifierPrefix(): string {
-        return this.options.identifierPrefix ? this.options.identifierPrefix + '-' : '';
+    protected getIdentifierPrefix(): string {
+        return this.options.identifierPrefix ? (this.options.identifierPrefix + '-') : '';
     }
 
     /**
@@ -140,20 +156,17 @@ export class ClassKind implements Kind, ClassFactoryService {
      * @param typeDetails the details
      * @returns the new identifier
      */
-    calculateIdentifier<T>(typeDetails: ClassTypeDetails<T>): string {
+    calculateIdentifier(typeDetails: ClassTypeDetails): string {
         // purpose of identifier: distinguish different types; NOT: not uniquely overloaded types
         if (this.options.typing === 'Structural') {
             // fields
             const fields: string = typeDetails.fields
-                .map(f => `${f.name}:${this.services.infrastructure.TypeResolver.resolve(f.type)}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
+                .map(f => `${f.name}:${this.services.infrastructure.TypeResolver.resolve(f.type).getIdentifier()}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
                 .sort() // the order of fields does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
             // methods
-            const functionFactory = this.getMethodFactory();
             const methods: string = typeDetails.methods
-                .map(createMethodDetails => {
-                    return functionFactory.calculateIdentifier(createMethodDetails); // reuse the Identifier for Functions here!
-                })
+                .map(m => this.services.infrastructure.TypeResolver.resolve(m.type).getIdentifier())
                 .sort() // the order of methods does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
             // super classes (TODO oder strukturell per getAllSuperClassX lösen?!)
@@ -182,13 +195,10 @@ export class ClassKind implements Kind, ClassFactoryService {
      * @param typeDetails the details of the class
      * @returns the identifier based on the class name
      */
-    calculateIdentifierWithClassNameOnly<T>(typeDetails: ClassTypeDetails<T>): string {
+    calculateIdentifierWithClassNameOnly(typeDetails: ClassTypeDetails): string {
         return `${this.getIdentifierPrefix()}${typeDetails.className}`;
     }
 
-    getMethodFactory(): FunctionFactoryService {
-        return this.services.factory.Functions;
-    }
 
     getTopClassKind(): TopClassKind {
         // ensure, that Typir uses the predefined 'TopClass' kind
@@ -200,4 +210,41 @@ export class ClassKind implements Kind, ClassFactoryService {
 
 export function isClassKind(kind: unknown): kind is ClassKind {
     return isKind(kind) && kind.$name === ClassKindName;
+}
+
+
+class ClassConfigurationChainImpl implements ClassConfigurationChain {
+    protected readonly services: TypirServices;
+    protected readonly kind: ClassKind;
+    protected readonly typeDetails: CreateClassTypeDetails;
+
+    constructor(services: TypirServices, kind: ClassKind, typeDetails: ClassTypeDetails) {
+        this.services = services;
+        this.kind = kind;
+        this.typeDetails = {
+            ...typeDetails,
+            inferenceRulesForClassDeclaration: [],
+            inferenceRulesForClassLiterals: [],
+            inferenceRulesForFieldAccess: [],
+        };
+    }
+
+    inferenceRulesForClassDeclaration<T>(rule: InferCurrentTypeRule<T>): ClassConfigurationChain {
+        this.typeDetails.inferenceRulesForClassDeclaration.push(rule as InferCurrentTypeRule<unknown>);
+        return this;
+    }
+
+    inferenceRulesForClassLiterals<T>(rule: InferClassLiteral<T>): ClassConfigurationChain {
+        this.typeDetails.inferenceRulesForClassLiterals.push(rule as InferClassLiteral<unknown>);
+        return this;
+    }
+
+    inferenceRulesForFieldAccess<T>(rule: InferClassFieldAccess<T>): ClassConfigurationChain {
+        this.typeDetails.inferenceRulesForFieldAccess.push(rule as InferClassFieldAccess<unknown>);
+        return this;
+    }
+
+    finish(): TypeInitializer<ClassType> {
+        return new ClassTypeInitializer(this.services, this.kind, this.typeDetails);
+    }
 }

@@ -25,10 +25,10 @@ describe('Multiple best matches for overloaded operators', () => {
         typir = createTypirServicesForTesting();
 
         // primitive types
-        integerType = typir.factory.Primitives.create({ primitiveName: 'integer', inferenceRules: node => node instanceof IntegerLiteral });
-        doubleType = typir.factory.Primitives.create({ primitiveName: 'double', inferenceRules: node => node instanceof DoubleLiteral });
-        stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
-        booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean', inferenceRules: node => node instanceof BooleanLiteral });
+        integerType = typir.factory.Primitives.create({ primitiveName: 'integer' }).inferenceRule({ filter: node => node instanceof IntegerLiteral }).finish();
+        doubleType = typir.factory.Primitives.create({ primitiveName: 'double' }).inferenceRule({ filter: node => node instanceof DoubleLiteral }).finish();
+        stringType = typir.factory.Primitives.create({ primitiveName: 'string' }).inferenceRule({ filter: node => node instanceof StringLiteral }).finish();
+        booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean' }).inferenceRule({ filter: node => node instanceof BooleanLiteral }).finish();
 
         // operators
         typir.factory.Operators.createBinary({ name: '+', signatures: [ // operator overloading
@@ -36,7 +36,7 @@ describe('Multiple best matches for overloaded operators', () => {
             { left: doubleType, right: doubleType, return: doubleType }, // 2.0 + 3.0 => 5.0
             { left: stringType, right: stringType, return: stringType }, // "2" + "3" => "23"
             { left: booleanType, right: booleanType, return: booleanType }, // TRUE + TRUE => FALSE
-        ], inferenceRule: InferenceRuleBinaryExpression });
+        ] }).inferenceRule(InferenceRuleBinaryExpression).finish();
 
         // define relationships between types
         typir.Conversion.markAsConvertible(booleanType, integerType, 'IMPLICIT_EXPLICIT'); // integerVariable := booleanValue;
@@ -180,7 +180,8 @@ describe('Multiple best matches for overloaded operators', () => {
 
         function expectOverload(left: TestExpressionNode, right: TestExpressionNode, typeName: 'string'|'integer'|'double'|'boolean'): void {
             const example = new BinaryExpression(left, '+', right);
-            expect(typir.validation.Collector.validate(example)).toHaveLength(0);
+            const validationProblems = typir.validation.Collector.validate(example);
+            expect(validationProblems, validationProblems.map(p => typir.Printer.printValidationProblem(p)).join('\n')).toHaveLength(0);
             const inferredType = typir.Inference.inferType(example);
             expectToBeType(inferredType, isPrimitiveType, type => type.getName() === typeName);
         }

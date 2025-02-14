@@ -88,13 +88,29 @@ export interface TypeInferenceRuleWithInferringChildren {
 
 
 export interface TypeInferenceCollectorListener {
-    onAddedInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
-    onRemovedInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
+    onAddedInferenceRule(rule: TypeInferenceRule, options: TypeInferenceRuleOptions): void;
+    onRemovedInferenceRule(rule: TypeInferenceRule, options: TypeInferenceRuleOptions): void;
+}
+
+export interface TypeInferenceRuleOptions {
+    /**
+     * If an inference rule is associated with a language key, the inference rule will be executed only for language nodes, which have this language key,
+     * in order to improve the runtime performance.
+     * Inference rules without a language key ('undefined') are executed for all language nodes.
+     */
+    languageKey: string | undefined;
+    /**
+     * An optional type, if the new inference rule is dedicated for exactly this type.
+     * If the given type is removed from the type system, this rule will be automatically removed as well.
+     * In case of 'undefined', the inference rule will never be automatically removed.
+     */
+    boundToType: Type | undefined;
 }
 
 /**
  * Collects an arbitrary number of inference rules
  * and allows to infer a type for a given language node.
+ * In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already returned a type.
  */
 export interface TypeInferenceCollector {
     /**
@@ -106,13 +122,14 @@ export interface TypeInferenceCollector {
 
     /**
      * Registers an inference rule.
-     * When inferring the type for a language node, all registered inference rules are checked until the first match.
+     * When inferring the type for a language node, all registered inference rules are checked until the first one returned a type,
+     * i.e. later rules are not evaluated anymore.
      * @param rule a new inference rule
      * @param boundToType an optional type, if the new inference rule is dedicated for exactly this type.
      * If the given type is removed from the type system, this rule will be automatically removed as well.
      */
-    addInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
-    removeInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void;
+    addInferenceRule(rule: TypeInferenceRule, options?: Partial<TypeInferenceRuleOptions>): void;
+    removeInferenceRule(rule: TypeInferenceRule, options?: Partial<TypeInferenceRuleOptions>): void;
 
     addListener(listener: TypeInferenceCollectorListener): void;
     removeListener(listener: TypeInferenceCollectorListener): void;
@@ -120,7 +137,16 @@ export interface TypeInferenceCollector {
 
 
 export class DefaultTypeInferenceCollector implements TypeInferenceCollector, TypeGraphListener {
-    protected readonly inferenceRules: Map<string, TypeInferenceRule[]> = new Map(); // type identifier (otherwise '') -> inference rules
+    // protected readonly inferenceRules: Map<string, TypeInferenceRule[]> = new Map(); // type identifier (otherwise '') -> inference rules
+    /**
+     * language node type --> inference rules
+     * Improves the look-up of related rules, when doing type inference for a concrete language node. */
+    protected readonly languageTypeToRules: Map<string|undefined, TypeInferenceRule[]> = new Map();
+    /**
+     * type identifier --> (language node type -> inference rules)
+     * Improves the look-up for inference rules which are bound to types, when these types are removed. */
+    protected readonly typirTypeToRules: Map<string, Map<string|undefined, TypeInferenceRule[]>> = new Map();
+
     protected readonly languageNodeInference: LanguageNodeInferenceCaching;
     protected readonly services: TypirServices;
     protected readonly listeners: TypeInferenceCollectorListener[] = [];
@@ -131,23 +157,83 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         this.services.infrastructure.Graph.addListener(this);
     }
 
-    addInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void {
-        const key = this.getBoundToTypeKey(boundToType);
-        let rules = this.inferenceRules.get(key);
-        if (!rules) {
-            rules = [];
-            this.inferenceRules.set(key, rules);
-        }
-        rules.push(rule);
-        this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, boundToType));
+    protected getTypeInferenceRuleOptions(options?: Partial<TypeInferenceRuleOptions>): TypeInferenceRuleOptions {
+        return {
+            // default values ...
+            languageKey: undefined,
+            boundToType: undefined,
+            // ... overridden by the actual options:
+            ...options,
+        };
     }
 
-    removeInferenceRule(rule: TypeInferenceRule, boundToType?: Type): void {
-        const key = this.getBoundToTypeKey(boundToType);
-        const rules = this.inferenceRules.get(key);
-        if (rules) {
-            removeFromArray(rule, rules);
+    addInferenceRule(rule: TypeInferenceRule, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
+        const options = this.getTypeInferenceRuleOptions(givenOptions);
+
+        // register the inference rule with the key(s) of the language node
+        if (options.languageKey === undefined) {
+            this.registerRuleForLanguageKey(rule, undefined);
+        } else {
+            this.registerRuleForLanguageKey(rule, options.languageKey);
+            // register the rule for all sub-keys as well
+            this.services.Language.getAllSubKeys(options.languageKey)
+                .forEach(subKey => this.registerRuleForLanguageKey(rule, subKey));
         }
+
+        // register the inference rule to Typir types in order to easily remove them together with removed types
+        if (options.boundToType) {
+            const typeKey = this.getBoundToTypeKey(options.boundToType);
+            let typirRules = this.typirTypeToRules.get(typeKey);
+            if (!typirRules) {
+                typirRules = new Map();
+                this.typirTypeToRules.set(typeKey, typirRules);
+            }
+            let languageRules = typirRules.get(options.languageKey);
+            if (!languageRules) {
+                languageRules = [];
+                typirRules.set(options.languageKey, languageRules);
+            }
+            languageRules.push(rule);
+        }
+
+        // inform all listeners about the new inference rule
+        this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, options));
+    }
+
+    protected registerRuleForLanguageKey(rule: TypeInferenceRule, languageKey: string | undefined): void {
+        let rules = this.languageTypeToRules.get(languageKey);
+        if (!rules) {
+            rules = [];
+            this.languageTypeToRules.set(languageKey, rules);
+        }
+        rules.push(rule);
+    }
+
+    removeInferenceRule(rule: TypeInferenceRule, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
+        const options = this.getTypeInferenceRuleOptions(givenOptions);
+
+        if (options.languageKey === undefined) {
+            this.deregisterRuleForLanguageKey(rule, undefined);
+        } else {
+            this.deregisterRuleForLanguageKey(rule, options.languageKey);
+            // deregister the rule for all sub-keys as well
+            this.services.Language.getAllSubKeys(options.languageKey)
+                .forEach(subKey => this.deregisterRuleForLanguageKey(rule, subKey));
+        }
+
+        if (options.boundToType) {
+            const typeKey = this.getBoundToTypeKey(options.boundToType);
+            const typirRules = this.typirTypeToRules.get(typeKey);
+            const languageRules = typirRules?.get(options.languageKey);
+            removeFromArray(rule, languageRules);
+        }
+
+        this.listeners.forEach(listener => listener.onRemovedInferenceRule(rule, options));
+    }
+
+    protected deregisterRuleForLanguageKey(rule: TypeInferenceRule, languageKey: string | undefined): void {
+        const rules = this.languageTypeToRules.get(languageKey);
+        removeFromArray(rule, rules);
     }
 
     protected getBoundToTypeKey(boundToType?: Type): string {
@@ -188,16 +274,22 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     protected inferTypeLogic(languageNode: unknown): Type | InferenceProblem[] {
         this.checkForError(languageNode);
-
-        // check all rules
         const collectedInferenceProblems: InferenceProblem[] = [];
-        for (const rules of this.inferenceRules.values()) {
-            for (const rule of rules) {
+
+        // execute the rules which are associated to the key of the current language node
+        const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
+        for (const rule of this.languageTypeToRules.get(languageKey) ?? []) {
+            const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
+            if (result) {
+                return result; // return the first inferred type, otherwise, check the next inference rules
+            }
+        }
+        // execute all rules which are associated to no language nodes at all (as a fall-back for such rules)
+        if (languageKey !== undefined) {
+            for (const rule of this.languageTypeToRules.get(undefined) ?? []) {
                 const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
                 if (result) {
-                    return result; // return the first inferred type
-                } else {
-                    // no result for this inference rule => check the next inference rules
+                    return result; // return the first inferred type, otherwise, check the next inference rules
                 }
             }
         }
@@ -306,12 +398,28 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
     onRemovedType(type: Type, _key: string): void {
-        const key = this.getBoundToTypeKey(type);
-        const rulesToRemove = this.inferenceRules.get(key);
-        // remove the inference rules associated to the deleted type
-        this.inferenceRules.delete(key);
-        // inform listeners about removed inference rules
-        (rulesToRemove ?? []).forEach(rule => this.listeners.forEach(listener => listener.onRemovedInferenceRule(rule, type)));
+        const typeKey = this.getBoundToTypeKey(type);
+        const entriesToRemove = this.typirTypeToRules.get(typeKey);
+        this.typirTypeToRules.delete(typeKey);
+
+        if (entriesToRemove) {
+            for (const [languageKey, rules] of entriesToRemove.entries()) {
+                const languageRules = this.languageTypeToRules.get(languageKey);
+                if (languageRules) {
+                    for (const ruleToRemove of rules) {
+                        const removed = removeFromArray(ruleToRemove, languageRules);
+                        if (removed) {
+                            // inform listeners about removed inference rules
+                            this.listeners.forEach(listener => listener.onRemovedInferenceRule(ruleToRemove, {
+                                languageKey,
+                                boundToType: type,
+                                // Note that more future options might be unknown here ...
+                            }));
+                        }
+                    }
+                }
+            }
+        }
     }
 
 

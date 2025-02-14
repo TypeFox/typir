@@ -22,8 +22,8 @@ export type TypeInitializerListener<T extends Type = Type> = (type: T) => void;
  * it will be tried to create A a second time, again delayed, since B is still not yet available.
  * When B is created, A is waiting twice and might be created twice, if no TypeInitializer is used.
  *
- * Design decision: While this class does not provide some many default implementations,
- * a common super class (or interface) of all type initializers is useful,
+ * Design decision: While this class does not provide so many default implementations,
+ * a common super class (or interface) of all type initializers is useful nevertheless,
  * since they all can be used as TypeSelector in an easy way.
  */
 export abstract class TypeInitializer<T extends Type = Type> {

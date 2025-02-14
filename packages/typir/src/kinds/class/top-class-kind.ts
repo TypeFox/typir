@@ -5,17 +5,15 @@
  ******************************************************************************/
 
 import { TypeDetails } from '../../graph/type-node.js';
-import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
-import { assertTrue, toArray } from '../../utils/utils.js';
+import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
+import { assertTrue } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { TopClassType } from './top-class-type.js';
 
 export interface TopClassTypeDetails extends TypeDetails {
-    inferenceRules?: InferTopClassType | InferTopClassType[]
+    inferenceRules?: InferCurrentTypeRule | InferCurrentTypeRule[]
 }
-
-export type InferTopClassType = (anguageNode: unknown) => boolean;
 
 export interface TopClassKindOptions {
     name: string;
@@ -62,24 +60,9 @@ export class TopClassKind implements Kind {
         this.instance = topType;
         this.services.infrastructure.Graph.addNode(topType);
 
-        this.registerInferenceRules(typeDetails, topType);
+        registerInferCurrentTypeRules(typeDetails.inferenceRules, topType, this.services);
 
         return topType;
-    }
-
-    /** Register all inference rules for primitives within a single generic inference rule (in order to keep the number of "global" inference rules small). */
-    protected registerInferenceRules(typeDetails: TopClassTypeDetails, topType: TopClassType) {
-        const rules = toArray(typeDetails.inferenceRules);
-        if (rules.length >= 1) {
-            this.services.Inference.addInferenceRule((languageNode, _typir) => {
-                for (const inferenceRule of rules) {
-                    if (inferenceRule(languageNode)) {
-                        return topType;
-                    }
-                }
-                return InferenceRuleNotApplicable;
-            }, topType);
-        }
     }
 
     calculateIdentifier(_typeDetails: TopClassTypeDetails): string {

@@ -10,20 +10,20 @@ import { TypeInitializer } from './type-initializer.js';
 import { TypeReference } from './type-reference.js';
 
 // TODO find better names: TypeSpecification, TypeDesignation/Designator, ... ?
-export type BasicTypeSelector =
-    | Type              // the instance of the wanted type
-    | string            // identifier of the type (in the type graph/map)
-    | TypeInitializer   // delayed creation of types
-    | TypeReference     // reference to a (maybe delayed) type
-    | unknown           // language node to infer the final type from
+export type BasicTypeSelector<T extends Type = Type> =
+    | T                     // the wanted type
+    | string                // identifier of the type (to be searched in the type graph/map)
+    | TypeInitializer<T>    // delayed creation of types
+    | TypeReference<T>      // reference to a (maybe delayed) type
+    | unknown               // language node to infer the final type from
     ;
 
 /**
  * This TypeScript type defines the possible ways to identify a desired Typir type.
  */
-export type TypeSelector =
-    | BasicTypeSelector             // all base type selectors
-    | (() => BasicTypeSelector)     // all type selectors might be given as functions as well, in order to ease delayed specifications
+export type TypeSelector<T extends Type = Type> =
+    | BasicTypeSelector<T>          // all base type selectors
+    | (() => BasicTypeSelector<T>)  // all type selectors might be given as functions as well, in order to ease delayed specifications
     ;
 
 
@@ -35,7 +35,7 @@ export interface TypeResolvingService {
      * @param selector the specification for the desired type
      * @returns the found type; or undefined, if there is no such type in the type system
      */
-    tryToResolve<T extends Type = Type>(selector: TypeSelector): T | undefined;
+    tryToResolve<T extends Type = Type>(selector: TypeSelector<T>): T | undefined;
 
     /**
      * Finds the specified type in the type system.
@@ -44,7 +44,7 @@ export interface TypeResolvingService {
      * @param selector the specification for the desired type
      * @returns the found type; or an exception, if the type cannot be resolved
      */
-    resolve<T extends Type = Type>(selector: TypeSelector): T;
+    resolve<T extends Type = Type>(selector: TypeSelector<T>): T;
 }
 
 export class DefaultTypeResolver implements TypeResolvingService {
@@ -54,7 +54,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
         this.services = services;
     }
 
-    tryToResolve<T extends Type = Type>(selector: TypeSelector): T | undefined {
+    tryToResolve<T extends Type = Type>(selector: TypeSelector<T>): T | undefined {
         if (isType(selector)) {
             // TODO is there a way to explicitly enforce/ensure "as T"?
             return selector as T;
@@ -65,7 +65,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
         } else if (selector instanceof TypeReference) {
             return selector.getType();
         } else if (typeof selector === 'function') {
-            return this.tryToResolve(selector()); // execute the function and try to recursively resolve the returned result again
+            return this.tryToResolve<T>(selector()); // execute the function and try to recursively resolve the returned result again
         } else { // the selector is of type 'known' => do type inference on it
             const result = this.services.Inference.inferType(selector);
             // TODO failures must not be cached, otherwise a type will never be found in the future!!
@@ -77,7 +77,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
         }
     }
 
-    resolve<T extends Type = Type>(selector: TypeSelector): T {
+    resolve<T extends Type = Type>(selector: TypeSelector<T>): T {
         if (isType(selector)) {
             return selector as T;
         } else if (typeof selector === 'string') {
@@ -92,7 +92,7 @@ export class DefaultTypeResolver implements TypeResolvingService {
         } else if (selector instanceof TypeReference) {
             return selector.getType();
         } else if (typeof selector === 'function') {
-            return this.resolve(selector()); // execute the function and try to recursively resolve the returned result again
+            return this.resolve<T>(selector()); // execute the function and try to recursively resolve the returned result again
         } else {
             const result = this.services.Inference.inferType(selector);
             if (isType(result)) {

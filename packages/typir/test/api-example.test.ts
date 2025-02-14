@@ -16,8 +16,8 @@ describe('Tiny Typir', () => {
         const typir = createTypirServices(); // set-up the type system
 
         // primitive types
-        const numberType = typir.factory.Primitives.create({ primitiveName: 'number', inferenceRules: node => node instanceof NumberLiteral });
-        const stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
+        const numberType = typir.factory.Primitives.create({ primitiveName: 'number' }).inferenceRule({ filter: node => node instanceof NumberLiteral }).finish();
+        const stringType = typir.factory.Primitives.create({ primitiveName: 'string' }).inferenceRule({ filter: node => node instanceof StringLiteral }).finish();
 
         // operators
         const inferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
@@ -28,8 +28,8 @@ describe('Tiny Typir', () => {
         typir.factory.Operators.createBinary({ name: '+', signatures: [ // operator overloading
             { left: numberType, right: numberType, return: numberType }, // 2 + 3
             { left: stringType, right: stringType, return: stringType }, // "2" + "3"
-        ], inferenceRule });
-        typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }], inferenceRule }); // 2 - 3
+        ] }).inferenceRule(inferenceRule).finish();
+        typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }] }).inferenceRule(inferenceRule).finish(); // 2 - 3
 
         // numbers are implicitly convertable to strings
         typir.Conversion.markAsConvertible(numberType, stringType, 'IMPLICIT_EXPLICIT');

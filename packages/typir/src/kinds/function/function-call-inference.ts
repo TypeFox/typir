@@ -9,12 +9,15 @@ import { AssignabilitySuccess, isAssignabilityProblem } from '../../services/ass
 import { TypeInferenceRuleWithInferringChildren, InferenceRuleNotApplicable, InferenceProblem } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
-import { CreateFunctionTypeDetails, OverloadedFunctionDetails } from './function-kind.js';
+import { FunctionTypeDetails, InferFunctionCall, OverloadedFunctionDetails } from './function-kind.js';
 import { FunctionType } from './function-type.js';
 
 /**
  * Dedicated inference rule for calls of a single function signature.
- * It takes into account, that all parameters match and provides information, how parameters are matching ('assignabilitySuccess').
+ * It ensures, that all parameters match, and provides information, how parameters are matching ('assignabilitySuccess').
+ *
+ * Note: If multiple inference rules are configured for the same FunctionType, for each of these inference rules one instance of 'FunctionCallInferenceRule' is created,
+ * since these inference rules are independent from each other (and only return the same FunctionType).
  *
  * Preconditions:
  * - there is a rule which specifies how to infer the current function type
@@ -22,13 +25,15 @@ import { FunctionType } from './function-type.js';
  *   (exception: the options contain a type to return in this special case)
  */
 export class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferringChildren {
-    protected readonly typeDetails: CreateFunctionTypeDetails<T>;
+    protected readonly typeDetails: FunctionTypeDetails;
+    protected readonly inferenceRuleForCalls: InferFunctionCall<T>;
     protected readonly functionType: FunctionType;
     protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails>;
     assignabilitySuccess: Array<AssignabilitySuccess | undefined>;
 
-    constructor(typeDetails: CreateFunctionTypeDetails<T>, functionType: FunctionType, mapNameTypes: Map<string, OverloadedFunctionDetails>) {
+    constructor(typeDetails: FunctionTypeDetails, inferenceRuleForCalls: InferFunctionCall<T>, functionType: FunctionType, mapNameTypes: Map<string, OverloadedFunctionDetails>) {
         this.typeDetails = typeDetails;
+        this.inferenceRuleForCalls = inferenceRuleForCalls;
         this.functionType = functionType;
         this.mapNameTypes = mapNameTypes;
         this.assignabilitySuccess = new Array(typeDetails.inputParameters.length);
@@ -37,19 +42,19 @@ export class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferr
     inferTypeWithoutChildren(languageNode: unknown, _typir: TypirServices): unknown {
         this.assignabilitySuccess.fill(undefined); // reset the entries
         // 1. Does the filter of the inference rule accept the current language node?
-        const result = this.typeDetails.inferenceRuleForCalls!.filter(languageNode);
+        const result = this.inferenceRuleForCalls.filter === undefined || this.inferenceRuleForCalls.filter(languageNode);
         if (!result) {
             // the language node has a completely different purpose
             return InferenceRuleNotApplicable;
         }
         // 2. Does the inference rule match this language node?
-        const matching = this.typeDetails.inferenceRuleForCalls!.matching(languageNode);
+        const matching = this.inferenceRuleForCalls.matching === undefined || this.inferenceRuleForCalls.matching(languageNode as T);
         if (!matching) {
             // the language node is slightly different
             return InferenceRuleNotApplicable;
         }
         // 3. Check whether the current arguments fit to the expected parameter types
-        const inputArguments = this.typeDetails.inferenceRuleForCalls!.inputArguments(languageNode);
+        const inputArguments = this.inferenceRuleForCalls.inputArguments(languageNode as T);
         if (inputArguments.length <= 0) {
             // there are no operands to check
             return this.check(this.getOutputTypeForFunctionCalls());

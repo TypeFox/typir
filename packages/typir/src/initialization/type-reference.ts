@@ -6,7 +6,7 @@
 
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { TypeInferenceCollectorListener, TypeInferenceRule } from '../services/inference.js';
+import { TypeInferenceCollectorListener, TypeInferenceRule, TypeInferenceRuleOptions } from '../services/inference.js';
 import { TypirServices } from '../typir.js';
 import { removeFromArray } from '../utils/utils.js';
 import { TypeSelector } from './type-selector.js';
@@ -144,11 +144,11 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         }
     }
 
-    onAddedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
+    onAddedInferenceRule(_rule: TypeInferenceRule, _options: TypeInferenceRuleOptions): void {
         // after adding a new inference rule, try to resolve the type
         this.resolve(); // possible performance optimization: use only the new inference rule to resolve the type
     }
-    onRemovedInferenceRule(_rule: TypeInferenceRule, _boundToType?: Type): void {
+    onRemovedInferenceRule(_rule: TypeInferenceRule, _options: TypeInferenceRuleOptions): void {
         // empty, since removed inference rules don't help to resolve a type
     }
 }

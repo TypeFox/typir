@@ -48,8 +48,6 @@ export abstract class TestStatementNode extends TestLanguageNode {
 }
 
 
-// TODO review: Should the following classes have "Test" as prefix for their names?
-
 export class IntegerLiteral extends TestExpressionNode {
     constructor(
         public value: number,

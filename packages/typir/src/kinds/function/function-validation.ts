@@ -14,9 +14,9 @@ import { isFunctionType, FunctionType } from './function-type.js';
 export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
     protected readonly foundDeclarations: Map<string, unknown[]> = new Map();
     protected readonly services: TypirServices;
-    protected readonly isRelevant: (languageNode: unknown) => boolean; // using this check improves performance a lot
+    protected readonly isRelevant: ((languageNode: unknown) => boolean) | undefined; // using this check improves performance
 
-    constructor(services: TypirServices, isRelevant: (languageNode: unknown) => boolean) {
+    constructor(services: TypirServices, isRelevant?: (languageNode: unknown) => boolean) {
         this.services = services;
         this.isRelevant = isRelevant;
     }
@@ -27,7 +27,7 @@ export class UniqueFunctionValidation implements ValidationRuleWithBeforeAfter {
     }
 
     validation(languageNode: unknown, _typir: TypirServices): ValidationProblem[] {
-        if (this.isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
+        if (this.isRelevant === undefined || this.isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
             const type = this.services.Inference.inferType(languageNode);
             if (isFunctionType(type)) {
                 // register language nodes which have FunctionTypes with a key for their uniques

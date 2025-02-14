@@ -18,9 +18,12 @@ describe('Test type checking for statements and variables in OX', () => {
 
     test('function: the same function name twice (in the same file) is not allowed in Typir', async () => {
         await validateOx(`
-            fun myFunction() : boolean { return true; }
-            fun myFunction() : boolean { return false; }
-        `, 2); // both functions should be marked as "duplicate"
+                fun myFunction() : boolean { return true; }
+                fun myFunction() : boolean { return false; }
+        `, [
+            'Functions need to have unique names',
+            'Functions need to have unique names',
+        ]);
     });
 
     // TODO this test case needs to be investigated in more detail

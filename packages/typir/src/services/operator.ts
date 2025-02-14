@@ -9,56 +9,59 @@ import { TypeInitializer } from '../initialization/type-initializer.js';
 import { FunctionFactoryService, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
 import { FunctionType } from '../kinds/function/function-type.js';
 import { TypirServices } from '../typir.js';
-import { NameTypePair, TypeInitializers } from '../utils/utils-definitions.js';
+import { NameTypePair } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
 import { ValidationProblem } from './validation.js';
 
-// export type InferOperatorWithSingleOperand = (languageNode: unknown, operatorName: string) => boolean | unknown;
 export type InferOperatorWithSingleOperand<T = unknown> = {
-    filter: (languageNode: unknown, operatorName: string) => languageNode is T;
+    languageKey?: string;
+    filter?: (languageNode: unknown, operatorName: string) => languageNode is T;
     matching: (languageNode: T, operatorName: string) => boolean;
     operand: (languageNode: T, operatorName: string) => unknown;
+    validation?: OperatorValidationRule<T> | Array<OperatorValidationRule<T>>;
 };
-// export type InferOperatorWithMultipleOperands = (languageNode: unknown, operatorName: string) => boolean | unknown[];
 export type InferOperatorWithMultipleOperands<T = unknown> = {
-    filter: (languageNode: unknown, operatorName: string) => languageNode is T;
+    languageKey?: string;
+    filter?: (languageNode: unknown, operatorName: string) => languageNode is T;
     matching: (languageNode: T, operatorName: string) => boolean;
     operands: (languageNode: T, operatorName: string) => unknown[];
+    validation?: OperatorValidationRule<T> | Array<OperatorValidationRule<T>>;
 };
 
 export type OperatorValidationRule<T> = (operatorCall: T, operatorName: string, operatorType: Type, typir: TypirServices) => ValidationProblem[];
 
-export interface AnyOperatorDetails<T> {
+export interface AnyOperatorDetails {
     name: string;
-    // TODO Review: should OperatorValidationRule and InferOperatorWithSingleOperand/InferOperatorWithMultipleOperands be merged/combined, since they shared the same type parameter T ?
-    validationRule?: OperatorValidationRule<T>;
 }
 
-export interface UnaryOperatorDetails<T> extends AnyOperatorDetails<T> {
+export interface UnaryOperatorDetails extends AnyOperatorDetails {
     signature?: UnaryOperatorSignature;
     signatures?: UnaryOperatorSignature[];
-    inferenceRule?: InferOperatorWithSingleOperand<T>;
 }
 export interface UnaryOperatorSignature {
     operand: Type;
     return: Type;
 }
+interface CreateUnaryOperatorDetails extends UnaryOperatorDetails { // only internally used for collecting all information with the chaining API
+    inferenceRules: Array<InferOperatorWithSingleOperand<unknown>>;
+}
 
-export interface BinaryOperatorDetails<T> extends AnyOperatorDetails<T> {
+export interface BinaryOperatorDetails extends AnyOperatorDetails {
     signature?: BinaryOperatorSignature;
     signatures?: BinaryOperatorSignature[];
-    inferenceRule?: InferOperatorWithMultipleOperands<T>;
 }
 export interface BinaryOperatorSignature {
     left: Type;
     right: Type;
     return: Type;
 }
+interface CreateBinaryOperatorDetails extends BinaryOperatorDetails { // only internally used for collecting all information with the chaining API
+    inferenceRules: Array<InferOperatorWithMultipleOperands<unknown>>;
+}
 
-export interface TernaryOperatorDetails<T> extends AnyOperatorDetails<T> {
+export interface TernaryOperatorDetails extends AnyOperatorDetails {
     signature?: TernaryOperatorSignature;
     signatures?: TernaryOperatorSignature[];
-    inferenceRule?: InferOperatorWithMultipleOperands<T>;
 }
 export interface TernaryOperatorSignature {
     first: Type;
@@ -66,37 +69,56 @@ export interface TernaryOperatorSignature {
     third: Type;
     return: Type;
 }
+interface CreateTernaryOperatorDetails extends TernaryOperatorDetails { // only internally used for collecting all information with the chaining API
+    inferenceRules: Array<InferOperatorWithMultipleOperands<unknown>>;
+}
 
-export interface GenericOperatorDetails<T> extends AnyOperatorDetails<T> {
+export interface GenericOperatorDetails extends AnyOperatorDetails {
     outputType: Type;
     inputParameter: NameTypePair[];
-    inferenceRule?: InferOperatorWithSingleOperand<T> | InferOperatorWithMultipleOperands<T>;
+}
+interface CreateGenericOperatorDetails extends GenericOperatorDetails { // only internally used for collecting all information with the chaining API
+    inferenceRules: Array<InferOperatorWithSingleOperand<unknown> | InferOperatorWithMultipleOperands<unknown>>;
 }
 
 export interface OperatorFactoryService {
-    createUnary<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type>
-    createBinary<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type>
-    createTernary<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type>
+    createUnary(typeDetails: UnaryOperatorDetails): OperatorConfigurationUnaryChain;
+    createBinary(typeDetails: BinaryOperatorDetails): OperatorConfigurationBinaryChain;
+    createTernary(typeDetails: TernaryOperatorDetails): OperatorConfigurationTernaryChain;
 
     /** This function allows to create a single operator with arbitrary input operands. */
-    createGeneric<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type>;
+    createGeneric(typeDetails: GenericOperatorDetails): OperatorConfigurationGenericChain;
 }
 
-/**
- * Alternative implementation strategies for operators would be
- * - a dedicated kind for operators, which might extend the 'function' kind
- * */
+export interface OperatorConfigurationUnaryChain {
+    inferenceRule<T>(rule: InferOperatorWithSingleOperand<T>): OperatorConfigurationUnaryChain;
+    finish(): Array<TypeInitializer<Type>>;
+}
+export interface OperatorConfigurationBinaryChain {
+    inferenceRule<T>(rule: InferOperatorWithMultipleOperands<T>): OperatorConfigurationBinaryChain;
+    finish(): Array<TypeInitializer<Type>>;
+}
+export interface OperatorConfigurationTernaryChain {
+    inferenceRule<T>(rule: InferOperatorWithMultipleOperands<T>): OperatorConfigurationTernaryChain;
+    finish(): Array<TypeInitializer<Type>>;
+}
+export interface OperatorConfigurationGenericChain {
+    inferenceRule<T>(rule: InferOperatorWithSingleOperand<T> | InferOperatorWithMultipleOperands<T>): OperatorConfigurationGenericChain;
+    finish(): TypeInitializer<Type>;
+}
+
 
 /**
  * This implementation realizes operators as functions and creates types of kind 'function'.
  * If Typir does not use the function kind so far, it will be automatically added.
- * There are some differences between operators and functions: operators have no declaration, it is not possible to have references to operators
+ * (Alternative implementation strategies for operators would be a dedicated kind for operators, which might extend the 'function' kind)
  *
- * The same operator (i.e. same operator name, e.g. "+" or "and") with different types for its operands will be realized as different function types,
+ * Nevertheless, there are some differences between operators and functions:
+ * - Operators have no declaration.
+ * - It is not possible to have references to operators.
+ *
+ * The same operator (i.e. same operator name, e.g. "+" or "XOR") with different types for its operands will be realized as different function types,
  * e.g. there are two functions for "+" for numbers and for strings.
- *
- * When specifying multiple names, for each name one operator is created with the given type (variant)s.
- * This allows to define multiple operators with the same signature (input and output types), but different names at once.
  *
  * All operands are mandatory.
  */
@@ -107,90 +129,183 @@ export class DefaultOperatorFactory implements OperatorFactoryService {
         this.services = services;
     }
 
-    createUnary<T>(typeDetails: UnaryOperatorDetails<T>): TypeInitializers<Type> {
-        const signatures = toSignatureArray(typeDetails);
+    createUnary(typeDetails: UnaryOperatorDetails): OperatorConfigurationUnaryChain {
+        return new OperatorConfigurationUnaryChainImpl(this.services, typeDetails);
+    }
+
+    createBinary(typeDetails: BinaryOperatorDetails): OperatorConfigurationBinaryChain {
+        return new OperatorConfigurationBinaryChainImpl(this.services, typeDetails);
+    }
+
+    createTernary(typeDetails: TernaryOperatorDetails): OperatorConfigurationTernaryChain {
+        return new OperatorConfigurationTernaryChainImpl(this.services, typeDetails);
+    }
+
+    createGeneric(typeDetails: GenericOperatorDetails): OperatorConfigurationGenericChain {
+        return new OperatorConfigurationGenericChainImpl(this.services, typeDetails);
+    }
+}
+
+
+class OperatorConfigurationUnaryChainImpl implements OperatorConfigurationUnaryChain {
+    protected readonly services: TypirServices;
+    protected readonly typeDetails: CreateUnaryOperatorDetails;
+
+    constructor(services: TypirServices, typeDetails: UnaryOperatorDetails) {
+        this.services = services;
+        this.typeDetails = {
+            ...typeDetails,
+            inferenceRules: [],
+        };
+    }
+
+    inferenceRule<T>(rule: InferOperatorWithSingleOperand<T>): OperatorConfigurationUnaryChain {
+        this.typeDetails.inferenceRules.push(rule as InferOperatorWithSingleOperand<unknown>);
+        return this;
+    }
+
+    finish(): Array<TypeInitializer<Type>> {
+        const signatures = toSignatureArray(this.typeDetails);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
-            result.push(this.createGeneric({
-                name: typeDetails.name,
+            const generic = new OperatorConfigurationGenericChainImpl(this.services, {
+                name: this.typeDetails.name,
                 outputType: signature.return,
-                inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
                 inputParameter: [
                     { name: 'operand', type: signature.operand },
                 ],
-                validationRule: typeDetails.validationRule,
-            }));
+            });
+            // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
+            this.typeDetails.inferenceRules.forEach(rule => generic.inferenceRule(rule));
+            result.push(generic.finish());
         }
-        return result.length === 1 ? result[0] : result;
+        return result;
+    }
+}
+
+class OperatorConfigurationBinaryChainImpl implements OperatorConfigurationBinaryChain {
+    protected readonly services: TypirServices;
+    protected readonly typeDetails: CreateBinaryOperatorDetails;
+
+    constructor(services: TypirServices, typeDetails: BinaryOperatorDetails) {
+        this.services = services;
+        this.typeDetails = {
+            ...typeDetails,
+            inferenceRules: [],
+        };
     }
 
-    createBinary<T>(typeDetails: BinaryOperatorDetails<T>): TypeInitializers<Type> {
-        const signatures = toSignatureArray(typeDetails);
+    inferenceRule<T>(rule: InferOperatorWithMultipleOperands<T>): OperatorConfigurationBinaryChain {
+        this.typeDetails.inferenceRules.push(rule as InferOperatorWithMultipleOperands<unknown>);
+        return this;
+    }
+
+    finish(): Array<TypeInitializer<Type>> {
+        const signatures = toSignatureArray(this.typeDetails);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
-            result.push(this.createGeneric({
-                name: typeDetails.name,
+            const generic = new OperatorConfigurationGenericChainImpl(this.services, {
+                name: this.typeDetails.name,
                 outputType: signature.return,
-                inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
                 inputParameter: [
                     { name: 'left', type: signature.left},
-                    { name: 'right', type: signature.right}
+                    { name: 'right', type: signature.right},
                 ],
-                validationRule: typeDetails.validationRule,
-            }));
+            });
+            // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
+            this.typeDetails.inferenceRules.forEach(rule => generic.inferenceRule(rule));
+            result.push(generic.finish());
         }
-        return result.length === 1 ? result[0] : result;
+        return result;
+    }
+}
+
+class OperatorConfigurationTernaryChainImpl implements OperatorConfigurationTernaryChain {
+    protected readonly services: TypirServices;
+    protected readonly typeDetails: CreateTernaryOperatorDetails;
+
+    constructor(services: TypirServices, typeDetails: TernaryOperatorDetails) {
+        this.services = services;
+        this.typeDetails = {
+            ...typeDetails,
+            inferenceRules: [],
+        };
     }
 
-    createTernary<T>(typeDetails: TernaryOperatorDetails<T>): TypeInitializers<Type> {
-        const signatures = toSignatureArray(typeDetails);
+    inferenceRule<T>(rule: InferOperatorWithMultipleOperands<T>): OperatorConfigurationBinaryChain {
+        this.typeDetails.inferenceRules.push(rule as InferOperatorWithMultipleOperands<unknown>);
+        return this;
+    }
+
+    finish(): Array<TypeInitializer<Type>> {
+        const signatures = toSignatureArray(this.typeDetails);
         const result: Array<TypeInitializer<Type>> = [];
         for (const signature of signatures) {
-            result.push(this.createGeneric({
-                name: typeDetails.name,
+            const generic = new OperatorConfigurationGenericChainImpl(this.services, {
+                name: this.typeDetails.name,
                 outputType: signature.return,
-                inferenceRule: typeDetails.inferenceRule, // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
                 inputParameter: [
                     { name: 'first', type: signature.first },
                     { name: 'second', type: signature.second },
                     { name: 'third', type: signature.third },
                 ],
-                validationRule: typeDetails.validationRule,
-            }));
+            });
+            // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
+            this.typeDetails.inferenceRules.forEach(rule => generic.inferenceRule(rule));
+            result.push(generic.finish());
         }
-        return result.length === 1 ? result[0] : result;
+        return result;
+    }
+}
+
+class OperatorConfigurationGenericChainImpl implements OperatorConfigurationGenericChain {
+    protected readonly services: TypirServices;
+    protected readonly typeDetails: CreateGenericOperatorDetails;
+
+    constructor(services: TypirServices, typeDetails: GenericOperatorDetails) {
+        this.services = services;
+        this.typeDetails = {
+            ...typeDetails,
+            inferenceRules: [],
+        };
     }
 
-    createGeneric<T>(typeDetails: GenericOperatorDetails<T>): TypeInitializer<Type> {
+    inferenceRule<T>(rule: InferOperatorWithSingleOperand<T> | InferOperatorWithMultipleOperands<T>): OperatorConfigurationGenericChain {
+        this.typeDetails.inferenceRules.push(rule as (InferOperatorWithSingleOperand<unknown> | InferOperatorWithMultipleOperands<unknown>));
+        return this;
+    }
+
+    finish(): TypeInitializer<Type> {
         // define/register the wanted operator as "special" function
         const functionFactory = this.getFunctionFactory();
-        const operatorName = typeDetails.name;
+        const operatorName = this.typeDetails.name;
 
         // create the operator as type of kind 'function'
         const newOperatorType = functionFactory.create({
             functionName: operatorName,
-            outputParameter: { name: NO_PARAMETER_NAME, type: typeDetails.outputType },
-            inputParameters: typeDetails.inputParameter,
-            inferenceRuleForDeclaration: undefined, // operators have no declaration in the code => no inference rule for the operator declaration!
-            inferenceRuleForCalls: typeDetails.inferenceRule // but infer the operator when the operator is called!
-                ? {
-                    filter: (languageNode: unknown): languageNode is T => typeDetails.inferenceRule!.filter(languageNode, typeDetails.name),
-                    matching: (languageNode: T) => typeDetails.inferenceRule!.matching(languageNode, typeDetails.name),
-                    inputArguments: (languageNode: T) => this.getInputArguments(typeDetails, languageNode),
-                }
-                : undefined,
-            validationForCall: typeDetails.validationRule
-                ? (functionCall: T, functionType: FunctionType, typir: TypirServices) => typeDetails.validationRule!(functionCall, operatorName, functionType, typir)
-                : undefined,
+            outputParameter: { name: NO_PARAMETER_NAME, type: this.typeDetails.outputType },
+            inputParameters: this.typeDetails.inputParameter,
         });
+        // infer the operator when the operator is called!
+        for (const inferenceRule of this.typeDetails.inferenceRules) {
+            newOperatorType.inferenceRuleForCalls({
+                languageKey: inferenceRule.languageKey,
+                filter: inferenceRule.filter ? ((languageNode: unknown): languageNode is unknown => inferenceRule.filter!(languageNode, this.typeDetails.name)) : undefined,
+                matching: (languageNode: unknown) => inferenceRule.matching(languageNode, this.typeDetails.name),
+                inputArguments: (languageNode: unknown) => this.getInputArguments(inferenceRule, languageNode),
+                validation: toArray(inferenceRule.validation).map(validationRule =>
+                    (functionCall: unknown, functionType: FunctionType, typir: TypirServices) => validationRule(functionCall, operatorName, functionType, typir)),
+            });
+        }
+        // operators have no declaration in the code => no inference rule for the operator declaration!
 
-        return newOperatorType as unknown as TypeInitializer<Type>;
+        return newOperatorType.finish() as unknown as TypeInitializer<Type>;
     }
 
-    protected getInputArguments<T>(typeDetails: GenericOperatorDetails<T>, languageNode: unknown): unknown[] {
-        return 'operands' in typeDetails.inferenceRule!
-            ? (typeDetails.inferenceRule as InferOperatorWithMultipleOperands).operands(languageNode, typeDetails.name)
-            : [(typeDetails.inferenceRule as InferOperatorWithSingleOperand).operand(languageNode, typeDetails.name)];
+    protected getInputArguments(inferenceRule: InferOperatorWithSingleOperand<unknown> | InferOperatorWithMultipleOperands<unknown>, languageNode: unknown): unknown[] {
+        return 'operands' in inferenceRule
+            ? (inferenceRule as InferOperatorWithMultipleOperands).operands(languageNode, this.typeDetails.name)
+            : [(inferenceRule as InferOperatorWithSingleOperand).operand(languageNode, this.typeDetails.name)];
     }
 
     protected getFunctionFactory(): FunctionFactoryService {
@@ -198,11 +313,12 @@ export class DefaultOperatorFactory implements OperatorFactoryService {
     }
 }
 
+
 function toSignatureArray<T>(values: {
     signature?: T;
     signatures?: T[];
 }): T[] {
-    const result = toArray(values.signatures);
+    const result = [...toArray(values.signatures)]; // create a new array in order to prevent side-effects in the given array
     if (values.signature) {
         result.push(values.signature);
     }
