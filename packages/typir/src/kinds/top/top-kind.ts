@@ -12,8 +12,10 @@ import { isKind, Kind } from '../kind.js';
 import { TopType } from './top-type.js';
 
 export interface TopTypeDetails extends TypeDetails {
-    /** In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already matched. */
-    inferenceRules?: InferCurrentTypeRule | InferCurrentTypeRule[]
+    // empty
+}
+interface CreateTopTypeDetails extends TypeDetails {
+    inferenceRules: Array<InferCurrentTypeRule<unknown>>;
 }
 
 export interface TopKindOptions {
@@ -23,15 +25,19 @@ export interface TopKindOptions {
 export const TopKindName = 'TopKind';
 
 export interface TopFactoryService {
-    create(typeDetails: TopTypeDetails): TopType;
+    create(typeDetails: TopTypeDetails): TopConfigurationChain;
     get(typeDetails: TopTypeDetails): TopType | undefined;
+}
+
+export interface TopConfigurationChain {
+    inferenceRule<T>(rule: InferCurrentTypeRule<T>): TopConfigurationChain;
+    finish(): TopType;
 }
 
 export class TopKind implements Kind, TopFactoryService {
     readonly $name: 'TopKind';
     readonly services: TypirServices;
     readonly options: Readonly<TopKindOptions>;
-    protected instance: TopType | undefined;
 
     constructor(services: TypirServices, options?: Partial<TopKindOptions>) {
         this.$name = TopKindName;
@@ -54,21 +60,9 @@ export class TopKind implements Kind, TopFactoryService {
         return this.services.infrastructure.Graph.getType(key) as TopType;
     }
 
-    create(typeDetails: TopTypeDetails): TopType {
-        assertTrue(this.get(typeDetails) === undefined);
-
-        // create the top type (singleton)
-        if (this.instance) {
-            // note, that the given inference rules are ignored in this case!
-            return this.instance;
-        }
-        const topType = new TopType(this, this.calculateIdentifier(typeDetails), typeDetails);
-        this.instance = topType;
-        this.services.infrastructure.Graph.addNode(topType);
-
-        registerInferCurrentTypeRules(typeDetails.inferenceRules, topType, this.services);
-
-        return topType;
+    create(typeDetails: TopTypeDetails): TopConfigurationChain {
+        assertTrue(this.get(typeDetails) === undefined); // ensure that the type is not created twice
+        return new TopConfigurationChainImpl(this.services, this, typeDetails);
     }
 
     calculateIdentifier(_typeDetails: TopTypeDetails): string {
@@ -79,4 +73,34 @@ export class TopKind implements Kind, TopFactoryService {
 
 export function isTopKind(kind: unknown): kind is TopKind {
     return isKind(kind) && kind.$name === TopKindName;
+}
+
+
+class TopConfigurationChainImpl implements TopConfigurationChain {
+    protected readonly services: TypirServices;
+    protected readonly kind: TopKind;
+    protected readonly typeDetails: CreateTopTypeDetails;
+
+    constructor(services: TypirServices, kind: TopKind, typeDetails: TopTypeDetails) {
+        this.services = services;
+        this.kind = kind;
+        this.typeDetails = {
+            ...typeDetails,
+            inferenceRules: [],
+        };
+    }
+
+    inferenceRule<T>(rule: InferCurrentTypeRule<T>): TopConfigurationChain {
+        this.typeDetails.inferenceRules.push(rule as InferCurrentTypeRule<unknown>);
+        return this;
+    }
+
+    finish(): TopType {
+        const topType = new TopType(this.kind, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
+        this.services.infrastructure.Graph.addNode(topType);
+
+        registerInferCurrentTypeRules(this.typeDetails.inferenceRules, topType, this.services);
+
+        return topType;
+    }
 }

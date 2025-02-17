@@ -7,7 +7,12 @@
 /* eslint-disable @typescript-eslint/parameter-properties */
 
 import { beforeAll, describe, expect, test } from 'vitest';
-import { assertTrue, ConversionEdge, isAssignabilityProblem, isAssignabilitySuccess, isPrimitiveType, PrimitiveType, SubTypeEdge, Type } from '../../../src/index.js';
+import { assertTrue } from '../../../src/utils/utils.js';
+import { isAssignabilityProblem, isAssignabilitySuccess } from '../../../src/services/assignability.js';
+import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
+import { ConversionEdge } from '../../../src/services/conversion.js';
+import { SubTypeEdge } from '../../../src/services/subtype.js';
+import { Type } from '../../../src/graph/type-node.js';
 import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
 import { ValidationMessageDetails } from '../../../src/services/validation.js';
 import { AssignmentStatement, BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, double2_0, double3_0, DoubleLiteral, InferenceRuleBinaryExpression, integer2, integer3, IntegerLiteral, string2, string3, StringLiteral, TestExpressionNode, Variable } from '../../../src/test/predefined-language-nodes.js';

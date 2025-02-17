@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { describe, expect, test } from 'vitest';
-import { createTypirServicesForTesting } from '../../src/index.js';
+import { createTypirServicesForTesting } from '../../src/utils/test-utils.js';
 import { TypirServices } from '../../src/typir.js';
 
 describe('Testing conversion', () => {

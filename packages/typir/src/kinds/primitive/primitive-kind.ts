@@ -19,6 +19,10 @@ export interface PrimitiveTypeDetails extends TypeDetails {
     primitiveName: string;
 }
 
+interface CreatePrimitiveTypeDetails extends PrimitiveTypeDetails {
+    inferenceRules: Array<InferCurrentTypeRule<unknown>>;
+}
+
 export const PrimitiveKindName = 'PrimitiveKind';
 
 export interface PrimitiveFactoryService {
@@ -31,13 +35,10 @@ export interface PrimitiveConfigurationChain {
     finish(): PrimitiveType;
 }
 
-export class PrimitiveKind implements Kind, PrimitiveFactoryService, PrimitiveConfigurationChain {
+export class PrimitiveKind implements Kind, PrimitiveFactoryService {
     readonly $name: 'PrimitiveKind';
     readonly services: TypirServices;
     readonly options: PrimitiveKindOptions;
-
-    /** Stores the current type under construction/configuration. */
-    protected currentPrimitiveType: PrimitiveType | undefined = undefined;
 
     constructor(services: TypirServices, options?: Partial<PrimitiveKindOptions>) {
         this.$name = PrimitiveKindName;
@@ -58,27 +59,8 @@ export class PrimitiveKind implements Kind, PrimitiveFactoryService, PrimitiveCo
     }
 
     create(typeDetails: PrimitiveTypeDetails): PrimitiveConfigurationChain {
-        assertTrue(this.currentPrimitiveType === undefined, "There is already a type under construction. Use 'finish()' to complete its definition.");
-        assertTrue(this.get(typeDetails) === undefined);
-
-        // create the primitive type
-        this.currentPrimitiveType = new PrimitiveType(this, this.calculateIdentifier(typeDetails), typeDetails);
-        this.services.infrastructure.Graph.addNode(this.currentPrimitiveType);
-
-        return this;
-    }
-
-    inferenceRule<T>(rule: InferCurrentTypeRule<T>): PrimitiveConfigurationChain {
-        assertTrue(this.currentPrimitiveType !== undefined, "There is no type under construction at the moment. Use 'create(...)' to define a new type.");
-        registerInferCurrentTypeRules(rule, this.currentPrimitiveType, this.services);
-        return this;
-    }
-
-    finish(): PrimitiveType {
-        assertTrue(this.currentPrimitiveType !== undefined, "There is no type under construction at the moment. Use 'create(...)' to define a new type.");
-        const result = this.currentPrimitiveType;
-        this.currentPrimitiveType = undefined;
-        return result;
+        assertTrue(this.get(typeDetails) === undefined); // ensure that the type is not created twice
+        return new PrimitiveConfigurationChainImpl(this.services, this, typeDetails);
     }
 
     calculateIdentifier(typeDetails: PrimitiveTypeDetails): string {
@@ -88,4 +70,36 @@ export class PrimitiveKind implements Kind, PrimitiveFactoryService, PrimitiveCo
 
 export function isPrimitiveKind(kind: unknown): kind is PrimitiveKind {
     return isKind(kind) && kind.$name === PrimitiveKindName;
+}
+
+
+class PrimitiveConfigurationChainImpl implements PrimitiveConfigurationChain {
+    protected readonly services: TypirServices;
+    protected readonly kind: PrimitiveKind;
+    protected readonly typeDetails: CreatePrimitiveTypeDetails;
+
+    constructor(services: TypirServices, kind: PrimitiveKind, typeDetails: PrimitiveTypeDetails) {
+        this.services = services;
+        this.kind = kind;
+        this.typeDetails = {
+            ...typeDetails,
+            inferenceRules: [],
+        };
+    }
+
+    inferenceRule<T>(rule: InferCurrentTypeRule<T>): PrimitiveConfigurationChain {
+        this.typeDetails.inferenceRules.push(rule as InferCurrentTypeRule<unknown>);
+        return this;
+    }
+
+    finish(): PrimitiveType {
+        // create the primitive type
+        const currentPrimitiveType = new PrimitiveType(this.kind, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
+        this.services.infrastructure.Graph.addNode(currentPrimitiveType);
+
+        // register the inference rules
+        registerInferCurrentTypeRules(this.typeDetails.inferenceRules, currentPrimitiveType, this.services);
+
+        return currentPrimitiveType;
+    }
 }

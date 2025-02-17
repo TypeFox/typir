@@ -65,6 +65,7 @@ export function ruleWithOptionsBoundToType(rule: InferenceRuleWithOptions, type:
 /**
  * An inference rule which is dedicated for inferrring a certain type.
  * This utility type is often used for inference rules which are annotated to the declaration of a type.
+ * At least one of the properties needs to be specified.
  */
 export interface InferCurrentTypeRule<T = unknown> {
     languageKey?: string;
@@ -73,6 +74,9 @@ export interface InferCurrentTypeRule<T = unknown> {
 }
 
 export function bindInferCurrentTypeRule<T>(rule: InferCurrentTypeRule<T>, type: Type): InferenceRuleWithOptions {
+    if (rule.languageKey === undefined && rule.filter === undefined && rule.matching === undefined) {
+        throw new Error('This inference rule has no properties at all and therefore cannot infer any type!'); // fail early
+    }
     return {
         rule: (languageNode, _typir) => {
             // when this function is called, it is already ensured, that the (non-undefined) language key of rule and language node fit!

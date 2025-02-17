@@ -44,7 +44,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         const typeNil = this.typir.factory.Primitives.create({ primitiveName: 'nil' })
             .inferenceRule({ languageKey: NilLiteral })
             .finish(); // 'nil' is only assignable to variables with a class as type in the LOX implementation here
-        const typeAny = this.typir.factory.Top.create({});
+        const typeAny = this.typir.factory.Top.create({}).finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
         const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
@@ -222,7 +222,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     methods: node.members
                         .filter(isMethodMember) // only Methods, no Fields
                         .map(member => <CreateMethodDetails>{ type: this.createFunctionDetails(member) }), // same logic as for functions, since the LOX grammar defines them very similar
-                    associatedLanguageNode: node,
+                    associatedLanguageNode: node, // this is used by the ScopeProvider to get the corresponding class declaration after inferring the (class) type of an expression
                 })
                 // inference rule for declaration
                 .inferenceRulesForClassDeclaration({ languageKey: Class, matching: (languageNode: Class) => languageNode === node})

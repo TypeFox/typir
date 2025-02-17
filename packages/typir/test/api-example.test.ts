@@ -7,7 +7,9 @@
 /* eslint-disable @typescript-eslint/parameter-properties */
 
 import { describe, expect, test } from 'vitest';
-import { InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, ValidationMessageDetails } from '../src/index.js';
+import { InferenceRuleNotApplicable } from '../src/services/inference.js';
+import { InferOperatorWithMultipleOperands } from '../src/services/operator.js';
+import { ValidationMessageDetails } from '../src/services/validation.js';
 import { createTypirServices } from '../src/typir.js';
 
 describe('Tiny Typir', () => {
