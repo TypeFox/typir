@@ -26,14 +26,14 @@ The release process is mostly automated and requires running only a few commands
 The release process for `next` releases is different from the `latest` releases. We configured a GitHub action to publish the `next` packages. It has to be called manually (it is a `workflow_dispatch`). This will release the current state of `main`. Follow these steps to release a `next` version:
 
 1. Go to the Actions tab of your repository.
-2. On the left there is a list of workflow. Click the one withh the title "Publish `next`".
+2. On the left there is a list of workflow. Click the one  the title "Publish `next`".
 3. A blue ribbon will appear, stating `This workflow has a workflow_dispatch event trigger.`.
 4. Click the button `Run workflow` from the ribbon.
 5. A popup will appear, asking you for which branch you want to run the workflow. Select `main` and click the button `Run workflow`.
 
 Hint: What happens behind the scene is:
 
-1. we call `npm run version:next` for each workspace package
-2. we call `npm run version:dependencies` to update the dependencies
-3. we call `npm run publish:next` to publish the updated packages
-4. discard everything, we do not commit or push anything
+1. the action calls `npm run version:next` for each workspace package
+2. then it calls `npm run version:dependencies` to update the dependencies
+3. then it calls `npm run publish:next` to publish the updated packages
+4. the action discards everything, no changes will be committed or pushed
