@@ -19,6 +19,7 @@ export type InferOperatorWithSingleOperand<T = unknown> = {
     matching: (languageNode: T, operatorName: string) => boolean;
     operand: (languageNode: T, operatorName: string) => unknown;
     validation?: OperatorValidationRule<T> | Array<OperatorValidationRule<T>>;
+    validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 };
 export type InferOperatorWithMultipleOperands<T = unknown> = {
     languageKey?: string;
@@ -26,6 +27,7 @@ export type InferOperatorWithMultipleOperands<T = unknown> = {
     matching: (languageNode: T, operatorName: string) => boolean;
     operands: (languageNode: T, operatorName: string) => unknown[];
     validation?: OperatorValidationRule<T> | Array<OperatorValidationRule<T>>;
+    validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 };
 
 export type OperatorValidationRule<T> = (operatorCall: T, operatorName: string, operatorType: Type, typir: TypirServices) => ValidationProblem[];
@@ -295,6 +297,7 @@ class OperatorConfigurationGenericChainImpl implements OperatorConfigurationGene
                 inputArguments: (languageNode: unknown) => this.getInputArguments(inferenceRule, languageNode),
                 validation: toArray(inferenceRule.validation).map(validationRule =>
                     (functionCall: unknown, functionType: FunctionType, typir: TypirServices) => validationRule(functionCall, operatorName, functionType, typir)),
+                validateArgumentsOfFunctionCalls: inferenceRule.validateArgumentsOfCalls,
             });
         }
         // operators have no declaration in the code => no inference rule for the operator declaration!

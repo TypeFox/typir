@@ -39,11 +39,13 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
             filter: isBinaryExpression,
             matching: (node: BinaryExpression, name: string) => node.operator === name,
             operands: (node: BinaryExpression, _name: string) => [node.left, node.right],
+            validateArgumentsOfCalls: true,
         };
         const unaryInferenceRule: InferOperatorWithSingleOperand<UnaryExpression> = {
             filter: isUnaryExpression,
             matching: (node: UnaryExpression, name: string) => node.operator === name,
             operand: (node: UnaryExpression, _name: string) => node.value,
+            validateArgumentsOfCalls: true,
         };
 
         // define operators
@@ -179,8 +181,9 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 .inferenceRuleForCalls({
                     languageKey: MemberCall,
                     matching: (call: MemberCall) => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
-                    inputArguments: (call: MemberCall) => call.arguments // they are needed to validate, that the given arguments are assignable to the parameters
+                    inputArguments: (call: MemberCall) => call.arguments, // they are needed to check, that the given arguments are assignable to the parameters
                     // Note that OX does not support overloaded function declarations for simplicity: Look into LOX to see how to handle overloaded functions and methods!
+                    validateArgumentsOfFunctionCalls: true,
                 })
                 .finish();
         }

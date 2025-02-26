@@ -4,11 +4,11 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
 
-## v0.2.0 (??-??-2025)
+## v0.2.0 (2025-??-??)
 
 ### New features
 
-- Users of Typir are able to explicitly define sub-type relationships via the `SubTypeService` (#58)
+- Users of Typir are able to explicitly define sub-type relationships via the `SubTypeService.markAsSubType(subType, superType)` now (#58)
 - Arbitrary paths of implicit conversion and sub-type relationships are considered for assignability now (#58)
 - Control the behaviour in case of multiple matching overloads of functions (and operators) (#58)
 - Moved the existing graph algorithms into its own dedicated service in order to reuse and to customize them (#58)
@@ -16,8 +16,8 @@ Note that the versions "0.x.0" probably will include breaking changes.
 - Associate validation rules with language keys for an improved performance
 - Typir-Langium: new API to register validations to the `$type` of the `AstNode` to validate,
   e.g. `addValidationsRulesForAstNodes({ ReturnStatement: <ValidationRule1>, VariableDeclaration: <ValidationRule2>, ... })`, see (L)OX for some examples
-- Associate inference rule with language keys for an improved performance
-- Thanks to the new chaining API for defining types, they can be annotated in TypeScript-type-safe way with multiple inference rules for the same purpose.
+- Associate inference rules with language keys for an improved performance
+- Thanks to the new chaining API for defining types (see corresponding breaking changes below), they can be annotated in TypeScript-type-safe way with multiple inference rules for the same purpose.
 
 ### Breaking changes
 
@@ -28,7 +28,8 @@ Note that the versions "0.x.0" probably will include breaking changes.
   - Unified validation API by defining `ValidationRule = ValidationRuleStateless | ValidationRuleWithBeforeAfter` and removed dedicated `add/removeValidationRuleWithBeforeAndAfter` methods accordingly
 - Reworked the API to add/remove rules for type inference in the `TypeInferenceCollector` service:
   - Additional arguments need to be specified with an options object now
-- Reworked the APIs to create types by introducing a chaining API to define optional inference rules. This counts for all type factories.
+- Reworked the APIs to create types by introducing a chaining API to define optional inference rules. This counts for all provided type factories.
+- Validations for the types of the arguments for function (and operator) calls need to be explicitly requested with the new property `validateArgumentsOfCalls` in the inference rules for calls now. In previous versions, these validations were active by default.
 
 
 ## v0.1.2 (2024-12-20)

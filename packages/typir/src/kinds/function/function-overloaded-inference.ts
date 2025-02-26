@@ -30,7 +30,7 @@ export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInference
         for (const rule of this.languageTypeToRules.get(languageKey) ?? []) {
             const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
             if (result) {
-                matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<never> });
+                matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<unknown> });
             } else {
                 // no result for this inference rule => check the next inference rules
             }
@@ -40,7 +40,7 @@ export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInference
             for (const rule of this.languageTypeToRules.get(undefined) ?? []) {
                 const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
                 if (result) {
-                    matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<never> });
+                    matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<unknown> });
                 } else {
                     // no result for this inference rule => check the next inference rules
                 }
@@ -116,15 +116,15 @@ export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInference
     }
 
     protected calculateCost(match: OverloadedMatch): number {
-        return match.rule.assignabilitySuccess
+        return match.rule.assignabilitySuccess // one path (consisting of an arbitrary number of edges) for each parameter
             .flatMap(s => s?.path ?? []) // collect all conversion/sub-type edges which are required to map actual types to the expected types of the parameters
             // equal types (i.e. an empty path) are better than sub-types, sub-types are better than conversions
             .map(edge => (isSubTypeEdge(edge) ? 1 : isConversionEdge(edge) ? 2 : assertUnreachable(edge)) as number)
-            .reduce((l, r) => l + r, 0);
+            .reduce((l, r) => l + r, 0); // sum of all costs
     }
 }
 
 interface OverloadedMatch {
     result: Type;
-    rule: FunctionCallInferenceRule<never>;
+    rule: FunctionCallInferenceRule<unknown>;
 }

@@ -161,7 +161,7 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
                 },
             });
 
-            // create validation for checking the assignability of arguments to input paramters
+            // create validation rule which will be applied when this function is called according to the current inference rule for function calls (this includes the assignability of arguments to input parameters)
             for (const check of toArray(rule.validation)) {
                 // TODO languageKey ??
                 result.validationForCall.push((languageNode, typir) => {
@@ -174,7 +174,7 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
                             if (overloadInfos && overloadInfos.overloadedFunctions.length >= 2) {
                                 // for overloaded functions: the types of the parameters need to be inferred in order to determine an exact match
                                 // (Note that the short-cut for type inference for function calls, when all overloads return the same output type, does not work here, since the validation here is specific for this single variant!)
-                                // This is also the reason, why the inference rule for call is not reused here.)
+                                // This is also the reason, why the inference rule for calls is not reused here.)
                                 const childTypes: Array<Type | InferenceProblem[]> = inputArguments.map(child => typir.Inference.inferType(child));
                                 const actualInputTypes = childTypes.filter(t => isType(t));
                                 if (childTypes.length === actualInputTypes.length) {

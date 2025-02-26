@@ -51,11 +51,13 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             languageKey: BinaryExpression,
             matching: (node: BinaryExpression, name: string) => node.operator === name,
             operands: (node: BinaryExpression, _name: string) => [node.left, node.right],
+            validateArgumentsOfCalls: true,
         };
         const unaryInferenceRule: InferOperatorWithSingleOperand<UnaryExpression> = {
             languageKey: UnaryExpression,
             matching: (node: UnaryExpression, name: string) => node.operator === name,
             operand: (node: UnaryExpression, _name: string) => node.value,
+            validateArgumentsOfCalls: true,
         };
 
         // binary operators: numbers => number
@@ -274,6 +276,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 matching: (languageNode: MemberCall) => isFunctionDeclaration(languageNode.element?.ref)
                     && languageNode.explicitOperationCall && languageNode.element!.ref === node,
                 inputArguments: (languageNode: MemberCall) => languageNode.arguments,
+                validateArgumentsOfFunctionCalls: true,
             });
         } else if (isMethodMember(node)) {
             config.inferenceRuleForCalls({
@@ -281,6 +284,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 matching: (languageNode: MemberCall) => isMethodMember(languageNode.element?.ref)
                     && languageNode.explicitOperationCall && languageNode.element!.ref === node,
                 inputArguments: (languageNode: MemberCall) => languageNode.arguments,
+                validateArgumentsOfFunctionCalls: true,
             });
         } else {
             assertUnreachable(node);

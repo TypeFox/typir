@@ -10,13 +10,14 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
-import { ValidationProblem } from '../../services/validation.js';
+import { ValidationProblem, ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, NameTypePair } from '../../utils/utils-definitions.js';
-import { TypeCheckStrategy, checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { Kind, isKind } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
 import { FunctionType, isFunctionType } from './function-type.js';
+import { createFunctionCallArgumentsValidation } from './function-validation-calls.js';
 
 
 export interface FunctionKindOptions {
@@ -70,9 +71,41 @@ interface SingleFunctionDetails {
 }
 
 export interface InferFunctionCall<T = unknown> extends InferCurrentTypeRule<T> {
+    /**
+     * In case of overloaded functions, these input arguments are used to determine the actual function
+     * by comparing the types of the given arguments with the expected types of the input parameters of the function.
+     */
     inputArguments: (languageNode: T) => unknown[];
-    /** This validation will be applied to all language nodes which represent calls of the functions according to this inference rule. */
+
+    /**
+     * This validation will be applied to all language nodes which represent calls of the functions according to this inference rule.
+     * This validation is specific for this inference rule and this function type (it will not be applied to other overloaded variants).
+     */
     validation?: FunctionCallValidationRule<T> | Array<FunctionCallValidationRule<T>>;
+
+    /**
+     * This property controls the builtin validation which checks, whether the types of the given arguments of the function call
+     * fit to the expected types of the parameters of the function.
+     * The function calls to validate are represented by this inference rule,
+     * i.e. function calls represented by other inference rules have their own property and are not influenced by the value of this inference rule.
+     * By default, the property is switched off (e.g. `validateArgumentsOfFunctionCalls: false`),
+     * but in most applications this validation is desired and should be switched on (e.g. with `validateArgumentsOfFunctionCalls: true`).
+     * This property does _not_ influence the type inference,
+     * this property determines only, whether this special validation is applied to the current function call.
+     *
+     * This property is specific for this function type.
+     * If this function type is not overloaded, this property switches this validation off and on for the calls of this function,
+     * i.e. creates validation hints for all calls with mismatching argument types.
+     *
+     * If this function type is overloaded, different values for this property for different overloaded functions might be specified:
+     * If the property is switched off for all overloads, no validation hints will be created.
+     * If the property is switched on for at least one overload, validation hints for will be shown for all calls (when none of the signatures match),
+     * since it is unclear, which of the overloads is the desired one!
+     * But the shown validation hint/message will not report about signatures for which this validation property is switched off.
+     * While different values for this property for different overloads are possible in theory with the defined behaviour,
+     * in practise this seems to be rarely useful.
+     */
+    validateArgumentsOfFunctionCalls?: boolean | ((languageNode: T) => boolean);
 }
 
 /**
@@ -108,6 +141,7 @@ export interface FunctionConfigurationChain {
     inferenceRuleForDeclaration<T>(rule: InferCurrentTypeRule<T>): FunctionConfigurationChain;
     /** for function calls => returns the return type of the function */
     inferenceRuleForCalls<T>(rule: InferFunctionCall<T>): FunctionConfigurationChain,
+
     // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
 
     finish(): TypeInitializer<FunctionType>;
@@ -133,8 +167,15 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
     readonly $name: 'FunctionKind';
     readonly services: TypirServices;
     readonly options: Readonly<FunctionKindOptions>;
-    readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map(); // function name => all overloaded functions with this name/key
-    // TODO try to replace this map with calculating the required identifier for the function
+    /**
+     * function name => all overloaded functions (with additional information) with this name/key
+     * - The types could be collected with the TypeGraphListener, but the additional information like inference rules are not available.
+     *   Therefore this map needs to be maintained here.
+     * - Main purpose is to support inference and validation for overloaded functions:
+     *   Since overloaded functions are realized with one function type for each variant,
+     *   the corresponding rules and logic need to involve multiple types, which makes it more complex.
+     */
+    readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map();
 
     constructor(services: TypirServices, options?: Partial<FunctionKindOptions>) {
         this.$name = FunctionKindName;
@@ -142,100 +183,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         this.services.infrastructure.Kinds.register(this);
         this.options = this.collectOptions(options);
 
-        // register Validations for input arguments of function calls (must be done here to support overloaded functions)
-        this.services.validation.Collector.addValidationRule( // this validation rule exists "for ever", since it validates all function types
-            (languageNode, typir) => {
-                const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
-                const resultAll: ValidationProblem[] = [];
-                for (const [overloadedName, overloadedFunctions] of this.mapNameTypes.entries()) {
-                    const resultOverloaded: ValidationProblem[] = [];
-                    const isOverloaded = overloadedFunctions.overloadedFunctions.length >= 2;
-                    for (const singleFunction of overloadedFunctions.overloadedFunctions) {
-                        const inferenceRule = singleFunction.inferenceRuleForCalls;
-                        const keyMatching = languageKey === inferenceRule.languageKey || inferenceRule.languageKey === undefined;
-                        const filter = inferenceRule.filter === undefined || inferenceRule.filter(languageNode);
-                        if (keyMatching && filter) {
-                            const matching = inferenceRule.matching === undefined || inferenceRule.matching(languageNode);
-                            if (matching) {
-                                const inputArguments = inferenceRule.inputArguments(languageNode);
-                                if (inputArguments && inputArguments.length >= 1) {
-                                    // partial match:
-                                    const expectedParameterTypes = singleFunction.functionType.getInputs();
-                                    // check, that the given number of parameters is the same as the expected number of input parameters
-                                    const currentProblems: ValidationProblem[] = [];
-                                    const parameterLength = checkValueForConflict(expectedParameterTypes.length, inputArguments.length, 'number of input parameter values');
-                                    if (parameterLength.length >= 1) {
-                                        currentProblems.push({
-                                            $problem: ValidationProblem,
-                                            languageNode: languageNode,
-                                            severity: 'error',
-                                            message: 'The number of given parameter values does not match the expected number of input parameters.',
-                                            subProblems: parameterLength,
-                                        });
-                                    } else {
-                                        // there are parameter values to check their types
-                                        const inferredParameterTypes = inputArguments.map(p => typir.Inference.inferType(p));
-                                        for (let i = 0; i < inputArguments.length; i++) {
-                                            const expectedType = expectedParameterTypes[i];
-                                            const inferredType = inferredParameterTypes[i];
-                                            const parameterProblems = checkTypes(inferredType, expectedType, createTypeCheckStrategy('ASSIGNABLE_TYPE', typir), true);
-                                            if (parameterProblems.length >= 1) {
-                                                // the value is not assignable to the type of the input parameter
-                                                // create one ValidationProblem for each problematic parameter!
-                                                currentProblems.push({
-                                                    $problem: ValidationProblem,
-                                                    languageNode: inputArguments[i],
-                                                    severity: 'error',
-                                                    message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
-                                                    subProblems: parameterProblems,
-                                                });
-                                            } else {
-                                                // this parameter value is fine
-                                            }
-                                        }
-                                    }
-                                    // summarize all parameters of the current function
-                                    if (currentProblems.length >= 1) {
-                                        // some problems with parameters => this signature does not match
-                                        resultOverloaded.push({
-                                            $problem: ValidationProblem,
-                                            languageNode: languageNode,
-                                            severity: 'error',
-                                            message: `The given operands for the function '${this.services.Printer.printTypeName(singleFunction.functionType)}' match the expected types only partially.`,
-                                            subProblems: currentProblems,
-                                        });
-                                    } else {
-                                        return []; // 100% match found! (same case as above)
-                                    }
-                                } else {
-                                    // complete match found => no hurt constraint here => no error to show
-                                    // since this signature matches 100%, there is no need to check the other function signatures anymore!
-                                    return [];
-                                }
-                            } else {
-                                // false => does slightly not match => no constraints apply here => no error to show here
-                            }
-                        } else {
-                            // false => does not match at all => no constraints apply here => no error to show here
-                        }
-                    }
-                    if (resultOverloaded.length >= 1) {
-                        if (isOverloaded) {
-                            resultAll.push({
-                                $problem: ValidationProblem,
-                                languageNode: languageNode,
-                                severity: 'error',
-                                message: `The given operands for the overloaded function '${overloadedName}' match the expected types only partially.`,
-                                subProblems: resultOverloaded,
-                            });
-                        } else {
-                            resultAll.push(...resultOverloaded);
-                        }
-                    }
-                }
-                return resultAll;
-            }
-        ); // TODO die gemerkten Rules pro Variante ebenfalls performanter mittels languageKey ablegen/abrufen!
+        this.services.validation.Collector.addValidationRule(this.createFunctionCallArgumentsValidation());
     }
 
     protected collectOptions(options?: Partial<FunctionKindOptions>): FunctionKindOptions {
@@ -325,6 +273,10 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         return name !== undefined && name !== NO_PARAMETER_NAME;
     }
 
+    protected createFunctionCallArgumentsValidation(): ValidationRule {
+        // since kind/map is required for the validation (but not visible to the outside), it is created here by the factory
+        return createFunctionCallArgumentsValidation(this);
+    }
 }
 
 export function isFunctionKind(kind: unknown): kind is FunctionKind {

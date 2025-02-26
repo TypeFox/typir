@@ -96,6 +96,7 @@ const inferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
     filter: node => node instanceof BinaryExpression,
     matching: (node, operatorName) => node.operator === operatorName,
     operands: node => [node.left, node.right],
+    validateArgumentsOfCalls: true, // explicitly request to check, that the types of the arguments in operator calls fit to the parameters
 };
 ```
 
