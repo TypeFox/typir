@@ -9,10 +9,12 @@ import { isConversionEdge } from '../../services/conversion.js';
 import { CompositeTypeInferenceRule, InferenceProblem } from '../../services/inference.js';
 import { isSubTypeEdge } from '../../services/subtype.js';
 import { assertUnreachable } from '../../utils/utils.js';
-import { FunctionCallInferenceRule } from './function-call-inference.js';
+import { FunctionCallInferenceRule } from './function-inference-call.js';
 
 /**
  * Custom inference rule for functions, which consists of one inference rule for each overload/signature for a function with same name.
+ * Each of these inference rules is an instance of `FunctionCallInferenceRule`.
+ *
  * When deadling with multiple inference rules, usually the first successful inference rule is applied and following inference rules are ignored.
  * In order to deal with multiple matching inference rules for overloaded functions,
  * all available inference rules need to be executed and all successful inference rules need to be collected.

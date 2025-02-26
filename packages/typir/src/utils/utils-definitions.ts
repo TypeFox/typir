@@ -42,8 +42,8 @@ export function isNameTypePair(type: unknown): type is NameTypePair {
 //
 
 /** A pair of a rule for type inference with its additional options. */
-export interface InferenceRuleWithOptions {
-    rule: TypeInferenceRule;
+export interface InferenceRuleWithOptions<T extends TypeInferenceRule = TypeInferenceRule> {
+    rule: T;
     options: Partial<TypeInferenceRuleOptions>;
 }
 

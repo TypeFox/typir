@@ -12,9 +12,9 @@ import { TypirServices } from '../../typir.js';
 import { InferenceRuleWithOptions, optionsBoundToType, bindInferCurrentTypeRule } from '../../utils/utils-definitions.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
 import { assertType, toArray } from '../../utils/utils.js';
-import { FunctionCallInferenceRule } from './function-call-inference.js';
+import { FunctionCallInferenceRule } from './function-inference-call.js';
 import { CreateFunctionTypeDetails, FunctionKind, OverloadedFunctionDetails } from './function-kind.js';
-import { OverloadedFunctionsTypeInferenceRule } from './function-overloaded-inference.js';
+import { OverloadedFunctionsTypeInferenceRule } from './function-inference-overloaded.js';
 import { FunctionType, isFunctionType } from './function-type.js';
 
 /**
@@ -215,7 +215,7 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
 }
 
 interface FunctionInferenceRules {
-    inferenceForCall: InferenceRuleWithOptions[];
+    inferenceForCall: Array<InferenceRuleWithOptions<FunctionCallInferenceRule<unknown>>>;
     validationForCall: ValidationRuleStateless[];
     inferenceForDeclaration: InferenceRuleWithOptions[];
 }

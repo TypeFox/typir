@@ -29,7 +29,7 @@ export class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferr
     protected readonly inferenceRuleForCalls: InferFunctionCall<T>;
     protected readonly functionType: FunctionType;
     protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails>;
-    assignabilitySuccess: Array<AssignabilitySuccess | undefined>;
+    assignabilitySuccess: Array<AssignabilitySuccess | undefined>; // public, since this information is exploited to determine the best overloaded match in case of multiple matches
 
     constructor(typeDetails: FunctionTypeDetails, inferenceRuleForCalls: InferFunctionCall<T>, functionType: FunctionType, mapNameTypes: Map<string, OverloadedFunctionDetails>) {
         this.typeDetails = typeDetails;
@@ -41,6 +41,7 @@ export class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferr
 
     inferTypeWithoutChildren(languageNode: unknown, _typir: TypirServices): unknown {
         this.assignabilitySuccess.fill(undefined); // reset the entries
+        // 0. The LanguageKeys are already checked by OverloadedFunctionsTypeInferenceRule, nothing to do here
         // 1. Does the filter of the inference rule accept the current language node?
         const result = this.inferenceRuleForCalls.filter === undefined || this.inferenceRuleForCalls.filter(languageNode);
         if (!result) {
@@ -54,12 +55,7 @@ export class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferr
             return InferenceRuleNotApplicable;
         }
         // 3. Check whether the current arguments fit to the expected parameter types
-        const inputArguments = this.inferenceRuleForCalls.inputArguments(languageNode as T);
-        if (inputArguments.length <= 0) {
-            // there are no operands to check
-            return this.check(this.getOutputTypeForFunctionCalls());
-        }
-        // at least one operand => this function type might match, to be sure, resolve the types of the values for the parameters
+        // 3a. Check some special cases, in order to save the effort to do type inference for the given arguments
         const overloadInfos = this.mapNameTypes.get(this.typeDetails.functionName);
         if (overloadInfos === undefined || overloadInfos.overloadedFunctions.length <= 1) {
             // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
@@ -67,10 +63,11 @@ export class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferr
         }
         // two or more overloaded functions
         if (overloadInfos.sameOutputType) {
-            // exception: all(!) overloaded functions have the same(!) output type, save performance and return this type!
+            // special case: all(!) overloaded functions have the same(!) output type, save performance and return this type!
             return overloadInfos.sameOutputType;
         }
-        // the types of the parameters need to be inferred in order to determine an exact match
+        // 3b. The given arguments need to be checked in detail => infer the types of the parameters now
+        const inputArguments = this.inferenceRuleForCalls.inputArguments(languageNode as T);
         return inputArguments;
     }
 

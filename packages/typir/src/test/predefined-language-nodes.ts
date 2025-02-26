@@ -128,6 +128,7 @@ export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<Bi
     filter: node => node instanceof BinaryExpression,
     matching: (node, operatorName) => node.operator === operatorName,
     operands: node => [node.left, node.right],
+    validateArgumentsOfCalls: true,
 };
 
 export class TestProblemPrinter extends DefaultTypeConflictPrinter {
