@@ -173,7 +173,8 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
      *   Therefore this map needs to be maintained here.
      * - Main purpose is to support inference and validation for overloaded functions:
      *   Since overloaded functions are realized with one function type for each variant,
-     *   the corresponding rules and logic need to involve multiple types, which makes it more complex.
+     *   the corresponding rules and logic need to involve multiple types,
+     *   which makes it more complex and requires to manage them here and not in the single types.
      */
     readonly mapNameTypes: Map<string, OverloadedFunctionDetails> = new Map();
 
@@ -183,6 +184,7 @@ export class FunctionKind implements Kind, TypeGraphListener, FunctionFactorySer
         this.services.infrastructure.Kinds.register(this);
         this.options = this.collectOptions(options);
 
+        // this validation rule for checking arguments of function calls exists "for ever", since it validates all function types
         this.services.validation.Collector.addValidationRule(this.createFunctionCallArgumentsValidation());
     }
 

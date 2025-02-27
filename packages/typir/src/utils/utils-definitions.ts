@@ -54,7 +54,7 @@ export function optionsBoundToType(options: Partial<TypeInferenceRuleOptions>, t
     };
 }
 
-export function ruleWithOptionsBoundToType(rule: InferenceRuleWithOptions, type: Type | undefined): InferenceRuleWithOptions {
+export function ruleWithOptionsBoundToType<T extends TypeInferenceRule = TypeInferenceRule>(rule: InferenceRuleWithOptions<T>, type: Type | undefined): InferenceRuleWithOptions<T> {
     return {
         rule: rule.rule,
         options: optionsBoundToType(rule.options, type),

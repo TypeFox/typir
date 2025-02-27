@@ -27,6 +27,7 @@ Typir provides these core features:
   - Classes
   - Top, bottom
   - (more are planned)
+- Operators (with overloading)
 - Implementations for core type-checking services:
   - Assignability
   - Equality
@@ -34,7 +35,8 @@ Typir provides these core features:
   - Type inference, i.e. determining the Typir type for a language node (e.g. an element of the current AST)
   - Sub-typing
   - Validation
-- Solutions for: circular type definitions, caching, operators
+- Circular type definitions (e.g. `Node { children: Node[] }`)
+- Caching
 - Meaningful and customizable error messages
 - The provided default implementations are customizable by dependency injection
 

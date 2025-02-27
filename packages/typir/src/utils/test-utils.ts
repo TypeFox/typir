@@ -38,7 +38,7 @@ export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unk
         if (checkDetails(type)) {
             // everything is fine
         } else {
-            expect.fail(`'${type.getIdentifier()}' is the expected Typir type, but the details are wrong`);
+            expect.fail(`'${type.getIdentifier()}' is the actual Typir type, but the details are wrong`);
         }
     } else {
         expect.fail(`'${type}' is not the expected Typir type`);
