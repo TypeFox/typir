@@ -28,9 +28,16 @@ export interface LanguageService<LanguageType = unknown> {
     /**
      * Returns all keys, which are direct and indirect sub-keys of the given language key.
      * @param _languageKey the given language key
-     * @returns the list does not contain the given language key
+     * @returns the list does not contain the given language key itself
      */
     getAllSubKeys(languageKey: string): string[];
+
+    /**
+     * Returns all keys, which are direct and indirect super-keys of the given language key.
+     * @param _languageKey the given language key
+     * @returns the list does not contain the given language key itself
+     */
+    getAllSuperKeys(languageKey: string): string[];
 }
 
 
@@ -44,6 +51,10 @@ export class DefaultLanguageService implements LanguageService {
     }
 
     getAllSubKeys(_languageKey: string): string[] {
+        return [];
+    }
+
+    getAllSuperKeys(_languageKey: string): string[] {
         return [];
     }
 
