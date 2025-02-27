@@ -179,14 +179,17 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     addInferenceRule(rule: TypeInferenceRule, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
         const options = this.getTypeInferenceRuleOptions(givenOptions);
+        const allLanguageKeys = this.getLanguageKeys(options);
 
         // register the inference rule with the key(s) of the language node
-        for (const key of this.getLanguageKeys(options)) {
-            this.registerRuleForLanguageKey(rule, key);
+        let added = false; // remember whether the rule is really new
+        for (const key of allLanguageKeys) {
+            added = this.registerRuleForLanguageKey(rule, key) || added;
             // register the rule for all sub-keys as well
             if (key) {
-                this.services.Language.getAllSubKeys(key)
-                    .forEach(subKey => this.registerRuleForLanguageKey(rule, subKey));
+                for (const subKey of this.services.Language.getAllSubKeys(key)) {
+                    added = this.registerRuleForLanguageKey(rule, subKey) || added;
+                }
             }
         }
 
@@ -198,7 +201,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                 typirRules = new Map();
                 this.typirTypeToRules.set(typeKey, typirRules);
             }
-            for (const key of this.getLanguageKeys(options)) {
+            for (const key of allLanguageKeys) {
                 let languageRules = typirRules.get(key);
                 if (!languageRules) {
                     languageRules = new Set();
@@ -209,24 +212,33 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         }
 
         // inform all listeners about the new inference rule
-        this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, options));
+        if (added) {
+            this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, options));
+        }
     }
 
-    protected registerRuleForLanguageKey(rule: TypeInferenceRule, languageKey: string | undefined): void {
+    protected registerRuleForLanguageKey(rule: TypeInferenceRule, languageKey: string | undefined): boolean {
         let rules = this.languageTypeToRules.get(languageKey);
-        if (!rules) {
+        if (rules === undefined) {
             rules = new Set();
             this.languageTypeToRules.set(languageKey, rules);
         }
-        rules.add(rule);
+        if (rules.has(rule)) {
+            return false;
+        } else {
+            rules.add(rule);
+            return true;
+        }
     }
 
     removeInferenceRule(rule: TypeInferenceRule, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
         const options = this.getTypeInferenceRuleOptions(givenOptions);
+        const allLanguageKeys = this.getLanguageKeys(options);
 
-        for (const key of this.getLanguageKeys(options)) {
+        for (const key of allLanguageKeys) {
             this.deregisterRuleForLanguageKey(rule, key);
             // deregister the rule for all sub-keys as well
+            // TODO Vorsicht mit Überlappenden Sub-Trees von mehreren Language Keys! es könnte zuviel abgemeldet werden, was eigentlich noch benötigt wird!!
             if (key) {
                 this.services.Language.getAllSubKeys(key)
                     .forEach(subKey => this.deregisterRuleForLanguageKey(rule, subKey));
@@ -237,9 +249,17 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
             const typeKey = this.getBoundToTypeKey(options.boundToType);
             const typirRules = this.typirTypeToRules.get(typeKey);
             if (typirRules) {
-                for (const key of this.getLanguageKeys(options)) {
+                for (const key of allLanguageKeys) {
                     const languageRules = typirRules.get(key);
-                    languageRules?.delete(rule);
+                    if (languageRules) {
+                        languageRules.delete(rule);
+                        if (languageRules.size <= 0) { // remove empty entries
+                            typirRules.delete(key);
+                        }
+                    }
+                }
+                if (typirRules.size <= 0) { // remove empty entries
+                    this.typirTypeToRules.delete(typeKey);
                 }
             }
         }
@@ -249,7 +269,12 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     protected deregisterRuleForLanguageKey(rule: TypeInferenceRule, languageKey: string | undefined): void {
         const rules = this.languageTypeToRules.get(languageKey);
-        rules?.delete(rule);
+        if (rules) {
+            rules.delete(rule);
+            if (rules.size <= 0) { // remove empty entries
+                this.languageTypeToRules.delete(languageKey);
+            }
+        }
     }
 
     protected getBoundToTypeKey(boundToType?: Type): string {
@@ -429,9 +454,12 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                             this.listeners.forEach(listener => listener.onRemovedInferenceRule(ruleToRemove, {
                                 languageKey,
                                 boundToType: type,
-                                // Note that more future options might be unknown here ...
+                                // Note that more future options might be unknown here ... (let's hope, they are not relevant here)
                             }));
                         }
+                    }
+                    if (languageRules.size <= 0) { // remove empty entries
+                        this.languageTypeToRules.delete(languageKey);
                     }
                 }
             }

@@ -274,9 +274,10 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
 
     addValidationRule(rule: ValidationRule<LanguageType, RootType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         const options = this.getValidationRuleOptions(givenOptions);
+        const allLanguageKeys = this.getLanguageKeys(options);
 
         // register the validation rule with the key(s) of the language node
-        for (const key of this.getLanguageKeys(options)) {
+        for (const key of allLanguageKeys) {
             this.registerRuleForLanguageKey(rule, key);
             // register the rule for all sub-keys as well
             if (key) {
@@ -300,7 +301,7 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
                 typirRules = new Map();
                 this.typirTypeToRules.set(typeKey, typirRules);
             }
-            for (const key of this.getLanguageKeys(options)) {
+            for (const key of allLanguageKeys) {
                 let languageRules = typirRules.get(key);
                 if (!languageRules) {
                     languageRules = {
@@ -336,8 +337,9 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
 
     removeValidationRule(rule: ValidationRule<LanguageType, RootType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         const options = this.getValidationRuleOptions(givenOptions);
+        const allLanguageKeys = this.getLanguageKeys(options);
 
-        for (const key of this.getLanguageKeys(options)) {
+        for (const key of allLanguageKeys) {
             this.deregisterRuleForLanguageKey(rule, key);
             // deregister the rule for all sub-keys as well
             if (key) {
@@ -356,7 +358,7 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
             const typeKey = this.getBoundToTypeKey(options.boundToType);
             const typirRules = this.typirTypeToRules.get(typeKey);
             if (typirRules) {
-                for (const key of this.getLanguageKeys(options)) {
+                for (const key of allLanguageKeys) {
                     const languageRules = typirRules.get(key);
                     if (languageRules) {
                         if (typeof rule === 'function') {
@@ -364,7 +366,13 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
                         } else {
                             languageRules.beforeAfter.delete(rule);
                         }
+                        if (languageRules.stateless.size <= 0 && languageRules.beforeAfter.size <= 0) { // remove empty entries
+                            typirRules.delete(key);
+                        }
                     }
+                }
+                if (typirRules.size <= 0) { // remove empty entries
+                    this.typirTypeToRules.delete(typeKey);
                 }
             }
         }
@@ -377,6 +385,9 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
                 rules.stateless.delete(rule);
             } else {
                 rules.beforeAfter.delete(rule);
+            }
+            if (rules.stateless.size <= 0 && rules.beforeAfter.size <= 0) { // remove empty entries
+                this.languageTypeToRules.delete(languageKey);
             }
         }
     }
@@ -401,6 +412,9 @@ export class DefaultValidationCollector<LanguageType = unknown, RootType = Langu
                     for (const ruleToRemove of rules.beforeAfter) {
                         languageRules.beforeAfter.delete(ruleToRemove);
                         this.rulesBeforeAfter.delete(ruleToRemove);
+                    }
+                    if (languageRules.stateless.size <= 0 && languageRules.beforeAfter.size <= 0) { // remove empty entries
+                        this.languageTypeToRules.delete(languageKey);
                     }
                 }
             }
