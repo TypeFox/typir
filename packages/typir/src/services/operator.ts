@@ -14,7 +14,7 @@ import { toArray } from '../utils/utils.js';
 import { ValidationProblem } from './validation.js';
 
 export type InferOperatorWithSingleOperand<T = unknown> = {
-    languageKey?: string;
+    languageKey?: string | string[];
     filter?: (languageNode: unknown, operatorName: string) => languageNode is T;
     matching: (languageNode: T, operatorName: string) => boolean;
     operand: (languageNode: T, operatorName: string) => unknown;
@@ -22,7 +22,7 @@ export type InferOperatorWithSingleOperand<T = unknown> = {
     validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 };
 export type InferOperatorWithMultipleOperands<T = unknown> = {
-    languageKey?: string;
+    languageKey?: string | string[];
     filter?: (languageNode: unknown, operatorName: string) => languageNode is T;
     matching: (languageNode: T, operatorName: string) => boolean;
     operands: (languageNode: T, operatorName: string) => unknown[];

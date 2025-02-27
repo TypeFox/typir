@@ -68,7 +68,7 @@ export function ruleWithOptionsBoundToType<T extends TypeInferenceRule = TypeInf
  * At least one of the properties needs to be specified.
  */
 export interface InferCurrentTypeRule<T = unknown> {
-    languageKey?: string;
+    languageKey?: string | string[];
     filter?: (languageNode: unknown) => languageNode is T;
     matching?: (languageNode: T) => boolean;
 }

@@ -10,7 +10,7 @@ import { isType, Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { LanguageNodeInferenceCaching } from './caching.js';
-import { removeFromArray } from '../utils/utils.js';
+import { removeFromArray, toArray } from '../utils/utils.js';
 
 export interface InferenceProblem extends TypirProblem {
     $problem: 'InferenceProblem';
@@ -96,9 +96,10 @@ export interface TypeInferenceRuleOptions {
     /**
      * If an inference rule is associated with a language key, the inference rule will be executed only for language nodes, which have this language key,
      * in order to improve the runtime performance.
+     * In case of multiple language keys, the inference rule will be applied to all language nodes having ones of these language keys.
      * Inference rules without a language key ('undefined') are executed for all language nodes.
      */
-    languageKey: string | undefined;
+    languageKey: string | string[] | undefined;
     /**
      * An optional type, if the new inference rule is dedicated for exactly this type.
      * If the given type is removed from the type system, this rule will be automatically removed as well.
@@ -141,11 +142,12 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
     /**
      * language node type --> inference rules
      * Improves the look-up of related rules, when doing type inference for a concrete language node. */
-    protected readonly languageTypeToRules: Map<string|undefined, TypeInferenceRule[]> = new Map();
+    protected readonly languageTypeToRules: Map<string|undefined, Set<TypeInferenceRule>> = new Map();
     /**
      * type identifier --> (language node type -> inference rules)
      * Improves the look-up for inference rules which are bound to types, when these types are removed. */
-    protected readonly typirTypeToRules: Map<string, Map<string|undefined, TypeInferenceRule[]>> = new Map();
+    protected readonly typirTypeToRules: Map<string, Map<string|undefined, Set<TypeInferenceRule>>> = new Map();
+    // Sets are used as data type in order to prevent duplicates by accidentally registering the same rule twice
 
     protected readonly languageNodeInference: LanguageNodeInferenceCaching;
     protected readonly services: TypirServices;
@@ -167,17 +169,25 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
         };
     }
 
+    protected getLanguageKeys(options?: Partial<TypeInferenceRuleOptions>): Array<string|undefined> {
+        if (options === undefined || options.languageKey === undefined) {
+            return [undefined];
+        } else {
+            return toArray(options.languageKey);
+        }
+    }
+
     addInferenceRule(rule: TypeInferenceRule, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
         const options = this.getTypeInferenceRuleOptions(givenOptions);
 
         // register the inference rule with the key(s) of the language node
-        if (options.languageKey === undefined) {
-            this.registerRuleForLanguageKey(rule, undefined);
-        } else {
-            this.registerRuleForLanguageKey(rule, options.languageKey);
+        for (const key of this.getLanguageKeys(options)) {
+            this.registerRuleForLanguageKey(rule, key);
             // register the rule for all sub-keys as well
-            this.services.Language.getAllSubKeys(options.languageKey)
-                .forEach(subKey => this.registerRuleForLanguageKey(rule, subKey));
+            if (key) {
+                this.services.Language.getAllSubKeys(key)
+                    .forEach(subKey => this.registerRuleForLanguageKey(rule, subKey));
+            }
         }
 
         // register the inference rule to Typir types in order to easily remove them together with removed types
@@ -188,12 +198,14 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                 typirRules = new Map();
                 this.typirTypeToRules.set(typeKey, typirRules);
             }
-            let languageRules = typirRules.get(options.languageKey);
-            if (!languageRules) {
-                languageRules = [];
-                typirRules.set(options.languageKey, languageRules);
+            for (const key of this.getLanguageKeys(options)) {
+                let languageRules = typirRules.get(key);
+                if (!languageRules) {
+                    languageRules = new Set();
+                    typirRules.set(key, languageRules);
+                }
+                languageRules.add(rule);
             }
-            languageRules.push(rule);
         }
 
         // inform all listeners about the new inference rule
@@ -203,29 +215,33 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
     protected registerRuleForLanguageKey(rule: TypeInferenceRule, languageKey: string | undefined): void {
         let rules = this.languageTypeToRules.get(languageKey);
         if (!rules) {
-            rules = [];
+            rules = new Set();
             this.languageTypeToRules.set(languageKey, rules);
         }
-        rules.push(rule);
+        rules.add(rule);
     }
 
     removeInferenceRule(rule: TypeInferenceRule, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
         const options = this.getTypeInferenceRuleOptions(givenOptions);
 
-        if (options.languageKey === undefined) {
-            this.deregisterRuleForLanguageKey(rule, undefined);
-        } else {
-            this.deregisterRuleForLanguageKey(rule, options.languageKey);
+        for (const key of this.getLanguageKeys(options)) {
+            this.deregisterRuleForLanguageKey(rule, key);
             // deregister the rule for all sub-keys as well
-            this.services.Language.getAllSubKeys(options.languageKey)
-                .forEach(subKey => this.deregisterRuleForLanguageKey(rule, subKey));
+            if (key) {
+                this.services.Language.getAllSubKeys(key)
+                    .forEach(subKey => this.deregisterRuleForLanguageKey(rule, subKey));
+            }
         }
 
         if (options.boundToType) {
             const typeKey = this.getBoundToTypeKey(options.boundToType);
             const typirRules = this.typirTypeToRules.get(typeKey);
-            const languageRules = typirRules?.get(options.languageKey);
-            removeFromArray(rule, languageRules);
+            if (typirRules) {
+                for (const key of this.getLanguageKeys(options)) {
+                    const languageRules = typirRules.get(key);
+                    languageRules?.delete(rule);
+                }
+            }
         }
 
         this.listeners.forEach(listener => listener.onRemovedInferenceRule(rule, options));
@@ -233,7 +249,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
 
     protected deregisterRuleForLanguageKey(rule: TypeInferenceRule, languageKey: string | undefined): void {
         const rules = this.languageTypeToRules.get(languageKey);
-        removeFromArray(rule, rules);
+        rules?.delete(rule);
     }
 
     protected getBoundToTypeKey(boundToType?: Type): string {
@@ -407,7 +423,7 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
                 const languageRules = this.languageTypeToRules.get(languageKey);
                 if (languageRules) {
                     for (const ruleToRemove of rules) {
-                        const removed = removeFromArray(ruleToRemove, languageRules);
+                        const removed = languageRules.delete(ruleToRemove);
                         if (removed) {
                             // inform listeners about removed inference rules
                             this.listeners.forEach(listener => listener.onRemovedInferenceRule(ruleToRemove, {
