@@ -22,6 +22,16 @@ export function toArray<T>(value: undefined | T | T[]): T[] {
     }
     return [value];
 }
+export function toArrayWithValue<T>(value: T, array?: undefined | T | T[]): T[] {
+    if (array === undefined) {
+        return [value];
+    }
+    if (Array.isArray(array)) {
+        array.push(value);
+        return array;
+    }
+    return [array, value];
+}
 
 export function removeFromArray<T>(value: T | undefined, array: T[] | undefined): boolean {
     if (value === undefined || array === undefined) {
