@@ -53,7 +53,6 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
                 sameOutputType: undefined,
             };
             this.kind.mapNameTypes.set(functionName, overloaded);
-            this.services.Inference.addInferenceRule(overloaded.inference);
         }
 
         // create the new Function type
@@ -66,7 +65,8 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
     }
 
     protected createInferenceRuleForOverloads(): CompositeTypeInferenceRule {
-        return new OverloadedFunctionsTypeInferenceRule(this.services);
+        // This inference rule don't need to be registered at the Inference service, since it manages the (de)registrations itself!
+        return new OverloadedFunctionsTypeInferenceRule(this.services, this.services.Inference);
     }
 
     override getTypeInitial(): FunctionType {
@@ -157,7 +157,7 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
                 rule: new FunctionCallInferenceRule(typeDetails, rule, functionType, mapNameTypes),
                 options: {
                     languageKey: rule.languageKey,
-                    // boundToType: ... this property will be specified outside of this method, TODO
+                    // boundToType: ... this property will be specified outside of this method, when this rule is registered
                 },
             });
 

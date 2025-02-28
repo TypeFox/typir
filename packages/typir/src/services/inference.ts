@@ -493,9 +493,18 @@ export class DefaultTypeInferenceCollector implements TypeInferenceCollector, Ty
  * This inference rule uses multiple internal inference rules for doing the type inference.
  * If one of the child rules returns a type, this type is the result of the composite rule.
  * Otherwise, all problems of all child rules are returned.
+ *
+ * This composite rule ensures itself, that it is associated to the set of language keys of the inner rules.
  */
 // This design looks a bit ugly ..., but "implements TypeInferenceRuleWithoutInferringChildren" does not work, since it is a function ...
 export class CompositeTypeInferenceRule extends DefaultTypeInferenceCollector implements TypeInferenceRuleWithInferringChildren {
+    /** The collector for inference rules, at which this composite rule should be registered. */
+    protected readonly collectorToRegisterThisRule: TypeInferenceCollector;
+
+    constructor(services: TypirServices, collectorToRegisterThisRule: TypeInferenceCollector) {
+        super(services);
+        this.collectorToRegisterThisRule = collectorToRegisterThisRule;
+    }
 
     // do not check "pending" (again), since it is already checked by the "parent" DefaultTypeInferenceCollector!
     override pendingGet(_languageNode: unknown): boolean {
@@ -526,5 +535,44 @@ export class CompositeTypeInferenceRule extends DefaultTypeInferenceCollector im
 
     inferTypeWithChildrensTypes(_languageNode: unknown, _childrenTypes: Array<Type | undefined>, _typir: TypirServices): Type | InferenceProblem {
         throw new Error('This function will not be called.');
+    }
+
+    override addInferenceRule(rule: TypeInferenceRule, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
+        // register the rule for inference
+        super.addInferenceRule(rule, givenOptions);
+
+        // update the registration of this composite rule:
+        // - ensures that this composite rule itself is associated with all the language keys of the inner rules
+        // - boundToType := undefined, since this composite manages its removal in case of deleted inner rules/nodes
+        this.collectorToRegisterThisRule.addInferenceRule(this, { languageKey: givenOptions?.languageKey, boundToType: undefined });
+    }
+
+    override removeInferenceRule(rule: TypeInferenceRule, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
+        // deregister the rule, don't use it for inference anymore
+        super.removeInferenceRule(rule, givenOptions);
+
+        // update the registration of this composite rule:
+        // - updates the language keys which are associated with this composite rule itself
+        // - boundToType := undefined, since this composite manages its removal in case of deleted inner rules/nodes
+        this.collectorToRegisterThisRule.removeInferenceRule(this, { languageKey: givenOptions?.languageKey, boundToType: undefined });
+    }
+
+    override onRemovedType(type: Type, key: string): void {
+        // remember the language keys before removing the rules bound to the removed type
+        const remainingLanguageKeys = Array.from(this.languageTypeToRules.keys());
+
+        // After removing a type and all (inner) rules which are bound to this type ...
+        super.onRemovedType(type, key);
+
+        if (this.languageTypeToRules.size <= 0) { // remark: don't use 'typirTypeToRules', since it does not contain rules which are not bound to types
+            // ... there are no inner rules left => de-register this composite rule for all remaining language keys before the removal
+            const remainingLanguageKeysNotUndefined = remainingLanguageKeys.filter(k => k !== undefined);
+            if (remainingLanguageKeysNotUndefined.length >= 1) {
+                this.collectorToRegisterThisRule.removeInferenceRule(this, { languageKey: remainingLanguageKeysNotUndefined, boundToType: undefined });
+            }
+            if (remainingLanguageKeys.length > remainingLanguageKeysNotUndefined.length) {
+                this.collectorToRegisterThisRule.removeInferenceRule(this, { languageKey: undefined, boundToType: undefined });
+            }
+        }
     }
 }

@@ -61,8 +61,10 @@ export interface CreateFunctionTypeDetails extends FunctionTypeDetails {
  */
 export interface OverloadedFunctionDetails {
     overloadedFunctions: SingleFunctionDetails[];
-    inference: CompositeTypeInferenceRule; // collects the inference rules for all functions with the same name
-    sameOutputType: Type | undefined; // if all overloaded functions with the same name have the same output/return type, this type is remembered here (for a small performance optimization)
+    /** Collects the inference rules for all functions with the same name */
+    inference: CompositeTypeInferenceRule; // remark: language keys are internally used during the registration of rules and during the inference using these rules
+    /** If all overloaded functions with the same name have the same output/return type, this type is remembered here (for a small performance optimization). */
+    sameOutputType: Type | undefined;
 }
 
 interface SingleFunctionDetails {
