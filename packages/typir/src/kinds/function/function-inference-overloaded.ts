@@ -29,7 +29,7 @@ export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInference
         const collectedInferenceProblems: InferenceProblem[] = [];
         // execute the rules which are associated to the key of the current language node
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
-        for (const rule of this.languageTypeToRules.get(languageKey) ?? []) {
+        for (const rule of this.ruleRegistry.getRulesByLanguageKey(languageKey)) {
             const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
             if (result) {
                 matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<unknown> });
@@ -39,7 +39,7 @@ export class OverloadedFunctionsTypeInferenceRule extends CompositeTypeInference
         }
         // execute all rules which are associated to no language nodes at all (as a fall-back for such rules)
         if (languageKey !== undefined) {
-            for (const rule of this.languageTypeToRules.get(undefined) ?? []) {
+            for (const rule of this.ruleRegistry.getRulesByLanguageKey(undefined)) {
                 const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
                 if (result) {
                     matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<unknown> });

@@ -4,12 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
+import { RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
-import { toArray } from '../utils/utils.js';
 import { TypeInferenceCollector } from './inference.js';
 import { ProblemPrinter } from './printing.js';
 
@@ -35,12 +34,6 @@ export function isValidationProblem(problem: unknown): problem is ValidationProb
 export type ValidationRule<LanguageType = unknown, RootType = LanguageType> =
     | ValidationRuleStateless<LanguageType>
     | ValidationRuleWithBeforeAfter<LanguageType, RootType>;
-
-type ClassifiedValidationRules<LanguageType = unknown, RootType = LanguageType> = {
-    // Sets are used as data type in order to prevent duplicates by accidentally registering the same rule twice
-    stateless: Set<ValidationRuleStateless<LanguageType>>;
-    beforeAfter: Set<ValidationRuleWithBeforeAfter<LanguageType, RootType>>;
-}
 
 /**
  * Describes a simple, state-less validation rule,
@@ -161,22 +154,7 @@ export class DefaultValidationConstraints implements ValidationConstraints {
     }
 }
 
-export interface ValidationRuleOptions {
-    /**
-     * If a validation rule is associated with a language key, the validation rule will be executed only for language nodes, which have this language key,
-     * in order to improve the runtime performance.
-     * In case of multiple language keys, the validation rule will be applied to all language nodes having ones of these language keys.
-     * Validation rules without a language key ('undefined') are executed for all language nodes.
-     */
-    languageKey: string | string[] | undefined;
-
-    /**
-     * An optional type, if the new validation rule is dedicated for exactly this type:
-     * If the given type is removed from the type system, this rule will be automatically removed as well.
-     * In case of 'undefined', the validation rule will never be automatically removed.
-     */
-    boundToType: Type | undefined;
-}
+export type ValidationRuleOptions = RuleOptions;
 
 export interface ValidationCollector<LanguageType = unknown, RootType = LanguageType> {
     validateBefore(languageNode: RootType): ValidationProblem[];
@@ -188,236 +166,96 @@ export interface ValidationCollector<LanguageType = unknown, RootType = Language
      * @param rule a new validation rule
      * @param options some more options to control the handling of the added validation rule
      */
-    addValidationRule(rule: ValidationRule<LanguageType, RootType>, options?: Partial<ValidationRuleOptions>): void;
+    addValidationRule<T extends LanguageType = LanguageType>(rule: ValidationRule<T, RootType>, options?: Partial<ValidationRuleOptions>): void;
     /**
      * Removes a validation rule.
      * @param rule the validation rule to remove
      * @param options the same options as given for the registration of the validation rule must be given for the removal!
      */
-    removeValidationRule(rule: ValidationRule<LanguageType, RootType>, options?: Partial<ValidationRuleOptions>): void;
+    removeValidationRule<T extends LanguageType = LanguageType>(rule: ValidationRule<T, RootType>, options?: Partial<ValidationRuleOptions>): void;
 }
 
-export class DefaultValidationCollector<LanguageType = unknown, RootType = LanguageType> implements ValidationCollector<LanguageType, RootType>, TypeGraphListener {
+export class DefaultValidationCollector<LanguageType = unknown, RootType = LanguageType> implements ValidationCollector<LanguageType, RootType> {
     protected readonly services: TypirServices;
 
-    /**
-     * language node type --> validation rules
-     * Improves the look-up of related rules, when validating a concrete language node. */
-    protected readonly languageTypeToRules: Map<string|undefined, ClassifiedValidationRules<LanguageType, RootType>> = new Map();
-    /**
-     * type identifier --> (language node type -> validation rules)
-     * Improves the look-up for validation rules which are bound to types, when these types are removed. */
-    protected readonly typirTypeToRules: Map<string, Map<string|undefined, ClassifiedValidationRules<LanguageType, RootType>>> = new Map();
-
-    /** Remember these validation rules to find and execute them faster */
-    protected readonly rulesBeforeAfter: Set<ValidationRuleWithBeforeAfter<LanguageType, RootType>> = new Set();
+    protected readonly ruleRegistryStateLess: RuleRegistry<ValidationRuleStateless<LanguageType>>;
+    protected readonly ruleRegistryBeforeAfter: RuleRegistry<ValidationRuleWithBeforeAfter<LanguageType, RootType>>;
 
     constructor(services: TypirServices) {
         this.services = services;
-        this.services.infrastructure.Graph.addListener(this);
+        this.ruleRegistryStateLess = new RuleRegistry(services);
+        this.ruleRegistryBeforeAfter = new RuleRegistry(services);
     }
 
     validateBefore(languageRoot: RootType): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
-        for (const rule of this.rulesBeforeAfter) {
-            problems.push(...rule.beforeValidation(languageRoot, this.services));
+        for (const rule of this.ruleRegistryBeforeAfter.getAllRules()) { // the returned rules are unique
+            problems.push(...rule.beforeValidation.call(rule, languageRoot, this.services));
         }
         return problems;
     }
 
     validate(languageNode: LanguageType): ValidationProblem[] {
-        const problems: ValidationProblem[] = [];
-        // execute the rules which are associated to the key of the current language node
+        // determine all keys to check
+        const keysToApply: Array<string|undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
-        this.executeRulesForLanguageNode(this.languageTypeToRules.get(languageKey), languageNode, problems);
-        // execute all rules which are associated to no language nodes at all (as a fall-back for such rules)
-        if (languageKey !== undefined) {
-            this.executeRulesForLanguageNode(this.languageTypeToRules.get(undefined), languageNode, problems);
+        if (languageKey === undefined) {
+            keysToApply.push(undefined);
+        } else {
+            keysToApply.push(languageKey); // execute the rules which are associated to the key of the current language node
+            keysToApply.push(...this.services.Language.getAllSuperKeys(languageKey)); // apply all rules which are associated to super-keys
+            keysToApply.push(undefined); // rules associated with 'undefined' are applied to all language nodes, apply these rules at the end
+        }
+
+        // execute all rules wich are associated to the relevant language keys
+        const problems: ValidationProblem[] = [];
+        const alreadyExecutedRules: Set<ValidationRuleStateless<LanguageType>> = new Set(); // don't execute rules multiple times, if they are associated with multiple keys (with overlapping sub-keys)
+        for (const key of keysToApply) {
+            // state-less rules
+            for (const ruleStateless of this.ruleRegistryStateLess.getRulesByLanguageKey(key)) {
+                if (alreadyExecutedRules.has(ruleStateless)) {
+                    // don't execute this rule again
+                } else {
+                    problems.push(...ruleStateless(languageNode, this.services));
+                    alreadyExecutedRules.add(ruleStateless);
+                }
+            }
+
+            // rules with before and after
+            for (const ruleStateless of this.ruleRegistryBeforeAfter.getRulesByLanguageKey(key)) {
+                if (alreadyExecutedRules.has(ruleStateless.validation)) {
+                    // don't execute this rule again
+                } else {
+                    problems.push(...ruleStateless.validation.call(ruleStateless, languageNode, this.services));
+                    alreadyExecutedRules.add(ruleStateless.validation);
+                }
+            }
         }
         return problems;
-    }
-
-    protected executeRulesForLanguageNode(relevantRules: ClassifiedValidationRules<LanguageType, RootType> | undefined, languageNode: LanguageType, problems: ValidationProblem[]): void {
-        for (const ruleStateless of relevantRules?.stateless ?? []) {
-            problems.push(...ruleStateless(languageNode, this.services));
-        }
-        for (const ruleBeforeAfter of relevantRules?.beforeAfter ?? []) {
-            problems.push(...ruleBeforeAfter.validation(languageNode, this.services));
-        }
     }
 
     validateAfter(languageRoot: RootType): ValidationProblem[] {
         const problems: ValidationProblem[] = [];
-        for (const rule of this.rulesBeforeAfter) {
-            problems.push(...rule.afterValidation(languageRoot, this.services));
+        for (const rule of this.ruleRegistryBeforeAfter.getAllRules()) { // the returned rules are unique
+            problems.push(...rule.afterValidation.call(rule, languageRoot, this.services));
         }
         return problems;
     }
 
-    protected getValidationRuleOptions(options?: Partial<ValidationRuleOptions>): ValidationRuleOptions {
-        return {
-            // default values ...
-            languageKey: undefined,
-            boundToType: undefined,
-            // ... overridden by the actual options:
-            ...options,
-        };
-    }
-
-    protected getLanguageKeys(options?: Partial<ValidationRuleOptions>): Array<string|undefined> {
-        if (options === undefined || options.languageKey === undefined) {
-            return [undefined];
-        } else {
-            return toArray(options.languageKey);
-        }
-    }
-
-    addValidationRule(rule: ValidationRule<LanguageType, RootType>, givenOptions?: Partial<ValidationRuleOptions>): void {
-        const options = this.getValidationRuleOptions(givenOptions);
-        const allLanguageKeys = this.getLanguageKeys(options);
-
-        // register the validation rule with the key(s) of the language node
-        for (const key of allLanguageKeys) {
-            this.registerRuleForLanguageKey(rule, key);
-            // register the rule for all sub-keys as well
-            if (key) {
-                this.services.Language.getAllSubKeys(key)
-                    .forEach(subKey => this.registerRuleForLanguageKey(rule, subKey));
-            }
-        }
-
-        // register validation rules for easier access
+    addValidationRule<T extends LanguageType = LanguageType>(rule: ValidationRule<T, RootType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         if (typeof rule === 'function') {
-            // nothing special
+            this.ruleRegistryStateLess.addRule(rule as ValidationRuleStateless<LanguageType>, givenOptions);
         } else {
-            this.rulesBeforeAfter.add(rule);
-        }
-
-        // register the validation rule to Typir types in order to easily remove them together with removed types
-        if (options.boundToType) {
-            const typeKey = this.getBoundToTypeKey(options.boundToType);
-            let typirRules = this.typirTypeToRules.get(typeKey);
-            if (!typirRules) {
-                typirRules = new Map();
-                this.typirTypeToRules.set(typeKey, typirRules);
-            }
-            for (const key of allLanguageKeys) {
-                let languageRules = typirRules.get(key);
-                if (!languageRules) {
-                    languageRules = {
-                        stateless: new Set(),
-                        beforeAfter: new Set(),
-                    };
-                    typirRules.set(key, languageRules);
-                }
-                if (typeof rule === 'function') {
-                    languageRules.stateless.add(rule);
-                } else {
-                    languageRules.beforeAfter.add(rule);
-                }
-            }
+            this.ruleRegistryBeforeAfter.addRule(rule as ValidationRuleWithBeforeAfter<LanguageType, RootType>, givenOptions);
         }
     }
 
-    protected registerRuleForLanguageKey(rule: ValidationRule<LanguageType, RootType>, languageKey: string | undefined): void {
-        let rules = this.languageTypeToRules.get(languageKey);
-        if (!rules) {
-            rules = {
-                stateless: new Set(),
-                beforeAfter: new Set(),
-            };
-            this.languageTypeToRules.set(languageKey, rules);
-        }
+    removeValidationRule<T extends LanguageType = LanguageType>(rule: ValidationRule<T, RootType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         if (typeof rule === 'function') {
-            rules.stateless.add(rule);
+            this.ruleRegistryStateLess.removeRule(rule as ValidationRuleStateless<LanguageType>, givenOptions);
         } else {
-            rules.beforeAfter.add(rule);
+            this.ruleRegistryBeforeAfter.removeRule(rule as ValidationRuleWithBeforeAfter<LanguageType, RootType>, givenOptions);
         }
     }
 
-    removeValidationRule(rule: ValidationRule<LanguageType, RootType>, givenOptions?: Partial<ValidationRuleOptions>): void {
-        const options = this.getValidationRuleOptions(givenOptions);
-        const allLanguageKeys = this.getLanguageKeys(options);
-
-        for (const key of allLanguageKeys) {
-            this.deregisterRuleForLanguageKey(rule, key);
-            // deregister the rule for all sub-keys as well
-            if (key) {
-                this.services.Language.getAllSubKeys(key)
-                    .forEach(subKey => this.deregisterRuleForLanguageKey(rule, subKey));
-            }
-        }
-
-        if (typeof rule === 'function') {
-            // nothing special
-        } else {
-            this.rulesBeforeAfter.delete(rule);
-        }
-
-        if (options.boundToType) {
-            const typeKey = this.getBoundToTypeKey(options.boundToType);
-            const typirRules = this.typirTypeToRules.get(typeKey);
-            if (typirRules) {
-                for (const key of allLanguageKeys) {
-                    const languageRules = typirRules.get(key);
-                    if (languageRules) {
-                        if (typeof rule === 'function') {
-                            languageRules.stateless.delete(rule);
-                        } else {
-                            languageRules.beforeAfter.delete(rule);
-                        }
-                        if (languageRules.stateless.size <= 0 && languageRules.beforeAfter.size <= 0) { // remove empty entries
-                            typirRules.delete(key);
-                        }
-                    }
-                }
-                if (typirRules.size <= 0) { // remove empty entries
-                    this.typirTypeToRules.delete(typeKey);
-                }
-            }
-        }
-    }
-
-    protected deregisterRuleForLanguageKey(rule: ValidationRule<LanguageType, RootType>, languageKey: string | undefined): void {
-        const rules = this.languageTypeToRules.get(languageKey);
-        if (rules) {
-            if (typeof rule === 'function') {
-                rules.stateless.delete(rule);
-            } else {
-                rules.beforeAfter.delete(rule);
-            }
-            if (rules.stateless.size <= 0 && rules.beforeAfter.size <= 0) { // remove empty entries
-                this.languageTypeToRules.delete(languageKey);
-            }
-        }
-    }
-
-    protected getBoundToTypeKey(boundToType?: Type): string {
-        return boundToType?.getIdentifier() ?? '';
-    }
-
-    /* Get informed about deleted types in order to remove validation rules which are bound to them. */
-    onRemovedType(type: Type, _key: string): void {
-        const typeKey = this.getBoundToTypeKey(type);
-        const entriesToRemove = this.typirTypeToRules.get(typeKey);
-        this.typirTypeToRules.delete(typeKey);
-
-        if (entriesToRemove) {
-            for (const [languageKey, rules] of entriesToRemove.entries()) {
-                const languageRules = this.languageTypeToRules.get(languageKey);
-                if (languageRules) {
-                    for (const ruleToRemove of rules.stateless) {
-                        languageRules.stateless.delete(ruleToRemove);
-                    }
-                    for (const ruleToRemove of rules.beforeAfter) {
-                        languageRules.beforeAfter.delete(ruleToRemove);
-                        this.rulesBeforeAfter.delete(ruleToRemove);
-                    }
-                    if (languageRules.stateless.size <= 0 && languageRules.beforeAfter.size <= 0) { // remove empty entries
-                        this.languageTypeToRules.delete(languageKey);
-                    }
-                }
-            }
-        }
-    }
 }

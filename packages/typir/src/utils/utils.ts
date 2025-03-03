@@ -13,12 +13,16 @@ export function assertTrue(condition: boolean, msg?: string): asserts condition 
     }
 }
 
-export function toArray<T>(value: undefined | T | T[]): T[] {
+export function toArray<T>(value: undefined | T | T[], options?: { newArray: boolean }): T[] {
     if (value === undefined) {
         return [];
     }
     if (Array.isArray(value)) {
-        return value;
+        if (options?.newArray) {
+            return [...value];
+        } else {
+            return value;
+        }
     }
     return [value];
 }

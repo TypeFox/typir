@@ -46,6 +46,7 @@ export * from './services/printing.js';
 export * from './services/subtype.js';
 export * from './services/validation.js';
 export * from './utils/dependency-injection.js';
+export * from './utils/rule-registration.js';
 export * from './utils/test-utils.js';
 export * from './utils/utils.js';
 export * from './utils/utils-definitions.js';

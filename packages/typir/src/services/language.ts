@@ -44,9 +44,9 @@ export interface LanguageService<LanguageType = unknown> {
 /**
  * This default implementation provides no information about the current language.
  */
-export class DefaultLanguageService implements LanguageService {
+export class DefaultLanguageService<LanguageType = unknown> implements LanguageService<LanguageType> {
 
-    getLanguageNodeKey(_languageNode: unknown): string | undefined {
+    getLanguageNodeKey(_languageNode: LanguageType): string | undefined {
         return undefined;
     }
 

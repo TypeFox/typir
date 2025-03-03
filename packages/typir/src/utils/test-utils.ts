@@ -6,7 +6,7 @@
 
 import { expect } from 'vitest';
 import { Type } from '../graph/type-node.js';
-import { TestProblemPrinter } from '../test/predefined-language-nodes.js';
+import { TestLanguageService, TestLanguageNode, TestProblemPrinter } from '../test/predefined-language-nodes.js';
 import { createTypirServices, DefaultTypirServiceModule, PartialTypirServices, TypirServices } from '../typir.js';
 import { Module } from './dependency-injection.js';
 
@@ -52,11 +52,14 @@ export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unk
  * @returns a Typir instance, i.e. the TypirServices with implementations
  */
 export function createTypirServicesForTesting(
-    customizationForTesting: Module<TypirServices, PartialTypirServices> = {},
-): TypirServices {
+    customizationForTesting: Module<TypirServices<TestLanguageNode>, PartialTypirServices<TestLanguageNode>> = {},
+): TypirServices<TestLanguageNode> {
     return createTypirServices(
         DefaultTypirServiceModule,                      // all default core implementations
-        { Printer: () => new TestProblemPrinter() },    // use the dedicated printer for TestLanguageNode's
+        {                                               // override some default implementations:
+            Printer: () => new TestProblemPrinter(),    // use the dedicated printer for TestLanguageNode's
+            Language: () => new TestLanguageService(),  // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)
+        },
         customizationForTesting,                        // specific customizations for the current test case
     );
 }

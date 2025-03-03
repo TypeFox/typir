@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { DefaultLanguageService } from '../services/language.js';
 import { InferOperatorWithMultipleOperands } from '../services/operator.js';
 import { DefaultTypeConflictPrinter } from '../services/printing.js';
 
@@ -87,6 +88,8 @@ export const string123 = new StringLiteral('123');
 export const string456 = new StringLiteral('456');
 export const string2 = new StringLiteral('2');
 export const string3 = new StringLiteral('3');
+export const stringHello = new StringLiteral('Hello');
+export const stringWorld = new StringLiteral('World');
 
 
 export class BinaryExpression extends TestExpressionNode {
@@ -137,5 +140,11 @@ export class TestProblemPrinter extends DefaultTypeConflictPrinter {
             return `${sentenceBegin ? 'T' : 't'}he language node '${languageNode.print()}'`;
         }
         return super.printLanguageNode(languageNode, sentenceBegin);
+    }
+}
+
+export class TestLanguageService extends DefaultLanguageService {
+    override getLanguageNodeKey(languageNode: TestLanguageNode): string | undefined {
+        return languageNode.constructor.name;
     }
 }

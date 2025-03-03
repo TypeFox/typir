@@ -42,7 +42,7 @@ import { inject, Module } from './utils/dependency-injection.js';
  * - How to bundle Typir configurations for reuse ("presets")?
  */
 
-export type TypirServices = {
+export type TypirServices<LanguageType = unknown, RootType = LanguageType> = {
     readonly Assignability: TypeAssignability;
     readonly Equality: TypeEquality;
     readonly Conversion: TypeConversion;
@@ -53,9 +53,9 @@ export type TypirServices = {
         readonly LanguageNodeInference: LanguageNodeInferenceCaching;
     };
     readonly Printer: ProblemPrinter;
-    readonly Language: LanguageService;
+    readonly Language: LanguageService<LanguageType>;
     readonly validation: {
-        readonly Collector: ValidationCollector;
+        readonly Collector: ValidationCollector<LanguageType, RootType>;
         readonly Constraints: ValidationConstraints;
     };
     readonly factory: {
@@ -134,4 +134,4 @@ export type DeepPartial<T> = T[keyof T] extends Function ? T : {
 /**
  * Language-specific services to be partially overridden via dependency injection.
  */
-export type PartialTypirServices = DeepPartial<TypirServices>
+export type PartialTypirServices<LanguageType = unknown, RootType = LanguageType> = DeepPartial<TypirServices<LanguageType, RootType>>
