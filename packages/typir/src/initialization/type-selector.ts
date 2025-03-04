@@ -78,22 +78,21 @@ export class DefaultTypeResolver<LanguageType = unknown> implements TypeResolvin
         }
     }
 
-    resolve<T extends Type = Type>(selector: TypeSelector<T>): T {
+    resolve<T extends Type = Type>(selector: TypeSelector<T, LanguageType>): T {
         if (isType(selector)) {
             return selector as T;
         } else if (typeof selector === 'string') {
-            const result = this.services.infrastructure.Graph.getType(selector);
-            if (result) {
-                return result as T;
-            } else {
-                throw new Error(`A type with identifier '${selector}' as TypeSelector does not exist in the type graph.`);
-            }
+            return this.handleError<T>(
+                this.services.infrastructure.Graph.getType(selector) as T | undefined,
+                `A type with identifier '${selector}' as TypeSelector does not exist in the type graph.`
+            );
         } else if (selector instanceof TypeInitializer) {
-            return selector.getTypeFinal();
+            return this.handleError(selector.getTypeFinal(), "This TypeInitializer don't provide a type.");
         } else if (selector instanceof TypeReference) {
-            return selector.getType();
+            return this.handleError(selector.getType(), 'This TypeReference has no resolved type.');
         } else if (typeof selector === 'function') {
-            return this.resolve<T>(selector()); // execute the function and try to recursively resolve the returned result again
+            // execute the function and try to recursively resolve the returned result again
+            return this.resolve<T>((selector as () => BasicTypeSelector<T, LanguageType>).call(selector));
         } else {
             const result = this.services.Inference.inferType(selector);
             if (isType(result)) {
@@ -101,6 +100,14 @@ export class DefaultTypeResolver<LanguageType = unknown> implements TypeResolvin
             } else {
                 throw new Error(`For '${this.services.Printer.printLanguageNode(selector, false)}' as TypeSelector, no type can be inferred.`);
             }
+        }
+    }
+
+    protected handleError<T extends Type>(result: T | undefined, errorMessage: string): T {
+        if (result) {
+            return result as T;
+        } else {
+            throw new Error(errorMessage);
         }
     }
 }
