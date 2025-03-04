@@ -67,7 +67,7 @@ export interface LangiumTypirValidator {
 }
 
 export class DefaultLangiumTypirValidator implements LangiumTypirValidator {
-    protected readonly services: TypirServices;
+    protected readonly services: TypirServices<AstNode>;
 
     constructor(services: LangiumServicesForTypirBinding) {
         this.services = services;
@@ -85,7 +85,7 @@ export class DefaultLangiumTypirValidator implements LangiumTypirValidator {
         this.report(this.services.validation.Collector.validateAfter(rootNode), rootNode, accept);
     }
 
-    protected report(problems: ValidationProblem[], node: AstNode, accept: ValidationAcceptor): void {
+    protected report(problems: Array<ValidationProblem<AstNode>>, node: AstNode, accept: ValidationAcceptor): void {
         // print all found problems for the given AST node
         for (const problem of problems) {
             const message = this.services.Printer.printValidationProblem(problem);
@@ -109,23 +109,23 @@ export class DefaultLangiumTypirValidator implements LangiumTypirValidator {
  * @param T a type definition mapping language specific type names (keys) to the corresponding types (values)
  */
 export type LangiumValidationRules<T extends LangiumAstTypes> = {
-    [K in keyof T]?: T[K] extends AstNode ? ValidationRule<T[K]> | Array<ValidationRule<T[K]>> : never
+    [K in keyof T]?: T[K] extends AstNode ? ValidationRule<AstNode, T[K]> | Array<ValidationRule<AstNode, T[K]>> : never
 } & {
     AstNode?: ValidationRule<AstNode> | Array<ValidationRule<AstNode>>;
 }
 
 
-export interface LangiumValidationCollector<RootType extends AstNode = AstNode> extends ValidationCollector<AstNode, RootType> {
+export interface LangiumValidationCollector extends ValidationCollector<AstNode> {
     addValidationRulesForAstNodes<AstTypes extends LangiumAstTypes>(rules: LangiumValidationRules<AstTypes>): void;
 }
 
-export class DefaultLangiumValidationCollector extends DefaultValidationCollector implements LangiumValidationCollector {
+export class DefaultLangiumValidationCollector extends DefaultValidationCollector<AstNode> implements LangiumValidationCollector {
 
     addValidationRulesForAstNodes<AstTypes extends LangiumAstTypes>(rules: LangiumValidationRules<AstTypes>): void {
         // map this approach for registering validation rules to the key-value approach from core Typir
         for (const [type, ruleCallbacks] of Object.entries(rules)) {
             const languageKey = type === 'AstNode' ? undefined : type; // using 'AstNode' as key is equivalent to specifying no key
-            const callbacks = ruleCallbacks as ValidationRule | ValidationRule[];
+            const callbacks = ruleCallbacks as ValidationRule<AstNode> | Array<ValidationRule<AstNode>>;
             if (Array.isArray(callbacks)) {
                 for (const callback of callbacks) {
                     this.addValidationRule(callback, { languageKey });

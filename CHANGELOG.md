@@ -30,6 +30,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
   - Additional arguments need to be specified with an options object now
 - Reworked the APIs to create types by introducing a chaining API to define optional inference rules. This counts for all provided type factories.
 - Validations for the types of the arguments for function (and operator) calls need to be explicitly requested with the new property `validateArgumentsOfCalls` in the inference rules for calls now. In previous versions, these validations were active by default.
+- The default Typir module was provided as `const DefaultTypirServiceModule`, now it is provided as `function createDefaultTypirServiceModule()`.
 
 
 ## v0.1.2 (2024-12-20)

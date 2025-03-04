@@ -159,7 +159,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 const callableDeclaration: FunctionDeclaration | MethodMember | undefined = AstUtils.getContainerOfType(node, node => isFunctionDeclaration(node) || isMethodMember(node));
                 if (callableDeclaration && callableDeclaration.returnType.primitive && callableDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function / method
-                    return typir.validation.Constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, (actual, expected) => <ValidationMessageDetails>{
+                    return typir.validation.Constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, (actual, expected) => <ValidationMessageDetails<AstNode>>{
                         message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
                         languageProperty: 'value' });
                 }
@@ -168,17 +168,17 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             VariableDeclaration: (node, typir) => {
                 return [
                     ...typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid,
-                        () => <ValidationMessageDetails>{ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' }),
-                    ...typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, (actual, expected) => <ValidationMessageDetails>{
+                        () => <ValidationMessageDetails<AstNode>>{ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' }),
+                    ...typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, (actual, expected) => <ValidationMessageDetails<AstNode>>{
                         message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
                         languageProperty: 'value' }),
                 ];
             },
             WhileStatement: validateCondition,
         });
-        function validateCondition(node: IfStatement | WhileStatement | ForStatement, typir: TypirServices): ValidationProblem[] {
+        function validateCondition(node: IfStatement | WhileStatement | ForStatement, typir: TypirServices<AstNode>): Array<ValidationProblem<AstNode>> {
             return typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool,
-                () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
+                () => <ValidationMessageDetails<AstNode>>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
         }
         // TODO Review: Should all checks be moved into functions? Should all these validations moved into another file?
 
@@ -261,7 +261,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             .create({
                 functionName: node.name,
                 outputParameter: { name: NO_PARAMETER_NAME, type: node.returnType },
-                inputParameters: node.parameters.map(p => (<CreateParameterDetails>{ name: p.name, type: p.type })),
+                inputParameters: node.parameters.map(p => (<CreateParameterDetails<AstNode>>{ name: p.name, type: p.type })),
                 associatedLanguageNode: node,
             })
             // inference rule for function declaration:

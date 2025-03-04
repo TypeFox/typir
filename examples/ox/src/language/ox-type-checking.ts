@@ -125,7 +125,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
             AssignmentStatement: (node, typir) => {
                 if (node.varRef.ref) {
                     return typir.validation.Constraints.ensureNodeIsAssignable(node.value, node.varRef.ref,
-                        (actual, expected) => <ValidationMessageDetails>{
+                        (actual, expected) => <ValidationMessageDetails<AstNode>>{
                             message: `The expression '${node.value.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.varRef.ref!.name}' with type '${expected.name}'.`,
                             languageProperty: 'value',
                         });
@@ -139,23 +139,23 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function
                     return typir.validation.Constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType,
-                        () => <ValidationMessageDetails>{ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, languageProperty: 'value' });
+                        () => <ValidationMessageDetails<AstNode>>{ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, languageProperty: 'value' });
                 }
                 return [];
             },
             VariableDeclaration: (node, typir) => {
                 return [
                     ...typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid,
-                        () => <ValidationMessageDetails>{ message: "Variables can't be declared with the type 'void'.", languageProperty: 'type' }),
+                        () => <ValidationMessageDetails<AstNode>>{ message: "Variables can't be declared with the type 'void'.", languageProperty: 'type' }),
                     ...typir.validation.Constraints.ensureNodeIsAssignable(node.value, node,
-                        (actual, expected) => <ValidationMessageDetails>{ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, languageProperty: 'value' })
+                        (actual, expected) => <ValidationMessageDetails<AstNode>>{ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, languageProperty: 'value' })
                 ];
             },
             WhileStatement: validateCondition,
         });
-        function validateCondition(node: IfStatement | WhileStatement | ForStatement, typir: TypirServices): ValidationProblem[] {
+        function validateCondition(node: IfStatement | WhileStatement | ForStatement, typir: TypirServices<AstNode>): Array<ValidationProblem<AstNode>> {
             return typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool,
-                () => <ValidationMessageDetails>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
+                () => <ValidationMessageDetails<AstNode>>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
         }
     }
 
@@ -169,7 +169,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
                 outputParameter: { name: NO_PARAMETER_NAME, type: languageNode.returnType },
-                inputParameters: languageNode.parameters.map(p => (<CreateParameterDetails>{ name: p.name, type: p.type })),
+                inputParameters: languageNode.parameters.map(p => (<CreateParameterDetails<AstNode>>{ name: p.name, type: p.type })),
                 associatedLanguageNode: languageNode,
             })
                 // inference rule for function declaration:

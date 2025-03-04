@@ -6,8 +6,8 @@
 
 import { expect } from 'vitest';
 import { Type } from '../graph/type-node.js';
-import { TestLanguageService, TestLanguageNode, TestProblemPrinter } from '../test/predefined-language-nodes.js';
-import { createTypirServices, DefaultTypirServiceModule, PartialTypirServices, TypirServices } from '../typir.js';
+import { TestLanguageNode, TestLanguageService, TestProblemPrinter } from '../test/predefined-language-nodes.js';
+import { createDefaultTypirServiceModule, createTypirServices, PartialTypirServices, TypirServices } from '../typir.js';
 import { Module } from './dependency-injection.js';
 
 /**
@@ -19,7 +19,7 @@ import { Module } from './dependency-injection.js';
  * it is possible to specify names multiple times, if there are multiple types with the same name (e.g. for overloaded functions)
  * @returns all the found types
  */
-export function expectTypirTypes(services: TypirServices, filterTypes: (type: Type) => boolean, ...namesOfExpectedTypes: string[]): Type[] {
+export function expectTypirTypes<LanguageType = unknown>(services: TypirServices<LanguageType>, filterTypes: (type: Type) => boolean, ...namesOfExpectedTypes: string[]): Type[] {
     const types = services.infrastructure.Graph.getAllRegisteredTypes().filter(filterTypes);
     types.forEach(type => expect(type.getInitializationState()).toBe('Completed')); // check that all types are 'Completed'
     const typeNames = types.map(t => t.getName());
@@ -54,8 +54,8 @@ export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unk
 export function createTypirServicesForTesting(
     customizationForTesting: Module<TypirServices<TestLanguageNode>, PartialTypirServices<TestLanguageNode>> = {},
 ): TypirServices<TestLanguageNode> {
-    return createTypirServices(
-        DefaultTypirServiceModule,                      // all default core implementations
+    return createTypirServices<TestLanguageNode>(
+        createDefaultTypirServiceModule(),                      // all default core implementations
         {                                               // override some default implementations:
             Printer: () => new TestProblemPrinter(),    // use the dedicated printer for TestLanguageNode's
             Language: () => new TestLanguageService(),  // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)

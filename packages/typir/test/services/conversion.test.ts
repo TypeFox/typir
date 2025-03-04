@@ -6,12 +6,11 @@
 
 import { describe, expect, test } from 'vitest';
 import { createTypirServicesForTesting } from '../../src/utils/test-utils.js';
-import { TypirServices } from '../../src/typir.js';
 
 describe('Testing conversion', () => {
 
     test('exception in case of cyclic conversion rules', () => {
-        const typir: TypirServices = createTypirServicesForTesting();
+        const typir = createTypirServicesForTesting();
         const integerType = typir.factory.Primitives.create({ primitiveName: 'integer' }).finish();
         const doubleType = typir.factory.Primitives.create({ primitiveName: 'double' }).finish();
 

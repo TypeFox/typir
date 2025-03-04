@@ -19,7 +19,7 @@ describe('Tests for Typir', () => {
         const typir = createTypirServices({
             // customize some default factories for predefined types
             factory: {
-                Classes: (services) =>new ClassKind(typir, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' }),
+                Classes: (services) => new ClassKind(services, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' }),
             },
         });
 

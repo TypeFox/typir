@@ -5,21 +5,20 @@
 ******************************************************************************/
 
 import { ValidationProblem, ValidationRuleStateless } from '../../services/validation.js';
-import { checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import { checkTypes, checkValueForConflict, createTypeCheckStrategy, TypeToCheck } from '../../utils/utils-type-comparison.js';
 import { assertUnreachable } from '../../utils/utils.js';
 import { FunctionKind, InferFunctionCall } from './function-kind.js';
 
-export function createFunctionCallArgumentsValidation<LanguageType = unknown>(kind: FunctionKind): ValidationRuleStateless<LanguageType> {
-    // TODO die gemerkten Rules pro Variante ebenfalls performanter mittels languageKey ablegen/abrufen!
-    // register Validations for input arguments of function calls (must be done here to support overloaded functions)
-    // this validation rule exists "for ever", since it validates all function types
-
+// TODO LanguageKeys: außerhalb + innerhalb; muss dies hier eine Composite-Validation-Rule sein??
+// TODO ValidationRuleStateless doch als Objekt realisieren für leichtere Implementierung eines Interfaces? (gleiches gilt für InferenceRuleWithoutChildren!)
+// TODO "description"-Property für leichteres Debugging, Error messages usw. nutzen?
+export function createFunctionCallArgumentsValidation<LanguageType = unknown>(kind: FunctionKind<LanguageType>): ValidationRuleStateless<LanguageType> {
     return (languageNode, typir) => {
         const languageKey = typir.Language.getLanguageNodeKey(languageNode);
-        const resultAll: ValidationProblem[] = [];
+        const resultAll: Array<ValidationProblem<LanguageType>> = [];
         // for each (overloaded) function
         for (const [overloadedName, overloadedFunctions] of kind.mapNameTypes.entries()) {
-            const resultOverloaded: ValidationProblem[] = [];
+            const resultOverloaded: Array<ValidationProblem<LanguageType>> = [];
             const isOverloaded = overloadedFunctions.overloadedFunctions.length >= 2;
             // for each single function/variant
             for (const singleFunction of overloadedFunctions.overloadedFunctions) {
@@ -34,7 +33,7 @@ export function createFunctionCallArgumentsValidation<LanguageType = unknown>(ki
                     continue; // false => does slightly not match => no constraints apply here => no error to show here
                 }
                 // Now, check that the given arguments fit to the expected parameters and collect all problems
-                const currentProblems: ValidationProblem[] = [];
+                const currentProblems: Array<ValidationProblem<LanguageType>> = [];
                 const inputArguments = inferenceRule.inputArguments(languageNode);
                 const expectedParameterTypes = singleFunction.functionType.getInputs();
                 // check, that the given number of parameters is the same as the expected number of input parameters
@@ -53,7 +52,7 @@ export function createFunctionCallArgumentsValidation<LanguageType = unknown>(ki
                     for (let i = 0; i < inputArguments.length; i++) {
                         const expectedType = expectedParameterTypes[i];
                         const inferredType = inferredParameterTypes[i];
-                        const parameterProblems = checkTypes(inferredType, expectedType, createTypeCheckStrategy('ASSIGNABLE_TYPE', typir), true);
+                        const parameterProblems = checkTypes(inferredType as TypeToCheck, expectedType, createTypeCheckStrategy('ASSIGNABLE_TYPE', typir), true);
                         if (parameterProblems.length >= 1) {
                             // the value is not assignable to the type of the input parameter
                             // create one ValidationProblem for each problematic parameter!
@@ -105,7 +104,7 @@ export function createFunctionCallArgumentsValidation<LanguageType = unknown>(ki
     };
 }
 
-function validateArgumentsOfFunctionCalls(rule: InferFunctionCall, languageNode: unknown): boolean {
+function validateArgumentsOfFunctionCalls<LanguageType = unknown>(rule: InferFunctionCall<LanguageType>, languageNode: LanguageType): boolean {
     if (rule.validateArgumentsOfFunctionCalls === undefined) {
         return false; // the default value
     } else if (typeof rule.validateArgumentsOfFunctionCalls === 'boolean') {

@@ -17,7 +17,7 @@ export type TypeCheckStrategy =
     'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
     'SUB_TYPE'; // more relaxed checking
 
-export function createTypeCheckStrategy(strategy: TypeCheckStrategy, typir: TypirServices): (t1: Type, t2: Type) => TypirProblem | undefined {
+export function createTypeCheckStrategy<LanguageType = unknown>(strategy: TypeCheckStrategy, typir: TypirServices<LanguageType>): (t1: Type, t2: Type) => TypirProblem | undefined {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
             return typir.Assignability.getAssignabilityProblem // t1 === source, t2 === target

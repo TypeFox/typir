@@ -134,8 +134,8 @@ export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<Bi
     validateArgumentsOfCalls: true,
 };
 
-export class TestProblemPrinter extends DefaultTypeConflictPrinter {
-    override printLanguageNode(languageNode: unknown, sentenceBegin?: boolean | undefined): string {
+export class TestProblemPrinter extends DefaultTypeConflictPrinter<TestLanguageNode> {
+    override printLanguageNode(languageNode: TestLanguageNode, sentenceBegin?: boolean | undefined): string {
         if (languageNode instanceof TestLanguageNode) {
             return `${sentenceBegin ? 'T' : 't'}he language node '${languageNode.print()}'`;
         }

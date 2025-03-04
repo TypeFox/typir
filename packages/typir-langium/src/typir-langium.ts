@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
-import { DeepPartial, DefaultTypirServiceModule, Module, PartialTypirServices, TypirServices } from 'typir';
+import { AstNode, LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
+import { createDefaultTypirServiceModule, DeepPartial, Module, PartialTypirServices, TypirServices } from 'typir';
 import { LangiumLanguageNodeInferenceCaching } from './features/langium-caching.js';
 import { LangiumLanguageService } from './features/langium-language.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
@@ -24,13 +24,13 @@ export type TypirLangiumServices = {
     readonly TypeCreator: LangiumTypeCreator;
 }
 
-export type LangiumServicesForTypirBinding = TypirServices & TypirLangiumServices
+export type LangiumServicesForTypirBinding = TypirServices<AstNode> & TypirLangiumServices
 
 export type PartialTypirLangiumServices = DeepPartial<LangiumServicesForTypirBinding>
 
-export function createLangiumSpecificTypirServicesModule(langiumServices: LangiumSharedCoreServices): Module<TypirServices> {
+export function createLangiumSpecificTypirServicesModule(langiumServices: LangiumSharedCoreServices): Module<TypirServices<AstNode>> {
     // replace some implementations for the core Typir services
-    const LangiumSpecifics: Module<TypirServices, PartialTypirServices> = {
+    const LangiumSpecifics: Module<TypirServices<AstNode>, PartialTypirServices<AstNode>> = {
         Printer: () => new LangiumProblemPrinter(),
         Language: () => new LangiumLanguageService(undefined), // replace 'undefined' by your generated XXXAstReflection!
         caching: {
@@ -39,9 +39,9 @@ export function createLangiumSpecificTypirServicesModule(langiumServices: Langiu
     };
     return Module.merge(
         // use all core Typir services:
-        DefaultTypirServiceModule,
+        createDefaultTypirServiceModule<AstNode>(),
         // replace some of the core Typir default implementations for Langium:
-        LangiumSpecifics
+        LangiumSpecifics,
     );
 }
 
