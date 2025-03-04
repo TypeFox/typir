@@ -37,10 +37,10 @@ export interface PreconditionsForInitializationState {
  * Contains properties which are be relevant for all types to create,
  * i.e. it is used for specifying details of all types to create.
  */
-export interface TypeDetails {
+export interface TypeDetails<LanguageType = unknown> {
     /** A node from the language might be associated with the new type to create,
      * e.g. the declaration node in the AST (e.g. a FunctionDeclarationNode is associated with the corresponding FunctionType). */
-    associatedLanguageNode?: unknown;
+    associatedLanguageNode?: LanguageType;
 }
 
 /**

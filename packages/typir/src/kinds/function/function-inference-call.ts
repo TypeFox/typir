@@ -6,7 +6,7 @@
 
 import { Type } from '../../graph/type-node.js';
 import { AssignabilitySuccess, isAssignabilityProblem } from '../../services/assignability.js';
-import { TypeInferenceRuleWithInferringChildren, InferenceRuleNotApplicable, InferenceProblem } from '../../services/inference.js';
+import { TypeInferenceRuleWithInferringChildren, InferenceRuleNotApplicable, InferenceProblem, TypeInferenceResultWithInferringChildren } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
 import { FunctionTypeDetails, InferFunctionCall, OverloadedFunctionDetails } from './function-kind.js';
@@ -24,14 +24,14 @@ import { FunctionType } from './function-type.js';
  * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
  *   (exception: the options contain a type to return in this special case)
  */
-export class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferringChildren {
-    protected readonly typeDetails: FunctionTypeDetails;
-    protected readonly inferenceRuleForCalls: InferFunctionCall<T>;
+export class FunctionCallInferenceRule<LanguageType = unknown, T extends LanguageType = LanguageType> implements TypeInferenceRuleWithInferringChildren<LanguageType> {
+    protected readonly typeDetails: FunctionTypeDetails<LanguageType>;
+    protected readonly inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
     protected readonly functionType: FunctionType;
-    protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails>;
+    protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails<LanguageType>>;
     assignabilitySuccess: Array<AssignabilitySuccess | undefined>; // public, since this information is exploited to determine the best overloaded match in case of multiple matches
 
-    constructor(typeDetails: FunctionTypeDetails, inferenceRuleForCalls: InferFunctionCall<T>, functionType: FunctionType, mapNameTypes: Map<string, OverloadedFunctionDetails>) {
+    constructor(typeDetails: FunctionTypeDetails<LanguageType>, inferenceRuleForCalls: InferFunctionCall<LanguageType, T>, functionType: FunctionType, mapNameTypes: Map<string, OverloadedFunctionDetails<LanguageType>>) {
         this.typeDetails = typeDetails;
         this.inferenceRuleForCalls = inferenceRuleForCalls;
         this.functionType = functionType;
@@ -39,7 +39,7 @@ export class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferr
         this.assignabilitySuccess = new Array(typeDetails.inputParameters.length);
     }
 
-    inferTypeWithoutChildren(languageNode: unknown, _typir: TypirServices): unknown {
+    inferTypeWithoutChildren(languageNode: LanguageType, _typir: TypirServices<LanguageType>): TypeInferenceResultWithInferringChildren<LanguageType> {
         this.assignabilitySuccess.fill(undefined); // reset the entries
         // 0. The LanguageKeys are already checked by OverloadedFunctionsTypeInferenceRule, nothing to do here
         // 1. Does the filter of the inference rule accept the current language node?
@@ -71,7 +71,7 @@ export class FunctionCallInferenceRule<T> implements TypeInferenceRuleWithInferr
         return inputArguments;
     }
 
-    inferTypeWithChildrensTypes(languageNode: unknown, actualInputTypes: Array<Type | undefined>, typir: TypirServices): Type | InferenceProblem {
+    inferTypeWithChildrensTypes(languageNode: LanguageType, actualInputTypes: Array<Type | undefined>, typir: TypirServices<LanguageType>): Type | InferenceProblem<LanguageType> {
         const expectedInputTypes = this.typeDetails.inputParameters.map(p => typir.infrastructure.TypeResolver.resolve(p.type));
         // all operands need to be assignable(! not equal) to the required types
         const comparisonConflicts = checkTypeArrays(

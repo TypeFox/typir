@@ -54,13 +54,13 @@ export interface TypeAssignability {
 /**
  * This implementation for assignability checks step-by-step (1) equality, (2) implicit conversion, and (3) sub-type relationships of the source and target type.
  */
-export class DefaultTypeAssignability implements TypeAssignability {
+export class DefaultTypeAssignability<LanguageType = unknown> implements TypeAssignability {
     protected readonly conversion: TypeConversion;
     protected readonly subtype: SubType;
     protected readonly equality: TypeEquality;
     protected readonly algorithms: GraphAlgorithms;
 
-    constructor(services: TypirServices) {
+    constructor(services: TypirServices<LanguageType>) {
         this.conversion = services.Conversion;
         this.subtype = services.Subtype;
         this.equality = services.Equality;

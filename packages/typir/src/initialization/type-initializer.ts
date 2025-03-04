@@ -26,12 +26,12 @@ export type TypeInitializerListener<T extends Type = Type> = (type: T) => void;
  * a common super class (or interface) of all type initializers is useful nevertheless,
  * since they all can be used as TypeSelector in an easy way.
  */
-export abstract class TypeInitializer<T extends Type = Type> {
-    protected readonly services: TypirServices;
+export abstract class TypeInitializer<T extends Type = Type, LanguageType = unknown> {
+    protected readonly services: TypirServices<LanguageType>;
     protected typeToReturn: T | undefined;
     protected listeners: Array<TypeInitializerListener<T>> = [];
 
-    constructor(services: TypirServices) {
+    constructor(services: TypirServices<LanguageType>) {
         this.services = services;
     }
 

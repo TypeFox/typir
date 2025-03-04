@@ -33,10 +33,10 @@ export interface TypeEquality {
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined;
 }
 
-export class DefaultTypeEquality implements TypeEquality {
+export class DefaultTypeEquality<LanguageType = unknown> implements TypeEquality {
     protected readonly typeRelationships: TypeRelationshipCaching;
 
-    constructor(services: TypirServices) {
+    constructor(services: TypirServices<LanguageType>) {
         this.typeRelationships = services.caching.TypeRelationships;
     }
 

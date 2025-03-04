@@ -29,7 +29,7 @@ export function isInferenceProblem<LanguageType = unknown>(problem: unknown): pr
 export type InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 export const InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 
-type TypeInferenceResultWithoutInferringChildren<LanguageType = unknown> =
+export type TypeInferenceResultWithoutInferringChildren<LanguageType = unknown> =
     /** the identified type */
     Type |
     /** 'N/A' to indicate, that the current inference rule is not applicable for the given language node at all */
@@ -38,7 +38,7 @@ type TypeInferenceResultWithoutInferringChildren<LanguageType = unknown> =
     LanguageType |
     /** an inference problem */
     InferenceProblem<LanguageType>;
-type TypeInferenceResultWithInferringChildren<LanguageType = unknown> =
+export type TypeInferenceResultWithInferringChildren<LanguageType = unknown> =
     /** the usual results, since it might be possible to determine the type of the parent without its children */
     TypeInferenceResultWithoutInferringChildren<LanguageType> |
     /** the children whos types need to be inferred and taken into account to determine the parent's type */

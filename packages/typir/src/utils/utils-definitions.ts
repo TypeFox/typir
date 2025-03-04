@@ -42,8 +42,8 @@ export function isNameTypePair(type: unknown): type is NameTypePair {
 //
 
 /** A pair of a rule for type inference with its additional options. */
-export interface InferenceRuleWithOptions<T extends TypeInferenceRule = TypeInferenceRule> {
-    rule: T;
+export interface InferenceRuleWithOptions<LanguageType = unknown, T extends LanguageType = LanguageType> {
+    rule: TypeInferenceRule<T>;
     options: Partial<TypeInferenceRuleOptions>;
 }
 
@@ -54,7 +54,9 @@ export function optionsBoundToType(options: Partial<TypeInferenceRuleOptions>, t
     };
 }
 
-export function ruleWithOptionsBoundToType<T extends TypeInferenceRule = TypeInferenceRule>(rule: InferenceRuleWithOptions<T>, type: Type | undefined): InferenceRuleWithOptions<T> {
+export function ruleWithOptionsBoundToType<
+    LanguageType = unknown, T extends LanguageType = LanguageType
+>(rule: InferenceRuleWithOptions<LanguageType, T>, type: Type | undefined): InferenceRuleWithOptions<LanguageType, T> {
     return {
         rule: rule.rule,
         options: optionsBoundToType(rule.options, type),
@@ -73,7 +75,7 @@ export interface InferCurrentTypeRule<T = unknown> {
     matching?: (languageNode: T) => boolean;
 }
 
-export function bindInferCurrentTypeRule<T>(rule: InferCurrentTypeRule<T>, type: Type): InferenceRuleWithOptions {
+export function bindInferCurrentTypeRule<LanguageType, T extends LanguageType>(rule: InferCurrentTypeRule<T>, type: Type): InferenceRuleWithOptions<LanguageType, T> {
     if (rule.languageKey === undefined && rule.filter === undefined && rule.matching === undefined) {
         throw new Error('This inference rule has no properties at all and therefore cannot infer any type!'); // fail early
     }
@@ -116,7 +118,9 @@ export function bindInferCurrentTypeRule<T>(rule: InferCurrentTypeRule<T>, type:
     };
 }
 
-export function registerInferCurrentTypeRules<T>(rules: InferCurrentTypeRule<T> | Array<InferCurrentTypeRule<T>> | undefined, type: Type, services: TypirServices): void {
+export function registerInferCurrentTypeRules<LanguageType>(
+    rules: InferCurrentTypeRule<LanguageType> | Array<InferCurrentTypeRule<LanguageType>> | undefined, type: Type, services: TypirServices<LanguageType>
+): void {
     for (const ruleSingle of toArray(rules)) {
         const {rule, options} = bindInferCurrentTypeRule(ruleSingle, type);
         services.Inference.addInferenceRule(rule, options);

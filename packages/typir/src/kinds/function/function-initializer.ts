@@ -23,13 +23,13 @@ import { FunctionType, isFunctionType } from './function-type.js';
  *
  * If the function type to create already exists, the given inference rules (and its validation rules) will be registered for the existing function type.
  */
-export class FunctionTypeInitializer extends TypeInitializer<FunctionType> implements TypeStateListener {
-    protected readonly typeDetails: CreateFunctionTypeDetails;
-    protected readonly kind: FunctionKind;
-    protected inferenceRules: FunctionInferenceRules;
+export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitializer<FunctionType, LanguageType> implements TypeStateListener {
+    protected readonly typeDetails: CreateFunctionTypeDetails<LanguageType>;
+    protected readonly kind: FunctionKind<LanguageType>;
+    protected inferenceRules: FunctionInferenceRules<LanguageType>;
     protected initialFunctionType: FunctionType;
 
-    constructor(services: TypirServices, kind: FunctionKind, typeDetails: CreateFunctionTypeDetails) {
+    constructor(services: TypirServices<LanguageType>, kind: FunctionKind<LanguageType>, typeDetails: CreateFunctionTypeDetails<LanguageType>) {
         super(services);
         this.typeDetails = typeDetails;
         this.kind = kind;
@@ -47,7 +47,7 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
         if (this.kind.mapNameTypes.has(functionName)) {
             // do nothing
         } else {
-            const overloaded: OverloadedFunctionDetails = {
+            const overloaded: OverloadedFunctionDetails<LanguageType> = {
                 overloadedFunctions: [],
                 inference: this.createInferenceRuleForOverloads(),
                 sameOutputType: undefined,
@@ -56,7 +56,7 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
         }
 
         // create the new Function type
-        this.initialFunctionType = new FunctionType(kind, typeDetails);
+        this.initialFunctionType = new FunctionType(kind as FunctionKind, typeDetails);
 
         this.inferenceRules = this.createInferenceRules(typeDetails, this.initialFunctionType);
         this.registerInferenceRules(functionName, undefined);
@@ -64,9 +64,9 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
         this.initialFunctionType.addListener(this, true);
     }
 
-    protected createInferenceRuleForOverloads(): CompositeTypeInferenceRule {
+    protected createInferenceRuleForOverloads(): CompositeTypeInferenceRule<LanguageType> {
         // This inference rule don't need to be registered at the Inference service, since it manages the (de)registrations itself!
-        return new OverloadedFunctionsTypeInferenceRule(this.services, this.services.Inference);
+        return new OverloadedFunctionsTypeInferenceRule<LanguageType>(this.services, this.services.Inference);
     }
 
     override getTypeInitial(): FunctionType {
@@ -143,8 +143,8 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
         }
     }
 
-    protected createInferenceRules<T>(typeDetails: CreateFunctionTypeDetails, functionType: FunctionType): FunctionInferenceRules {
-        const result: FunctionInferenceRules = {
+    protected createInferenceRules(typeDetails: CreateFunctionTypeDetails<LanguageType>, functionType: FunctionType): FunctionInferenceRules<LanguageType> {
+        const result: FunctionInferenceRules<LanguageType> = {
             inferenceForCall: [],
             validationForCall: [],
             inferenceForDeclaration: [],
@@ -154,7 +154,7 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
         for (const rule of typeDetails.inferenceRulesForCalls) {
             // create inference rule for calls of the new function
             result.inferenceForCall.push({
-                rule: new FunctionCallInferenceRule(typeDetails, rule, functionType, mapNameTypes),
+                rule: new FunctionCallInferenceRule<LanguageType>(typeDetails, rule, functionType, mapNameTypes),
                 options: {
                     languageKey: rule.languageKey,
                     // boundToType: ... this property will be specified outside of this method, when this rule is registered
@@ -165,9 +165,9 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
             for (const check of toArray(rule.validation)) {
                 // TODO languageKey ??
                 result.validationForCall.push((languageNode, typir) => {
-                    if ((rule.filter === undefined || rule.filter(languageNode)) && (rule.matching === undefined || rule.matching(languageNode as T))) {
+                    if ((rule.filter === undefined || rule.filter(languageNode)) && (rule.matching === undefined || rule.matching(languageNode))) {
                         // check the input arguments, required for overloaded functions
-                        const inputArguments = rule.inputArguments(languageNode as T);
+                        const inputArguments = rule.inputArguments(languageNode);
                         if (inputArguments && inputArguments.length >= 1) {
                             // this function type might match, to be sure, resolve the types of the values for the parameters and continue to step 2
                             const overloadInfos = mapNameTypes.get(typeDetails.functionName);
@@ -175,7 +175,7 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
                                 // for overloaded functions: the types of the parameters need to be inferred in order to determine an exact match
                                 // (Note that the short-cut for type inference for function calls, when all overloads return the same output type, does not work here, since the validation here is specific for this single variant!)
                                 // This is also the reason, why the inference rule for calls is not reused here.)
-                                const childTypes: Array<Type | InferenceProblem[]> = inputArguments.map(child => typir.Inference.inferType(child));
+                                const childTypes: Array<Type | Array<InferenceProblem<LanguageType>>> = inputArguments.map(child => typir.Inference.inferType(child));
                                 const actualInputTypes = childTypes.filter(t => isType(t));
                                 if (childTypes.length === actualInputTypes.length) {
                                     const expectedInputTypes = typeDetails.inputParameters.map(p => typir.infrastructure.TypeResolver.resolve(p.type));
@@ -184,18 +184,18 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
                                         (t1, t2) => typir.Assignability.getAssignabilityProblem(t1, t2), true);
                                     if (comparisonConflicts.length <= 0) {
                                         // all arguments are assignable to the expected types of the parameters => this function is really called here => validate this call now
-                                        return check(languageNode as T, functionType, typir);
+                                        return check(languageNode, functionType, typir);
                                     }
                                 } else {
                                     // at least one argument could not be inferred
                                 }
                             } else {
                                 // the current function is not overloaded, therefore, the types of their parameters are not required => save time
-                                return check(languageNode as T, functionType, typir);
+                                return check(languageNode, functionType, typir);
                             }
                         } else {
                             // there are no operands to check
-                            return check(languageNode as T, functionType, typir);
+                            return check(languageNode, functionType, typir);
                         }
                     }
                     return [];
@@ -214,8 +214,8 @@ export class FunctionTypeInitializer extends TypeInitializer<FunctionType> imple
 
 }
 
-interface FunctionInferenceRules {
-    inferenceForCall: Array<InferenceRuleWithOptions<FunctionCallInferenceRule<unknown>>>;
-    validationForCall: ValidationRuleStateless[];
-    inferenceForDeclaration: InferenceRuleWithOptions[];
+interface FunctionInferenceRules<LanguageType = unknown> {
+    inferenceForCall: Array<InferenceRuleWithOptions<LanguageType>>;
+    validationForCall: Array<ValidationRuleStateless<LanguageType>>;
+    inferenceForDeclaration: Array<InferenceRuleWithOptions<LanguageType>>;
 }

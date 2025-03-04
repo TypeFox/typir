@@ -69,19 +69,19 @@ export type TypirServices<LanguageType = unknown> = {
         readonly Graph: TypeGraph;
         readonly GraphAlgorithms: GraphAlgorithms;
         readonly Kinds: KindRegistry<LanguageType>;
-        readonly TypeResolver: TypeResolvingService;
+        readonly TypeResolver: TypeResolvingService<LanguageType>;
     };
 };
 
 export function createDefaultTypirServiceModule<LanguageType = unknown>(): Module<TypirServices<LanguageType>> {
     return {
-        Assignability: (services) => new DefaultTypeAssignability(services as TypirServices),
-        Equality: (services) => new DefaultTypeEquality(services as TypirServices),
-        Conversion: (services) => new DefaultTypeConversion(services as TypirServices),
-        Subtype: (services) => new DefaultSubType(services as TypirServices),
+        Assignability: (services) => new DefaultTypeAssignability(services),
+        Equality: (services) => new DefaultTypeEquality(services),
+        Conversion: (services) => new DefaultTypeConversion(services),
+        Subtype: (services) => new DefaultSubType(services),
         Inference: (services) => new DefaultTypeInferenceCollector(services),
         caching: {
-            TypeRelationships: (services) => new DefaultTypeRelationshipCaching(services as TypirServices),
+            TypeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
             LanguageNodeInference: () => new DefaultLanguageNodeInferenceCaching(),
         },
         Printer: () => new DefaultTypeConflictPrinter(),
@@ -100,9 +100,9 @@ export function createDefaultTypirServiceModule<LanguageType = unknown>(): Modul
         },
         infrastructure: {
             Graph: () =>  new TypeGraph(),
-            GraphAlgorithms: (services) => new DefaultGraphAlgorithms(services as TypirServices),
+            GraphAlgorithms: (services) => new DefaultGraphAlgorithms(services),
             Kinds: (services) => new DefaultKindRegistry(services),
-            TypeResolver: (services) => new DefaultTypeResolver(services as TypirServices),
+            TypeResolver: (services) => new DefaultTypeResolver(services),
         },
     };
 }
