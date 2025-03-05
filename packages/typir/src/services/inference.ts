@@ -424,56 +424,37 @@ export class CompositeTypeInferenceRule<LanguageType = unknown> extends DefaultT
         throw new Error('This function will not be called.');
     }
 
-    override addInferenceRule(rule: TypeInferenceRule<LanguageType>, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
-        // register the rule for inference
-        super.addInferenceRule(rule, givenOptions);
+    override onAddedRule(rule: TypeInferenceRule<LanguageType>, diffOptions: RuleOptions): void {
+        // an inner rule was added
+        super.onAddedRule(rule, diffOptions);
 
-        // update the registration of this composite rule:
-        // - ensures that this composite rule itself is associated with all the language keys of the inner rules
-        // - boundToType := undefined, since this composite manages its removal in case of deleted inner rules/nodes
-        this.collectorToRegisterThisRule.addInferenceRule(this, { languageKey: givenOptions?.languageKey, boundToType: undefined });
+        // this composite rule needs to be registered also for all the language keys of the new inner rule
+        this.collectorToRegisterThisRule.addInferenceRule(this, {
+            ...diffOptions,
+            boundToType: undefined,
+        });
     }
 
-    override removeInferenceRule(rule: TypeInferenceRule<LanguageType>, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
-        // deregister the rule, don't use it for inference anymore
-        super.removeInferenceRule(rule, givenOptions);
+    override onRemovedRule(rule: TypeInferenceRule<LanguageType>, diffOptions: RuleOptions): void {
+        // an inner rule was removed
+        super.onRemovedRule(rule, diffOptions);
 
-        // update the registration of this composite rule:
-        // - updates the language keys which are associated with this composite rule itself
-        // - boundToType := undefined, since this composite manages its removal in case of deleted inner rules/nodes
-        this.collectorToRegisterThisRule.removeInferenceRule(this, { languageKey: givenOptions?.languageKey, boundToType: undefined });
-    }
-
-    override onRemovedRule(rule: TypeInferenceRule<LanguageType>, options: RuleOptions): void {
-        super.onRemovedRule(rule, options);
-        if (this.ruleRegistry.isEmpty()) {
+        // remove this composite rule for all language keys for which no inner rules are registered anymore
+        if (diffOptions.languageKey === undefined) {
+            if (this.ruleRegistry.getRulesByLanguageKey(undefined).length <= 0) {
+                this.collectorToRegisterThisRule.removeInferenceRule(this, {
+                    ...diffOptions,
+                    languageKey: undefined,
+                    boundToType: undefined, // a composite rule is never bound to a type, since it manages this feature itself
+                });
+            }
+        } else {
+            const languageKeysToUnregister = toArray(diffOptions.languageKey).filter(key => this.ruleRegistry.getRulesByLanguageKey(key).length <= 0);
             this.collectorToRegisterThisRule.removeInferenceRule(this, {
-                languageKey: undefined, // remove this rule for all language keys!
+                ...diffOptions,
+                languageKey: languageKeysToUnregister,
                 boundToType: undefined, // a composite rule is never bound to a type, since it manages this feature itself
             });
         }
     }
-    // // TODO fix this
-    // override onRemovedType(type: Type, key: string): void {
-    //     // update the registration of this composite rule:
-    //     // - If there are no rules left after removing a type (and its associated rules) ...
-    //     //   ... deregister this composite rule
-
-    //     // remember the language keys before removing the rules bound to the removed type
-    //     const remainingLanguageKeys = Array.from(this.languageTypeToRules.keys());
-
-    //     // After removing a type and all (inner) rules which are bound to this type ...
-    //     super.onRemovedType(type, key);
-
-    //     if (this.languageTypeToRules.size <= 0) { // remark: don't use 'typirTypeToRules', since it does not contain rules which are not bound to types
-    //         // ... there are no inner rules left => de-register this composite rule for all remaining language keys before the removal
-    //         const remainingLanguageKeysNotUndefined = remainingLanguageKeys.filter(k => k !== undefined);
-    //         if (remainingLanguageKeysNotUndefined.length >= 1) {
-    //             this.collectorToRegisterThisRule.removeInferenceRule(this, { languageKey: remainingLanguageKeysNotUndefined, boundToType: undefined });
-    //         }
-    //         if (remainingLanguageKeys.length > remainingLanguageKeysNotUndefined.length) {
-    //             this.collectorToRegisterThisRule.removeInferenceRule(this, { languageKey: undefined, boundToType: undefined });
-    //         }
-    //     }
-    // }
 }

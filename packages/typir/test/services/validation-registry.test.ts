@@ -222,9 +222,8 @@ describe('Tests the logic for registering rules (applied to state-less validatio
         });
     });
 
-    // TODO listener infos überprüfen!
 
-    describe('TODO bound to type', () => {
+    describe('bound to type', () => {
 
         test('remove bound rule automatically ("undefined" as language key)', () => {
             addValidationRule(ruleStringInteger, { boundToType: stringType });
@@ -236,6 +235,7 @@ describe('Tests the logic for registering rules (applied to state-less validatio
             validate(stringHello);
             validate(integer123);
         });
+
         test('remove bound rule automatically (one dedicated language key: String)', () => {
             addValidationRule(ruleStringInteger, { boundToType: stringType, languageKey: [StringLiteral.name] });
             assertNumberRules(1);
@@ -246,6 +246,7 @@ describe('Tests the logic for registering rules (applied to state-less validatio
             validate(stringHello);
             validate(integer123);
         });
+
         test('remove bound rule automatically (one dedicated language key: Integer)', () => {
             addValidationRule(ruleStringInteger, { boundToType: stringType, languageKey: [IntegerLiteral.name] });
             assertNumberRules(1);
@@ -256,6 +257,7 @@ describe('Tests the logic for registering rules (applied to state-less validatio
             validate(stringHello);
             validate(integer123);
         });
+
         test('remove bound rule automatically (multiple dedicated language keys)', () => {
             addValidationRule(ruleStringInteger, { boundToType: stringType, languageKey: [StringLiteral.name, IntegerLiteral.name] });
             assertNumberRules(1);
@@ -282,10 +284,6 @@ describe('Tests the logic for registering rules (applied to state-less validatio
             validate(stringHello);
             validate(integer123);
         });
-    });
-
-    describe('TODO composite (inference?) rules', () => {
-
     });
 
 

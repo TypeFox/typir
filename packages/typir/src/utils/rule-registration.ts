@@ -9,8 +9,6 @@ import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { removeFromArray, toArray, toArrayWithValue } from './utils.js';
 
-// TODO eigenes Interface ergänzen?
-
 export interface RuleOptions {
     /**
      * If a rule is associated with a language key, the rule will be executed only for language nodes, which have this language key,
@@ -207,7 +205,7 @@ export class RuleRegistry<RuleType> implements TypeGraphListener {
             return; // the rule is unknown here => nothing to do
         }
 
-        const languageKeyUndefined: boolean = optionsToRemove ? (optionsToRemove.languageKey === undefined) : false;
+        const languageKeyUndefined: boolean = optionsToRemove ? (optionsToRemove.languageKey === undefined) : true;
         const languageKeys: string[] = toArray(optionsToRemove?.languageKey, { newArray: true });
 
         const diffOptions: RuleOptions = {
