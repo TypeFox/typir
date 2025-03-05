@@ -32,6 +32,10 @@ Note that the versions "0.x.0" probably will include breaking changes.
 - Validations for the types of the arguments for function (and operator) calls need to be explicitly requested with the new property `validateArgumentsOfCalls` in the inference rules for calls now. In previous versions, these validations were active by default.
 - The default Typir module was provided as `const DefaultTypirServiceModule`, now it is provided as `function createDefaultTypirServiceModule()`.
 
+### Fixed bugs
+
+- Clear the cache for inferred types, when an inference rule is removed.
+
 
 ## v0.1.2 (2024-12-20)
 

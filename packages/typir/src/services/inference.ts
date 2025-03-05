@@ -342,6 +342,9 @@ export class DefaultTypeInferenceCollector<LanguageType = unknown> implements Ty
         this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, options));
     }
     onRemovedRule(rule: TypeInferenceRule<LanguageType>, options: RuleOptions): void {
+        // clear the cache, since its entries might be created using the removed rule
+        // possible performance improvement: remove only entries which depend on the removed rule?
+        this.cacheClear();
         // listeners of the composite will be notified about all removed inner rules
         this.listeners.forEach(listener => listener.onRemovedInferenceRule(rule, options));
     }
@@ -355,6 +358,10 @@ export class DefaultTypeInferenceCollector<LanguageType = unknown> implements Ty
 
     protected cacheGet(languageNode: LanguageType): Type | undefined {
         return this.languageNodeInference.cacheGet(languageNode);
+    }
+
+    protected cacheClear(): void {
+        this.languageNodeInference.cacheClear();
     }
 
     protected pendingSet(languageNode: LanguageType): void {
