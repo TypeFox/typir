@@ -9,7 +9,6 @@
 import { describe, expect, test } from 'vitest';
 import { InferenceRuleNotApplicable } from '../src/services/inference.js';
 import { InferOperatorWithMultipleOperands } from '../src/services/operator.js';
-import { ValidationMessageDetails } from '../src/services/validation.js';
 import { createTypirServices } from '../src/typir.js';
 
 describe('Tiny Typir', () => {
@@ -48,8 +47,8 @@ describe('Tiny Typir', () => {
         // register a type-related validation
         typir.validation.Collector.addValidationRule((node, accept) => {
             if (node instanceof AssignmentStatement) {
-                typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => <ValidationMessageDetails>{ message:
-                    `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
+                typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => ({ message:
+                    `The type '${actual.name}' is not assignable to the type '${expected.name}'.` }));
             }
         });
 

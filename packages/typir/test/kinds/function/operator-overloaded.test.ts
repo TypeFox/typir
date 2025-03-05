@@ -7,17 +7,16 @@
 /* eslint-disable @typescript-eslint/parameter-properties */
 
 import { beforeAll, describe, expect, test } from 'vitest';
-import { assertTrue } from '../../../src/utils/utils.js';
-import { isAssignabilityProblem, isAssignabilitySuccess } from '../../../src/services/assignability.js';
-import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { ConversionEdge } from '../../../src/services/conversion.js';
-import { SubTypeEdge } from '../../../src/services/subtype.js';
 import { Type } from '../../../src/graph/type-node.js';
+import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
+import { isAssignabilityProblem, isAssignabilitySuccess } from '../../../src/services/assignability.js';
+import { ConversionEdge } from '../../../src/services/conversion.js';
 import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
-import { ValidationMessageDetails } from '../../../src/services/validation.js';
+import { SubTypeEdge } from '../../../src/services/subtype.js';
 import { AssignmentStatement, BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, double2_0, double3_0, DoubleLiteral, InferenceRuleBinaryExpression, integer2, integer3, IntegerLiteral, string2, string3, StringLiteral, TestExpressionNode, TestLanguageNode, Variable } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting, expectToBeType } from '../../../src/utils/test-utils.js';
+import { assertTrue } from '../../../src/utils/utils.js';
 
 describe('Multiple best matches for overloaded operators', () => {
     let typir: TypirServices<TestLanguageNode>;
@@ -59,8 +58,8 @@ describe('Multiple best matches for overloaded operators', () => {
         // register a type-related validation
         typir.validation.Collector.addValidationRule((node, accept) => {
             if (node instanceof AssignmentStatement) {
-                typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => <ValidationMessageDetails<TestLanguageNode>>{ message:
-                    `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
+                typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => ({ message:
+                    `The type '${actual.name}' is not assignable to the type '${expected.name}'.` }));
             }
         });
     });

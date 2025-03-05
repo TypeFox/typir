@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
-import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationMessageDetails, ValidationProblemAcceptor, createNoSuperClassCyclesValidation } from 'typir';
+import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationProblemAcceptor, createNoSuperClassCyclesValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumLanguageService, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMemberCall, isMethodMember, isParameter, isVariableDeclaration, reflection } from './generated/ast.js';
 
@@ -87,13 +87,13 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 .inferenceRule({
                     ...binaryInferenceRule,
                     // show a warning to the user, if something like "3 == false" is compared, since different types already indicate, that the IF condition will be evaluated to false
-                    validation: (node, _operatorName, _operatorType, accept, typir) => typir.validation.Constraints.ensureNodeIsEquals(node.left, node.right, accept, (actual, expected) => <ValidationMessageDetails>{
+                    validation: (node, _operatorName, _operatorType, accept, typir) => typir.validation.Constraints.ensureNodeIsEquals(node.left, node.right, accept, (actual, expected) => ({
                         message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
                         languageNode: node, // inside the BinaryExpression ...
                         languageProperty: 'operator', // ... mark the '==' or '!=' token, i.e. the 'operator' property
                         severity: 'warning',
                         // (The use of "node.right" and "node.left" without casting is possible, since the type checks of the given properties for the actual inference rule are reused for the validation.)
-                    })
+                    }))
                 })
                 .finish();
         }
@@ -102,9 +102,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             .inferenceRule({
                 ...binaryInferenceRule,
                 // this validation will be checked for each call of this operator!
-                validation: (node, _opName, _opType, accept, typir) => typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => <ValidationMessageDetails>{
+                validation: (node, _opName, _opType, accept, typir) => typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => ({
                     message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left.$cstNode?.text}' with type '${expected.name}'`,
-                    languageProperty: 'value' })})
+                    languageProperty: 'value' }))})
             .finish();
 
         // unary operators
@@ -159,23 +159,23 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 const callableDeclaration: FunctionDeclaration | MethodMember | undefined = AstUtils.getContainerOfType(node, node => isFunctionDeclaration(node) || isMethodMember(node));
                 if (callableDeclaration && callableDeclaration.returnType.primitive && callableDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function / method
-                    typir.validation.Constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, accept, (actual, expected) => <ValidationMessageDetails<AstNode>>{
+                    typir.validation.Constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, accept, (actual, expected) => ({
                         message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
-                        languageProperty: 'value' });
+                        languageProperty: 'value' }));
                 }
             },
             VariableDeclaration: (node, accept, typir) => {
                 typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid, accept,
-                    () => <ValidationMessageDetails<AstNode>>{ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' });
-                typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, accept, (actual, expected) => <ValidationMessageDetails<AstNode>>{
+                    () => ({ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' }));
+                typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, accept, (actual, expected) => ({
                     message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
-                    languageProperty: 'value' });
+                    languageProperty: 'value' }));
             },
             WhileStatement: validateCondition,
         });
         function validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<AstNode>, typir: TypirServices<AstNode>): void {
             typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool, accept,
-                () => <ValidationMessageDetails<AstNode>>{ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' });
+                () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' }));
         }
         // TODO Review: Should all checks be moved into functions? Should all these validations moved into another file?
 

@@ -134,8 +134,8 @@ Finally, we add a type related validation rule for our small example: In case we
 ```typescript
 typir.validation.Collector.addValidationRule((node, accept) => {
     if (node instanceof AssignmentStatement) {
-        typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => <ValidationMessageDetails>{ message:
-            `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
+        typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => ({ message:
+            `The type '${actual.name}' is not assignable to the type '${expected.name}'.` }));
     }
 });
 ```

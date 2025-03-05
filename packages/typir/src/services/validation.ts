@@ -15,7 +15,7 @@ import { ProblemPrinter } from './printing.js';
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
 export interface ValidationMessageDetails<LanguageType = unknown, T extends LanguageType = LanguageType> {
-    languageNode: T;
+    languageNode: T; // TODO review: in OX/LOX, 'unknown' instead of 'AstNode' is inferred by TypeScript, why?
     languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
     languageIndex?: number; // index, if 'languageProperty' is an Array property
     severity: Severity;
@@ -63,23 +63,27 @@ export interface AnnotatedTypeAfterValidation {
     userRepresentation: string;
     name: string;
 }
-export type ValidationMessageProvider<LanguageType = unknown> =
-    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails<LanguageType>>;
+export type ValidationMessageProvider<LanguageType = unknown, T extends LanguageType = LanguageType> =
+    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails<LanguageType, T>>;
 
 export interface ValidationConstraints<LanguageType = unknown> {
-    ensureNodeIsAssignable<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, expected: Type | undefined | E,
+    ensureNodeIsAssignable<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        sourceNode: S | undefined, expected: Type | undefined | E,
         accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType>): void;
-    ensureNodeIsEquals<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, expected: Type | undefined | E,
+        message: ValidationMessageProvider<LanguageType, T>): void;
+    ensureNodeIsEquals<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        sourceNode: S | undefined, expected: Type | undefined | E,
         accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType>): void;
-    ensureNodeHasNotType<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, notExpected: Type | undefined | E,
+        message: ValidationMessageProvider<LanguageType, T>): void;
+    ensureNodeHasNotType<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        sourceNode: S | undefined, notExpected: Type | undefined | E,
         accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType>): void;
+        message: ValidationMessageProvider<LanguageType, T>): void;
 
-    ensureNodeRelatedWithType<S extends LanguageType, E extends LanguageType>(languageNode: S | undefined, expected: Type | undefined | E, strategy: TypeCheckStrategy, negated: boolean,
+    ensureNodeRelatedWithType<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        languageNode: S | undefined, expected: Type | undefined | E, strategy: TypeCheckStrategy, negated: boolean,
         accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType>): void;
+        message: ValidationMessageProvider<LanguageType, T>): void;
 }
 
 export class DefaultValidationConstraints<LanguageType = unknown> implements ValidationConstraints<LanguageType> {
@@ -93,31 +97,35 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
         this.printer = services.Printer;
     }
 
-    ensureNodeIsAssignable<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, expected: Type | undefined | E,
+    ensureNodeIsAssignable<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        sourceNode: S | undefined, expected: Type | undefined | E,
         accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType>
+        message: ValidationMessageProvider<LanguageType, T>
     ): void {
         this.ensureNodeRelatedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, accept, message);
     }
 
-    ensureNodeIsEquals<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, expected: Type | undefined | E,
+    ensureNodeIsEquals<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        sourceNode: S | undefined, expected: Type | undefined | E,
         accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType>
+        message: ValidationMessageProvider<LanguageType, T>
     ): void {
         this.ensureNodeRelatedWithType(sourceNode, expected, 'EQUAL_TYPE', false, accept, message);
     }
 
-    ensureNodeHasNotType<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, notExpected: Type | undefined | E,
+    ensureNodeHasNotType<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        sourceNode: S | undefined, notExpected: Type | undefined | E,
         accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType>
+        message: ValidationMessageProvider<LanguageType, T>
     ): void {
         this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, accept, message);
     }
 
-    ensureNodeRelatedWithType<S extends LanguageType, E extends LanguageType>(languageNode: S | undefined, expected: Type | undefined | E,
+    ensureNodeRelatedWithType<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        languageNode: S | undefined, expected: Type | undefined | E,
         strategy: TypeCheckStrategy, negated: boolean,
         accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType>
+        message: ValidationMessageProvider<LanguageType, T>
     ): void {
         if (languageNode !== undefined && expected !== undefined) {
             const actualType = isType(languageNode) ? languageNode : this.inference.inferType(languageNode);
