@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { beforeEach, describe, expect, test } from 'vitest';
-import { DefaultValidationCollector, PrimitiveType, RuleRegistry, Type, ValidationProblem, ValidationRule, ValidationRuleOptions, ValidationRuleStateless, ValidationRuleWithBeforeAfter } from '../../src/index.js';
+import { DefaultValidationCollector, PrimitiveType, RuleRegistry, Type, ValidationRule, ValidationRuleOptions, ValidationRuleStateless, ValidationRuleWithBeforeAfter } from '../../src/index.js';
 import { booleanTrue, integer123, IntegerLiteral, stringHello, StringLiteral, TestLanguageNode } from '../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../src/typir.js';
 import { createTypirServicesForTesting } from '../../src/utils/test-utils.js';
@@ -33,21 +33,21 @@ describe('Tests the logic for registering rules (applied to state-less validatio
         // validation rules
         ruleString = (node, accept) => {
             if (node instanceof StringLiteral) {
-                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `s1-${node.value}` });
+                accept({ languageNode: node, severity: 'error', message: `s1-${node.value}` });
             }
         };
         ruleInteger = (node, accept) => {
             if (node instanceof IntegerLiteral) {
-                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `i2-${node.value}` });
+                accept({ languageNode: node, severity: 'error', message: `i2-${node.value}` });
             }
         };
         ruleStringInteger = (node, accept) => {
             if (node instanceof StringLiteral) {
-                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `s3-${node.value}` });
+                accept({ languageNode: node, severity: 'error', message: `s3-${node.value}` });
             } else if (node instanceof IntegerLiteral) {
-                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `i3-${node.value}` });
+                accept({ languageNode: node, severity: 'error', message: `i3-${node.value}` });
             } else {
-                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `failure3-${node.constructor.name}` });
+                accept({ languageNode: node, severity: 'error', message: `failure3-${node.constructor.name}` });
             }
         };
     });

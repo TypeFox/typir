@@ -4,9 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationProblem, ValidationProblemAcceptor, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
+import { ValidationProblemAcceptor, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
-import { isFunctionType, FunctionType } from './function-type.js';
+import { FunctionType, isFunctionType } from './function-type.js';
 
 /**
  * Predefined validation to produce errors for those (overloaded) functions which cannot be distinguished when calling them.
@@ -65,7 +65,6 @@ export class UniqueFunctionValidation<LanguageType = unknown> implements Validat
             if (functions.length >= 2) {
                 for (const func of functions) {
                     accept({
-                        $problem: ValidationProblem,
                         languageNode: func,
                         severity: 'error',
                         message: `Declared functions need to be unique (${key}).`,

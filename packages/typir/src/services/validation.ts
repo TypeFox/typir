@@ -31,7 +31,10 @@ export function isValidationProblem<LanguageType = unknown, T extends LanguageTy
     return isSpecificTypirProblem(problem, ValidationProblem);
 }
 
-export type ValidationProblemAcceptor<LanguageType = unknown> = <T extends LanguageType = LanguageType>(problem: ValidationProblem<LanguageType, T>) => void;
+/** Don't specify the $problem-property. */
+export type ReducedValidationProblem<LanguageType = unknown, T extends LanguageType = LanguageType> = Omit<ValidationProblem<LanguageType, T>, '$problem'>;
+
+export type ValidationProblemAcceptor<LanguageType = unknown> = <T extends LanguageType = LanguageType>(problem: ReducedValidationProblem<LanguageType, T>) => void;
 
 export type ValidationRule<LanguageType = unknown, InputType = LanguageType> =
     | ValidationRuleStateless<LanguageType, InputType>
@@ -139,7 +142,6 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
                     } else {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
                         accept({
-                            $problem: ValidationProblem,
                             languageNode: details.languageNode ?? languageNode,
                             languageProperty: details.languageProperty,
                             languageIndex: details.languageIndex,
@@ -152,7 +154,6 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
                     if (negated) {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
                         accept({
-                            $problem: ValidationProblem,
                             languageNode: details.languageNode ?? languageNode,
                             languageProperty: details.languageProperty,
                             languageIndex: details.languageIndex,
@@ -215,8 +216,11 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
     }
 
     protected createAcceptor(problems: Array<ValidationProblem<LanguageType>>): ValidationProblemAcceptor<LanguageType> {
-        return <T extends LanguageType>(problem: ValidationProblem<LanguageType, T>) => {
-            problems.push(problem); // TODO $problem optional machen usw.
+        return <T extends LanguageType>(problem: ReducedValidationProblem<LanguageType, T>) => {
+            problems.push({
+                ...problem,
+                $problem: ValidationProblem, // add the missing $property-property
+            });
         };
     }
 

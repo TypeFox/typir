@@ -88,7 +88,6 @@ export function createFunctionCallArgumentsValidation<LanguageType = unknown>(ki
             if (resultOverloaded.length >= 1) {
                 if (isOverloaded) {
                     accept({
-                        $problem: ValidationProblem,
                         languageNode: languageNode,
                         severity: 'error',
                         message: `The given operands for the overloaded '${overloadedName}' match the expected types only partially.`,

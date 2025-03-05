@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationProblem, ValidationProblemAcceptor, ValidationRule, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
+import { ValidationProblemAcceptor, ValidationRule, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { FunctionType, isFunctionType } from '../function/function-type.js';
-import { isClassType, ClassType } from './class-type.js';
+import { ClassType, isClassType } from './class-type.js';
 
 /**
  * Predefined validation to produce errors, if the same class is declared more than once.
@@ -61,7 +61,6 @@ export class UniqueClassValidation<LanguageType = unknown> implements Validation
             if (classes.length >= 2) {
                 for (const clas of classes) {
                     accept({
-                        $problem: ValidationProblem,
                         languageNode: clas,
                         severity: 'error',
                         message: `Declared classes need to be unique (${key}).`,
@@ -154,7 +153,6 @@ export class UniqueMethodValidation<LanguageType, T extends LanguageType> implem
                         // ignore duplicated methods inside duplicated classes
                     } else {
                         accept({
-                            $problem: ValidationProblem,
                             languageNode: method.languageNode,
                             severity: 'error',
                             message: `Declared methods need to be unique (${key}).`,
@@ -182,7 +180,6 @@ export function createNoSuperClassCyclesValidation<LanguageType = unknown>(isRel
                 // check for cycles in sub-type-relationships
                 if (classType.hasSubSuperClassCycles()) {
                     accept({
-                        $problem: ValidationProblem,
                         languageNode: languageNode,
                         severity: 'error',
                         message: `Cycles in super-sub-class-relationships are not allowed: ${classType.getName()}`,
