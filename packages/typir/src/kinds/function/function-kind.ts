@@ -10,7 +10,7 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
-import { ValidationProblem, ValidationRule } from '../../services/validation.js';
+import { ValidationProblemAcceptor, ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, NameTypePair } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
@@ -36,7 +36,7 @@ export interface FunctionKindOptions<LanguageType = unknown> {
 export const FunctionKindName = 'FunctionKind';
 
 
-export type FunctionCallValidationRule<T, LanguageType = unknown> = (functionCall: T, functionType: FunctionType, typir: TypirServices<LanguageType>) => Array<ValidationProblem<LanguageType>>;
+export type FunctionCallValidationRule<T, LanguageType = unknown> = (functionCall: T, functionType: FunctionType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
 
 export interface CreateParameterDetails<LanguageType = unknown> {
     name: string;

@@ -23,6 +23,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 
 - `TypeConversion.markAsConvertible` accepts only one type for source and target now in order to simplify the API (#58): Users need to write `for` loops themselves now
 - Methods in listeners (`TypeGraphListener`, `TypeStateListener`) are prefixed with `on` (#58)
+- Reworked the API of validation rules to create validation hints: Instead of returning `ValidationProblem`s, they need to be given to the `ValidationProblemAcceptor` now, which is provided as additional argument inside validation rules.
 - Reworked the API to add/remove validation rules in the `ValidationCollector` service:
   - Additional arguments need to be specified with an options object now
   - Unified validation API by defining `ValidationRule = ValidationRuleStateless | ValidationRuleWithBeforeAfter` and removed dedicated `add/removeValidationRuleWithBeforeAndAfter` methods accordingly

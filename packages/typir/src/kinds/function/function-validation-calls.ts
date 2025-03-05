@@ -13,9 +13,8 @@ import { FunctionKind, InferFunctionCall } from './function-kind.js';
 // TODO ValidationRuleStateless doch als Objekt realisieren für leichtere Implementierung eines Interfaces? (gleiches gilt für InferenceRuleWithoutChildren!)
 // TODO "description"-Property für leichteres Debugging, Error messages usw. nutzen?
 export function createFunctionCallArgumentsValidation<LanguageType = unknown>(kind: FunctionKind<LanguageType>): ValidationRuleStateless<LanguageType> {
-    return (languageNode, typir) => {
+    return (languageNode, accept, typir) => {
         const languageKey = typir.Language.getLanguageNodeKey(languageNode);
-        const resultAll: Array<ValidationProblem<LanguageType>> = [];
         // for each (overloaded) function
         for (const [overloadedName, overloadedFunctions] of kind.mapNameTypes.entries()) {
             const resultOverloaded: Array<ValidationProblem<LanguageType>> = [];
@@ -83,12 +82,12 @@ export function createFunctionCallArgumentsValidation<LanguageType = unknown>(ki
                         // ignore this variant for validation
                     }
                 } else {
-                    return []; // 100% match found => there are no validation hints to show!
+                    return; // 100% match found => there are no validation hints to show!
                 }
             }
             if (resultOverloaded.length >= 1) {
                 if (isOverloaded) {
-                    resultAll.push({
+                    accept({
                         $problem: ValidationProblem,
                         languageNode: languageNode,
                         severity: 'error',
@@ -96,11 +95,10 @@ export function createFunctionCallArgumentsValidation<LanguageType = unknown>(ki
                         subProblems: resultOverloaded,
                     });
                 } else {
-                    resultAll.push(...resultOverloaded);
+                    resultOverloaded.forEach(p => accept(p));
                 }
             }
         }
-        return resultAll;
     };
 }
 

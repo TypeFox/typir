@@ -46,12 +46,11 @@ describe('Tiny Typir', () => {
         });
 
         // register a type-related validation
-        typir.validation.Collector.addValidationRule(node => {
+        typir.validation.Collector.addValidationRule((node, accept) => {
             if (node instanceof AssignmentStatement) {
-                return typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
+                typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => <ValidationMessageDetails>{ message:
                     `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
             }
-            return [];
         });
 
         // 2 + 3 => OK

@@ -14,22 +14,24 @@ import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
-export interface ValidationMessageDetails<LanguageType = unknown> {
-    languageNode: LanguageType;
+export interface ValidationMessageDetails<LanguageType = unknown, T extends LanguageType = LanguageType> {
+    languageNode: T;
     languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
-    languageIndex?: number; // index, if this property is an Array property
+    languageIndex?: number; // index, if 'languageProperty' is an Array property
     severity: Severity;
     message: string;
 }
 
-export interface ValidationProblem<LanguageType = unknown> extends ValidationMessageDetails<LanguageType>, TypirProblem {
+export interface ValidationProblem<LanguageType = unknown, T extends LanguageType = LanguageType> extends ValidationMessageDetails<LanguageType, T>, TypirProblem {
     $problem: 'ValidationProblem';
     subProblems?: TypirProblem[];
 }
 export const ValidationProblem = 'ValidationProblem';
-export function isValidationProblem<LanguageType = unknown>(problem: unknown): problem is ValidationProblem<LanguageType> {
+export function isValidationProblem<LanguageType = unknown, T extends LanguageType = LanguageType>(problem: unknown): problem is ValidationProblem<LanguageType, T> {
     return isSpecificTypirProblem(problem, ValidationProblem);
 }
+
+export type ValidationProblemAcceptor<LanguageType = unknown> = <T extends LanguageType = LanguageType>(problem: ValidationProblem<LanguageType, T>) => void;
 
 export type ValidationRule<LanguageType = unknown, InputType = LanguageType> =
     | ValidationRuleStateless<LanguageType, InputType>
@@ -39,7 +41,8 @@ export type ValidationRule<LanguageType = unknown, InputType = LanguageType> =
  * Describes a simple, state-less validation rule,
  * which might produce an unlimited number of problems.
  */
-export type ValidationRuleStateless<LanguageType = unknown, InputType = LanguageType> = (languageNode: InputType, typir: TypirServices<LanguageType>) => Array<ValidationProblem<LanguageType>>;
+export type ValidationRuleStateless<LanguageType = unknown, InputType = LanguageType> =
+    (languageNode: InputType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
 
 /**
  * Describes a complex validation rule which has a state.
@@ -48,10 +51,11 @@ export type ValidationRuleStateless<LanguageType = unknown, InputType = Language
  * which are finally evaluated in 'afterValidation'.
  */
 export interface ValidationRuleWithBeforeAfter<LanguageType = unknown, RootType extends LanguageType = LanguageType, InputType = LanguageType> {
-    beforeValidation(languageRoot: RootType, typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>>;
+    beforeValidation(languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>): void;
     validation: ValidationRuleStateless<LanguageType, InputType>;
-    afterValidation(languageRoot: RootType, typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>>;
+    afterValidation(languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>): void;
 }
+
 
 /** Annotate types after the validation with additional information in order to ease the creation of usefull messages. */
 export interface AnnotatedTypeAfterValidation {
@@ -59,18 +63,23 @@ export interface AnnotatedTypeAfterValidation {
     userRepresentation: string;
     name: string;
 }
-export type ValidationMessageProvider<LanguageType = unknown> = (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails<LanguageType>>;
+export type ValidationMessageProvider<LanguageType = unknown> =
+    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails<LanguageType>>;
 
 export interface ValidationConstraints<LanguageType = unknown> {
     ensureNodeIsAssignable<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, expected: Type | undefined | E,
-        message: ValidationMessageProvider<LanguageType>): Array<ValidationProblem<LanguageType>>;
+        accept: ValidationProblemAcceptor<LanguageType>,
+        message: ValidationMessageProvider<LanguageType>): void;
     ensureNodeIsEquals<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, expected: Type | undefined | E,
-        message: ValidationMessageProvider<LanguageType>): Array<ValidationProblem<LanguageType>>;
+        accept: ValidationProblemAcceptor<LanguageType>,
+        message: ValidationMessageProvider<LanguageType>): void;
     ensureNodeHasNotType<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, notExpected: Type | undefined | E,
-        message: ValidationMessageProvider<LanguageType>): Array<ValidationProblem<LanguageType>>;
+        accept: ValidationProblemAcceptor<LanguageType>,
+        message: ValidationMessageProvider<LanguageType>): void;
 
     ensureNodeRelatedWithType<S extends LanguageType, E extends LanguageType>(languageNode: S | undefined, expected: Type | undefined | E, strategy: TypeCheckStrategy, negated: boolean,
-        message: ValidationMessageProvider<LanguageType>): Array<ValidationProblem<LanguageType>>;
+        accept: ValidationProblemAcceptor<LanguageType>,
+        message: ValidationMessageProvider<LanguageType>): void;
 }
 
 export class DefaultValidationConstraints<LanguageType = unknown> implements ValidationConstraints<LanguageType> {
@@ -85,22 +94,31 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
     }
 
     ensureNodeIsAssignable<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, expected: Type | undefined | E,
-        message: ValidationMessageProvider<LanguageType>): Array<ValidationProblem<LanguageType>> {
-        return this.ensureNodeRelatedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, message);
+        accept: ValidationProblemAcceptor<LanguageType>,
+        message: ValidationMessageProvider<LanguageType>
+    ): void {
+        this.ensureNodeRelatedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, accept, message);
     }
 
     ensureNodeIsEquals<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, expected: Type | undefined | E,
-        message: ValidationMessageProvider<LanguageType>): Array<ValidationProblem<LanguageType>> {
-        return this.ensureNodeRelatedWithType(sourceNode, expected, 'EQUAL_TYPE', false, message);
+        accept: ValidationProblemAcceptor<LanguageType>,
+        message: ValidationMessageProvider<LanguageType>
+    ): void {
+        this.ensureNodeRelatedWithType(sourceNode, expected, 'EQUAL_TYPE', false, accept, message);
     }
 
     ensureNodeHasNotType<S extends LanguageType, E extends LanguageType>(sourceNode: S | undefined, notExpected: Type | undefined | E,
-        message: ValidationMessageProvider<LanguageType>): Array<ValidationProblem<LanguageType>> {
-        return this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, message);
+        accept: ValidationProblemAcceptor<LanguageType>,
+        message: ValidationMessageProvider<LanguageType>
+    ): void {
+        this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, accept, message);
     }
 
-    ensureNodeRelatedWithType<S extends LanguageType, E extends LanguageType>(languageNode: S | undefined, expected: Type | undefined | E, strategy: TypeCheckStrategy, negated: boolean,
-        message: ValidationMessageProvider<LanguageType>): Array<ValidationProblem<LanguageType>> {
+    ensureNodeRelatedWithType<S extends LanguageType, E extends LanguageType>(languageNode: S | undefined, expected: Type | undefined | E,
+        strategy: TypeCheckStrategy, negated: boolean,
+        accept: ValidationProblemAcceptor<LanguageType>,
+        message: ValidationMessageProvider<LanguageType>
+    ): void {
         if (languageNode !== undefined && expected !== undefined) {
             const actualType = isType(languageNode) ? languageNode : this.inference.inferType(languageNode);
             const expectedType = isType(expected) ? expected : this.inference.inferType(expected);
@@ -112,7 +130,7 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
                         // everything is fine
                     } else {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
-                        return [{
+                        accept({
                             $problem: ValidationProblem,
                             languageNode: details.languageNode ?? languageNode,
                             languageProperty: details.languageProperty,
@@ -120,12 +138,12 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
                             severity: details.severity ?? 'error',
                             message: details.message ?? `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
                             subProblems: [comparisonResult]
-                        }];
+                        });
                     }
                 } else {
                     if (negated) {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
-                        return [{
+                        accept({
                             $problem: ValidationProblem,
                             languageNode: details.languageNode ?? languageNode,
                             languageProperty: details.languageProperty,
@@ -133,7 +151,7 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
                             severity: details.severity ?? 'error',
                             message: details.message ?? `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
                             subProblems: [] // no sub-problems are available!
-                        }];
+                        });
                     } else {
                         // everything is fine
                     }
@@ -142,7 +160,6 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
                 // ignore inference problems
             }
         }
-        return [];
     }
 
     protected annotateType(type: Type): AnnotatedTypeAfterValidation {
@@ -189,10 +206,17 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
         this.ruleRegistryBeforeAfter = new RuleRegistry(services as TypirServices);
     }
 
+    protected createAcceptor(problems: Array<ValidationProblem<LanguageType>>): ValidationProblemAcceptor<LanguageType> {
+        return <T extends LanguageType>(problem: ValidationProblem<LanguageType, T>) => {
+            problems.push(problem); // TODO $problem optional machen usw.
+        };
+    }
+
     validateBefore(languageRoot: LanguageType): Array<ValidationProblem<LanguageType>> {
         const problems: Array<ValidationProblem<LanguageType>> = [];
+        const accept = this.createAcceptor(problems);
         for (const rule of this.ruleRegistryBeforeAfter.getAllRules()) { // the returned rules are unique
-            problems.push(...rule.beforeValidation.call(rule, languageRoot, this.services));
+            rule.beforeValidation.call(rule, languageRoot, accept, this.services);
         }
         return problems;
     }
@@ -211,6 +235,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
 
         // execute all rules wich are associated to the relevant language keys
         const problems: Array<ValidationProblem<LanguageType>> = [];
+        const accept = this.createAcceptor(problems);
         const alreadyExecutedRules: Set<ValidationRuleStateless<LanguageType>> = new Set(); // don't execute rules multiple times, if they are associated with multiple keys (with overlapping sub-keys)
         for (const key of keysToApply) {
             // state-less rules
@@ -218,7 +243,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
                 if (alreadyExecutedRules.has(ruleStateless)) {
                     // don't execute this rule again
                 } else {
-                    problems.push(...ruleStateless(languageNode, this.services));
+                    ruleStateless(languageNode, accept, this.services);
                     alreadyExecutedRules.add(ruleStateless);
                 }
             }
@@ -228,7 +253,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
                 if (alreadyExecutedRules.has(ruleStateless.validation)) {
                     // don't execute this rule again
                 } else {
-                    problems.push(...ruleStateless.validation.call(ruleStateless, languageNode, this.services));
+                    ruleStateless.validation.call(ruleStateless, languageNode, accept, this.services);
                     alreadyExecutedRules.add(ruleStateless.validation);
                 }
             }
@@ -238,8 +263,9 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
 
     validateAfter(languageRoot: LanguageType): Array<ValidationProblem<LanguageType>> {
         const problems: Array<ValidationProblem<LanguageType>> = [];
+        const accept = this.createAcceptor(problems);
         for (const rule of this.ruleRegistryBeforeAfter.getAllRules()) { // the returned rules are unique
-            problems.push(...rule.afterValidation.call(rule, languageRoot, this.services));
+            rule.afterValidation.call(rule, languageRoot, accept, this.services);
         }
         return problems;
     }

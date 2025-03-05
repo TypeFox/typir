@@ -164,7 +164,7 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
             // create validation rule which will be applied when this function is called according to the current inference rule for function calls (this includes the assignability of arguments to input parameters)
             for (const check of toArray(rule.validation)) {
                 // TODO languageKey ??
-                result.validationForCall.push((languageNode, typir) => {
+                result.validationForCall.push((languageNode, accept, typir) => {
                     if ((rule.filter === undefined || rule.filter(languageNode)) && (rule.matching === undefined || rule.matching(languageNode))) {
                         // check the input arguments, required for overloaded functions
                         const inputArguments = rule.inputArguments(languageNode);
@@ -184,21 +184,20 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
                                         (t1, t2) => typir.Assignability.getAssignabilityProblem(t1, t2), true);
                                     if (comparisonConflicts.length <= 0) {
                                         // all arguments are assignable to the expected types of the parameters => this function is really called here => validate this call now
-                                        return check(languageNode, functionType, typir);
+                                        check(languageNode, functionType, accept, typir);
                                     }
                                 } else {
                                     // at least one argument could not be inferred
                                 }
                             } else {
                                 // the current function is not overloaded, therefore, the types of their parameters are not required => save time
-                                return check(languageNode, functionType, typir);
+                                check(languageNode, functionType, accept, typir);
                             }
                         } else {
                             // there are no operands to check
-                            return check(languageNode, functionType, typir);
+                            check(languageNode, functionType, accept, typir);
                         }
                     }
-                    return [];
                 });
             }
         }

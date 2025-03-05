@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationProblem, ValidationRule, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
+import { ValidationProblem, ValidationProblemAcceptor, ValidationRule, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { FunctionType, isFunctionType } from '../function/function-type.js';
 import { isClassType, ClassType } from './class-type.js';
@@ -24,12 +24,11 @@ export class UniqueClassValidation<LanguageType = unknown> implements Validation
         this.isRelevant = isRelevant;
     }
 
-    beforeValidation(_languageRoot: LanguageType, _typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>> {
+    beforeValidation(_languageRoot: LanguageType, _accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         this.foundDeclarations.clear();
-        return [];
     }
 
-    validation(languageNode: LanguageType, _typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>> {
+    validation(languageNode: LanguageType, _accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         if (this.isRelevant === undefined || this.isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
             const type = this.services.Inference.inferType(languageNode);
             if (isClassType(type)) {
@@ -43,7 +42,6 @@ export class UniqueClassValidation<LanguageType = unknown> implements Validation
                 entries.push(languageNode);
             }
         }
-        return [];
     }
 
     /**
@@ -58,12 +56,11 @@ export class UniqueClassValidation<LanguageType = unknown> implements Validation
         return `${clas.className}`;
     }
 
-    afterValidation(_languageRoot: LanguageType, _typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>> {
-        const result: Array<ValidationProblem<LanguageType>> = [];
+    afterValidation(_languageRoot: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         for (const [key, classes] of this.foundDeclarations.entries()) {
             if (classes.length >= 2) {
                 for (const clas of classes) {
-                    result.push({
+                    accept({
                         $problem: ValidationProblem,
                         languageNode: clas,
                         severity: 'error',
@@ -72,9 +69,7 @@ export class UniqueClassValidation<LanguageType = unknown> implements Validation
                 }
             }
         }
-
         this.foundDeclarations.clear();
-        return result;
     }
 
     isClassDuplicated(clas: ClassType): boolean {
@@ -112,12 +107,11 @@ export class UniqueMethodValidation<LanguageType, T extends LanguageType> implem
         this.uniqueClassValidator = uniqueClassValidator;
     }
 
-    beforeValidation(_languageRoot: LanguageType, _typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>> {
+    beforeValidation(_languageRoot: LanguageType, _accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         this.foundDeclarations.clear();
-        return [];
     }
 
-    validation(languageNode: LanguageType, _typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>> {
+    validation(languageNode: LanguageType, _accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         if (this.isMethodDeclaration(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
             const methodType = this.services.Inference.inferType(languageNode);
             if (isFunctionType(methodType)) {
@@ -137,7 +131,6 @@ export class UniqueMethodValidation<LanguageType, T extends LanguageType> implem
                 }
             }
         }
-        return [];
     }
 
     /**
@@ -153,15 +146,14 @@ export class UniqueMethodValidation<LanguageType, T extends LanguageType> implem
         return `${clas.getIdentifier()}.${func.functionName}(${func.getInputs().map(param => param.type.getIdentifier())})`;
     }
 
-    afterValidation(_LanguageRoot: LanguageType, _typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>> {
-        const result: Array<ValidationProblem<LanguageType>> = [];
+    afterValidation(_LanguageRoot: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         for (const [key, methods] of this.foundDeclarations.entries()) {
             if (methods.length >= 2) {
                 for (const method of methods) {
                     if (this.uniqueClassValidator?.isClassDuplicated(method.classType)) {
                         // ignore duplicated methods inside duplicated classes
                     } else {
-                        result.push({
+                        accept({
                             $problem: ValidationProblem,
                             languageNode: method.languageNode,
                             severity: 'error',
@@ -171,9 +163,7 @@ export class UniqueMethodValidation<LanguageType, T extends LanguageType> implem
                 }
             }
         }
-
         this.foundDeclarations.clear();
-        return result;
     }
 }
 
@@ -185,14 +175,13 @@ export class UniqueMethodValidation<LanguageType, T extends LanguageType> implem
  * @returns a validation rule which checks for any class declaration/type, whether they have no cycles in their sub-super-class-relationships
  */
 export function createNoSuperClassCyclesValidation<LanguageType = unknown>(isRelevant?: (languageNode: LanguageType) => boolean): ValidationRule<LanguageType> {
-    return (languageNode: LanguageType, typir: TypirServices<LanguageType>) => {
-        const result: Array<ValidationProblem<LanguageType>> = [];
+    return (languageNode: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => {
         if (isRelevant === undefined || isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
             const classType = typir.Inference.inferType(languageNode);
             if (isClassType(classType) && classType.isInStateOrLater('Completed')) {
                 // check for cycles in sub-type-relationships
                 if (classType.hasSubSuperClassCycles()) {
-                    result.push({
+                    accept({
                         $problem: ValidationProblem,
                         languageNode: languageNode,
                         severity: 'error',
@@ -201,6 +190,5 @@ export function createNoSuperClassCyclesValidation<LanguageType = unknown>(isRel
                 }
             }
         }
-        return result;
     };
 }

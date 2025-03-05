@@ -132,12 +132,11 @@ typir.Inference.addInferenceRule(node => {
 Finally, we add a type related validation rule for our small example: In case we have an AssignmentStatement, we check whether the type to be assigned is an assignable match for the variable type. We can do that with a custom message. An error with this message will show up for example when we try to assign the string literal "hello" to a number variable. It will not show up in case we assign the number literal 123 to a string variable, as we have defined the implicit conversion above.
 
 ```typescript
-typir.validation.Collector.addValidationRule(node => {
+typir.validation.Collector.addValidationRule((node, accept) => {
     if (node instanceof AssignmentStatement) {
-        return typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
+        typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => <ValidationMessageDetails>{ message:
             `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
     }
-    return [];
 });
 ```
 

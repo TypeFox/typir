@@ -31,27 +31,23 @@ describe('Tests the logic for registering rules (applied to state-less validatio
         stringType = typir.factory.Primitives.create({ primitiveName: 'string' }).inferenceRule({ filter: node => node instanceof StringLiteral }).finish();
 
         // validation rules
-        ruleString = node => {
+        ruleString = (node, accept) => {
             if (node instanceof StringLiteral) {
-                return [{ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `s1-${node.value}` }];
-            } else {
-                return [];
+                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `s1-${node.value}` });
             }
         };
-        ruleInteger = node => {
+        ruleInteger = (node, accept) => {
             if (node instanceof IntegerLiteral) {
-                return [{ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `i2-${node.value}` }];
-            } else {
-                return [];
+                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `i2-${node.value}` });
             }
         };
-        ruleStringInteger = node => {
+        ruleStringInteger = (node, accept) => {
             if (node instanceof StringLiteral) {
-                return [{ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `s3-${node.value}` }];
+                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `s3-${node.value}` });
             } else if (node instanceof IntegerLiteral) {
-                return [{ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `i3-${node.value}` }];
+                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `i3-${node.value}` });
             } else {
-                return [{ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `failure3-${node.constructor.name}` }];
+                accept({ $problem: ValidationProblem, languageNode: node, severity: 'error', message: `failure3-${node.constructor.name}` });
             }
         };
     });

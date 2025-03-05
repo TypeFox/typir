@@ -11,7 +11,7 @@ import { FunctionType } from '../kinds/function/function-type.js';
 import { TypirServices } from '../typir.js';
 import { NameTypePair } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
-import { ValidationProblem } from './validation.js';
+import { ValidationProblemAcceptor } from './validation.js';
 
 export type InferOperatorWithSingleOperand<T = unknown> = {
     languageKey?: string | string[];
@@ -30,7 +30,7 @@ export type InferOperatorWithMultipleOperands<T = unknown> = {
     validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 };
 
-export type OperatorValidationRule<T> = (operatorCall: T, operatorName: string, operatorType: Type, typir: TypirServices) => ValidationProblem[];
+export type OperatorValidationRule<T> = (operatorCall: T, operatorName: string, operatorType: Type, accept: ValidationProblemAcceptor, typir: TypirServices) => void;
 
 export interface AnyOperatorDetails {
     name: string;
@@ -296,7 +296,7 @@ class OperatorConfigurationGenericChainImpl implements OperatorConfigurationGene
                 matching: (languageNode: unknown) => inferenceRule.matching(languageNode, this.typeDetails.name),
                 inputArguments: (languageNode: unknown) => this.getInputArguments(inferenceRule, languageNode),
                 validation: toArray(inferenceRule.validation).map(validationRule =>
-                    (functionCall: unknown, functionType: FunctionType, typir: TypirServices) => validationRule(functionCall, operatorName, functionType, typir)),
+                    (functionCall: unknown, functionType: FunctionType, accept: ValidationProblemAcceptor, typir: TypirServices) => validationRule(functionCall, operatorName, functionType, accept, typir)),
                 validateArgumentsOfFunctionCalls: inferenceRule.validateArgumentsOfCalls,
             });
         }

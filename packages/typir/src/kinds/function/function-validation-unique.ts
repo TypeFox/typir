@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationProblem, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
+import { ValidationProblem, ValidationProblemAcceptor, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { isFunctionType, FunctionType } from './function-type.js';
 
@@ -28,12 +28,11 @@ export class UniqueFunctionValidation<LanguageType = unknown> implements Validat
         this.isRelevant = isRelevant;
     }
 
-    beforeValidation(_languageRoot: LanguageType, _typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>> {
+    beforeValidation(_languageRoot: LanguageType, _accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         this.foundDeclarations.clear();
-        return [];
     }
 
-    validation(languageNode: LanguageType, _typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>> {
+    validation(languageNode: LanguageType, _accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         if (this.isRelevant === undefined || this.isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
             const type = this.services.Inference.inferType(languageNode);
             if (isFunctionType(type)) {
@@ -47,7 +46,6 @@ export class UniqueFunctionValidation<LanguageType = unknown> implements Validat
                 entries.push(languageNode);
             }
         }
-        return [];
     }
 
     /**
@@ -62,12 +60,11 @@ export class UniqueFunctionValidation<LanguageType = unknown> implements Validat
         return `${func.functionName}(${func.getInputs().map(param => param.type.getIdentifier())})`;
     }
 
-    afterValidation(_languageRoot: LanguageType, _typir: TypirServices<LanguageType>): Array<ValidationProblem<LanguageType>> {
-        const result: Array<ValidationProblem<LanguageType>> = [];
+    afterValidation(_languageRoot: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         for (const [key, functions] of this.foundDeclarations.entries()) {
             if (functions.length >= 2) {
                 for (const func of functions) {
-                    result.push({
+                    accept({
                         $problem: ValidationProblem,
                         languageNode: func,
                         severity: 'error',
@@ -76,8 +73,6 @@ export class UniqueFunctionValidation<LanguageType = unknown> implements Validat
                 }
             }
         }
-
         this.foundDeclarations.clear();
-        return result;
     }
 }
