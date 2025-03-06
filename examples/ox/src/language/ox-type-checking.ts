@@ -169,7 +169,10 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 associatedLanguageNode: languageNode,
             })
                 // inference rule for function declaration:
-                .inferenceRuleForDeclaration({ languageKey: FunctionDeclaration, matching: (node: FunctionDeclaration) => node === languageNode }) // only the current function declaration matches!
+                .inferenceRuleForDeclaration({
+                    languageKey: FunctionDeclaration,
+                    matching: (node: FunctionDeclaration) => node === languageNode // only the current function declaration matches!
+                })
                 /** inference rule for funtion calls:
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
                  * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)

@@ -262,7 +262,10 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 associatedLanguageNode: node,
             })
             // inference rule for function declaration:
-            .inferenceRuleForDeclaration({ languageKey: node.$type, matching: (languageNode: FunctionDeclaration | MethodMember) => languageNode === node }); // only the current function/method declaration matches!
+            .inferenceRuleForDeclaration({
+                languageKey: node.$type,
+                matching: (languageNode: FunctionDeclaration | MethodMember) => languageNode === node, // only the current function/method declaration matches!
+            });
         /** inference rule for funtion/method calls:
          * - inferring of overloaded functions works only, if the actual arguments have the expected types!
          * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)

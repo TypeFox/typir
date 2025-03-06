@@ -337,16 +337,16 @@ export class DefaultTypeInferenceCollector<LanguageType = unknown> implements Ty
 
     // This inference collector is notified by the rule registry and forwards these notifications to its own listeners
 
-    onAddedRule(rule: TypeInferenceRule<LanguageType>, options: RuleOptions): void {
+    onAddedRule(rule: TypeInferenceRule<LanguageType>, diffOptions: RuleOptions): void {
         // listeners of the composite will be notified about all added inner rules
-        this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, options));
+        this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, diffOptions));
     }
-    onRemovedRule(rule: TypeInferenceRule<LanguageType>, options: RuleOptions): void {
+    onRemovedRule(rule: TypeInferenceRule<LanguageType>, diffOptions: RuleOptions): void {
         // clear the cache, since its entries might be created using the removed rule
         // possible performance improvement: remove only entries which depend on the removed rule?
         this.cacheClear();
         // listeners of the composite will be notified about all removed inner rules
-        this.listeners.forEach(listener => listener.onRemovedInferenceRule(rule, options));
+        this.listeners.forEach(listener => listener.onRemovedInferenceRule(rule, diffOptions));
     }
 
 

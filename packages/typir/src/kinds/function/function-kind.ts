@@ -10,14 +10,16 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
-import { ValidationProblemAcceptor, ValidationRule } from '../../services/validation.js';
+import { ValidationProblemAcceptor } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
+import { RuleRegistry } from '../../utils/rule-registration.js';
 import { InferCurrentTypeRule, NameTypePair } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { Kind, isKind } from '../kind.js';
+import { removeFromArray } from '../../utils/utils.js';
+import { isKind, Kind } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
 import { FunctionType, isFunctionType } from './function-type.js';
-import { createFunctionCallArgumentsValidation } from './function-validation-calls.js';
+import { FunctionCallArgumentsValidation } from './function-validation-calls.js';
 
 
 export interface FunctionKindOptions<LanguageType = unknown> {
@@ -60,14 +62,17 @@ export interface CreateFunctionTypeDetails<LanguageType = unknown> extends Funct
  * This is required to handle overloaded functions.
  */
 export interface OverloadedFunctionDetails<LanguageType = unknown> {
-    overloadedFunctions: Array<SingleFunctionDetails<LanguageType>>; // TODO muss irgendwo hier eine RuleRegistry eingesetzt werden?
+    /** All function overloads/signatures with the same name. */
+    overloadedFunctions: FunctionType[];
+    /** Collects the details of all functions with the same name, grouped by language keys of their inference rules for function calls. */
+    details: RuleRegistry<SingleFunctionDetails<LanguageType>>;
     /** Collects the inference rules for all functions with the same name */
-    inference: CompositeTypeInferenceRule<LanguageType>; // remark: language keys are internally used during the registration of rules and during the inference using these rules
+    inferenceRule: CompositeTypeInferenceRule<LanguageType>; // remark: language keys are internally used during the registration of rules and during the inference using these rules
     /** If all overloaded functions with the same name have the same output/return type, this type is remembered here (for a small performance optimization). */
-    sameOutputType: Type | undefined;
+    sameOutputType: Type | undefined; // TODO theoretisch kann sich das durch entfernte Typen auch wieder ändern!
 }
 
-interface SingleFunctionDetails<LanguageType = unknown, T extends LanguageType = LanguageType> {
+export interface SingleFunctionDetails<LanguageType = unknown, T extends LanguageType = LanguageType> {
     functionType: FunctionType;
     inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
 }
@@ -179,15 +184,17 @@ export class FunctionKind<LanguageType = unknown> implements Kind, TypeGraphList
      *   which makes it more complex and requires to manage them here and not in the single types.
      */
     readonly mapNameTypes: Map<string, OverloadedFunctionDetails<LanguageType>> = new Map();
+    readonly validatorArgumentsCalls: FunctionCallArgumentsValidation<LanguageType>;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<FunctionKindOptions<LanguageType>>) {
         this.$name = FunctionKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
         this.options = this.collectOptions(options);
+        this.services.infrastructure.Graph.addListener(this);
 
         // this validation rule for checking arguments of function calls exists "for ever", since it validates all function types
-        this.services.validation.Collector.addValidationRule(this.createFunctionCallArgumentsValidation());
+        this.validatorArgumentsCalls = this.createFunctionCallArgumentsValidation();
     }
 
     protected collectOptions(options?: Partial<FunctionKindOptions<LanguageType>>): FunctionKindOptions<LanguageType> {
@@ -221,22 +228,15 @@ export class FunctionKind<LanguageType = unknown> implements Kind, TypeGraphList
                 : this.services.infrastructure.TypeResolver.resolve(this.options.typeToInferForCallsOfFunctionsWithoutOutput));
     }
 
-
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
     onRemovedType(type: Type, _key: string): void {
         if (isFunctionType(type)) {
-            const overloads = this.mapNameTypes.get(type.functionName);
-            if (overloads) {
-                // remove the current function
-                const index = overloads.overloadedFunctions.findIndex(o => o.functionType === type);
-                if (index >= 0) {
-                    overloads.overloadedFunctions.splice(index, 1);
-                }
-                // its inference rule is removed by the CompositeTypeInferenceRule => nothing to do here
-            }
+            // remove the current function
+            removeFromArray(type, this.mapNameTypes.get(type.functionName)?.overloadedFunctions);
+            // the rule registry removes this function type on its own => nothing to do here
+            // its inference rule is removed by the CompositeTypeInferenceRule => nothing to do here
         }
     }
-
 
     calculateIdentifier(typeDetails: FunctionTypeDetails<LanguageType>): string {
         const prefix = this.options.identifierPrefix ? this.options.identifierPrefix + '-' : '';
@@ -277,9 +277,9 @@ export class FunctionKind<LanguageType = unknown> implements Kind, TypeGraphList
         return name !== undefined && name !== NO_PARAMETER_NAME;
     }
 
-    protected createFunctionCallArgumentsValidation(): ValidationRule<LanguageType> {
+    protected createFunctionCallArgumentsValidation(): FunctionCallArgumentsValidation<LanguageType> {
         // since kind/map is required for the validation (but not visible to the outside), it is created here by the factory
-        return createFunctionCallArgumentsValidation(this);
+        return new FunctionCallArgumentsValidation(this.services, this);
     }
 }
 

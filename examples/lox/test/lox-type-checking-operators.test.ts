@@ -71,16 +71,16 @@ describe('Test type checking for operators', () => {
 
     test('Only a single problem with the inner expression, since the type of "*" is always number!', async () => {
         await validateLox('var myVar : number = 2 * (2 * false);', [
-            "While validating the AstNode '(2 * false)', this error is found: The given operands for the function '*' match the expected types only partially.",
+            "While validating the AstNode '(2 * false)', this error is found: The given operands for the call of '*' don't match.",
         ]);
     });
 
     test('Two issues in nested expressions, since "*" expects always numbers, while "and" returns always booleans!', async () => {
         await validateLox('var myVar : number = 2 * (2 and false);', [
             // this is obvious: left and right need to have the same type
-            "While validating the AstNode '(2 and false)', this error is found: The given operands for the function 'and' match the expected types only partially.",
+            "While validating the AstNode '(2 and false)', this error is found: The given operands for the call of 'and' don't match.",
             // '*' supports only numbers for left and right, but the right operand is always boolean as result of the 'and' operator
-            "While validating the AstNode '2 * (2 and false)', this error is found: The given operands for the function '*' match the expected types only partially.",
+            "While validating the AstNode '2 * (2 and false)', this error is found: The given operands for the call of '*' don't match.",
         ]);
     });
 

@@ -36,6 +36,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 ### Fixed bugs
 
 - Clear the cache for inferred types, when an inference rule is removed.
+- Remove removed functions from its internal storage in `FunctionKind`.
 
 
 ## v0.1.2 (2024-12-20)
