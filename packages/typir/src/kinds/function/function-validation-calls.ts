@@ -9,7 +9,8 @@ import { TypirServices } from '../../typir.js';
 import { RuleCollectorListener, RuleOptions } from '../../utils/rule-registration.js';
 import { checkTypes, checkValueForConflict, createTypeCheckStrategy, TypeToCheck } from '../../utils/utils-type-comparison.js';
 import { assertUnreachable, toArray } from '../../utils/utils.js';
-import { FunctionKind, InferFunctionCall, SingleFunctionDetails } from './function-kind.js';
+import { InferFunctionCall } from './function-kind.js';
+import { FunctionManager, SingleFunctionDetails } from './function-overloading.js';
 
 /**
  * This validation uses the inference rules for all available function calls to check, whether ...
@@ -18,11 +19,11 @@ import { FunctionKind, InferFunctionCall, SingleFunctionDetails } from './functi
  */
 export class FunctionCallArgumentsValidation<LanguageType = unknown> implements ValidationRuleWithBeforeAfter<LanguageType>, RuleCollectorListener<SingleFunctionDetails<LanguageType>> {
     protected readonly services: TypirServices<LanguageType>;
-    protected readonly kind: FunctionKind<LanguageType>;
+    readonly functions: FunctionManager<LanguageType>;
 
-    constructor(services: TypirServices<LanguageType>, kind: FunctionKind<LanguageType>) {
+    constructor(services: TypirServices<LanguageType>, functions: FunctionManager<LanguageType>) {
         this.services = services;
-        this.kind = kind;
+        this.functions = functions;
     }
 
     onAddedRule(_rule: SingleFunctionDetails<LanguageType, LanguageType>, diffOptions: RuleOptions): void {
@@ -54,8 +55,8 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
     }
 
     protected noFunctionCallRulesForThisLanguageKey(key: undefined | string): boolean {
-        for (const overloads of this.kind.mapNameTypes.values()) {
-            if (overloads.details.getRulesByLanguageKey(key).length >= 1) {
+        for (const overloads of this.functions.getAllOverloads()) {
+            if (overloads[1].details.getRulesByLanguageKey(key).length >= 1) {
                 return false;
             }
         }
@@ -82,7 +83,7 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
         // execute all rules wich are associated to the relevant language keys
         const alreadyExecutedRules: Set<InferFunctionCall<LanguageType>> = new Set();
         // for each (overloaded) function
-        for (const [overloadedName, overloadedFunctions] of this.kind.mapNameTypes.entries()) { // this grouping is not required here (but for other use cases) and does not hurt here
+        for (const [overloadedName, overloadedFunctions] of this.functions.getAllOverloads()) { // this grouping is not required here (but for other use cases) and does not hurt here
             const resultOverloaded: Array<ValidationProblem<LanguageType>> = [];
             // for each language key
             for (const key of keysToApply) {

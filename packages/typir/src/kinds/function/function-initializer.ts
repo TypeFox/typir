@@ -6,14 +6,12 @@
 
 import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
-import { CompositeTypeInferenceRule } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
-import { RuleRegistry } from '../../utils/rule-registration.js';
 import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType } from '../../utils/utils-definitions.js';
 import { assertType } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
-import { OverloadedFunctionsTypeInferenceRule } from './function-inference-overloaded.js';
-import { CreateFunctionTypeDetails, FunctionKind, OverloadedFunctionDetails } from './function-kind.js';
+import { CreateFunctionTypeDetails, FunctionKind } from './function-kind.js';
+import { FunctionManager } from './function-overloading.js';
 import { FunctionType, isFunctionType } from './function-type.js';
 
 /**
@@ -24,14 +22,14 @@ import { FunctionType, isFunctionType } from './function-type.js';
  */
 export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitializer<FunctionType, LanguageType> implements TypeStateListener {
     protected readonly typeDetails: CreateFunctionTypeDetails<LanguageType>;
-    protected readonly kind: FunctionKind<LanguageType>;
+    protected readonly functions: FunctionManager<LanguageType>;
     protected inferenceRules: FunctionInferenceRules<LanguageType>;
     protected initialFunctionType: FunctionType;
 
     constructor(services: TypirServices<LanguageType>, kind: FunctionKind<LanguageType>, typeDetails: CreateFunctionTypeDetails<LanguageType>) {
         super(services);
         this.typeDetails = typeDetails;
-        this.kind = kind;
+        this.functions = kind.functions;
 
         const functionName = typeDetails.functionName;
 
@@ -42,21 +40,6 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
         }
         kind.enforceFunctionName(functionName, kind.options.enforceFunctionName);
 
-        // prepare the overloads
-        if (this.kind.mapNameTypes.has(functionName)) {
-            // do nothing
-        } else {
-            const overloaded: OverloadedFunctionDetails<LanguageType> = {
-                overloadedFunctions: [],
-                details: new RuleRegistry(services),
-                inferenceRule: this.createInferenceRuleForOverloads(),
-                sameOutputType: undefined,
-            };
-            this.kind.mapNameTypes.set(functionName, overloaded);
-            // the "global" validation for function calls needs to update its registration according to added/removed inference rules for calls of added/removed functions
-            overloaded.details.addListener(kind.validatorArgumentsCalls);
-        }
-
         // create the new Function type
         this.initialFunctionType = new FunctionType(kind as FunctionKind, typeDetails);
 
@@ -64,11 +47,6 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
         this.registerRules(functionName, undefined);
 
         this.initialFunctionType.addListener(this, true);
-    }
-
-    protected createInferenceRuleForOverloads(): CompositeTypeInferenceRule<LanguageType> {
-        // This inference rule don't need to be registered at the Inference service, since it manages the (de)registrations itself!
-        return new OverloadedFunctionsTypeInferenceRule<LanguageType>(this.services, this.services.Inference);
     }
 
     override getTypeInitial(): FunctionType {
@@ -89,31 +67,8 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
             this.registerRules(functionName, readyFunctionType);
         }
 
-        // remember the new function for later in order to enable overloaded functions!
-        const overloaded = this.kind.mapNameTypes.get(functionName)!;
-        // Have all overloaded functions the same output type?
-        const outputTypeForFunctionCalls = this.kind.getOutputTypeForFunctionCalls(readyFunctionType); // output parameter for function calls
-        if (overloaded.overloadedFunctions.length <= 0) {
-            // remember the output type of the first function
-            overloaded.sameOutputType = outputTypeForFunctionCalls;
-        } else {
-            if (overloaded.sameOutputType && outputTypeForFunctionCalls && this.services.Equality.areTypesEqual(overloaded.sameOutputType, outputTypeForFunctionCalls) === true) {
-                // the output types of all overloaded functions are the same for now
-            } else {
-                // there is a difference
-                overloaded.sameOutputType = undefined;
-            }
-        }
-        // remember the function type itself
-        overloaded.overloadedFunctions.push(readyFunctionType);
-        // register each inference rule for calls of the function
-        this.typeDetails.inferenceRulesForCalls.forEach(rule => overloaded.details.addRule({
-            functionType: readyFunctionType,
-            inferenceRuleForCalls: rule,
-        }, {
-            languageKey: rule.languageKey, // the language keys are directly encoded inside these special inference rules for function calls
-            boundToType: readyFunctionType, // these rules are specific for current function type/signature
-        }));
+        // There is no need to remove the skipped type, since it is not yet added here, since the new types is skipped in favor of the already existing (and added) type!
+        this.functions.addFunction(readyFunctionType, this.typeDetails.inferenceRulesForCalls);
     }
 
     onSwitchedToCompleted(functionType: Type): void {
@@ -126,21 +81,21 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
 
     protected registerRules(functionName: string, functionType: FunctionType | undefined): void {
         for (const rule of this.inferenceRules.inferenceForCall) {
-            const overloaded = this.kind.mapNameTypes.get(functionName)!;
+            const overloaded = this.functions.getOrCreateOverloads(functionName);
             overloaded.inferenceRule.addInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
         }
         for (const rule of this.inferenceRules.inferenceForDeclaration) {
-            this.kind.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
+            this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
         }
     }
 
     protected deregisterRules(functionName: string, functionType: FunctionType | undefined): void {
         for (const rule of this.inferenceRules.inferenceForCall) {
-            const overloaded = this.kind.mapNameTypes.get(functionName);
+            const overloaded = this.functions.getOverloads(functionName);
             overloaded?.inferenceRule.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
         }
         for (const rule of this.inferenceRules.inferenceForDeclaration) {
-            this.kind.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
+            this.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
         }
     }
 
@@ -153,7 +108,7 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
         for (const rule of typeDetails.inferenceRulesForCalls) {
             // create inference rule for calls of the new function
             result.inferenceForCall.push({
-                rule: new FunctionCallInferenceRule<LanguageType>(typeDetails, rule, functionType, this.kind.mapNameTypes),
+                rule: new FunctionCallInferenceRule<LanguageType>(typeDetails, rule, functionType, this.functions),
                 options: {
                     languageKey: rule.languageKey,
                     // boundToType: ... this property will be specified outside of this method, when this rule is registered

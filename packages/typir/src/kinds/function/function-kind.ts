@@ -4,22 +4,18 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
-import { CompositeTypeInferenceRule } from '../../services/inference.js';
 import { ValidationProblemAcceptor } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
-import { RuleRegistry } from '../../utils/rule-registration.js';
 import { InferCurrentTypeRule, NameTypePair } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { removeFromArray } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
-import { FunctionType, isFunctionType } from './function-type.js';
-import { FunctionCallArgumentsValidation } from './function-validation-calls.js';
+import { FunctionManager } from './function-overloading.js';
+import { FunctionType } from './function-type.js';
 
 
 export interface FunctionKindOptions<LanguageType = unknown> {
@@ -55,26 +51,6 @@ export interface FunctionTypeDetails<LanguageType = unknown> extends TypeDetails
 export interface CreateFunctionTypeDetails<LanguageType = unknown> extends FunctionTypeDetails<LanguageType> {
     inferenceRulesForDeclaration: Array<InferCurrentTypeRule<LanguageType>>,
     inferenceRulesForCalls: Array<InferFunctionCall<LanguageType, LanguageType>>,
-}
-
-/**
- * Collects information about all functions with the same name.
- * This is required to handle overloaded functions.
- */
-export interface OverloadedFunctionDetails<LanguageType = unknown> {
-    /** All function overloads/signatures with the same name. */
-    overloadedFunctions: FunctionType[];
-    /** Collects the details of all functions with the same name, grouped by language keys of their inference rules for function calls. */
-    details: RuleRegistry<SingleFunctionDetails<LanguageType>, LanguageType>;
-    /** Collects the inference rules for all functions with the same name */
-    inferenceRule: CompositeTypeInferenceRule<LanguageType>; // remark: language keys are internally used during the registration of rules and during the inference using these rules
-    /** If all overloaded functions with the same name have the same output/return type, this type is remembered here (for a small performance optimization). */
-    sameOutputType: Type | undefined; // TODO theoretisch kann sich das durch entfernte Typen auch wieder ändern!
-}
-
-export interface SingleFunctionDetails<LanguageType = unknown, T extends LanguageType = LanguageType> {
-    functionType: FunctionType;
-    inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
 }
 
 export interface InferFunctionCall<LanguageType = unknown, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<T> {
@@ -170,31 +146,18 @@ export interface FunctionConfigurationChain<LanguageType = unknown> {
  * - optional parameters
  * - parameters which are used for output AND input
  */
-export class FunctionKind<LanguageType = unknown> implements Kind, TypeGraphListener, FunctionFactoryService<LanguageType> {
+export class FunctionKind<LanguageType = unknown> implements Kind, FunctionFactoryService<LanguageType> {
     readonly $name: 'FunctionKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<FunctionKindOptions<LanguageType>>;
-    /**
-     * function name => all overloaded functions (with additional information) with this name/key
-     * - The types could be collected with the TypeGraphListener, but the additional information like inference rules are not available.
-     *   Therefore this map needs to be maintained here.
-     * - Main purpose is to support inference and validation for overloaded functions:
-     *   Since overloaded functions are realized with one function type for each variant,
-     *   the corresponding rules and logic need to involve multiple types,
-     *   which makes it more complex and requires to manage them here and not in the single types.
-     */
-    readonly mapNameTypes: Map<string, OverloadedFunctionDetails<LanguageType>> = new Map();
-    readonly validatorArgumentsCalls: FunctionCallArgumentsValidation<LanguageType>;
+    readonly functions: FunctionManager<LanguageType>;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<FunctionKindOptions<LanguageType>>) {
         this.$name = FunctionKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
         this.options = this.collectOptions(options);
-        this.services.infrastructure.Graph.addListener(this);
-
-        // this validation rule for checking arguments of function calls exists "for ever", since it validates all function types
-        this.validatorArgumentsCalls = this.createFunctionCallArgumentsValidation();
+        this.functions = new FunctionManager(this.services, this);
     }
 
     protected collectOptions(options?: Partial<FunctionKindOptions<LanguageType>>): FunctionKindOptions<LanguageType> {
@@ -226,16 +189,6 @@ export class FunctionKind<LanguageType = unknown> implements Kind, TypeGraphList
             (this.options.typeToInferForCallsOfFunctionsWithoutOutput === 'THROW_ERROR'
                 ? undefined
                 : this.services.infrastructure.TypeResolver.resolve(this.options.typeToInferForCallsOfFunctionsWithoutOutput));
-    }
-
-    /* Get informed about deleted types in order to remove inference rules which are bound to them. */
-    onRemovedType(type: Type, _key: string): void {
-        if (isFunctionType(type)) {
-            // remove the current function
-            removeFromArray(type, this.mapNameTypes.get(type.functionName)?.overloadedFunctions);
-            // the rule registry removes this function type on its own => nothing to do here
-            // its inference rule is removed by the CompositeTypeInferenceRule => nothing to do here
-        }
     }
 
     calculateIdentifier(typeDetails: FunctionTypeDetails<LanguageType>): string {
@@ -275,11 +228,6 @@ export class FunctionKind<LanguageType = unknown> implements Kind, TypeGraphList
     }
     hasParameterName(name: string | undefined): name is string {
         return name !== undefined && name !== NO_PARAMETER_NAME;
-    }
-
-    protected createFunctionCallArgumentsValidation(): FunctionCallArgumentsValidation<LanguageType> {
-        // since kind/map is required for the validation (but not visible to the outside), it is created here by the factory
-        return new FunctionCallArgumentsValidation(this.services, this);
     }
 }
 

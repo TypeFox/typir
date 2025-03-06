@@ -6,10 +6,11 @@
 
 import { Type } from '../../graph/type-node.js';
 import { AssignabilitySuccess, isAssignabilityProblem } from '../../services/assignability.js';
-import { TypeInferenceRuleWithInferringChildren, InferenceRuleNotApplicable, InferenceProblem, TypeInferenceResultWithInferringChildren } from '../../services/inference.js';
+import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceResultWithInferringChildren, TypeInferenceRuleWithInferringChildren } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
-import { FunctionTypeDetails, InferFunctionCall, OverloadedFunctionDetails } from './function-kind.js';
+import { FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
+import { FunctionManager } from './function-overloading.js';
 import { FunctionType } from './function-type.js';
 
 /**
@@ -28,14 +29,14 @@ export class FunctionCallInferenceRule<LanguageType = unknown, T extends Languag
     protected readonly typeDetails: FunctionTypeDetails<LanguageType>;
     protected readonly inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
     protected readonly functionType: FunctionType;
-    protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails<LanguageType>>;
+    protected readonly functions: FunctionManager<LanguageType>;
     assignabilitySuccess: Array<AssignabilitySuccess | undefined>; // public, since this information is exploited to determine the best overloaded match in case of multiple matches
 
-    constructor(typeDetails: FunctionTypeDetails<LanguageType>, inferenceRuleForCalls: InferFunctionCall<LanguageType, T>, functionType: FunctionType, mapNameTypes: Map<string, OverloadedFunctionDetails<LanguageType>>) {
+    constructor(typeDetails: FunctionTypeDetails<LanguageType>, inferenceRuleForCalls: InferFunctionCall<LanguageType, T>, functionType: FunctionType, functions: FunctionManager<LanguageType>) {
         this.typeDetails = typeDetails;
         this.inferenceRuleForCalls = inferenceRuleForCalls;
         this.functionType = functionType;
-        this.mapNameTypes = mapNameTypes;
+        this.functions = functions;
         this.assignabilitySuccess = new Array(typeDetails.inputParameters.length);
     }
 
@@ -56,7 +57,7 @@ export class FunctionCallInferenceRule<LanguageType = unknown, T extends Languag
         }
         // 3. Check whether the current arguments fit to the expected parameter types
         // 3a. Check some special cases, in order to save the effort to do type inference for the given arguments
-        const overloadInfos = this.mapNameTypes.get(this.typeDetails.functionName);
+        const overloadInfos = this.functions.getOverloads(this.typeDetails.functionName);
         if (overloadInfos === undefined || overloadInfos.overloadedFunctions.length <= 1) {
             // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
             return this.check(this.getOutputTypeForFunctionCalls());

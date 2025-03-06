@@ -24,6 +24,7 @@ export * from './kinds/fixed-parameters/fixed-parameters-kind.js';
 export * from './kinds/fixed-parameters/fixed-parameters-type.js';
 export * from './kinds/function/function-initializer.js';
 export * from './kinds/function/function-kind.js';
+export * from './kinds/function/function-overloading.js';
 export * from './kinds/function/function-type.js';
 export * from './kinds/function/function-validation-calls.js';
 export * from './kinds/function/function-validation-unique.js';
