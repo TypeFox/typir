@@ -7,7 +7,7 @@
 import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
 import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationProblemAcceptor, createNoSuperClassCyclesValidation } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumLanguageService, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
-import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMemberCall, isMethodMember, isParameter, isVariableDeclaration, reflection } from './generated/ast.js';
+import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMethodMember, isParameter, isVariableDeclaration, reflection } from './generated/ast.js';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export class LoxTypeCreator extends AbstractLangiumTypeCreator {
@@ -112,9 +112,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         this.typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
 
         // additional inference rules for ...
-        this.typir.Inference.addInferenceRule((languageNode: unknown) => {
+        this.typir.Inference.addInferenceRulesForAstNodes<LoxAstType>({
             // ... member calls
-            if (isMemberCall(languageNode)) {
+            MemberCall: (languageNode) => {
                 const ref = languageNode.element?.ref;
                 if (isClass(ref)) {
                     return InferenceRuleNotApplicable; // not required anymore
@@ -133,9 +133,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 } else {
                     assertUnreachable(ref);
                 }
-            }
+            },
             // ... variable declarations
-            if (isVariableDeclaration(languageNode)) {
+            VariableDeclaration: (languageNode) => {
                 if (languageNode.type) {
                     return languageNode.type; // the user declared this variable with a type
                 } else if (languageNode.value) {
@@ -143,12 +143,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 } else {
                     return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
                 }
-            }
+            },
             // ... parameters
-            if (isParameter(languageNode)) {
-                return languageNode.type;
-            }
-            return InferenceRuleNotApplicable;
+            Parameter: (languageNode) => languageNode.type,
         });
 
         // some explicit validations for typing issues with Typir (replaces corresponding functions in the OxValidator!)

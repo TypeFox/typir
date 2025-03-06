@@ -53,16 +53,17 @@ export type TypeInferenceResultWithInferringChildren<LanguageType = unknown> =
  * Within inference rules, don't take the initialization state of the inferred type into account,
  * since such inferrence rules might not work for cyclic type definitions.
  */
-export type TypeInferenceRule<LanguageType = unknown> = TypeInferenceRuleWithoutInferringChildren<LanguageType> | TypeInferenceRuleWithInferringChildren<LanguageType>;
+export type TypeInferenceRule<LanguageType = unknown, InputType = LanguageType> = TypeInferenceRuleWithoutInferringChildren<LanguageType, InputType> | TypeInferenceRuleWithInferringChildren<LanguageType, InputType>;
 
 /** Usual inference rule which don't depend on children's types. */
-export type TypeInferenceRuleWithoutInferringChildren<LanguageType = unknown> = (languageNode: LanguageType, typir: TypirServices<LanguageType>) => TypeInferenceResultWithoutInferringChildren<LanguageType>;
+export type TypeInferenceRuleWithoutInferringChildren<LanguageType = unknown, InputType = LanguageType> =
+    (languageNode: InputType, typir: TypirServices<LanguageType>) => TypeInferenceResultWithoutInferringChildren<LanguageType>;
 
 /**
  * Inference rule which requires for the type inference of the given parent to take the types of its children into account.
  * Therefore, the types of the children need to be inferred first.
  */
-export interface TypeInferenceRuleWithInferringChildren<LanguageType = unknown> {
+export interface TypeInferenceRuleWithInferringChildren<LanguageType = unknown, InputType = LanguageType> {
     /**
      * 1st step is to check, whether this inference rule is applicable to the given language node.
      * @param languageNode the language node whose type shall be inferred
@@ -70,7 +71,7 @@ export interface TypeInferenceRuleWithInferringChildren<LanguageType = unknown> 
      * @returns Only in the case, that child language nodes are returned,
      * the other function will be called for step 2, otherwise, it is skipped.
      */
-    inferTypeWithoutChildren(languageNode: LanguageType, typir: TypirServices<LanguageType>): TypeInferenceResultWithInferringChildren<LanguageType>;
+    inferTypeWithoutChildren(languageNode: InputType, typir: TypirServices<LanguageType>): TypeInferenceResultWithInferringChildren<LanguageType>;
 
     /**
      * 2nd step is to finally decide about the inferred type.
@@ -83,7 +84,7 @@ export interface TypeInferenceRuleWithInferringChildren<LanguageType = unknown> 
      * @param typir the current Typir instance
      * @returns the finally inferred type or a problem, why this inference rule is finally not applicable
      */
-    inferTypeWithChildrensTypes(languageNode: LanguageType, childrenTypes: Array<Type | undefined>, typir: TypirServices<LanguageType>): Type | InferenceProblem<LanguageType>;
+    inferTypeWithChildrensTypes(languageNode: InputType, childrenTypes: Array<Type | undefined>, typir: TypirServices<LanguageType>): Type | InferenceProblem<LanguageType>;
 }
 
 

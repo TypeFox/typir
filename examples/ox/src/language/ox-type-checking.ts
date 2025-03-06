@@ -8,7 +8,7 @@ import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable
 import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumLanguageService, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { ValidationProblemAcceptor } from '../../../../packages/typir/lib/services/validation.js';
-import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isMemberCall, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration, reflection } from './generated/ast.js';
+import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration, reflection } from './generated/ast.js';
 
 export class OxTypeCreator extends AbstractLangiumTypeCreator {
     protected readonly typir: LangiumServicesForTypirBinding;
@@ -86,9 +86,9 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
          */
 
         // additional inference rules ...
-        this.typir.Inference.addInferenceRule((languageNode: unknown) => {
+        this.typir.Inference.addInferenceRulesForAstNodes<OxAstType>({
             // ... for member calls (which are used in expressions)
-            if (isMemberCall(languageNode)) {
+            MemberCall: (languageNode) => {
                 const ref = languageNode.element.ref;
                 if (isVariableDeclaration(ref)) {
                     // use variables inside expressions!
@@ -104,9 +104,9 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 } else {
                     assertUnreachable(ref);
                 }
-            }
+            },
             // ... variable declarations
-            if (isVariableDeclaration(languageNode)) {
+            VariableDeclaration: (languageNode) => {
                 if (languageNode.type) {
                     // the user declared this variable with a type
                     return languageNode.type;
@@ -116,8 +116,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 } else {
                     return InferenceRuleNotApplicable; // this case is impossible, there is a validation in the Langium LOX validator for this case
                 }
-            }
-            return InferenceRuleNotApplicable;
+            },
         });
 
         // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)

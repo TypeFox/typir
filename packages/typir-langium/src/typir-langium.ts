@@ -11,12 +11,14 @@ import { LangiumLanguageService } from './features/langium-language.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
 import { LangiumTypeCreator, PlaceholderLangiumTypeCreator } from './features/langium-type-creator.js';
 import { DefaultLangiumTypirValidator, DefaultLangiumValidationCollector, LangiumTypirValidator, LangiumValidationCollector, registerTypirValidationChecks } from './features/langium-validation.js';
+import { DefaultLangiumTypeInferenceCollector, LangiumTypeInferenceCollector } from './features/langium-inference.js';
 
 /**
  * Additional Typir-Langium services to manage the Typir services
  * in order to be used e.g. for scoping/linking in Langium.
  */
 export type TypirLangiumServices = {
+    readonly Inference: LangiumTypeInferenceCollector; // concretizes the TypeInferenceCollector for Langium
     readonly validation: {
         readonly Collector: LangiumValidationCollector; // concretizes the ValidationCollector for Langium
         readonly TypeValidation: LangiumTypirValidator;
@@ -47,6 +49,7 @@ export function createLangiumSpecificTypirServicesModule(langiumServices: Langiu
 
 export function createDefaultTypirLangiumServices(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, TypirLangiumServices> {
     return {
+        Inference: (typirServices) => new DefaultLangiumTypeInferenceCollector(typirServices),
         validation: {
             Collector: (typirServices) => new DefaultLangiumValidationCollector(typirServices),
             TypeValidation: (typirServices) => new DefaultLangiumTypirValidator(typirServices),
