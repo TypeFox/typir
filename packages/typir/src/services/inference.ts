@@ -397,6 +397,12 @@ export class CompositeTypeInferenceRule<LanguageType = unknown> extends DefaultT
     override pendingGet(_languageNode: unknown): boolean {
         return false;
     }
+    protected override pendingSet(_languageNode: LanguageType): void {
+        // nothing to do, since the pending state is not used in this composite rule
+    }
+    protected override pendingClear(_languageNode: LanguageType): void {
+        // nothing to do, since the pending state is not used in this composite rule
+    }
 
     inferTypeWithoutChildren(languageNode: LanguageType, _typir: TypirServices<LanguageType>): TypeInferenceResultWithInferringChildren<LanguageType> {
         // do the type inference
