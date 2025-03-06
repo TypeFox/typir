@@ -6,9 +6,10 @@
 
 import { Type, isType } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
-import { RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
+import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { removeFromArray, toArray } from '../utils/utils.js';
 import { TypeInferenceCollector } from './inference.js';
 import { ProblemPrinter } from './printing.js';
 
@@ -180,6 +181,12 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
     }
 }
 
+
+export interface ValidationCollectorListener<LanguageType = unknown> {
+    onAddedValidationRule(rule: ValidationRule<LanguageType>, options: ValidationRuleOptions): void;
+    onRemovedValidationRule(rule: ValidationRule<LanguageType>, options: ValidationRuleOptions): void;
+}
+
 export interface ValidationRuleOptions extends RuleOptions {
     // no additional properties so far
 }
@@ -201,18 +208,26 @@ export interface ValidationCollector<LanguageType = unknown> {
      * @param options the same options as given for the registration of the validation rule must be given for the removal!
      */
     removeValidationRule(rule: ValidationRule<LanguageType>, options?: Partial<ValidationRuleOptions>): void;
+
+    addListener(listener: ValidationCollectorListener<LanguageType>): void;
+    removeListener(listener: ValidationCollectorListener<LanguageType>): void;
 }
 
-export class DefaultValidationCollector<LanguageType = unknown> implements ValidationCollector<LanguageType> {
+export class DefaultValidationCollector<LanguageType = unknown> implements ValidationCollector<LanguageType>, RuleCollectorListener<ValidationRule<LanguageType>> {
     protected readonly services: TypirServices<LanguageType>;
+    protected readonly listeners: Array<ValidationCollectorListener<LanguageType>> = [];
 
     protected readonly ruleRegistryStateLess: RuleRegistry<ValidationRuleStateless<LanguageType>>;
     protected readonly ruleRegistryBeforeAfter: RuleRegistry<ValidationRuleWithBeforeAfter<LanguageType>>;
 
     constructor(services: TypirServices<LanguageType>) {
         this.services = services;
+
         this.ruleRegistryStateLess = new RuleRegistry(services as TypirServices);
+        this.ruleRegistryStateLess.addListener(this);
+
         this.ruleRegistryBeforeAfter = new RuleRegistry(services as TypirServices);
+        this.ruleRegistryBeforeAfter.addListener(this);
     }
 
     protected createAcceptor(problems: Array<ValidationProblem<LanguageType>>): ValidationProblemAcceptor<LanguageType> {
@@ -298,4 +313,77 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
         }
     }
 
+    addListener(listener: ValidationCollectorListener<LanguageType>): void {
+        this.listeners.push(listener);
+    }
+    removeListener(listener: ValidationCollectorListener<LanguageType>): void {
+        removeFromArray(listener, this.listeners);
+    }
+
+    onAddedRule(rule: ValidationRule<LanguageType, LanguageType>, diffOptions: RuleOptions): void {
+        // listeners of the composite will be notified about all added inner rules
+        this.listeners.forEach(listener => listener.onAddedValidationRule(rule, diffOptions));
+    }
+    onRemovedRule(rule: ValidationRule<LanguageType, LanguageType>, diffOptions: RuleOptions): void {
+        // listeners of the composite will be notified about all removed inner rules
+        this.listeners.forEach(listener => listener.onRemovedValidationRule(rule, diffOptions));
+    }
+}
+
+
+export class CompositeValidationRule<LanguageType = unknown> extends DefaultValidationCollector<LanguageType> implements ValidationRuleWithBeforeAfter<LanguageType> {
+    /** The collector for inference rules, at which this composite rule should be registered. */
+    protected readonly collectorToRegisterThisRule: ValidationCollector<LanguageType>;
+
+    constructor(services: TypirServices<LanguageType>, collectorToRegisterThisRule: ValidationCollector<LanguageType>) {
+        super(services);
+        this.collectorToRegisterThisRule = collectorToRegisterThisRule;
+    }
+
+    beforeValidation(languageRoot: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
+        this.validateBefore(languageRoot).forEach(v => accept(v));
+    }
+
+    validation(languageNode: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
+        this.validate(languageNode).forEach(v => accept(v));
+    }
+
+    afterValidation(languageRoot: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
+        this.validateAfter(languageRoot).forEach(v => accept(v));
+    }
+
+    override onAddedRule(rule: ValidationRule<LanguageType, LanguageType>, diffOptions: RuleOptions): void {
+        // an inner rule was added
+        super.onAddedRule(rule, diffOptions);
+
+        // this composite rule needs to be registered also for all the language keys of the new inner rule
+        this.collectorToRegisterThisRule.addValidationRule(this, {
+            ...diffOptions,
+            boundToType: undefined,
+        });
+    }
+
+    override onRemovedRule(rule: ValidationRule<LanguageType>, diffOptions: RuleOptions): void {
+        // an inner rule was removed
+        super.onRemovedRule(rule, diffOptions);
+
+        // remove this composite rule for all language keys for which no inner rules are registered anymore
+        if (diffOptions.languageKey === undefined) {
+            if (this.ruleRegistryStateLess.getRulesByLanguageKey(undefined).length <= 0 && this.ruleRegistryBeforeAfter.getRulesByLanguageKey(undefined).length <= 0) {
+                this.collectorToRegisterThisRule.removeValidationRule(this, {
+                    ...diffOptions,
+                    languageKey: undefined,
+                    boundToType: undefined, // a composite rule is never bound to a type, since it manages this feature itself
+                });
+            }
+        } else {
+            const languageKeysToUnregister = toArray(diffOptions.languageKey)
+                .filter(key => this.ruleRegistryStateLess.getRulesByLanguageKey(key).length <= 0 && this.ruleRegistryBeforeAfter.getRulesByLanguageKey(key).length <= 0);
+            this.collectorToRegisterThisRule.removeValidationRule(this, {
+                ...diffOptions,
+                languageKey: languageKeysToUnregister,
+                boundToType: undefined, // a composite rule is never bound to a type, since it manages this feature itself
+            });
+        }
+    }
 }
