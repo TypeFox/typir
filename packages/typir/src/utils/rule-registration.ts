@@ -35,8 +35,8 @@ interface InternalRuleOptions {
 }
 
 export interface RuleCollectorListener<RuleType> {
-    onAddedRule(rule: RuleType, options: RuleOptions): void;
-    onRemovedRule(rule: RuleType, options: RuleOptions): void;
+    onAddedRule(rule: RuleType, diffOptions: RuleOptions): void;
+    onRemovedRule(rule: RuleType, diffOptions: RuleOptions): void;
 }
 
 export class RuleRegistry<RuleType> implements TypeGraphListener {
@@ -55,6 +55,9 @@ export class RuleRegistry<RuleType> implements TypeGraphListener {
      * Contains the current set of all options for an rule. */
     protected readonly ruleToOptions: Map<RuleType, InternalRuleOptions> = new Map();
 
+    /** Collects all unique rules, lazily managed. */
+    protected readonly uniqueRules: Set<RuleType> = new Set();
+
     protected readonly listeners: Array<RuleCollectorListener<RuleType>> = [];
 
 
@@ -71,12 +74,20 @@ export class RuleRegistry<RuleType> implements TypeGraphListener {
     }
 
     /** Unique set of all registered rules. */
-    getAllRules(): Set<RuleType> {
-        return new Set(Array.from(this.languageTypeToRules.values()).flatMap(r => r)); // TODO performance
+    getUniqueRules(): Set<RuleType> {
+        if (this.uniqueRules.size <= 0) {
+            // lazily fill the set of unique rules
+            Array.from(this.languageTypeToRules.values()).flatMap(v => v).forEach(v => this.uniqueRules.add(v));
+        }
+        return this.uniqueRules;
     }
 
     isEmpty(): boolean {
         return this.languageTypeToRules.size <= 0;
+    }
+
+    getNumberUniqueRules(): number {
+        return this.getUniqueRules().size;
     }
 
     protected getRuleOptions(options?: Partial<RuleOptions>): RuleOptions {
@@ -193,6 +204,13 @@ export class RuleRegistry<RuleType> implements TypeGraphListener {
             // the existing options are already updated above
         }
 
+        // update the set of unique rules
+        if (this.uniqueRules.size >= 1) {
+            this.uniqueRules.add(rule);
+        } else {
+            // otherwise the set is populated on the next request
+        }
+
         // inform all listeners about the new rule
         if (added) {
             this.listeners.forEach(listener => listener.onAddedRule(rule, diffOptions));
@@ -271,6 +289,9 @@ export class RuleRegistry<RuleType> implements TypeGraphListener {
             this.ruleToOptions.delete(rule);
         }
 
+        // update the set of unique rules
+        this.uniqueRules.clear(); // the set needs to be populated on the next request
+
         // inform listeners
         if (removed) {
             this.listeners.forEach(listener => listener.onRemovedRule(rule, diffOptions));
@@ -306,7 +327,6 @@ export class RuleRegistry<RuleType> implements TypeGraphListener {
                 const existingOptions = this.ruleToOptions.get(ruleToRemove)!;
                 const removed = removeFromArray(type, existingOptions.boundToTypes);
                 if (removed) {
-                    // const removed = languageRules.delete(ruleToRemove);
                     if (existingOptions.boundToTypes.length <= 0) {
                         // this rule is not bound to any existing type anymore => remove this rule completely
                         this.removeRule(ruleToRemove, {

@@ -295,7 +295,7 @@ describe('Tests the logic for registering rules (applied to state-less validatio
 
     function assertNumberRules(size: number): void {
         const registry = (typir.validation.Collector as TestValidatorImpl).ruleRegistryStateLess;
-        expect(registry.getAllRules().size).toBe(size);
+        expect(registry.getNumberUniqueRules()).toBe(size);
     }
 
     function validate(node: TestLanguageNode, ...messagesExpected: string[]): void {

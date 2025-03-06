@@ -216,7 +216,7 @@ describe('Tests the logic for registering rules (applied to inference rules)', (
 
     function assertNumberRules(size: number): void {
         const registry = (typir.Inference as TestInferenceImpl).ruleRegistry;
-        expect(registry.getAllRules().size).toBe(size);
+        expect(registry.getNumberUniqueRules()).toBe(size);
     }
 
     function infer(node: TestLanguageNode, expected: Type | string): void {

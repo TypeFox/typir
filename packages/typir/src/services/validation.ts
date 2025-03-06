@@ -227,7 +227,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
     validateBefore(languageRoot: LanguageType): Array<ValidationProblem<LanguageType>> {
         const problems: Array<ValidationProblem<LanguageType>> = [];
         const accept = this.createAcceptor(problems);
-        for (const rule of this.ruleRegistryBeforeAfter.getAllRules()) { // the returned rules are unique
+        for (const rule of this.ruleRegistryBeforeAfter.getUniqueRules()) { // the returned rules are unique
             rule.beforeValidation.call(rule, languageRoot, accept, this.services);
         }
         return problems;
@@ -276,7 +276,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
     validateAfter(languageRoot: LanguageType): Array<ValidationProblem<LanguageType>> {
         const problems: Array<ValidationProblem<LanguageType>> = [];
         const accept = this.createAcceptor(problems);
-        for (const rule of this.ruleRegistryBeforeAfter.getAllRules()) { // the returned rules are unique
+        for (const rule of this.ruleRegistryBeforeAfter.getUniqueRules()) { // the returned rules are unique
             rule.afterValidation.call(rule, languageRoot, accept, this.services);
         }
         return problems;
