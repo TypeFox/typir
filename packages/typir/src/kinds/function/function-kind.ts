@@ -8,7 +8,6 @@ import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
-import { ValidationProblemAcceptor } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, NameTypePair } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
@@ -34,8 +33,6 @@ export interface FunctionKindOptions<LanguageType = unknown> {
 export const FunctionKindName = 'FunctionKind';
 
 
-export type FunctionCallValidationRule<T, LanguageType = unknown> = (functionCall: T, functionType: FunctionType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
-
 export interface CreateParameterDetails<LanguageType = unknown> {
     name: string;
     type: TypeSelector<Type, LanguageType>;
@@ -49,22 +46,16 @@ export interface FunctionTypeDetails<LanguageType = unknown> extends TypeDetails
 }
 
 export interface CreateFunctionTypeDetails<LanguageType = unknown> extends FunctionTypeDetails<LanguageType> {
-    inferenceRulesForDeclaration: Array<InferCurrentTypeRule<LanguageType>>,
+    inferenceRulesForDeclaration: Array<InferCurrentTypeRule<FunctionType, LanguageType>>,
     inferenceRulesForCalls: Array<InferFunctionCall<LanguageType, LanguageType>>,
 }
 
-export interface InferFunctionCall<LanguageType = unknown, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<T> {
+export interface InferFunctionCall<LanguageType = unknown, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<FunctionType, LanguageType, T> {
     /**
      * In case of overloaded functions, these input arguments are used to determine the actual function
      * by comparing the types of the given arguments with the expected types of the input parameters of the function.
      */
     inputArguments: (languageNode: T) => LanguageType[];
-
-    /**
-     * This validation will be applied to all language nodes which represent calls of the functions according to this inference rule.
-     * This validation is specific for this inference rule and this function type (it will not be applied to other overloaded variants).
-     */
-    validation?: FunctionCallValidationRule<T, LanguageType> | Array<FunctionCallValidationRule<T, LanguageType>>;
 
     /**
      * This property controls the builtin validation which checks, whether the types of the given arguments of the function call
@@ -115,19 +106,19 @@ export interface InferFunctionCall<LanguageType = unknown, T extends LanguageTyp
 
 export interface FunctionFactoryService<LanguageType = unknown> {
     create(typeDetails: FunctionTypeDetails<LanguageType>): FunctionConfigurationChain<LanguageType>;
-    get(typeDetails: FunctionTypeDetails<LanguageType>): TypeReference<FunctionType>;
+    get(typeDetails: FunctionTypeDetails<LanguageType>): TypeReference<FunctionType, LanguageType>;
     calculateIdentifier(typeDetails: FunctionTypeDetails<LanguageType>): string;
 }
 
 export interface FunctionConfigurationChain<LanguageType = unknown> {
     /** for function declarations => returns the funtion type (the whole signature including all names) */
-    inferenceRuleForDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<T>): FunctionConfigurationChain<LanguageType>;
+    inferenceRuleForDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<FunctionType, LanguageType, T>): FunctionConfigurationChain<LanguageType>;
     /** for function calls => returns the return type of the function */
     inferenceRuleForCalls<T extends LanguageType>(rule: InferFunctionCall<LanguageType, T>): FunctionConfigurationChain<LanguageType>,
 
     // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
 
-    finish(): TypeInitializer<FunctionType>;
+    finish(): TypeInitializer<FunctionType, LanguageType>;
 }
 
 /**
@@ -157,7 +148,7 @@ export class FunctionKind<LanguageType = unknown> implements Kind, FunctionFacto
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
         this.options = this.collectOptions(options);
-        this.functions = new FunctionManager(this.services, this);
+        this.functions = this.createFunctionManager();
     }
 
     protected collectOptions(options?: Partial<FunctionKindOptions<LanguageType>>): FunctionKindOptions<LanguageType> {
@@ -174,8 +165,12 @@ export class FunctionKind<LanguageType = unknown> implements Kind, FunctionFacto
         };
     }
 
-    get(typeDetails: FunctionTypeDetails<LanguageType>): TypeReference<FunctionType> {
-        return new TypeReference(() => this.calculateIdentifier(typeDetails), this.services as TypirServices);
+    protected createFunctionManager(): FunctionManager<LanguageType> {
+        return new FunctionManager(this.services, this);
+    }
+
+    get(typeDetails: FunctionTypeDetails<LanguageType>): TypeReference<FunctionType, LanguageType> {
+        return new TypeReference<FunctionType, LanguageType>(() => this.calculateIdentifier(typeDetails), this.services);
     }
 
     create(typeDetails: FunctionTypeDetails<LanguageType>): FunctionConfigurationChain<LanguageType> {
@@ -239,7 +234,7 @@ export function isFunctionKind(kind: unknown): kind is FunctionKind {
 class FunctionConfigurationChainImpl<LanguageType = unknown> implements FunctionConfigurationChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: FunctionKind<LanguageType>;
-    protected readonly currentFunctionDetails: CreateFunctionTypeDetails;
+    protected readonly currentFunctionDetails: CreateFunctionTypeDetails<LanguageType>;
 
     constructor(services: TypirServices<LanguageType>, kind: FunctionKind<LanguageType>, typeDetails: FunctionTypeDetails<LanguageType>) {
         this.services = services;
@@ -251,18 +246,18 @@ class FunctionConfigurationChainImpl<LanguageType = unknown> implements Function
         };
     }
 
-    inferenceRuleForDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<T>): FunctionConfigurationChain<LanguageType> {
-        this.currentFunctionDetails.inferenceRulesForDeclaration.push(rule as InferCurrentTypeRule<unknown>);
+    inferenceRuleForDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<FunctionType, LanguageType, T>): FunctionConfigurationChain<LanguageType> {
+        this.currentFunctionDetails.inferenceRulesForDeclaration.push(rule as unknown as InferCurrentTypeRule<FunctionType, LanguageType>);
         return this;
     }
 
     inferenceRuleForCalls<T extends LanguageType>(rule: InferFunctionCall<LanguageType, T>): FunctionConfigurationChain<LanguageType> {
-        this.currentFunctionDetails.inferenceRulesForCalls.push(rule as InferFunctionCall<unknown>);
+        this.currentFunctionDetails.inferenceRulesForCalls.push(rule as unknown as InferFunctionCall<LanguageType>);
         return this;
     }
 
-    finish(): TypeInitializer<FunctionType> {
-        return new FunctionTypeInitializer(this.services as TypirServices, this.kind as FunctionKind, this.currentFunctionDetails);
+    finish(): TypeInitializer<FunctionType, LanguageType> {
+        return new FunctionTypeInitializer<LanguageType>(this.services, this.kind, this.currentFunctionDetails);
     }
 }
 

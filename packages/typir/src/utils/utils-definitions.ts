@@ -9,6 +9,7 @@
 import { isType, Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { InferenceRuleNotApplicable, TypeInferenceRule, TypeInferenceRuleOptions } from '../services/inference.js';
+import { ValidationProblemAcceptor, ValidationRule, ValidationRuleOptions } from '../services/validation.js';
 import { TypirServices } from '../typir.js';
 import { toArray } from './utils.js';
 
@@ -38,16 +39,58 @@ export function isNameTypePair(type: unknown): type is NameTypePair {
 
 
 //
+// Utilities for validations
+//
+
+/** A pair of a rule for type inference with its additional options. */
+export interface ValidationRuleWithOptions<LanguageType = unknown, T extends LanguageType = LanguageType> {
+    rule: ValidationRule<LanguageType, T>;
+    options: Partial<ValidationRuleOptions>;
+}
+
+export function bindValidateCurrentTypeRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType>(
+    rule: InferCurrentTypeRule<TypeType, LanguageType, T>, type: TypeType
+): ValidationRuleWithOptions<LanguageType, T> | undefined {
+    // check the given rule
+    checkRule(rule); // fail early
+    if (toArray(rule.validation).length <= 0) { // there are no checks => don't create a validation rule!
+        return undefined;
+    }
+    // create a single validation rule with options
+    // (This is more efficient than having one validation rule for each check, since 'filter' and 'match' are checked multiple times in that case.)
+    return {
+        rule: (languageNode, accept, typir) => {
+            // when this validation rule is executed, it is already ensured, that the (non-undefined) language key of rule and language node fit!
+            if (rule.filter !== undefined && rule.filter(languageNode) === false) {
+                return; // if specified, the filter needs to accept the current language node
+            }
+            if (rule.matching !== undefined && rule.matching(languageNode) === false) {
+                return; // if specified, the current language node needs to match the condition of the inference rule
+            }
+            // since the current language node fits to this inference rule, validate it according
+            for (const validationRule of toArray(rule.validation)) {
+                validationRule(languageNode, type, accept, typir);
+            }
+        },
+        options: {
+            languageKey: rule.languageKey,
+            boundToType: type,
+        }
+    };
+}
+
+
+//
 // Utilities for type inference
 //
 
 /** A pair of a rule for type inference with its additional options. */
 export interface InferenceRuleWithOptions<LanguageType = unknown, T extends LanguageType = LanguageType> {
-    rule: TypeInferenceRule<T>;
+    rule: TypeInferenceRule<LanguageType, T>;
     options: Partial<TypeInferenceRuleOptions>;
 }
 
-export function optionsBoundToType(options: Partial<TypeInferenceRuleOptions>, type: Type | undefined): Partial<TypeInferenceRuleOptions> {
+export function optionsBoundToType<T extends Partial<TypeInferenceRuleOptions> | Partial<ValidationRuleOptions>>(options: T, type: Type | undefined): T {
     return {
         ...options,
         boundToType: type,
@@ -69,19 +112,35 @@ export function ruleWithOptionsBoundToType<
  * This utility type is often used for inference rules which are annotated to the declaration of a type.
  * At least one of the properties needs to be specified.
  */
-export interface InferCurrentTypeRule<T = unknown> {
+export interface InferCurrentTypeRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType> {
     languageKey?: string | string[];
-    filter?: (languageNode: unknown) => languageNode is T;
-    matching?: (languageNode: T) => boolean;
+    filter?: (languageNode: LanguageType) => languageNode is T;
+    matching?: (languageNode: T) => boolean; // TODO review: Should we provide "typeToInfer: TypeType" as an additional property here?
+
+    /**
+     * This validation will be applied to all language nodes for which the current type is inferred according to this inference rule.
+     * This validation is specific for this inference rule and this inferred type.
+     */
+    validation?: InferCurrentTypeValidationRule<TypeType, LanguageType, T> | Array<InferCurrentTypeValidationRule<TypeType, LanguageType, T>>;
 }
 
-export function bindInferCurrentTypeRule<LanguageType, T extends LanguageType>(rule: InferCurrentTypeRule<T>, type: Type): InferenceRuleWithOptions<LanguageType, T> {
+export type InferCurrentTypeValidationRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType> =
+    (languageNode: T, inferredType: TypeType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
+
+
+function checkRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType>(rule: InferCurrentTypeRule<TypeType, LanguageType, T>): void {
     if (rule.languageKey === undefined && rule.filter === undefined && rule.matching === undefined) {
-        throw new Error('This inference rule has no properties at all and therefore cannot infer any type!'); // fail early
+        throw new Error('This inference rule has none of the properties "languageKey", "filter" and "matching" at all and therefore cannot infer any type!');
     }
+}
+
+export function bindInferCurrentTypeRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType>(
+    rule: InferCurrentTypeRule<TypeType, LanguageType, T>, type: TypeType
+): InferenceRuleWithOptions<LanguageType, T> {
+    checkRule(rule); // fail early
     return {
         rule: (languageNode, _typir) => {
-            // when this function is called, it is already ensured, that the (non-undefined) language key of rule and language node fit!
+            // when this inference rule is executed, it is already ensured, that the (non-undefined) language key of rule and language node fit!
             if (rule.filter !== undefined) {
                 if (rule.filter(languageNode)) {
                     if (rule.matching !== undefined) {
@@ -108,7 +167,7 @@ export function bindInferCurrentTypeRule<LanguageType, T extends LanguageType>(r
             if (rule.languageKey !== undefined) {
                 return type; // sometimes it is enough to filter only by the language key, e.g. in case of dedicated "IntegerLiteral"s which always have an "Integer" type
             } else {
-                throw new Error('This inference rule has no properties at all and therefore cannot infer any type!');
+                throw new Error('This inference rule has none of the properties "languageKey", "filter" and "matching" at all and therefore cannot infer any type!');
             }
         },
         options: {
@@ -118,13 +177,19 @@ export function bindInferCurrentTypeRule<LanguageType, T extends LanguageType>(r
     };
 }
 
-export function registerInferCurrentTypeRules<LanguageType>(
-    rules: InferCurrentTypeRule<LanguageType> | Array<InferCurrentTypeRule<LanguageType>> | undefined, type: Type, services: TypirServices<LanguageType>
+export function registerInferCurrentTypeRules<TypeType extends Type = Type, LanguageType = unknown>(
+    rules: InferCurrentTypeRule<TypeType, LanguageType> | Array<InferCurrentTypeRule<TypeType, LanguageType>> | undefined, type: TypeType, services: TypirServices<LanguageType>
 ): void {
     for (const ruleSingle of toArray(rules)) {
-        const {rule, options} = bindInferCurrentTypeRule(ruleSingle, type);
-        services.Inference.addInferenceRule(rule, options);
+        // inference
+        const {rule: ruleInfer, options: optionsInfer} = bindInferCurrentTypeRule(ruleSingle, type);
+        services.Inference.addInferenceRule(ruleInfer, optionsInfer);
+        // validation
+        const validate = bindValidateCurrentTypeRule(ruleSingle, type);
+        if (validate) {
+            services.validation.Collector.addValidationRule(validate.rule, validate.options);
+        }
     }
-    // In theory, there is a small optimization possible:
+    // In theory, there is a small performance optimization possible:
     // Register all inference rules (with the same languageKey) within a single generic inference rule (in order to keep the number of "global" inference rules small)
 }

@@ -8,7 +8,7 @@ import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
-import { InferenceRuleWithOptions, optionsBoundToType, bindInferCurrentTypeRule } from '../../utils/utils-definitions.js';
+import { InferenceRuleWithOptions, optionsBoundToType, bindInferCurrentTypeRule, ValidationRuleWithOptions, bindValidateCurrentTypeRule } from '../../utils/utils-definitions.js';
 import { MapListConverter, checkNameTypesMap, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertType } from '../../utils/utils.js';
 import { ClassKind, CreateClassTypeDetails, InferClassLiteral } from './class-kind.js';
@@ -17,7 +17,8 @@ import { ClassType, isClassType } from './class-type.js';
 export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitializer<ClassType, LanguageType> implements TypeStateListener {
     protected readonly typeDetails: CreateClassTypeDetails<LanguageType>;
     protected readonly kind: ClassKind<LanguageType>;
-    protected inferenceRules: Array<InferenceRuleWithOptions<LanguageType>>;
+    protected inferenceRules: Array<InferenceRuleWithOptions<LanguageType>> = [];
+    protected validationRules: Array<ValidationRuleWithOptions<LanguageType>> = [];
     protected initialClassType: ClassType;
 
     constructor(services: TypirServices<LanguageType>, kind: ClassKind<LanguageType>, typeDetails: CreateClassTypeDetails<LanguageType>) {
@@ -32,7 +33,7 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
             this.services.infrastructure.Graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));
         }
 
-        this.inferenceRules = this.createInferenceRules(this.typeDetails, this.initialClassType);
+        this.createInferenceAndValidationRules(this.typeDetails, this.initialClassType);
         // register all the inference rules already now to enable early type inference for this Class type
         this.inferenceRules.forEach(rule => services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, undefined))); // 'undefined', since the Identifier is still missing
 
@@ -64,7 +65,7 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
             this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, undefined)));
             // but re-create the inference rules for the new type!!
             // This is required, since inference rules for different declarations in the AST might be different, but should infer the same Typir type!
-            this.inferenceRules = this.createInferenceRules(this.typeDetails, readyClassType);
+            this.createInferenceAndValidationRules(this.typeDetails, readyClassType);
             this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, readyClassType)));
         } else {
             // the class type is unchanged (this is the usual case)
@@ -97,17 +98,26 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
         return this.initialClassType;
     }
 
-    protected createInferenceRules(typeDetails: CreateClassTypeDetails<LanguageType>, classType: ClassType): Array<InferenceRuleWithOptions<LanguageType>> {
-        const result: Array<InferenceRuleWithOptions<LanguageType>> = [];
+    protected createInferenceAndValidationRules(typeDetails: CreateClassTypeDetails<LanguageType>, classType: ClassType): void {
+        // clear the current list ...
+        this.inferenceRules.splice(0, this.inferenceRules.length);
+        this.validationRules.splice(0, this.validationRules.length);
+
+        // ... and recreate all rules
         for (const inferenceRulesForClassDeclaration of typeDetails.inferenceRulesForClassDeclaration) {
-            result.push(bindInferCurrentTypeRule<ClassType, LanguageType>(inferenceRulesForClassDeclaration, classType));
+            this.inferenceRules.push(bindInferCurrentTypeRule<ClassType, LanguageType>(inferenceRulesForClassDeclaration, classType));
             // TODO check values for fields for structual typing!
+            const validationRule = bindValidateCurrentTypeRule<ClassType, LanguageType>(inferenceRulesForClassDeclaration, classType);
+            if (validationRule) {
+                this.validationRules.push(validationRule);
+            }
         }
         for (const inferenceRulesForClassLiterals of typeDetails.inferenceRulesForClassLiterals) {
-            result.push(this.createInferenceRuleForLiteral(inferenceRulesForClassLiterals, classType));
+            this.inferenceRules.push(this.createInferenceRuleForLiteral(inferenceRulesForClassLiterals, classType));
+            // TODO validation
         }
         for (const inferenceRulesForFieldAccess of typeDetails.inferenceRulesForFieldAccess) {
-            result.push({
+            this.inferenceRules.push({
                 rule: (languageNode, _typir) => {
                     const result = inferenceRulesForFieldAccess.field(languageNode);
                     if (result === InferenceRuleNotApplicable) {
@@ -135,8 +145,8 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
                     // boundToType: ... this property will be specified outside of this method
                 },
             });
+            // TODO validation
         }
-        return result;
     }
 
     protected createInferenceRuleForLiteral<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>, classType: ClassType): InferenceRuleWithOptions<LanguageType, T> {
