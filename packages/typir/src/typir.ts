@@ -58,12 +58,12 @@ export type TypirServices<LanguageType = unknown> = {
         readonly Constraints: ValidationConstraints<LanguageType>;
     };
     readonly factory: {
-        readonly Primitives: PrimitiveFactoryService;
+        readonly Primitives: PrimitiveFactoryService<LanguageType>;
         readonly Functions: FunctionFactoryService<LanguageType>;
-        readonly Classes: ClassFactoryService;
-        readonly Top: TopFactoryService;
-        readonly Bottom: BottomFactoryService;
-        readonly Operators: OperatorFactoryService;
+        readonly Classes: ClassFactoryService<LanguageType>;
+        readonly Top: TopFactoryService<LanguageType>;
+        readonly Bottom: BottomFactoryService<LanguageType>;
+        readonly Operators: OperatorFactoryService<LanguageType>;
     };
     readonly infrastructure: {
         readonly Graph: TypeGraph;
@@ -91,12 +91,12 @@ export function createDefaultTypirServiceModule<LanguageType = unknown>(): Modul
             Constraints: (services) => new DefaultValidationConstraints(services),
         },
         factory: {
-            Primitives: (services) => services.infrastructure.Kinds.getOrCreateKind(PrimitiveKindName, services => new PrimitiveKind(services as TypirServices)),
+            Primitives: (services) => services.infrastructure.Kinds.getOrCreateKind(PrimitiveKindName, services => new PrimitiveKind(services)),
             Functions: (services) => services.infrastructure.Kinds.getOrCreateKind(FunctionKindName, services => new FunctionKind(services)),
-            Classes: (services) => services.infrastructure.Kinds.getOrCreateKind(ClassKindName, services => new ClassKind(services as TypirServices, { typing: 'Nominal' })),
-            Top: (services) => services.infrastructure.Kinds.getOrCreateKind(TopKindName, services => new TopKind(services as TypirServices)),
-            Bottom: (services) => services.infrastructure.Kinds.getOrCreateKind(BottomKindName, services => new BottomKind(services as TypirServices)),
-            Operators: (services) => new DefaultOperatorFactory(services as TypirServices),
+            Classes: (services) => services.infrastructure.Kinds.getOrCreateKind(ClassKindName, services => new ClassKind(services, { typing: 'Nominal' })),
+            Top: (services) => services.infrastructure.Kinds.getOrCreateKind(TopKindName, services => new TopKind(services)),
+            Bottom: (services) => services.infrastructure.Kinds.getOrCreateKind(BottomKindName, services => new BottomKind(services)),
+            Operators: (services) => new DefaultOperatorFactory(services),
         },
         infrastructure: {
             Graph: () =>  new TypeGraph(),

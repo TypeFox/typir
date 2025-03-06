@@ -14,21 +14,21 @@ import { TypeSelector } from './type-selector.js';
 /**
  * A listener for TypeReferences, who will be informed about the resolved/found type of the current TypeReference.
  */
-export interface TypeReferenceListener<T extends Type = Type> {
+export interface TypeReferenceListener<T extends Type = Type, LanguageType = unknown> {
     /**
      * Informs when the type of the reference is resolved/found.
      * @param reference the currently resolved TypeReference
      * @param resolvedType Usually the resolved type is either 'Identifiable' or 'Completed',
      * in rare cases this type might be 'Invalid', e.g. if there are corresponding inference rules or TypeInitializers.
      */
-    onTypeReferenceResolved(reference: TypeReference<T>, resolvedType: T): void;
+    onTypeReferenceResolved(reference: TypeReference<T, LanguageType>, resolvedType: T): void;
     /**
      * Informs when the type of the reference is invalidated/removed.
      * @param reference the currently invalidate/unresolved TypeReference
      * @param previousType undefined occurs in the special case, that the TypeReference never resolved a type so far,
      * but new listeners already want to be informed about the (current) type.
      */
-    onTypeReferenceInvalidated(reference: TypeReference<T>, previousType: T | undefined): void;
+    onTypeReferenceInvalidated(reference: TypeReference<T, LanguageType>, previousType: T | undefined): void;
 }
 
 /**
@@ -42,15 +42,15 @@ export interface TypeReferenceListener<T extends Type = Type> {
  *
  * Once the type is resolved, listeners are notified about this and all following changes of its state.
  */
-export class TypeReference<T extends Type = Type> implements TypeGraphListener, TypeInferenceCollectorListener {
-    protected readonly selector: TypeSelector;
-    protected readonly services: TypirServices;
+export class TypeReference<T extends Type = Type, LanguageType = unknown> implements TypeGraphListener, TypeInferenceCollectorListener<LanguageType> {
+    protected readonly selector: TypeSelector<T, LanguageType>;
+    protected readonly services: TypirServices<LanguageType>;
     protected resolvedType: T | undefined = undefined;
 
     /** These listeners will be informed, whenever the resolved state of this TypeReference switched from undefined to an actual type or from an actual type to undefined. */
-    protected readonly listeners: Array<TypeReferenceListener<T>> = [];
+    protected readonly listeners: Array<TypeReferenceListener<T, LanguageType>> = [];
 
-    constructor(selector: TypeSelector, services: TypirServices) {
+    constructor(selector: TypeSelector<T, LanguageType>, services: TypirServices<LanguageType>) {
         this.selector = selector;
         this.services = services;
 
@@ -113,7 +113,7 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         }
     }
 
-    addListener(listener: TypeReferenceListener<T>, informAboutCurrentState: boolean): void {
+    addListener(listener: TypeReferenceListener<T, LanguageType>, informAboutCurrentState: boolean): void {
         this.listeners.push(listener);
         if (informAboutCurrentState) {
             if (this.resolvedType) {
@@ -124,7 +124,7 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         }
     }
 
-    removeListener(listener: TypeReferenceListener<T>): void {
+    removeListener(listener: TypeReferenceListener<T, LanguageType>): void {
         removeFromArray(listener, this.listeners);
     }
 
@@ -144,11 +144,11 @@ export class TypeReference<T extends Type = Type> implements TypeGraphListener, 
         }
     }
 
-    onAddedInferenceRule(_rule: TypeInferenceRule, _options: TypeInferenceRuleOptions): void {
+    onAddedInferenceRule(_rule: TypeInferenceRule<LanguageType>, _options: TypeInferenceRuleOptions): void {
         // after adding a new inference rule, try to resolve the type
         this.resolve(); // possible performance optimization: use only the new inference rule to resolve the type
     }
-    onRemovedInferenceRule(_rule: TypeInferenceRule, _options: TypeInferenceRuleOptions): void {
+    onRemovedInferenceRule(_rule: TypeInferenceRule<LanguageType>, _options: TypeInferenceRuleOptions): void {
         // empty, since removed inference rules don't help to resolve a type
     }
 }

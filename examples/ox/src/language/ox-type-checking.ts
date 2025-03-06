@@ -35,13 +35,13 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
             .finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
-        const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
+        const binaryInferenceRule: InferOperatorWithMultipleOperands<AstNode, BinaryExpression> = {
             filter: isBinaryExpression,
             matching: (node: BinaryExpression, name: string) => node.operator === name,
             operands: (node: BinaryExpression, _name: string) => [node.left, node.right],
             validateArgumentsOfCalls: true,
         };
-        const unaryInferenceRule: InferOperatorWithSingleOperand<UnaryExpression> = {
+        const unaryInferenceRule: InferOperatorWithSingleOperand<AstNode, UnaryExpression> = {
             filter: isUnaryExpression,
             matching: (node: UnaryExpression, name: string) => node.operator === name,
             operand: (node: UnaryExpression, _name: string) => node.value,

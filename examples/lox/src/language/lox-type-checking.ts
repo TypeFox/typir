@@ -47,13 +47,13 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         const typeAny = this.typir.factory.Top.create({}).finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
-        const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
+        const binaryInferenceRule: InferOperatorWithMultipleOperands<AstNode, BinaryExpression> = {
             languageKey: BinaryExpression,
             matching: (node: BinaryExpression, name: string) => node.operator === name,
             operands: (node: BinaryExpression, _name: string) => [node.left, node.right],
             validateArgumentsOfCalls: true,
         };
-        const unaryInferenceRule: InferOperatorWithSingleOperand<UnaryExpression> = {
+        const unaryInferenceRule: InferOperatorWithSingleOperand<AstNode, UnaryExpression> = {
             languageKey: UnaryExpression,
             matching: (node: UnaryExpression, name: string) => node.operator === name,
             operand: (node: UnaryExpression, _name: string) => node.value,
@@ -211,13 +211,13 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     superClasses: node.superClass?.ref, // note that type inference is used here
                     fields: node.members
                         .filter(isFieldMember) // only Fields, no Methods
-                        .map(f => <CreateFieldDetails>{
+                        .map(f => <CreateFieldDetails<AstNode>>{
                             name: f.name,
                             type: f.type, // note that type inference is used here
                         }),
                     methods: node.members
                         .filter(isMethodMember) // only Methods, no Fields
-                        .map(member => <CreateMethodDetails>{ type: this.createFunctionDetails(member) }), // same logic as for functions, since the LOX grammar defines them very similar
+                        .map(member => <CreateMethodDetails<AstNode>>{ type: this.createFunctionDetails(member) }), // same logic as for functions, since the LOX grammar defines them very similar
                     associatedLanguageNode: node, // this is used by the ScopeProvider to get the corresponding class declaration after inferring the (class) type of an expression
                 })
                 // inference rule for declaration
@@ -250,7 +250,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         }
     }
 
-    protected createFunctionDetails(node: FunctionDeclaration | MethodMember): TypeInitializer<FunctionType> {
+    protected createFunctionDetails(node: FunctionDeclaration | MethodMember): TypeInitializer<FunctionType, AstNode> {
         const config = this.typir.factory.Functions
             .create({
                 functionName: node.name,

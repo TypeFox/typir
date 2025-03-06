@@ -127,7 +127,7 @@ export class StatementBlock extends TestStatementNode {
  * Some predefined utils for configuring Typir accordingly
  */
 
-export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<BinaryExpression> = {
+export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<TestLanguageNode, BinaryExpression> = {
     filter: node => node instanceof BinaryExpression,
     matching: (node, operatorName) => node.operator === operatorName,
     operands: node => [node.left, node.right],

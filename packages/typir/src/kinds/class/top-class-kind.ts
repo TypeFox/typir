@@ -11,8 +11,8 @@ import { assertTrue } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { TopClassType } from './top-class-type.js';
 
-export interface TopClassTypeDetails extends TypeDetails {
-    inferenceRules?: InferCurrentTypeRule | InferCurrentTypeRule[]
+export interface TopClassTypeDetails<LanguageType = unknown> extends TypeDetails<LanguageType> {
+    inferenceRules?: InferCurrentTypeRule<TopClassType, LanguageType> | Array<InferCurrentTypeRule<TopClassType, LanguageType>>
 }
 
 export interface TopClassKindOptions {
@@ -21,13 +21,13 @@ export interface TopClassKindOptions {
 
 export const TopClassKindName = 'TopClassKind';
 
-export class TopClassKind implements Kind {
+export class TopClassKind<LanguageType = unknown> implements Kind {
     readonly $name: 'TopClassKind';
-    readonly services: TypirServices;
+    readonly services: TypirServices<LanguageType>;
     readonly options: TopClassKindOptions;
     protected instance: TopClassType | undefined;
 
-    constructor(services: TypirServices, options?: Partial<TopClassKindOptions>) {
+    constructor(services: TypirServices<LanguageType>, options?: Partial<TopClassKindOptions>) {
         this.$name = TopClassKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
@@ -43,12 +43,12 @@ export class TopClassKind implements Kind {
         };
     }
 
-    getTopClassType(typeDetails: TopClassTypeDetails): TopClassType | undefined {
+    getTopClassType(typeDetails: TopClassTypeDetails<LanguageType>): TopClassType | undefined {
         const key = this.calculateIdentifier(typeDetails);
         return this.services.infrastructure.Graph.getType(key) as TopClassType;
     }
 
-    createTopClassType(typeDetails: TopClassTypeDetails): TopClassType {
+    createTopClassType(typeDetails: TopClassTypeDetails<LanguageType>): TopClassType {
         assertTrue(this.getTopClassType(typeDetails) === undefined);
 
         // create the top type (singleton)
@@ -56,7 +56,7 @@ export class TopClassKind implements Kind {
             // note, that the given inference rules are ignored in this case!
             return this.instance;
         }
-        const topType = new TopClassType(this, this.calculateIdentifier(typeDetails), typeDetails);
+        const topType = new TopClassType(this as TopClassKind, this.calculateIdentifier(typeDetails), typeDetails as TopClassTypeDetails);
         this.instance = topType;
         this.services.infrastructure.Graph.addNode(topType);
 
@@ -65,12 +65,12 @@ export class TopClassKind implements Kind {
         return topType;
     }
 
-    calculateIdentifier(_typeDetails: TopClassTypeDetails): string {
+    calculateIdentifier(_typeDetails: TopClassTypeDetails<LanguageType>): string {
         return this.options.name;
     }
 
 }
 
-export function isTopClassKind(kind: unknown): kind is TopClassKind {
+export function isTopClassKind<LanguageType = unknown>(kind: unknown): kind is TopClassKind<LanguageType> {
     return isKind(kind) && kind.$name === TopClassKindName;
 }

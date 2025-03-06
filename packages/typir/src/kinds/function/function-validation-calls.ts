@@ -65,7 +65,8 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
 
     beforeValidation(_languageRoot: LanguageType, _accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
         // do nothing
-        // TODO is StateLess!
+        // TODO review: Here ValidationRuleStateless is enough, but since it is a function type (and no interface type), it is not possible to implement it here in this class.
+        // Therefore ValidationRuleWithBeforeAfter is chosen, since it is an interface, but the additional methods are not needed and are confusing ...
     }
 
     validation(languageNode: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {

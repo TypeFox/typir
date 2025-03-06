@@ -6,7 +6,7 @@
 
 import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
-import { InferenceProblem, InferenceRuleNotApplicable } from '../../services/inference.js';
+import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { InferenceRuleWithOptions, optionsBoundToType, bindInferCurrentTypeRule } from '../../utils/utils-definitions.js';
 import { MapListConverter, checkNameTypesMap, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
@@ -14,19 +14,19 @@ import { assertType } from '../../utils/utils.js';
 import { ClassKind, CreateClassTypeDetails, InferClassLiteral } from './class-kind.js';
 import { ClassType, isClassType } from './class-type.js';
 
-export class ClassTypeInitializer extends TypeInitializer<ClassType> implements TypeStateListener {
-    protected readonly typeDetails: CreateClassTypeDetails;
-    protected readonly kind: ClassKind;
-    protected inferenceRules: InferenceRuleWithOptions[];
+export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitializer<ClassType, LanguageType> implements TypeStateListener {
+    protected readonly typeDetails: CreateClassTypeDetails<LanguageType>;
+    protected readonly kind: ClassKind<LanguageType>;
+    protected inferenceRules: Array<InferenceRuleWithOptions<LanguageType>>;
     protected initialClassType: ClassType;
 
-    constructor(services: TypirServices, kind: ClassKind, typeDetails: CreateClassTypeDetails) {
+    constructor(services: TypirServices<LanguageType>, kind: ClassKind<LanguageType>, typeDetails: CreateClassTypeDetails<LanguageType>) {
         super(services);
         this.typeDetails = typeDetails;
         this.kind = kind;
 
         // create the class type
-        this.initialClassType = new ClassType(kind, typeDetails as CreateClassTypeDetails);
+        this.initialClassType = new ClassType(kind as ClassKind, typeDetails as CreateClassTypeDetails);
         if (kind.options.typing === 'Structural') {
             // register structural classes also by their names, since these names are usually used for reference in the DSL/AST!
             this.services.infrastructure.Graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));
@@ -97,10 +97,10 @@ export class ClassTypeInitializer extends TypeInitializer<ClassType> implements 
         return this.initialClassType;
     }
 
-    protected createInferenceRules(typeDetails: CreateClassTypeDetails, classType: ClassType): InferenceRuleWithOptions[] {
-        const result: InferenceRuleWithOptions[] = [];
+    protected createInferenceRules(typeDetails: CreateClassTypeDetails<LanguageType>, classType: ClassType): Array<InferenceRuleWithOptions<LanguageType>> {
+        const result: Array<InferenceRuleWithOptions<LanguageType>> = [];
         for (const inferenceRulesForClassDeclaration of typeDetails.inferenceRulesForClassDeclaration) {
-            result.push(bindInferCurrentTypeRule(inferenceRulesForClassDeclaration, classType));
+            result.push(bindInferCurrentTypeRule<ClassType, LanguageType>(inferenceRulesForClassDeclaration, classType));
             // TODO check values for fields for structual typing!
         }
         for (const inferenceRulesForClassLiterals of typeDetails.inferenceRulesForClassLiterals) {
@@ -118,7 +118,7 @@ export class ClassTypeInitializer extends TypeInitializer<ClassType> implements 
                         if (fieldType) {
                             return fieldType;
                         }
-                        return <InferenceProblem>{
+                        return <InferenceProblem<LanguageType>>{
                             $problem: InferenceProblem,
                             languageNode: languageNode,
                             inferenceCandidate: classType,
@@ -139,7 +139,7 @@ export class ClassTypeInitializer extends TypeInitializer<ClassType> implements 
         return result;
     }
 
-    protected createInferenceRuleForLiteral<T>(rule: InferClassLiteral<T>, classType: ClassType): InferenceRuleWithOptions {
+    protected createInferenceRuleForLiteral<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>, classType: ClassType): InferenceRuleWithOptions<LanguageType, T> {
         const mapListConverter = new MapListConverter();
         const kind = this.kind;
         return {
@@ -147,9 +147,9 @@ export class ClassTypeInitializer extends TypeInitializer<ClassType> implements 
                 inferTypeWithoutChildren(languageNode, _typir) {
                     const result = rule.filter === undefined || rule.filter(languageNode);
                     if (result) {
-                        const matching = rule.matching === undefined || rule.matching(languageNode as T);
+                        const matching = rule.matching === undefined || rule.matching(languageNode);
                         if (matching) {
-                            const inputArguments = rule.inputValuesForFields(languageNode as T);
+                            const inputArguments = rule.inputValuesForFields(languageNode);
                             if (inputArguments.size >= 1) {
                                 return mapListConverter.toList(inputArguments);
                             } else {
@@ -175,12 +175,12 @@ export class ClassTypeInitializer extends TypeInitializer<ClassType> implements 
                     );
                     if (checkedFieldsProblems.length >= 1) {
                         // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match
-                        return <InferenceProblem>{
+                        return <InferenceProblem<LanguageType>>{
                             $problem: InferenceProblem,
                             languageNode: languageNode,
                             inferenceCandidate: classType,
                             location: 'values for fields',
-                            rule: this,
+                            rule: this as unknown as TypeInferenceRule<LanguageType>,
                             subProblems: checkedFieldsProblems,
                         };
                     } else {

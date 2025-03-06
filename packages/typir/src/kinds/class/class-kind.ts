@@ -31,53 +31,53 @@ export interface ClassKindOptions {
 
 export const ClassKindName = 'ClassKind';
 
-export interface CreateFieldDetails {
+export interface CreateFieldDetails<LanguageType = unknown> {
     name: string;
-    type: TypeSelector;
+    type: TypeSelector<ClassType, LanguageType>;
 }
 
-export interface CreateMethodDetails {
-    type: TypeSelector<FunctionType>;
+export interface CreateMethodDetails<LanguageType = unknown> {
+    type: TypeSelector<FunctionType, LanguageType>;
 }
 
-export interface ClassTypeDetails extends TypeDetails {
+export interface ClassTypeDetails<LanguageType = unknown> extends TypeDetails<LanguageType> {
     className: string;
-    superClasses?: TypeSelector | TypeSelector[];
-    fields: CreateFieldDetails[];
-    methods: CreateMethodDetails[];
+    superClasses?: TypeSelector<ClassType, LanguageType> | Array<TypeSelector<ClassType, LanguageType>>;
+    fields: Array<CreateFieldDetails<LanguageType>>;
+    methods: Array<CreateMethodDetails<LanguageType>>;
 }
-export interface CreateClassTypeDetails extends ClassTypeDetails {
+export interface CreateClassTypeDetails<LanguageType = unknown> extends ClassTypeDetails<LanguageType> {
     // inference rules for the Class
-    inferenceRulesForClassDeclaration: Array<InferCurrentTypeRule<unknown>>;
-    inferenceRulesForClassLiterals: Array<InferClassLiteral<unknown>>; // e.g. Constructor calls, References
+    inferenceRulesForClassDeclaration: Array<InferCurrentTypeRule<ClassType, LanguageType>>;
+    inferenceRulesForClassLiterals: Array<InferClassLiteral<LanguageType>>; // e.g. Constructor calls, References
     // inference rules for its Fields (TODO missing support)
-    inferenceRulesForFieldAccess: Array<InferClassFieldAccess<unknown>>;
+    inferenceRulesForFieldAccess: Array<InferClassFieldAccess<LanguageType>>;
 }
 
 /**
  * Depending on whether the class is structurally or nominally typed,
  * different values might be specified, e.g. 'inputValuesForFields' could be empty for nominal classes.
  */
-export interface InferClassLiteral<T = unknown> extends InferCurrentTypeRule<T> {
-    inputValuesForFields: (languageNode: T) => Map<string, unknown>; // simple field name (including inherited fields) => value for this field!
+export interface InferClassLiteral<LanguageType = unknown, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
+    inputValuesForFields: (languageNode: T) => Map<string, LanguageType>; // simple field name (including inherited fields) => value for this field!
 }
 
-export interface InferClassFieldAccess<T = unknown> extends InferCurrentTypeRule<T> {
-    field: (languageNode: T) => string | unknown | InferenceRuleNotApplicable; // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
+export interface InferClassFieldAccess<LanguageType = unknown, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
+    field: (languageNode: T) => string | LanguageType | InferenceRuleNotApplicable; // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
 }
 
-export interface ClassFactoryService {
-    create(typeDetails: ClassTypeDetails): ClassConfigurationChain;
-    get(typeDetails: ClassTypeDetails | string): TypeReference<ClassType>;
+export interface ClassFactoryService<LanguageType = unknown> {
+    create(typeDetails: ClassTypeDetails<LanguageType>): ClassConfigurationChain<LanguageType>;
+    get(typeDetails: ClassTypeDetails<LanguageType> | string): TypeReference<ClassType, LanguageType>;
 }
 
-export interface ClassConfigurationChain {
-    inferenceRulesForClassDeclaration<T>(rule: InferCurrentTypeRule<T>): ClassConfigurationChain;
-    inferenceRulesForClassLiterals<T>(rule: InferClassLiteral<T>): ClassConfigurationChain;
+export interface ClassConfigurationChain<LanguageType = unknown> {
+    inferenceRulesForClassDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<ClassType, LanguageType, T>): ClassConfigurationChain<LanguageType>;
+    inferenceRulesForClassLiterals<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>): ClassConfigurationChain<LanguageType>;
 
-    inferenceRulesForFieldAccess<T>(rule: InferClassFieldAccess<T>): ClassConfigurationChain;
+    inferenceRulesForFieldAccess<T extends LanguageType>(rule: InferClassFieldAccess<LanguageType, T>): ClassConfigurationChain<LanguageType>;
 
-    finish(): TypeInitializer<ClassType>;
+    finish(): TypeInitializer<ClassType, LanguageType>;
 }
 
 
@@ -88,12 +88,12 @@ export interface ClassConfigurationChain {
  * The field name is used to identify fields of classes.
  * The order of fields is not defined, i.e. there is no order of fields.
  */
-export class ClassKind implements Kind, ClassFactoryService {
+export class ClassKind<LanguageType = unknown> implements Kind, ClassFactoryService<LanguageType> {
     readonly $name: 'ClassKind';
-    readonly services: TypirServices;
+    readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<ClassKindOptions>;
 
-    constructor(services: TypirServices, options?: Partial<ClassKindOptions>) {
+    constructor(services: TypirServices<LanguageType>, options?: Partial<ClassKindOptions>) {
         this.$name = ClassKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
@@ -118,13 +118,13 @@ export class ClassKind implements Kind, ClassFactoryService {
      * @param typeDetails all information needed to identify the class
      * @returns a reference to the class type, which might be resolved in the future, if the class type does not yet exist
      */
-    get(typeDetails: ClassTypeDetails | string): TypeReference<ClassType> { // string for nominal typing
+    get(typeDetails: ClassTypeDetails<LanguageType> | string): TypeReference<ClassType, LanguageType> { // string for nominal typing
         if (typeof typeDetails === 'string') {
             // nominal typing
-            return new TypeReference(typeDetails, this.services);
+            return new TypeReference<ClassType, LanguageType>(typeDetails, this.services);
         } else {
             // structural typing (does this case occur in practise?)
-            return new TypeReference(() => this.calculateIdentifier(typeDetails), this.services);
+            return new TypeReference<ClassType, LanguageType>(() => this.calculateIdentifier(typeDetails), this.services);
         }
     }
 
@@ -135,7 +135,7 @@ export class ClassKind implements Kind, ClassFactoryService {
      * @param typeDetails all information needed to create a new class
      * @returns an initializer which creates and returns the new class type, when all depending types are resolved
      */
-    create(typeDetails: ClassTypeDetails): ClassConfigurationChain {
+    create(typeDetails: ClassTypeDetails<LanguageType>): ClassConfigurationChain<LanguageType> {
         return new ClassConfigurationChainImpl(this.services, this, typeDetails);
     }
 
@@ -156,7 +156,7 @@ export class ClassKind implements Kind, ClassFactoryService {
      * @param typeDetails the details
      * @returns the new identifier
      */
-    calculateIdentifier(typeDetails: ClassTypeDetails): string {
+    calculateIdentifier(typeDetails: ClassTypeDetails<LanguageType>): string {
         // purpose of identifier: distinguish different types; NOT: not uniquely overloaded types
         if (this.options.typing === 'Structural') {
             // fields
@@ -195,30 +195,30 @@ export class ClassKind implements Kind, ClassFactoryService {
      * @param typeDetails the details of the class
      * @returns the identifier based on the class name
      */
-    calculateIdentifierWithClassNameOnly(typeDetails: ClassTypeDetails): string {
+    calculateIdentifierWithClassNameOnly(typeDetails: ClassTypeDetails<LanguageType>): string {
         return `${this.getIdentifierPrefix()}${typeDetails.className}`;
     }
 
 
-    getTopClassKind(): TopClassKind {
+    getTopClassKind(): TopClassKind<LanguageType> {
         // ensure, that Typir uses the predefined 'TopClass' kind
         const kind = this.services.infrastructure.Kinds.get(TopClassKindName);
-        return isTopClassKind(kind) ? kind : new TopClassKind(this.services);
+        return isTopClassKind<LanguageType>(kind) ? kind : new TopClassKind<LanguageType>(this.services);
     }
 
 }
 
-export function isClassKind(kind: unknown): kind is ClassKind {
+export function isClassKind<LanguageType = unknown>(kind: unknown): kind is ClassKind<LanguageType> {
     return isKind(kind) && kind.$name === ClassKindName;
 }
 
 
-class ClassConfigurationChainImpl implements ClassConfigurationChain {
-    protected readonly services: TypirServices;
-    protected readonly kind: ClassKind;
-    protected readonly typeDetails: CreateClassTypeDetails;
+class ClassConfigurationChainImpl<LanguageType = unknown> implements ClassConfigurationChain<LanguageType> {
+    protected readonly services: TypirServices<LanguageType>;
+    protected readonly kind: ClassKind<LanguageType>;
+    protected readonly typeDetails: CreateClassTypeDetails<LanguageType>;
 
-    constructor(services: TypirServices, kind: ClassKind, typeDetails: ClassTypeDetails) {
+    constructor(services: TypirServices<LanguageType>, kind: ClassKind<LanguageType>, typeDetails: ClassTypeDetails<LanguageType>) {
         this.services = services;
         this.kind = kind;
         this.typeDetails = {
@@ -229,22 +229,22 @@ class ClassConfigurationChainImpl implements ClassConfigurationChain {
         };
     }
 
-    inferenceRulesForClassDeclaration<T>(rule: InferCurrentTypeRule<T>): ClassConfigurationChain {
-        this.typeDetails.inferenceRulesForClassDeclaration.push(rule as InferCurrentTypeRule<unknown>);
+    inferenceRulesForClassDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<ClassType, LanguageType, T>): ClassConfigurationChain<LanguageType> {
+        this.typeDetails.inferenceRulesForClassDeclaration.push(rule as unknown as InferCurrentTypeRule<ClassType, LanguageType>);
         return this;
     }
 
-    inferenceRulesForClassLiterals<T>(rule: InferClassLiteral<T>): ClassConfigurationChain {
-        this.typeDetails.inferenceRulesForClassLiterals.push(rule as InferClassLiteral<unknown>);
+    inferenceRulesForClassLiterals<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>): ClassConfigurationChain<LanguageType> {
+        this.typeDetails.inferenceRulesForClassLiterals.push(rule as unknown as InferClassLiteral<LanguageType>);
         return this;
     }
 
-    inferenceRulesForFieldAccess<T>(rule: InferClassFieldAccess<T>): ClassConfigurationChain {
-        this.typeDetails.inferenceRulesForFieldAccess.push(rule as InferClassFieldAccess<unknown>);
+    inferenceRulesForFieldAccess<T extends LanguageType>(rule: InferClassFieldAccess<LanguageType, T>): ClassConfigurationChain<LanguageType> {
+        this.typeDetails.inferenceRulesForFieldAccess.push(rule as unknown as InferClassFieldAccess<LanguageType>);
         return this;
     }
 
-    finish(): TypeInitializer<ClassType> {
-        return new ClassTypeInitializer(this.services, this.kind, this.typeDetails);
+    finish(): TypeInitializer<ClassType, LanguageType> {
+        return new ClassTypeInitializer<LanguageType>(this.services, this.kind, this.typeDetails);
     }
 }

@@ -15,32 +15,32 @@ export interface PrimitiveKindOptions {
     // empty for now
 }
 
-export interface PrimitiveTypeDetails extends TypeDetails {
+export interface PrimitiveTypeDetails<LanguageType = unknown> extends TypeDetails<LanguageType> {
     primitiveName: string;
 }
 
-interface CreatePrimitiveTypeDetails extends PrimitiveTypeDetails {
-    inferenceRules: Array<InferCurrentTypeRule<unknown>>;
+interface CreatePrimitiveTypeDetails<LanguageType = unknown> extends PrimitiveTypeDetails<LanguageType> {
+    inferenceRules: Array<InferCurrentTypeRule<PrimitiveType, LanguageType>>;
 }
 
 export const PrimitiveKindName = 'PrimitiveKind';
 
-export interface PrimitiveFactoryService {
-    create(typeDetails: PrimitiveTypeDetails): PrimitiveConfigurationChain;
-    get(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined;
+export interface PrimitiveFactoryService<LanguageType = unknown> {
+    create(typeDetails: PrimitiveTypeDetails<LanguageType>): PrimitiveConfigurationChain<LanguageType>;
+    get(typeDetails: PrimitiveTypeDetails<LanguageType>): PrimitiveType | undefined;
 }
 
-export interface PrimitiveConfigurationChain {
-    inferenceRule<T>(rule: InferCurrentTypeRule<T>): PrimitiveConfigurationChain;
+export interface PrimitiveConfigurationChain<LanguageType = unknown> {
+    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<PrimitiveType, LanguageType, T>): PrimitiveConfigurationChain<LanguageType>;
     finish(): PrimitiveType;
 }
 
-export class PrimitiveKind implements Kind, PrimitiveFactoryService {
+export class PrimitiveKind<LanguageType = unknown> implements Kind, PrimitiveFactoryService<LanguageType> {
     readonly $name: 'PrimitiveKind';
-    readonly services: TypirServices;
+    readonly services: TypirServices<LanguageType>;
     readonly options: PrimitiveKindOptions;
 
-    constructor(services: TypirServices, options?: Partial<PrimitiveKindOptions>) {
+    constructor(services: TypirServices<LanguageType>, options?: Partial<PrimitiveKindOptions>) {
         this.$name = PrimitiveKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
@@ -53,32 +53,32 @@ export class PrimitiveKind implements Kind, PrimitiveFactoryService {
         };
     }
 
-    get(typeDetails: PrimitiveTypeDetails): PrimitiveType | undefined {
+    get(typeDetails: PrimitiveTypeDetails<LanguageType>): PrimitiveType | undefined {
         const key = this.calculateIdentifier(typeDetails);
         return this.services.infrastructure.Graph.getType(key) as PrimitiveType;
     }
 
-    create(typeDetails: PrimitiveTypeDetails): PrimitiveConfigurationChain {
+    create(typeDetails: PrimitiveTypeDetails<LanguageType>): PrimitiveConfigurationChain<LanguageType> {
         assertTrue(this.get(typeDetails) === undefined); // ensure that the type is not created twice
         return new PrimitiveConfigurationChainImpl(this.services, this, typeDetails);
     }
 
-    calculateIdentifier(typeDetails: PrimitiveTypeDetails): string {
+    calculateIdentifier(typeDetails: PrimitiveTypeDetails<LanguageType>): string {
         return typeDetails.primitiveName;
     }
 }
 
-export function isPrimitiveKind(kind: unknown): kind is PrimitiveKind {
+export function isPrimitiveKind<LanguageType = unknown>(kind: unknown): kind is PrimitiveKind<LanguageType> {
     return isKind(kind) && kind.$name === PrimitiveKindName;
 }
 
 
-class PrimitiveConfigurationChainImpl implements PrimitiveConfigurationChain {
-    protected readonly services: TypirServices;
-    protected readonly kind: PrimitiveKind;
-    protected readonly typeDetails: CreatePrimitiveTypeDetails;
+class PrimitiveConfigurationChainImpl<LanguageType = unknown> implements PrimitiveConfigurationChain<LanguageType> {
+    protected readonly services: TypirServices<LanguageType>;
+    protected readonly kind: PrimitiveKind<LanguageType>;
+    protected readonly typeDetails: CreatePrimitiveTypeDetails<LanguageType>;
 
-    constructor(services: TypirServices, kind: PrimitiveKind, typeDetails: PrimitiveTypeDetails) {
+    constructor(services: TypirServices<LanguageType>, kind: PrimitiveKind<LanguageType>, typeDetails: PrimitiveTypeDetails<LanguageType>) {
         this.services = services;
         this.kind = kind;
         this.typeDetails = {
@@ -87,14 +87,14 @@ class PrimitiveConfigurationChainImpl implements PrimitiveConfigurationChain {
         };
     }
 
-    inferenceRule<T>(rule: InferCurrentTypeRule<T>): PrimitiveConfigurationChain {
-        this.typeDetails.inferenceRules.push(rule as InferCurrentTypeRule<unknown>);
+    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<PrimitiveType, LanguageType, T>): PrimitiveConfigurationChain<LanguageType> {
+        this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<PrimitiveType, LanguageType>);
         return this;
     }
 
     finish(): PrimitiveType {
         // create the primitive type
-        const currentPrimitiveType = new PrimitiveType(this.kind, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
+        const currentPrimitiveType = new PrimitiveType(this.kind as PrimitiveKind, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
         this.services.infrastructure.Graph.addNode(currentPrimitiveType);
 
         // register the inference rules

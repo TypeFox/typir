@@ -6,11 +6,12 @@
 
 import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
+import { TypeInferenceRule } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType } from '../../utils/utils-definitions.js';
 import { assertType } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
-import { CreateFunctionTypeDetails, FunctionKind } from './function-kind.js';
+import { CreateFunctionTypeDetails, FunctionKind, InferFunctionCall } from './function-kind.js';
 import { FunctionManager } from './function-overloading.js';
 import { FunctionType, isFunctionType } from './function-type.js';
 
@@ -43,7 +44,7 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
         // create the new Function type
         this.initialFunctionType = new FunctionType(kind as FunctionKind, typeDetails);
 
-        this.inferenceRules = this.createInferenceRules(typeDetails, this.initialFunctionType);
+        this.inferenceRules = this.createInferenceRules(this.initialFunctionType);
         this.registerRules(functionName, undefined);
 
         this.initialFunctionType.addListener(this, true);
@@ -60,7 +61,7 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
         if (readyFunctionType !== functionType) {
             functionType.removeListener(this);
             this.deregisterRules(functionName, undefined);
-            this.inferenceRules = this.createInferenceRules(this.typeDetails, readyFunctionType);
+            this.inferenceRules = this.createInferenceRules(readyFunctionType);
             this.registerRules(functionName, readyFunctionType);
         } else {
             this.deregisterRules(functionName, undefined);
@@ -99,16 +100,16 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
         }
     }
 
-    protected createInferenceRules(typeDetails: CreateFunctionTypeDetails<LanguageType>, functionType: FunctionType): FunctionInferenceRules<LanguageType> {
+    protected createInferenceRules(functionType: FunctionType): FunctionInferenceRules<LanguageType> {
         const result: FunctionInferenceRules<LanguageType> = {
             inferenceForCall: [],
             inferenceForDeclaration: [],
         };
 
-        for (const rule of typeDetails.inferenceRulesForCalls) {
+        for (const rule of this.typeDetails.inferenceRulesForCalls) {
             // create inference rule for calls of the new function
             result.inferenceForCall.push({
-                rule: new FunctionCallInferenceRule<LanguageType>(typeDetails, rule, functionType, this.functions),
+                rule: this.createFunctionCallInferenceRule(rule, functionType),
                 options: {
                     languageKey: rule.languageKey,
                     // boundToType: ... this property will be specified outside of this method, when this rule is registered
@@ -118,13 +119,16 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
 
         // create inference rule for the declaration of the new function
         // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
-        for (const rule of typeDetails.inferenceRulesForDeclaration) {
+        for (const rule of this.typeDetails.inferenceRulesForDeclaration) {
             result.inferenceForDeclaration.push(bindInferCurrentTypeRule(rule, functionType));
         }
 
         return result;
     }
 
+    protected createFunctionCallInferenceRule(rule: InferFunctionCall<LanguageType>, functionType: FunctionType): TypeInferenceRule<LanguageType> {
+        return new FunctionCallInferenceRule<LanguageType>(this.typeDetails, rule, functionType, this.functions);
+    }
 }
 
 interface FunctionInferenceRules<LanguageType = unknown> {
