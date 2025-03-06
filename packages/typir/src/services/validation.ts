@@ -217,16 +217,16 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
     protected readonly services: TypirServices<LanguageType>;
     protected readonly listeners: Array<ValidationCollectorListener<LanguageType>> = [];
 
-    protected readonly ruleRegistryStateLess: RuleRegistry<ValidationRuleStateless<LanguageType>>;
-    protected readonly ruleRegistryBeforeAfter: RuleRegistry<ValidationRuleWithBeforeAfter<LanguageType>>;
+    protected readonly ruleRegistryStateLess: RuleRegistry<ValidationRuleStateless<LanguageType>, LanguageType>;
+    protected readonly ruleRegistryBeforeAfter: RuleRegistry<ValidationRuleWithBeforeAfter<LanguageType>, LanguageType>;
 
     constructor(services: TypirServices<LanguageType>) {
         this.services = services;
 
-        this.ruleRegistryStateLess = new RuleRegistry(services as TypirServices);
+        this.ruleRegistryStateLess = new RuleRegistry(services);
         this.ruleRegistryStateLess.addListener(this);
 
-        this.ruleRegistryBeforeAfter = new RuleRegistry(services as TypirServices);
+        this.ruleRegistryBeforeAfter = new RuleRegistry(services);
         this.ruleRegistryBeforeAfter.addListener(this);
     }
 

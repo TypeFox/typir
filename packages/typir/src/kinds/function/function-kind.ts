@@ -65,7 +65,7 @@ export interface OverloadedFunctionDetails<LanguageType = unknown> {
     /** All function overloads/signatures with the same name. */
     overloadedFunctions: FunctionType[];
     /** Collects the details of all functions with the same name, grouped by language keys of their inference rules for function calls. */
-    details: RuleRegistry<SingleFunctionDetails<LanguageType>>;
+    details: RuleRegistry<SingleFunctionDetails<LanguageType>, LanguageType>;
     /** Collects the inference rules for all functions with the same name */
     inferenceRule: CompositeTypeInferenceRule<LanguageType>; // remark: language keys are internally used during the registration of rules and during the inference using these rules
     /** If all overloaded functions with the same name have the same output/return type, this type is remembered here (for a small performance optimization). */

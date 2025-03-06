@@ -48,7 +48,7 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
         } else {
             const overloaded: OverloadedFunctionDetails<LanguageType> = {
                 overloadedFunctions: [],
-                details: new RuleRegistry(services as TypirServices),
+                details: new RuleRegistry(services),
                 inferenceRule: this.createInferenceRuleForOverloads(),
                 sameOutputType: undefined,
             };

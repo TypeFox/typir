@@ -133,7 +133,7 @@ export interface TypeInferenceCollector<LanguageType = unknown> {
 
 
 export class DefaultTypeInferenceCollector<LanguageType = unknown> implements TypeInferenceCollector<LanguageType>, RuleCollectorListener<TypeInferenceRule<LanguageType>> {
-    protected readonly ruleRegistry: RuleRegistry<TypeInferenceRule<LanguageType>>;
+    protected readonly ruleRegistry: RuleRegistry<TypeInferenceRule<LanguageType>, LanguageType>;
 
     protected readonly languageNodeInference: LanguageNodeInferenceCaching;
     protected readonly services: TypirServices<LanguageType>;
@@ -142,7 +142,7 @@ export class DefaultTypeInferenceCollector<LanguageType = unknown> implements Ty
     constructor(services: TypirServices<LanguageType>) {
         this.services = services;
         this.languageNodeInference = services.caching.LanguageNodeInference;
-        this.ruleRegistry = new RuleRegistry(services as TypirServices);
+        this.ruleRegistry = new RuleRegistry(services);
         this.ruleRegistry.addListener(this);
     }
 

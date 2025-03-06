@@ -39,7 +39,7 @@ export interface RuleCollectorListener<RuleType> {
     onRemovedRule(rule: RuleType, diffOptions: RuleOptions): void;
 }
 
-export class RuleRegistry<RuleType> implements TypeGraphListener {
+export class RuleRegistry<RuleType, LanguageType = unknown> implements TypeGraphListener {
     /**
      * language node type --> rules
      * Improves the look-up of related rules, when doing type for a concrete language node.
@@ -61,7 +61,7 @@ export class RuleRegistry<RuleType> implements TypeGraphListener {
     protected readonly listeners: Array<RuleCollectorListener<RuleType>> = [];
 
 
-    constructor(services: TypirServices) {
+    constructor(services: TypirServices<LanguageType>) {
         services.infrastructure.Graph.addListener(this);
     }
 
