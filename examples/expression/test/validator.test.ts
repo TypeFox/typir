@@ -16,9 +16,10 @@ describe('Validator', () => {
         expectValidationMessages('PRINT 1+2+3;');
         expectValidationMessages('PRINT "Hallo!";');
         expectValidationMessages('PRINT "Hallo!"+"Welt!";');
+        expectValidationMessages('VAR X = "Hallo!"; X = 123;'); //coercion rule applies!
     });
     test('Negatives', () => {
-        expectValidationMessages('VAR X = 1; X = "hallo";', 'The given operands for the overloaded function \'-\' match the expected types only partially.');
+        expectValidationMessages('VAR X = 1; X = "hallo";', "'string' is not assignable to 'number'.");
         expectValidationMessages('PRINT "1"-"2";', 'The given operands for the overloaded function \'-\' match the expected types only partially.');
         expectValidationMessages('PRINT 123-"hallo";', 'The given operands for the overloaded function \'-\' match the expected types only partially.');
     });

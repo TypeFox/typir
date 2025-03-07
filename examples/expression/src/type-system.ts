@@ -3,8 +3,8 @@
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
-import { createTypirServices, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NO_PARAMETER_NAME } from 'typir';
-import { BinaryExpression, isBinaryExpression, isCharString, isNumeric, isPrintout, isUnaryExpression, isVariableDeclaration, isVariableUsage, UnaryExpression } from './ast.js';
+import { createTypirServices, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, isInferenceProblem, NO_PARAMETER_NAME } from 'typir';
+import { BinaryExpression, isAssignment, isBinaryExpression, isCharString, isNumeric, isPrintout, isUnaryExpression, isVariableDeclaration, isVariableUsage, UnaryExpression } from './ast.js';
 
 export function initializeTypir() {
     const typir = createTypirServices();
@@ -57,6 +57,25 @@ export function initializeTypir() {
             return languageNode.ref;
         }
         return InferenceRuleNotApplicable;
+    });
+
+    typir.validation.Collector.addValidationRule((node) => {
+        if(isAssignment(node)) {
+            const left = typir.Inference.inferType(node.variable);
+            const right = typir.Inference.inferType(node.value);
+            if(!Array.isArray(left) && !Array.isArray(right)) {
+                const problem = typir.Assignability.getAssignabilityProblem(right, left);
+                if(problem) {
+                    return [{
+                        $problem: 'ValidationProblem',
+                        languageNode: node,
+                        message: `'${right.getName()}' is not assignable to '${left.getName()}'.`,
+                        severity: 'error',
+                    }];
+                }
+            }
+        }
+        return [];
     });
 
     return typir;
