@@ -41,6 +41,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 - Remove removed functions from its internal storage in `FunctionKind`.
 - Update the returned function type during a performance optimization, when adding or removing some signatures of overloaded functions.
 - When inferring the types of accessing fields of classes, the properties `filter` and `match` were ignored.
+- The inference logic in case of zero arguments (e.g. for function calls or class literals) was not accurate enough.
 
 
 ## v0.1.2 (2024-12-20)

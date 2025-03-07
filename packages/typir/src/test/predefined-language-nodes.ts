@@ -92,6 +92,20 @@ export const stringHello = new StringLiteral('Hello');
 export const stringWorld = new StringLiteral('World');
 
 
+export class ClassConstructorCall extends TestExpressionNode {
+    constructor(
+        public className: string,
+    ) { super(); }
+}
+
+export class ClassFieldAccess extends TestExpressionNode {
+    constructor(
+        public classVariable: Variable,
+        public fieldName: string,
+    ) { super(); }
+}
+
+
 export class BinaryExpression extends TestExpressionNode {
     constructor(
         public left: TestExpressionNode,
