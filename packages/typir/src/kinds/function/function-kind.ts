@@ -8,13 +8,15 @@ import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
+import { ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
-import { InferCurrentTypeRule, NameTypePair } from '../../utils/utils-definitions.js';
+import { InferCurrentTypeRule, NameTypePair, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { isKind, Kind } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
 import { FunctionManager } from './function-overloading.js';
 import { FunctionType } from './function-type.js';
+import { UniqueFunctionValidation } from './function-validation-unique.js';
 
 
 export interface FunctionKindOptions<LanguageType = unknown> {
@@ -108,6 +110,13 @@ export interface FunctionFactoryService<LanguageType = unknown> {
     create(typeDetails: FunctionTypeDetails<LanguageType>): FunctionConfigurationChain<LanguageType>;
     get(typeDetails: FunctionTypeDetails<LanguageType>): TypeReference<FunctionType, LanguageType>;
     calculateIdentifier(typeDetails: FunctionTypeDetails<LanguageType>): string;
+
+    // some predefined valitions:
+
+    /** Creates a validation rule which checks, that the function types are unique. */
+    createUniqueFunctionValidation(options: RegistrationOptions): ValidationRule<LanguageType>;
+
+    // benefits of this design decision: the returned rule is easier to exchange, users can use the known factory API with auto-completion (no need to remember the names of the validations)
 }
 
 export interface FunctionConfigurationChain<LanguageType = unknown> {
@@ -223,6 +232,16 @@ export class FunctionKind<LanguageType = unknown> implements Kind, FunctionFacto
     }
     hasParameterName(name: string | undefined): name is string {
         return name !== undefined && name !== NO_PARAMETER_NAME;
+    }
+
+    createUniqueFunctionValidation(options: RegistrationOptions): ValidationRule<LanguageType> {
+        const rule = new UniqueFunctionValidation(this.services);
+        if (options.registration === 'MYSELF') {
+            // do nothing, the user is responsible to register the rule
+        } else {
+            this.services.validation.Collector.addValidationRule(rule, options.registration);
+        }
+        return rule;
     }
 }
 

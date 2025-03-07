@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
-import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, UniqueClassValidation, UniqueFunctionValidation, UniqueMethodValidation, ValidationProblemAcceptor, createNoSuperClassCyclesValidation } from 'typir';
+import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, ValidationProblemAcceptor } from 'typir';
 import { AbstractLangiumTypeCreator, LangiumLanguageService, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
 import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMethodMember, isParameter, isVariableDeclaration, reflection } from './generated/ast.js';
 
@@ -177,19 +177,20 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         // TODO Review: Should all checks be moved into functions? Should all these validations moved into another file?
 
         // check for unique function declarations
-        this.typir.validation.Collector.addValidationRule(new UniqueFunctionValidation(this.typir), { languageKey: FunctionDeclaration });
+        this.typir.factory.Functions.createUniqueFunctionValidation({ registration: { languageKey: FunctionDeclaration }});
 
         // check for unique class declarations
-        const uniqueClassValidator = new UniqueClassValidation(this.typir);
+        const uniqueClassValidator = this.typir.factory.Classes.createUniqueClassValidation({ registration: 'MYSELF' });
         // check for unique method declarations
-        this.typir.validation.Collector.addValidationRule(new UniqueMethodValidation(this.typir,
-            (node) => isMethodMember(node), // MethodMembers could have other $containers?
-            (method, _type) => method.$container,
-            uniqueClassValidator,
-        ), { languageKey: MethodMember });
+        this.typir.factory.Classes.createUniqueMethodValidation({
+            isMethodDeclaration: (node) => isMethodMember(node), // MethodMembers could have other $containers?
+            getClassOfMethod: (method, _type) => method.$container,
+            uniqueClassValidator: uniqueClassValidator,
+            registration: { languageKey: MethodMember },
+        });
         this.typir.validation.Collector.addValidationRule(uniqueClassValidator, { languageKey: Class }); // TODO this order is important, solve it in a different way!
         // check for cycles in super-sub-type relationships
-        this.typir.validation.Collector.addValidationRule(createNoSuperClassCyclesValidation(), { languageKey: Class });
+        this.typir.factory.Classes.createNoSuperClassCyclesValidation({ registration: { languageKey: Class } });
     }
 
     onNewAstNode(node: AstNode): void {

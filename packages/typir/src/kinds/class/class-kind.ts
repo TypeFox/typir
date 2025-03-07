@@ -10,14 +10,16 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
+import { ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
-import { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
+import { InferCurrentTypeRule, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertType, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
 import { Kind, isKind } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
 import { ClassType, isClassType } from './class-type.js';
+import { NoSuperClassCyclesValidationOptions, UniqueClassValidation, UniqueMethodValidation, UniqueMethodValidationOptions, createNoSuperClassCyclesValidation } from './class-validation.js';
 import { TopClassKind, TopClassKindName, isTopClassKind } from './top-class-kind.js';
 
 export interface ClassKindOptions {
@@ -69,6 +71,16 @@ export interface InferClassFieldAccess<LanguageType = unknown, T extends Languag
 export interface ClassFactoryService<LanguageType = unknown> {
     create(typeDetails: ClassTypeDetails<LanguageType>): ClassConfigurationChain<LanguageType>;
     get(typeDetails: ClassTypeDetails<LanguageType> | string): TypeReference<ClassType, LanguageType>;
+
+    // some predefined valitions:
+
+    createUniqueClassValidation(options: RegistrationOptions): UniqueClassValidation<LanguageType>;
+
+    createUniqueMethodValidation<T extends LanguageType>(options: UniqueMethodValidationOptions<LanguageType, T> & RegistrationOptions): ValidationRule<LanguageType>;
+
+    createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<LanguageType> & RegistrationOptions): ValidationRule<LanguageType>;
+
+    // benefits of this design decision: the returned rule is easier to exchange, users can use the known factory API with auto-completion (no need to remember the names of the validations)
 }
 
 export interface ClassConfigurationChain<LanguageType = unknown> {
@@ -206,6 +218,35 @@ export class ClassKind<LanguageType = unknown> implements Kind, ClassFactoryServ
         return isTopClassKind<LanguageType>(kind) ? kind : new TopClassKind<LanguageType>(this.services);
     }
 
+    createUniqueClassValidation(options: RegistrationOptions): UniqueClassValidation<LanguageType> {
+        const rule = new UniqueClassValidation<LanguageType>(this.services);
+        if (options.registration === 'MYSELF') {
+            // do nothing, the user is responsible to register the rule
+        } else {
+            this.services.validation.Collector.addValidationRule(rule, options.registration);
+        }
+        return rule;
+    }
+
+    createUniqueMethodValidation<T extends LanguageType>(options: UniqueMethodValidationOptions<LanguageType, T> & RegistrationOptions): ValidationRule<LanguageType> {
+        const rule = new UniqueMethodValidation<LanguageType, T>(this.services, options);
+        if (options.registration === 'MYSELF') {
+            // do nothing, the user is responsible to register the rule
+        } else {
+            this.services.validation.Collector.addValidationRule(rule, options.registration);
+        }
+        return rule;
+    }
+
+    createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<LanguageType> & RegistrationOptions): ValidationRule<LanguageType> {
+        const rule = createNoSuperClassCyclesValidation<LanguageType>(options);
+        if (options.registration === 'MYSELF') {
+            // do nothing, the user is responsible to register the rule
+        } else {
+            this.services.validation.Collector.addValidationRule(rule, options.registration);
+        }
+        return rule;
+    }
 }
 
 export function isClassKind<LanguageType = unknown>(kind: unknown): kind is ClassKind<LanguageType> {

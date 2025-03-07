@@ -80,6 +80,19 @@ export function bindValidateCurrentTypeRule<TypeType extends Type = Type, Langua
 }
 
 
+/**
+ * These options are used for pre-defined valiations in order to enable the user to decide,
+ * how the created pre-defined valiation should be registered.
+ */
+export interface RegistrationOptions {
+    /**
+     * 'MYSELF' indicates, that the caller is responsible to register the validation rule,
+     * otherwise the given options are used to register the return validation rule now.
+     */
+    registration: 'MYSELF' | Partial<ValidationRuleOptions>;
+}
+
+
 //
 // Utilities for type inference
 //
