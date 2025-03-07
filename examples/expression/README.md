@@ -35,8 +35,10 @@ The following sections describe each step in the process.
 
 ```mermaid
 flowchart LR
-    AA@{shape: brace-r, label: "variable = 123"} --> A
-    A[/text/] --> B[Lexer]
+    subgraph Text
+      A["variable = 123"]
+    end
+    A --> B[Lexer]
     B --> Tokens
     subgraph Tokens
       T1[variable:ID]
@@ -92,7 +94,7 @@ flowchart LR
     FF@{shape: brace-r, label: "described by Typir"} --> F
     AST --> F[Type System]
     F --> AST2
-    subgraph AST2"Typed AST"
+    subgraph AST2["Typed AST"]
         FF1[variable:STRING]
         FF2[=]
         FF3[123:NUMBER]
@@ -121,6 +123,9 @@ flowchart LR
         FF2 --> FF3
     end
     AST --> H[Validator]
-    H --> I[/errors/]
-    H --> J[/valid!/]
+    H --> Errors
+    subgraph Errors
+        I1["Variable got wrong type assigned"]
+    end
+    style I1 fill:#fdd,stroke:#333,stroke-width:4px
 ```
