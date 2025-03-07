@@ -4,10 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { describe, test } from 'vitest';
-import { loxServices, validateLox } from './lox-type-checking-utils.js';
-import { expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
+import { AstUtils } from 'langium';
+import { describe, expect, test } from 'vitest';
 import { isClassType } from '../../../packages/typir/lib/kinds/class/class-type.js';
+import { isPrimitiveType } from '../../../packages/typir/lib/kinds/primitive/primitive-type.js';
+import { expectToBeType, expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
+import { isVariableDeclaration, LoxProgram } from '../src/language/generated/ast.js';
+import { loxServices, validateLox } from './lox-type-checking-utils.js';
 
 describe('Test type checking for classes', () => {
 
@@ -98,7 +101,7 @@ describe('Class literals', () => {
             class MyClass1 {}
             class MyClass2 {}
             var v1: boolean = MyClass1() == MyClass2(); // comparing objects with each other
-        `, [], 1);
+        `, [], "This comparison will always return 'false' as 'MyClass1()' and 'MyClass2()' have the different types 'MyClass1' and 'MyClass2'.");
         expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2');
     });
 
@@ -114,4 +117,41 @@ describe('Class literals', () => {
         expectTypirTypes(loxServices.typir, isClassType, 'MyClass1', 'MyClass2');
     });
 
+});
+
+describe('Class field access', () => {
+
+    test('simple class', async () => {
+        const program = (await validateLox(`
+            class MyClass { name: string age: number }
+            var v1: MyClass = MyClass();
+            var v2 = v1.name;
+            var v3 = v1.age;
+        `, [])).parseResult.value as LoxProgram;
+        checkVariableDeclaration(program, 'v2', 'string');
+        checkVariableDeclaration(program, 'v3', 'number');
+    });
+
+    test('different classes with switched properties', async () => {
+        const program = (await validateLox(`
+            class MyClass1 { name: string age: number }
+            class MyClass2 { name: number age: string }
+            var v1: MyClass1 = MyClass1();
+            var v2: MyClass2 = MyClass2();
+            var v1name = v1.name;
+            var v1age  = v1.age;
+            var v2name = v2.name;
+            var v2age  = v2.age;
+        `, [])).parseResult.value as LoxProgram;
+        checkVariableDeclaration(program, 'v1name', 'string');
+        checkVariableDeclaration(program, 'v1age', 'number');
+        checkVariableDeclaration(program, 'v2name', 'number');
+        checkVariableDeclaration(program, 'v2age', 'string');
+    });
+
+    function checkVariableDeclaration(program: LoxProgram, name: string, expectedType: 'string'|'number'): void {
+        const variables = AstUtils.streamAllContents(program).filter(isVariableDeclaration).filter(v => v.name === name).toArray();
+        expect(variables).toHaveLength(1);
+        expectToBeType(loxServices.typir.Inference.inferType(variables[0]), isPrimitiveType, inferred => inferred.getName() === expectedType);
+    }
 });

@@ -236,8 +236,8 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 // inference rule for accessing fields
                 .inferenceRulesForFieldAccess({
                     languageKey: MemberCall,
-                    field: (languageNode: MemberCall) => isFieldMember(languageNode.element?.ref) && languageNode.element!.ref.$container === node && !languageNode.explicitOperationCall
-                        ? languageNode.element!.ref.name : InferenceRuleNotApplicable,
+                    matching: (languageNode: MemberCall) => isFieldMember(languageNode.element?.ref) && languageNode.element!.ref.$container === node && !languageNode.explicitOperationCall,
+                    field: (languageNode: MemberCall) => languageNode.element!.ref!.name,
                 })
                 .finish();
 

@@ -119,6 +119,12 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
         for (const inferenceRulesForFieldAccess of typeDetails.inferenceRulesForFieldAccess) {
             this.inferenceRules.push({
                 rule: (languageNode, _typir) => {
+                    if (inferenceRulesForFieldAccess.filter !== undefined && inferenceRulesForFieldAccess.filter(languageNode) === false) {
+                        return InferenceRuleNotApplicable;
+                    }
+                    if (inferenceRulesForFieldAccess.matching !== undefined && inferenceRulesForFieldAccess.matching(languageNode) === false) {
+                        return InferenceRuleNotApplicable;
+                    }
                     const result = inferenceRulesForFieldAccess.field(languageNode);
                     if (result === InferenceRuleNotApplicable) {
                         return InferenceRuleNotApplicable;
