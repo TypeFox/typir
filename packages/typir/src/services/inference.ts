@@ -53,17 +53,17 @@ export type TypeInferenceResultWithInferringChildren<LanguageType = unknown> =
  * Within inference rules, don't take the initialization state of the inferred type into account,
  * since such inferrence rules might not work for cyclic type definitions.
  */
-export type TypeInferenceRule<LanguageType = unknown, InputType = LanguageType> = TypeInferenceRuleWithoutInferringChildren<LanguageType, InputType> | TypeInferenceRuleWithInferringChildren<LanguageType, InputType>;
+export type TypeInferenceRule<LanguageType = unknown, InputType extends LanguageType = LanguageType> = TypeInferenceRuleWithoutInferringChildren<LanguageType, InputType> | TypeInferenceRuleWithInferringChildren<LanguageType, InputType>;
 
 /** Usual inference rule which don't depend on children's types. */
-export type TypeInferenceRuleWithoutInferringChildren<LanguageType = unknown, InputType = LanguageType> =
+export type TypeInferenceRuleWithoutInferringChildren<LanguageType = unknown, InputType extends LanguageType = LanguageType> =
     (languageNode: InputType, typir: TypirServices<LanguageType>) => TypeInferenceResultWithoutInferringChildren<LanguageType>;
 
 /**
  * Inference rule which requires for the type inference of the given parent to take the types of its children into account.
  * Therefore, the types of the children need to be inferred first.
  */
-export interface TypeInferenceRuleWithInferringChildren<LanguageType = unknown, InputType = LanguageType> {
+export interface TypeInferenceRuleWithInferringChildren<LanguageType = unknown, InputType extends LanguageType = LanguageType> {
     /**
      * 1st step is to check, whether this inference rule is applicable to the given language node.
      * @param languageNode the language node whose type shall be inferred
@@ -118,7 +118,7 @@ export interface TypeInferenceCollector<LanguageType = unknown> {
      * @param rule a new inference rule
      * @param options additional options
      */
-    addInferenceRule(rule: TypeInferenceRule<LanguageType>, options?: Partial<TypeInferenceRuleOptions>): void;
+    addInferenceRule<InputType extends LanguageType = LanguageType>(rule: TypeInferenceRule<LanguageType, InputType>, options?: Partial<TypeInferenceRuleOptions>): void;
     /**
      * Deregisters an inference rule.
      * @param rule the rule to remove
@@ -126,7 +126,7 @@ export interface TypeInferenceCollector<LanguageType = unknown> {
      * the inference rule might still be registered for the not-specified options.
      * Listeners will be informed only about those removed options which were existing before.
      */
-    removeInferenceRule(rule: TypeInferenceRule<LanguageType>, options?: Partial<TypeInferenceRuleOptions>): void;
+    removeInferenceRule<InputType extends LanguageType = LanguageType>(rule: TypeInferenceRule<LanguageType, InputType>, options?: Partial<TypeInferenceRuleOptions>): void;
 
     addListener(listener: TypeInferenceCollectorListener<LanguageType>): void;
     removeListener(listener: TypeInferenceCollectorListener<LanguageType>): void;
@@ -165,12 +165,12 @@ export class DefaultTypeInferenceCollector<LanguageType = unknown> implements Ty
         }
     }
 
-    addInferenceRule(rule: TypeInferenceRule<LanguageType>, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
-        this.ruleRegistry.addRule(rule, givenOptions);
+    addInferenceRule<InputType extends LanguageType = LanguageType>(rule: TypeInferenceRule<LanguageType, InputType>, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
+        this.ruleRegistry.addRule(rule as unknown as TypeInferenceRule<LanguageType>, givenOptions);
     }
 
-    removeInferenceRule(rule: TypeInferenceRule<LanguageType>, optionsToRemove?: Partial<TypeInferenceRuleOptions>): void {
-        this.ruleRegistry.removeRule(rule, optionsToRemove);
+    removeInferenceRule<InputType extends LanguageType = LanguageType>(rule: TypeInferenceRule<LanguageType, InputType>, optionsToRemove?: Partial<TypeInferenceRuleOptions>): void {
+        this.ruleRegistry.removeRule(rule as unknown as TypeInferenceRule<LanguageType>, optionsToRemove);
     }
 
     inferType(languageNode: LanguageType): Type | Array<InferenceProblem<LanguageType>> {

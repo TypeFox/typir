@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { beforeAll, describe, expect, test } from 'vitest';
-import { isType } from '../../../src/index.js';
+import { isType } from '../../../src/graph/type-node.js';
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { BinaryExpression, InferenceRuleBinaryExpression, integer123, integer456, IntegerLiteral, string123, string456, StringLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';

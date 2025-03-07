@@ -90,13 +90,13 @@ export class UniqueMethodValidation<LanguageType, T extends LanguageType> implem
 
     protected readonly services: TypirServices<LanguageType>;
     /** Determines language nodes which represent declared methods, improves performance. */
-    protected readonly isMethodDeclaration: (languageNode: unknown) => languageNode is T;
+    protected readonly isMethodDeclaration: (languageNode: LanguageType) => languageNode is T;
     /** Determines the corresponding language node of the class declaration, so that Typir can infer its ClassType */
     protected readonly getClassOfMethod: (languageNode: T, methodType: FunctionType) => LanguageType;
     protected readonly uniqueClassValidator: UniqueClassValidation<LanguageType> | undefined;
 
     constructor(services: TypirServices<LanguageType>,
-        isMethodDeclaration: (languageNode: unknown) => languageNode is T,
+        isMethodDeclaration: (languageNode: LanguageType) => languageNode is T,
         getClassOfMethod: (languageNode: T, methodType: FunctionType) => LanguageType,
         uniqueClassValidator?: UniqueClassValidation<LanguageType>,
     ) {

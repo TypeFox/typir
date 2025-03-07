@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { TypeDetails } from '../../graph/type-node.js';
+import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
@@ -33,7 +33,7 @@ export const ClassKindName = 'ClassKind';
 
 export interface CreateFieldDetails<LanguageType = unknown> {
     name: string;
-    type: TypeSelector<ClassType, LanguageType>;
+    type: TypeSelector<Type, LanguageType>;
 }
 
 export interface CreateMethodDetails<LanguageType = unknown> {

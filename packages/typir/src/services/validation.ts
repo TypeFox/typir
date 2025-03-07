@@ -37,7 +37,7 @@ export type ReducedValidationProblem<LanguageType = unknown, T extends LanguageT
 
 export type ValidationProblemAcceptor<LanguageType = unknown> = <T extends LanguageType = LanguageType>(problem: ReducedValidationProblem<LanguageType, T>) => void;
 
-export type ValidationRule<LanguageType = unknown, InputType = LanguageType> =
+export type ValidationRule<LanguageType = unknown, InputType extends LanguageType = LanguageType> =
     | ValidationRuleStateless<LanguageType, InputType>
     | ValidationRuleWithBeforeAfter<LanguageType, LanguageType, InputType>;
 
@@ -45,7 +45,7 @@ export type ValidationRule<LanguageType = unknown, InputType = LanguageType> =
  * Describes a simple, state-less validation rule,
  * which might produce an unlimited number of problems.
  */
-export type ValidationRuleStateless<LanguageType = unknown, InputType = LanguageType> =
+export type ValidationRuleStateless<LanguageType = unknown, InputType extends LanguageType = LanguageType> =
     (languageNode: InputType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
 
 /**
@@ -54,7 +54,7 @@ export type ValidationRuleStateless<LanguageType = unknown, InputType = Language
  * in order to store some information which are calculated during 'validation',
  * which are finally evaluated in 'afterValidation'.
  */
-export interface ValidationRuleWithBeforeAfter<LanguageType = unknown, RootType extends LanguageType = LanguageType, InputType = LanguageType> {
+export interface ValidationRuleWithBeforeAfter<LanguageType = unknown, RootType extends LanguageType = LanguageType, InputType extends LanguageType = LanguageType> {
     beforeValidation(languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>): void;
     validation: ValidationRuleStateless<LanguageType, InputType>;
     afterValidation(languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>): void;
@@ -201,13 +201,13 @@ export interface ValidationCollector<LanguageType = unknown> {
      * @param rule a new validation rule
      * @param options some more options to control the handling of the added validation rule
      */
-    addValidationRule(rule: ValidationRule<LanguageType>, options?: Partial<ValidationRuleOptions>): void;
+    addValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, options?: Partial<ValidationRuleOptions>): void;
     /**
      * Removes a validation rule.
      * @param rule the validation rule to remove
      * @param options the same options as given for the registration of the validation rule must be given for the removal!
      */
-    removeValidationRule(rule: ValidationRule<LanguageType>, options?: Partial<ValidationRuleOptions>): void;
+    removeValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, options?: Partial<ValidationRuleOptions>): void;
 
     addListener(listener: ValidationCollectorListener<LanguageType>): void;
     removeListener(listener: ValidationCollectorListener<LanguageType>): void;
@@ -297,7 +297,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
         return problems;
     }
 
-    addValidationRule(rule: ValidationRule<LanguageType>, givenOptions?: Partial<ValidationRuleOptions>): void {
+    addValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         if (typeof rule === 'function') {
             this.ruleRegistryStateLess.addRule(rule as ValidationRuleStateless<LanguageType>, givenOptions);
         } else {
@@ -305,7 +305,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
         }
     }
 
-    removeValidationRule(rule: ValidationRule<LanguageType>, givenOptions?: Partial<ValidationRuleOptions>): void {
+    removeValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         if (typeof rule === 'function') {
             this.ruleRegistryStateLess.removeRule(rule as ValidationRuleStateless<LanguageType>, givenOptions);
         } else {
