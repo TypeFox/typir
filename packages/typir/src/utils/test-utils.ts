@@ -45,6 +45,50 @@ export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unk
     }
 }
 
+export function expectValidationHints<LanguageType = unknown>(services: TypirServices<LanguageType>, languageNode: LanguageType, expectedErrors: string[]): void {
+    // collect the actual hints
+    const actualHints = services.validation.Collector.validate(languageNode)
+        .map(v => services.Printer.printTypirProblem(v));
+    // compare and report them
+    compareValidationHints(actualHints, expectedErrors);
+}
+
+export function compareValidationHints(actualHints: string[], expectedErrors: string[]): void {
+    // compare actual and expected hints
+    let indexExpected = 0;
+    while (indexExpected < expectedErrors.length) {
+        let indexActual = 0;
+        let found = false;
+        while (indexActual < actualHints.length) {
+            if (actualHints[indexActual].includes(expectedErrors[indexExpected])) {
+                found = true;
+                // remove found matches => at the end, the not matching hints remain to be reported
+                actualHints.splice(indexActual, 1);
+                expectedErrors.splice(indexExpected, 1);
+                break;
+            }
+            indexActual++;
+        }
+        if (found) {
+            // indexExpected was implicitly incremented
+        } else {
+            indexExpected++;
+        }
+    }
+    // report the result
+    const msgExpected = expectedErrors.join('\n').trim();
+    const msgActual = actualHints.join('\n').trim();
+    if (msgExpected.length >= 1 && msgActual.length >= 1) {
+        expect.fail(`Didn't found expected:\n${msgExpected}\nBut found some more:\n${msgActual}`);
+    } else if (msgExpected.length >= 1) {
+        expect.fail(`Didn't found expected:\n${msgExpected}`);
+    } else if (msgActual.length >= 1) {
+        expect.fail(`Found some more:\n${msgActual}`);
+    } else {
+        // everything is fine
+    }
+}
+
 /**
  * Creates TypirServices dedicated for testing purposes,
  * with the default module containing the default implements for Typir, which might be exchanged by the given optional customized module.

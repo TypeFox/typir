@@ -4,13 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { describe, expect, test } from 'vitest';
+import { describe, test } from 'vitest';
 import { isClassType } from '../../../src/kinds/class/class-type.js';
 import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { BooleanLiteral, ClassFieldAccess, ClassConstructorCall, IntegerLiteral, Variable, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
-import { createTypirServicesForTesting, expectToBeType, expectTypirTypes } from '../../../src/utils/test-utils.js';
+import { BooleanLiteral, ClassConstructorCall, ClassFieldAccess, IntegerLiteral, Variable } from '../../../src/test/predefined-language-nodes.js';
+import { createTypirServicesForTesting, expectToBeType, expectTypirTypes, expectValidationHints } from '../../../src/utils/test-utils.js';
 import { assertType } from '../../../src/utils/utils.js';
-import { TypirServices } from '../../../src/typir.js';
 
 describe('Tests some details for class types', () => {
 
@@ -65,27 +64,17 @@ describe('Tests some details for class types', () => {
 
         // var1 := new MyClass1();
         const varClass = new Variable('var1', new ClassConstructorCall('MyClass1'));
-        validate(typir, varClass.initialValue, "Called constructor for 'MyClass1'.");
+        expectValidationHints(typir, varClass.initialValue, ["Called constructor for 'MyClass1'."]);
 
         // var2 := var1.fieldInteger;
         const varFieldIntegerValue = new Variable('var2', new ClassFieldAccess(varClass, 'fieldInteger'));
         expectToBeType(typir.Inference.inferType(varFieldIntegerValue), isPrimitiveType, type => type.getName() === 'integer');
-        validate(typir, varFieldIntegerValue.initialValue, undefined);
+        expectValidationHints(typir, varFieldIntegerValue.initialValue, []);
 
         // var3 := var1.fieldBoolean;
         const varFieldBooleanValue = new Variable('var3', new ClassFieldAccess(varClass, 'fieldBoolean'));
         expectToBeType(typir.Inference.inferType(varFieldBooleanValue), isPrimitiveType, type => type.getName() === 'boolean');
-        validate(typir, varFieldBooleanValue.initialValue, "Validated access of 'fieldBoolean' of the variable 'var1'.");
+        expectValidationHints(typir, varFieldBooleanValue.initialValue, ["Validated access of 'fieldBoolean' of the variable 'var1'."]);
     });
 
-    function validate(typir: TypirServices<TestLanguageNode>, node: TestLanguageNode, error: string | undefined): void {
-        const result = typir.validation.Collector.validate(node);
-        if (error === undefined) {
-            expect(result).toHaveLength(0);
-        } else {
-            expect(result).toHaveLength(1);
-            const problem = typir.Printer.printTypirProblem(result[0]);
-            expect(problem, problem).includes(error);
-        }
-    }
 });

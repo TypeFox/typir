@@ -6,13 +6,12 @@
 
 import { EmptyFileSystem, LangiumDocument } from 'langium';
 import { parseDocument } from 'langium/test';
-import { expectTypirTypes, isClassType, isFunctionType } from 'typir';
+import { compareValidationHints, expectTypirTypes, isClassType, isFunctionType } from 'typir';
 import { deleteAllDocuments } from 'typir-langium';
 import { afterEach, expect } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
 import { DiagnosticSeverity } from 'vscode-languageserver-types';
 import { createLoxServices } from '../src/language/lox-module.js';
-import { fail } from 'assert';
 
 export const loxServices = createLoxServices(EmptyFileSystem).Lox;
 export const operatorNames = ['-', '*', '/', '+', '+', '+', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '!=', '=', '!', '-'];
@@ -47,11 +46,6 @@ function checkIssues(diagnosticsErrors: string[], errors: number | string | stri
         expect(diagnosticsErrors, msgError).toHaveLength(1);
         expect(diagnosticsErrors[0], msgError).includes(errors);
     } else {
-        expect(diagnosticsErrors, msgError).toHaveLength(errors.length);
-        for (const expected of errors) {
-            if (diagnosticsErrors.some(dia => dia.includes(expected)) === false) {
-                fail(`This issue is expected:\n${expected}\n... but it is not contained in these found issues:\n${msgError}`);
-            }
-        }
+        compareValidationHints(diagnosticsErrors, errors);
     }
 }
