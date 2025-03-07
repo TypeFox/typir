@@ -65,6 +65,16 @@ export function isVariableDeclaration(node: unknown): node is VariableDeclaratio
     return isAstNode(node) && node.type === 'variable-declaration';
 }
 
+export interface Assignment {
+    type: 'assignment';
+    variable: VariableDeclaration;
+    value: Expression;
+}
+
+export function isAssignment(node: unknown): node is Assignment {
+    return isAstNode(node) && node.type === 'assignment';
+}
+
 
 export interface Printout {
     type: 'printout';
@@ -75,17 +85,22 @@ export function isPrintout(node: unknown): node is Printout {
     return isAstNode(node) && node.type === 'printout';
 }
 
-export type Model = Array<VariableDeclaration | Printout>;
+export type Statement = VariableDeclaration | Printout | Assignment;
 
-export type Node = Expression | Printout | VariableDeclaration;
+export type Model = Statement[];
+
+export type Node = Expression | Printout | VariableDeclaration | Assignment;
 
 export function isAstNode(node: unknown): node is Node {
-    return Object.getOwnPropertyNames(node).includes('type') && ['variable-usage', 'unary', 'binary', 'numeric', 'string', 'printout', 'variable-declaration'].includes((node as Node).type);
+    return Object.getOwnPropertyNames(node).includes('type') && ['variable-usage', 'unary', 'binary', 'numeric', 'string', 'printout', 'variable-declaration', 'assignment'].includes((node as Node).type);
 }
 
 export namespace AST {
     export function variable(name: string, value: Expression): VariableDeclaration {
         return { type: 'variable-declaration', name, value };
+    }
+    export function assignment(variable: VariableDeclaration, value: Expression): Assignment {
+        return { type: 'assignment', variable, value };
     }
     export function printout(value: Expression): Printout {
         return { type: 'printout', value };

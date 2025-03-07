@@ -18,7 +18,9 @@ describe('Validator', () => {
         expectValidationMessages('PRINT "Hallo!"+"Welt!";');
     });
     test('Negatives', () => {
+        expectValidationMessages('VAR X = 1; X = "hallo";', 'The given operands for the overloaded function \'-\' match the expected types only partially.');
         expectValidationMessages('PRINT "1"-"2";', 'The given operands for the overloaded function \'-\' match the expected types only partially.');
+        expectValidationMessages('PRINT 123-"hallo";', 'The given operands for the overloaded function \'-\' match the expected types only partially.');
     });
 });
 

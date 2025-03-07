@@ -4,19 +4,15 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 import { createTypirServices, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NO_PARAMETER_NAME } from 'typir';
-import { BinaryExpression, isAstNode, isBinaryExpression, isNumeric, isPrintout, isUnaryExpression, isVariableDeclaration, isVariableUsage, UnaryExpression } from './ast.js';
+import { BinaryExpression, isBinaryExpression, isCharString, isNumeric, isPrintout, isUnaryExpression, isVariableDeclaration, isVariableUsage, UnaryExpression } from './ast.js';
 
 export function initializeTypir() {
     const typir = createTypirServices();
     const typeNumber = typir.factory.Primitives.create({
-        primitiveName: 'number', inferenceRules: [
-            isNumeric,
-            (node: unknown) => isAstNode(node) && node.type === 'numeric'
-        ]
+        primitiveName: 'number', inferenceRules: isNumeric
     });
     const typeString = typir.factory.Primitives.create({
-        primitiveName: 'string', inferenceRules:
-            (node: unknown) => isAstNode(node) && node.type === 'string'
+        primitiveName: 'string', inferenceRules: isCharString
     });
     const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' });
 
@@ -25,11 +21,9 @@ export function initializeTypir() {
         matching: (node: BinaryExpression, name: string) => node.op === name,
         operands: (node: BinaryExpression) => [node.left, node.right],
     };
-    typir.factory.Operators.createBinary({ name: '+', signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
-    typir.factory.Operators.createBinary({ name: '-', signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
-    typir.factory.Operators.createBinary({ name: '/', signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
-    typir.factory.Operators.createBinary({ name: '*', signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
-    typir.factory.Operators.createBinary({ name: '%', signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
+    for (const operator of ['+', '-', '/', '*', '%']) {
+        typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
+    }
     typir.factory.Operators.createBinary({ name: '+', signature: { left: typeString, right: typeString, return: typeString }, inferenceRule: binaryInferenceRule });
 
     const unaryInferenceRule: InferOperatorWithSingleOperand<UnaryExpression> = {
