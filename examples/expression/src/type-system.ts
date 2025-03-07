@@ -3,7 +3,7 @@
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
-import { createTypirServices, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, isInferenceProblem, NO_PARAMETER_NAME } from 'typir';
+import { createTypirServices, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NO_PARAMETER_NAME } from 'typir';
 import { BinaryExpression, isAssignment, isBinaryExpression, isCharString, isNumeric, isPrintout, isUnaryExpression, isVariableDeclaration, isVariableUsage, UnaryExpression } from './ast.js';
 
 export function initializeTypir() {
