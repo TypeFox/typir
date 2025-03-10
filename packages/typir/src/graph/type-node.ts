@@ -285,7 +285,7 @@ export abstract class Type {
     dispose(): void {
         // clear everything
         this.stateListeners.splice(0, this.stateListeners.length);
-        this.waitForInvalid.getWaitForRefsInvalid().forEach(ref => ref.deconstruct());
+        this.waitForInvalid.getWaitForRefsInvalid().forEach(ref => ref.dispose());
         this.waitForIdentifiable.deconstruct();
         this.waitForCompleted.deconstruct();
         this.waitForInvalid.deconstruct();

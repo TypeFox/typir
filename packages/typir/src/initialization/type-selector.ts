@@ -11,11 +11,11 @@ import { TypeReference } from './type-reference.js';
 
 // TODO find better names: TypeSpecification, TypeDesignation/Designator, ... ?
 export type BasicTypeSelector<T extends Type = Type, LanguageType = unknown> =
-    | T                     // the wanted type
-    | string                // identifier of the type (to be searched in the type graph/map)
-    | TypeInitializer<T>    // delayed creation of types
-    | TypeReference<T>      // reference to a (maybe delayed) type
-    | LanguageType          // language node to infer the final type from
+    | T                                 // the wanted type
+    | string                            // identifier of the type (to be searched in the type graph/map)
+    | TypeInitializer<T, LanguageType>  // delayed creation of types
+    | TypeReference<T, LanguageType>    // reference to a (maybe delayed) type
+    | LanguageType                      // language node to infer the final type from
     ;
 
 /**

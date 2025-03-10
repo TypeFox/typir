@@ -22,6 +22,7 @@ export interface TypeReferenceListener<T extends Type = Type, LanguageType = unk
      * in rare cases this type might be 'Invalid', e.g. if there are corresponding inference rules or TypeInitializers.
      */
     onTypeReferenceResolved(reference: TypeReference<T, LanguageType>, resolvedType: T): void;
+
     /**
      * Informs when the type of the reference is invalidated/removed.
      * @param reference the currently invalidate/unresolved TypeReference
@@ -57,7 +58,7 @@ export class TypeReference<T extends Type = Type, LanguageType = unknown> implem
         this.startResolving();
     }
 
-    deconstruct() {
+    dispose() {
         this.stopResolving();
         this.listeners.splice(0, this.listeners.length);
     }
