@@ -161,4 +161,8 @@ export class TestLanguageService extends DefaultLanguageService<TestLanguageNode
     override getLanguageNodeKey(languageNode: TestLanguageNode): string | undefined {
         return languageNode.constructor.name;
     }
+
+    override isLanguageNode(node: TestLanguageNode): node is TestLanguageNode {
+        return node instanceof TestLanguageNode;
+    }
 }
