@@ -22,10 +22,10 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         // primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
         const typeBool = this.typir.factory.Primitives.create({ primitiveName: 'boolean' })
-            .inferenceRule({ languageKey: BooleanLiteral })
-            // .inferenceRule({ filter: isBooleanLiteral }) // this is the alternative solution
-            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'boolean' }) // this is the more performant notation
-            // .inferenceRule({ filter: isTypeReference, matching: node => node.primitive === 'boolean' }) // this is the "easier" notation
+            .inferenceRule({ languageKey: BooleanLiteral }) // this is the more performant notation compared to ...
+            // .inferenceRule({ filter: isBooleanLiteral }) // ... this alternative solution, but they provide the same functionality
+            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'boolean' }) // this is the more performant notation compared to ...
+            // .inferenceRule({ filter: isTypeReference, matching: node => node.primitive === 'boolean' }) // ... this "easier" notation, but they provide the same functionality
             .finish();
         // ... but their primitive kind is provided/preset by Typir
         const typeNumber = this.typir.factory.Primitives.create({ primitiveName: 'number' })
@@ -222,20 +222,20 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                     associatedLanguageNode: node, // this is used by the ScopeProvider to get the corresponding class declaration after inferring the (class) type of an expression
                 })
                 // inference rule for declaration
-                .inferenceRulesForClassDeclaration({ languageKey: Class, matching: (languageNode: Class) => languageNode === node})
+                .inferenceRuleForClassDeclaration({ languageKey: Class, matching: (languageNode: Class) => languageNode === node})
                 // inference rule for constructor calls (i.e. class literals) conforming to the current class
-                .inferenceRulesForClassLiterals({ // <InferClassLiteral<MemberCall>>
+                .inferenceRuleForClassLiterals({ // <InferClassLiteral<MemberCall>>
                     languageKey: MemberCall,
                     matching: (languageNode: MemberCall) => isClass(languageNode.element?.ref) && languageNode.element!.ref.name === className && languageNode.explicitOperationCall,
                     inputValuesForFields: (_languageNode: MemberCall) => new Map(), // values for fields don't matter for nominal typing
                 })
-                .inferenceRulesForClassLiterals({ // <InferClassLiteral<TypeReference>>
+                .inferenceRuleForClassLiterals({ // <InferClassLiteral<TypeReference>>
                     languageKey: TypeReference,
                     matching: (languageNode: TypeReference) => isClass(languageNode.reference?.ref) && languageNode.reference!.ref.name === className,
                     inputValuesForFields: (_languageNode: TypeReference) => new Map(), // values for fields don't matter for nominal typing
                 })
                 // inference rule for accessing fields
-                .inferenceRulesForFieldAccess({
+                .inferenceRuleForFieldAccess({
                     languageKey: MemberCall,
                     matching: (languageNode: MemberCall) => isFieldMember(languageNode.element?.ref) && languageNode.element!.ref.$container === node && !languageNode.explicitOperationCall,
                     field: (languageNode: MemberCall) => languageNode.element!.ref!.name,

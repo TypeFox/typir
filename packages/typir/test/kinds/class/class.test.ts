@@ -35,7 +35,7 @@ describe('Tests some details for class types', () => {
                 { name: 'fieldBoolean', type: booleanType },
             ], methods: [] })
             // infer the type for constructor calls
-            .inferenceRulesForClassLiterals({
+            .inferenceRuleForClassLiterals({
                 filter: node => node instanceof ClassConstructorCall,
                 matching: node => node.className === 'MyClass1',
                 inputValuesForFields: _node => new Map(),
@@ -43,7 +43,7 @@ describe('Tests some details for class types', () => {
                 validation: (node, classType, accept, _typir) => accept({ languageNode: node, severity: 'error', message: `Called constructor for '${classType.getName()}'.` }),
             })
             // infer the type when accessing fields
-            .inferenceRulesForFieldAccess({
+            .inferenceRuleForFieldAccess({
                 filter: node => node instanceof ClassFieldAccess,
                 matching: node => {
                     const varType = typir.Inference.inferType(node.classVariable); // TODO review: doing type inference on your own here feels a bit strange

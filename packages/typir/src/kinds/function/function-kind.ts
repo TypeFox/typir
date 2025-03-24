@@ -14,7 +14,7 @@ import { InferCurrentTypeRule, NameTypePair, RegistrationOptions } from '../../u
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { isKind, Kind } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
-import { FunctionManager } from './function-overloading.js';
+import { AvailableFunctionsManager } from './function-overloading.js';
 import { FunctionType } from './function-type.js';
 import { UniqueFunctionValidation } from './function-validation-unique.js';
 
@@ -150,7 +150,7 @@ export class FunctionKind<LanguageType = unknown> implements Kind, FunctionFacto
     readonly $name: 'FunctionKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<FunctionKindOptions<LanguageType>>;
-    readonly functions: FunctionManager<LanguageType>;
+    readonly functions: AvailableFunctionsManager<LanguageType>;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<FunctionKindOptions<LanguageType>>) {
         this.$name = FunctionKindName;
@@ -174,8 +174,8 @@ export class FunctionKind<LanguageType = unknown> implements Kind, FunctionFacto
         };
     }
 
-    protected createFunctionManager(): FunctionManager<LanguageType> {
-        return new FunctionManager(this.services, this);
+    protected createFunctionManager(): AvailableFunctionsManager<LanguageType> {
+        return new AvailableFunctionsManager(this.services, this);
     }
 
     get(typeDetails: FunctionTypeDetails<LanguageType>): TypeReference<FunctionType, LanguageType> {

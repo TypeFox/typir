@@ -84,10 +84,10 @@ export interface ClassFactoryService<LanguageType = unknown> {
 }
 
 export interface ClassConfigurationChain<LanguageType = unknown> {
-    inferenceRulesForClassDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<ClassType, LanguageType, T>): ClassConfigurationChain<LanguageType>;
-    inferenceRulesForClassLiterals<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>): ClassConfigurationChain<LanguageType>;
+    inferenceRuleForClassDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<ClassType, LanguageType, T>): ClassConfigurationChain<LanguageType>;
+    inferenceRuleForClassLiterals<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>): ClassConfigurationChain<LanguageType>;
 
-    inferenceRulesForFieldAccess<T extends LanguageType>(rule: InferClassFieldAccess<LanguageType, T>): ClassConfigurationChain<LanguageType>;
+    inferenceRuleForFieldAccess<T extends LanguageType>(rule: InferClassFieldAccess<LanguageType, T>): ClassConfigurationChain<LanguageType>;
 
     finish(): TypeInitializer<ClassType, LanguageType>;
 }
@@ -270,17 +270,17 @@ class ClassConfigurationChainImpl<LanguageType = unknown> implements ClassConfig
         };
     }
 
-    inferenceRulesForClassDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<ClassType, LanguageType, T>): ClassConfigurationChain<LanguageType> {
+    inferenceRuleForClassDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<ClassType, LanguageType, T>): ClassConfigurationChain<LanguageType> {
         this.typeDetails.inferenceRulesForClassDeclaration.push(rule as unknown as InferCurrentTypeRule<ClassType, LanguageType>);
         return this;
     }
 
-    inferenceRulesForClassLiterals<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>): ClassConfigurationChain<LanguageType> {
+    inferenceRuleForClassLiterals<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>): ClassConfigurationChain<LanguageType> {
         this.typeDetails.inferenceRulesForClassLiterals.push(rule as unknown as InferClassLiteral<LanguageType>);
         return this;
     }
 
-    inferenceRulesForFieldAccess<T extends LanguageType>(rule: InferClassFieldAccess<LanguageType, T>): ClassConfigurationChain<LanguageType> {
+    inferenceRuleForFieldAccess<T extends LanguageType>(rule: InferClassFieldAccess<LanguageType, T>): ClassConfigurationChain<LanguageType> {
         this.typeDetails.inferenceRulesForFieldAccess.push(rule as unknown as InferClassFieldAccess<LanguageType>);
         return this;
     }

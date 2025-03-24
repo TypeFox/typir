@@ -10,7 +10,7 @@ import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceResultWithIn
 import { TypirServices } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
 import { FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
-import { FunctionManager } from './function-overloading.js';
+import { AvailableFunctionsManager } from './function-overloading.js';
 import { FunctionType } from './function-type.js';
 
 /**
@@ -29,10 +29,10 @@ export class FunctionCallInferenceRule<LanguageType = unknown, T extends Languag
     protected readonly typeDetails: FunctionTypeDetails<LanguageType>;
     protected readonly inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
     protected readonly functionType: FunctionType;
-    protected readonly functions: FunctionManager<LanguageType>;
+    protected readonly functions: AvailableFunctionsManager<LanguageType>;
     assignabilitySuccess: Array<AssignabilitySuccess | undefined>; // public, since this information is exploited to determine the best overloaded match in case of multiple matches
 
-    constructor(typeDetails: FunctionTypeDetails<LanguageType>, inferenceRuleForCalls: InferFunctionCall<LanguageType, T>, functionType: FunctionType, functions: FunctionManager<LanguageType>) {
+    constructor(typeDetails: FunctionTypeDetails<LanguageType>, inferenceRuleForCalls: InferFunctionCall<LanguageType, T>, functionType: FunctionType, functions: AvailableFunctionsManager<LanguageType>) {
         this.typeDetails = typeDetails;
         this.inferenceRuleForCalls = inferenceRuleForCalls;
         this.functionType = functionType;

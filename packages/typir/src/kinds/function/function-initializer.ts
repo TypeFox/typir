@@ -11,8 +11,8 @@ import { TypirServices } from '../../typir.js';
 import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType } from '../../utils/utils-definitions.js';
 import { assertType } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
-import { CreateFunctionTypeDetails, FunctionKind, InferFunctionCall } from './function-kind.js';
-import { FunctionManager } from './function-overloading.js';
+import { CreateFunctionTypeDetails, FunctionKind, FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
+import { AvailableFunctionsManager } from './function-overloading.js';
 import { FunctionType, isFunctionType } from './function-type.js';
 
 /**
@@ -23,7 +23,7 @@ import { FunctionType, isFunctionType } from './function-type.js';
  */
 export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitializer<FunctionType, LanguageType> implements TypeStateListener {
     protected readonly typeDetails: CreateFunctionTypeDetails<LanguageType>;
-    protected readonly functions: FunctionManager<LanguageType>;
+    protected readonly functions: AvailableFunctionsManager<LanguageType>;
     protected inferenceRules: FunctionInferenceRules<LanguageType>;
     protected initialFunctionType: FunctionType;
 
@@ -42,7 +42,7 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
         kind.enforceFunctionName(functionName, kind.options.enforceFunctionName);
 
         // create the new Function type
-        this.initialFunctionType = new FunctionType(kind as FunctionKind, typeDetails);
+        this.initialFunctionType = new FunctionType(kind as FunctionKind, typeDetails as FunctionTypeDetails);
 
         this.inferenceRules = this.createInferenceRules(this.initialFunctionType);
         this.registerRules(functionName, undefined);

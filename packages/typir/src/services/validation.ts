@@ -16,7 +16,7 @@ import { ProblemPrinter } from './printing.js';
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
 export interface ValidationMessageDetails<LanguageType = unknown, T extends LanguageType = LanguageType> {
-    languageNode: T; // TODO review: in OX/LOX, 'unknown' instead of 'AstNode' is inferred by TypeScript, why?
+    languageNode: T;
     languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
     languageIndex?: number; // index, if 'languageProperty' is an Array property
     severity: Severity;

@@ -10,7 +10,7 @@ import { RuleCollectorListener, RuleOptions } from '../../utils/rule-registratio
 import { checkTypes, checkValueForConflict, createTypeCheckStrategy, TypeToCheck } from '../../utils/utils-type-comparison.js';
 import { assertUnreachable, toArray } from '../../utils/utils.js';
 import { InferFunctionCall } from './function-kind.js';
-import { FunctionManager, SingleFunctionDetails } from './function-overloading.js';
+import { AvailableFunctionsManager, SingleFunctionDetails } from './function-overloading.js';
 
 /**
  * This validation uses the inference rules for all available function calls to check, whether ...
@@ -19,9 +19,9 @@ import { FunctionManager, SingleFunctionDetails } from './function-overloading.j
  */
 export class FunctionCallArgumentsValidation<LanguageType = unknown> implements ValidationRuleWithBeforeAfter<LanguageType>, RuleCollectorListener<SingleFunctionDetails<LanguageType>> {
     protected readonly services: TypirServices<LanguageType>;
-    readonly functions: FunctionManager<LanguageType>;
+    readonly functions: AvailableFunctionsManager<LanguageType>;
 
-    constructor(services: TypirServices<LanguageType>, functions: FunctionManager<LanguageType>) {
+    constructor(services: TypirServices<LanguageType>, functions: AvailableFunctionsManager<LanguageType>) {
         this.services = services;
         this.functions = functions;
     }

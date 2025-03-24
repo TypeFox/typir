@@ -41,8 +41,7 @@ export interface SingleFunctionDetails<LanguageType = unknown, T extends Languag
  * in particular, to support overloaded functions.
  * In each type system, exactly one instance of this class is stored by the FunctionKind.
  */
-// TODO review: better name
-export class FunctionManager<LanguageType = unknown> implements TypeGraphListener {
+export class AvailableFunctionsManager<LanguageType = unknown> implements TypeGraphListener {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: FunctionKind<LanguageType>;
 
