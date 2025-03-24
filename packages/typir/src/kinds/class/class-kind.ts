@@ -52,7 +52,7 @@ export interface CreateClassTypeDetails<LanguageType = unknown> extends ClassTyp
     // inference rules for the Class
     inferenceRulesForClassDeclaration: Array<InferCurrentTypeRule<ClassType, LanguageType>>;
     inferenceRulesForClassLiterals: Array<InferClassLiteral<LanguageType>>; // e.g. Constructor calls, References
-    // inference rules for its Fields (TODO missing support)
+    // inference rules for its Fields
     inferenceRulesForFieldAccess: Array<InferClassFieldAccess<LanguageType>>;
 }
 

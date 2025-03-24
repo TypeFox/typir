@@ -49,16 +49,16 @@ describe('Tests some details for primitive types', () => {
             }).finish();
         });
 
-        test('Integer value with validation hint', () => {
+        test('Integer value with validation issues', () => {
             assertType(typir.Inference.inferType(integer123), isPrimitiveType, 'integer'); // test the successful inference
-            const result = typir.validation.Collector.validate(integer123); // check that a validation hint is produced
+            const result = typir.validation.Collector.validate(integer123); // check that a validation issue is produced
             expect(result).toHaveLength(1);
             expect(result[0].message).toBe('integer-validation');
         });
 
-        test('String value without validation hint', () => {
+        test('String value without validation issue', () => {
             assertType(typir.Inference.inferType(stringHello), isPrimitiveType, 'integer'); // test the successful inference
-            const result = typir.validation.Collector.validate(stringHello); // check that no validation hint is produced
+            const result = typir.validation.Collector.validate(stringHello); // check that no validation issue is produced
             expect(result).toHaveLength(0);
         });
     });

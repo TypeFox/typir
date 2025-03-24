@@ -16,6 +16,7 @@ import { AvailableFunctionsManager, SingleFunctionDetails } from './function-ove
  * This validation uses the inference rules for all available function calls to check, whether ...
  * - the given arguments for a function call fit to one of the defined function signature
  * - and validates this call according to the specific validation rules for this function call.
+ * There is only one instance of this class for each function kind/manager.
  */
 export class FunctionCallArgumentsValidation<LanguageType = unknown> implements ValidationRuleWithBeforeAfter<LanguageType>, RuleCollectorListener<SingleFunctionDetails<LanguageType>> {
     protected readonly services: TypirServices<LanguageType>;
@@ -104,7 +105,7 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
                     }
                 }
             }
-            // Since none of the function signatures match, report one validation hint (with sub-problems) for each function signature (and for each language key)
+            // Since none of the function signatures match, report one validation issue (with sub-problems) for each function signature (and for each language key)
             if (resultOverloaded.length >= 1) {
                 accept({
                     languageNode: languageNode,
@@ -120,7 +121,7 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
      * Checks whether the given inference rule for function calls matches the given language node.
      * @param singleFunction the current function and its inference rule for calls of it
      * @param languageNode the current language node, which might or might not represent a function call
-     * @param resultOverloaded receives a validation hint, if there is at least one conflict between given arguments and expected parameters
+     * @param resultOverloaded receives a validation issue, if there is at least one conflict between given arguments and expected parameters
      * @returns true, if the given function signature exactly matches the current function call, false otherwise
     */
     protected executeSingleRule(singleFunction: SingleFunctionDetails<LanguageType>, languageNode: LanguageType, resultOverloaded: Array<ValidationProblem<LanguageType>>): boolean {
@@ -129,7 +130,7 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
         if (inferenceRule.filter !== undefined && inferenceRule.filter(languageNode) === false) {
             return false; // rule does not match at all => no constraints apply here => no error to show here
         }
-        if (inferenceRule.matching !== undefined && inferenceRule.matching(languageNode) === false) {
+        if (inferenceRule.matching !== undefined && inferenceRule.matching(languageNode, functionType) === false) {
             return false; // false => does slightly not match => no constraints apply here => no error to show here
         }
 
@@ -187,7 +188,7 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
             }
             return false;
         } else {
-            return true; // 100% match found => there are no validation hints to show!
+            return true; // 100% match found => there are no validation issues to show!
         }
     }
 

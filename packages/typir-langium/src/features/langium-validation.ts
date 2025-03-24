@@ -46,7 +46,7 @@ export interface LangiumTypirValidator {
     /**
      * Will be called once before starting the validation of a LangiumDocument.
      * @param rootNode the root node of the current document
-     * @param accept receives the found validation hints
+     * @param accept receives the found validation issues
      */
     checkTypingProblemsWithTypirBeforeDocument(rootNode: AstNode, accept: ValidationAcceptor): void;
 
@@ -54,14 +54,14 @@ export interface LangiumTypirValidator {
      * Executes all checks, which are directly derived from the current Typir configuration,
      * i.e. checks that arguments fit to parameters for function calls (including operands for operators).
      * @param node the current AST node to check regarding typing issues
-     * @param accept receives the found validation hints
+     * @param accept receives the found validation issues
      */
     checkTypingProblemsWithTypir(node: AstNode, accept: ValidationAcceptor): void;
 
     /**
      * Will be called once after finishing the validation of a LangiumDocument.
      * @param rootNode the root node of the current document
-     * @param accept receives the found validation hints
+     * @param accept receives the found validation issues
      */
     checkTypingProblemsWithTypirAfterDocument(rootNode: AstNode, accept: ValidationAcceptor): void;
 }

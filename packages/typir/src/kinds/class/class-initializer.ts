@@ -132,7 +132,7 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
                     if (inferenceRulesForFieldAccess.filter !== undefined && inferenceRulesForFieldAccess.filter(languageNode) === false) {
                         return InferenceRuleNotApplicable;
                     }
-                    if (inferenceRulesForFieldAccess.matching !== undefined && inferenceRulesForFieldAccess.matching(languageNode) === false) {
+                    if (inferenceRulesForFieldAccess.matching !== undefined && inferenceRulesForFieldAccess.matching(languageNode, classType) === false) {
                         return InferenceRuleNotApplicable;
                     }
                     const result = inferenceRulesForFieldAccess.field(languageNode);
@@ -168,7 +168,7 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
                         if (inferenceRulesForFieldAccess.filter !== undefined && inferenceRulesForFieldAccess.filter(languageNode) === false) {
                             return;
                         }
-                        if (inferenceRulesForFieldAccess.matching !== undefined && inferenceRulesForFieldAccess.matching(languageNode) === false) {
+                        if (inferenceRulesForFieldAccess.matching !== undefined && inferenceRulesForFieldAccess.matching(languageNode, classType) === false) {
                             return;
                         }
                         const field = inferenceRulesForFieldAccess.field(languageNode);
@@ -201,7 +201,7 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
                 inferTypeWithoutChildren(languageNode, _typir) {
                     const result = rule.filter === undefined || rule.filter(languageNode);
                     if (result) {
-                        const matching = rule.matching === undefined || rule.matching(languageNode);
+                        const matching = rule.matching === undefined || rule.matching(languageNode, classType);
                         if (matching) {
                             const inputArguments = rule.inputValuesForFields(languageNode);
                             if (inputArguments.size >= 1) {
@@ -260,7 +260,7 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
                 if (rule.filter !== undefined && rule.filter(languageNode) === false) {
                     return;
                 }
-                if (rule.matching !== undefined && rule.matching(languageNode) === false) {
+                if (rule.matching !== undefined && rule.matching(languageNode, classType) === false) {
                     return;
                 }
                 const inputArguments = rule.inputValuesForFields(languageNode);

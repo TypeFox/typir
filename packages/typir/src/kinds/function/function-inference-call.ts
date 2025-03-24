@@ -50,7 +50,7 @@ export class FunctionCallInferenceRule<LanguageType = unknown, T extends Languag
             return InferenceRuleNotApplicable;
         }
         // 2. Does the inference rule match this language node?
-        const matching = this.inferenceRuleForCalls.matching === undefined || this.inferenceRuleForCalls.matching(languageNode as T);
+        const matching = this.inferenceRuleForCalls.matching === undefined || this.inferenceRuleForCalls.matching(languageNode as T, this.functionType);
         if (!matching) {
             // the language node is slightly different
             return InferenceRuleNotApplicable;

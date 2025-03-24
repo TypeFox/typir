@@ -17,7 +17,7 @@ export type TypeInitializerListener<T extends Type = Type> = (type: T) => void;
  * Without checking for duplicates, the same type might be created twice, e.g. in the following scenario:
  * If the creation of A is delayed, since a type B which is required for some properties of A is not yet created, A will be created not now, but later.
  * During the "waiting time" for B, another declaration in the AST might be found with the same Typir type A.
- * (The second declaration might be wrong, but the user expects to get a validation hint, and not Typir to crash, or the current DSL might allow duplicated type declarations.)
+ * (The second declaration might be wrong, but the user expects to get a validation issue, and not Typir to crash, or the current DSL might allow duplicated type declarations.)
  * Since the first Typir type is not yet in the type systems (since it still waits for B) and therefore remains unknown,
  * it will be tried to create A a second time, again delayed, since B is still not yet available.
  * When B is created, A is waiting twice and might be created twice, if no TypeInitializer is used.

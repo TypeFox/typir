@@ -9,7 +9,7 @@ import { isType } from '../../../src/graph/type-node.js';
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { BinaryExpression, InferenceRuleBinaryExpression, integer123, integer456, IntegerLiteral, string123, string456, StringLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectToBeType, expectValidationHints } from '../../../src/utils/test-utils.js';
+import { createTypirServicesForTesting, expectToBeType, expectValidationIssues } from '../../../src/utils/test-utils.js';
 
 describe('Tests some special cases for (overloaded) operator calls', () => {
 
@@ -90,9 +90,9 @@ describe('Tests some special cases for (overloaded) operator calls', () => {
             .inferenceRule(InferenceRuleBinaryExpression)
             .finish();
 
-        // validation hints only for one of the two signatures!
-        expectValidationHints(typir, new BinaryExpression(integer123, '+', integer456), ["Called '+' with 'integer'."]);
-        expectValidationHints(typir, new BinaryExpression(string123, '+', string456), []);
+        // validation issues only for one of the two signatures!
+        expectValidationIssues(typir, new BinaryExpression(integer123, '+', integer456), ["Called '+' with 'integer'."]);
+        expectValidationIssues(typir, new BinaryExpression(string123, '+', string456), []);
     });
 
 });

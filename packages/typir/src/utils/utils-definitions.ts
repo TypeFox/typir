@@ -64,7 +64,7 @@ export function bindValidateCurrentTypeRule<TypeType extends Type = Type, Langua
             if (rule.filter !== undefined && rule.filter(languageNode) === false) {
                 return; // if specified, the filter needs to accept the current language node
             }
-            if (rule.matching !== undefined && rule.matching(languageNode) === false) {
+            if (rule.matching !== undefined && rule.matching(languageNode, type) === false) {
                 return; // if specified, the current language node needs to match the condition of the inference rule
             }
             // since the current language node fits to this inference rule, validate it according
@@ -128,7 +128,7 @@ export function ruleWithOptionsBoundToType<
 export interface InferCurrentTypeRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType> {
     languageKey?: string | string[];
     filter?: (languageNode: LanguageType) => languageNode is T;
-    matching?: (languageNode: T) => boolean; // TODO review: Should we provide "typeToInfer: TypeType" as an additional property here?
+    matching?: (languageNode: T, typeToInfer: TypeType) => boolean;
 
     /**
      * This validation will be applied to all language nodes for which the current type is inferred according to this inference rule.
@@ -157,7 +157,7 @@ export function bindInferCurrentTypeRule<TypeType extends Type = Type, LanguageT
             if (rule.filter !== undefined) {
                 if (rule.filter(languageNode)) {
                     if (rule.matching !== undefined) {
-                        if (rule.matching(languageNode)) {
+                        if (rule.matching(languageNode, type)) {
                             return type;
                         } else {
                             return InferenceRuleNotApplicable; // TODO or an InferenceProblem?
@@ -170,7 +170,7 @@ export function bindInferCurrentTypeRule<TypeType extends Type = Type, LanguageT
                 }
             }
             if (rule.matching !== undefined) {
-                if (rule.matching(languageNode as T)) {
+                if (rule.matching(languageNode as T, type)) {
                     return type;
                 } else {
                     return InferenceRuleNotApplicable; // TODO or an InferenceProblem?

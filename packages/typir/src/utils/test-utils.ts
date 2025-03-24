@@ -9,6 +9,7 @@ import { Type } from '../graph/type-node.js';
 import { TestLanguageNode, TestLanguageService, TestProblemPrinter } from '../test/predefined-language-nodes.js';
 import { createDefaultTypirServiceModule, createTypirServices, PartialTypirServices, TypirServices } from '../typir.js';
 import { Module } from './dependency-injection.js';
+import { Severity } from '../services/validation.js';
 
 /**
  * Testing utility to check, that exactly the expected types are in the type system.
@@ -45,25 +46,35 @@ export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unk
     }
 }
 
-export function expectValidationHints<LanguageType = unknown>(services: TypirServices<LanguageType>, languageNode: LanguageType, expectedErrors: string[]): void {
-    // collect the actual hints
-    const actualHints = services.validation.Collector.validate(languageNode)
-        .map(v => services.Printer.printTypirProblem(v));
-    // compare and report them
-    compareValidationHints(actualHints, expectedErrors);
+export interface ExpectedValidationIssuesOptions {
+    severity?: Severity;
 }
 
-export function compareValidationHints(actualHints: string[], expectedErrors: string[]): void {
-    // compare actual and expected hints
+export function expectValidationIssues<LanguageType = unknown>(services: TypirServices<LanguageType>, languageNode: LanguageType, expectedIssues: string[]): void;
+export function expectValidationIssues<LanguageType = unknown>(services: TypirServices<LanguageType>, languageNode: LanguageType, options: ExpectedValidationIssuesOptions, expectedIssues: string[]): void;
+export function expectValidationIssues<LanguageType = unknown>(services: TypirServices<LanguageType>, languageNode: LanguageType, optionsOrIssues: ExpectedValidationIssuesOptions | string[], issues?: string[]): void {
+    const expectedIssues = Array.isArray(optionsOrIssues) ? optionsOrIssues : issues ?? [];
+    const options = Array.isArray(optionsOrIssues) ? {} : optionsOrIssues;
+
+    // collect the actual issues
+    const actualIssues = services.validation.Collector.validate(languageNode)
+        .filter(v => options.severity ? v.severity === options.severity : true)
+        .map(v => services.Printer.printTypirProblem(v));
+    // compare and report them
+    compareValidationIssues(actualIssues, expectedIssues);
+}
+
+export function compareValidationIssues(actualIssues: string[], expectedErrors: string[]): void {
+    // compare actual and expected issues
     let indexExpected = 0;
     while (indexExpected < expectedErrors.length) {
         let indexActual = 0;
         let found = false;
-        while (indexActual < actualHints.length) {
-            if (actualHints[indexActual].includes(expectedErrors[indexExpected])) {
+        while (indexActual < actualIssues.length) {
+            if (actualIssues[indexActual].includes(expectedErrors[indexExpected])) {
                 found = true;
-                // remove found matches => at the end, the not matching hints remain to be reported
-                actualHints.splice(indexActual, 1);
+                // remove found matches => at the end, the not matching issues remain to be reported
+                actualIssues.splice(indexActual, 1);
                 expectedErrors.splice(indexExpected, 1);
                 break;
             }
@@ -77,7 +88,7 @@ export function compareValidationHints(actualHints: string[], expectedErrors: st
     }
     // report the result
     const msgExpected = expectedErrors.join('\n').trim();
-    const msgActual = actualHints.join('\n').trim();
+    const msgActual = actualIssues.join('\n').trim();
     if (msgExpected.length >= 1 && msgActual.length >= 1) {
         expect.fail(`Didn't found expected:\n${msgExpected}\nBut found some more:\n${msgActual}`);
     } else if (msgExpected.length >= 1) {
