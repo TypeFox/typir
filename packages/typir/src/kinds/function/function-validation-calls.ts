@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { ValidationProblem, ValidationProblemAcceptor, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
+import { ValidationProblem, ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { RuleCollectorListener, RuleOptions } from '../../utils/rule-registration.js';
 import { checkTypes, checkValueForConflict, createTypeCheckStrategy, TypeToCheck } from '../../utils/utils-type-comparison.js';
@@ -18,7 +18,7 @@ import { AvailableFunctionsManager, SingleFunctionDetails } from './function-ove
  * - and validates this call according to the specific validation rules for this function call.
  * There is only one instance of this class for each function kind/manager.
  */
-export class FunctionCallArgumentsValidation<LanguageType = unknown> implements ValidationRuleWithBeforeAfter<LanguageType>, RuleCollectorListener<SingleFunctionDetails<LanguageType>> {
+export class FunctionCallArgumentsValidation<LanguageType = unknown> implements ValidationRuleLifecycle<LanguageType>, RuleCollectorListener<SingleFunctionDetails<LanguageType>> {
     protected readonly services: TypirServices<LanguageType>;
     readonly functions: AvailableFunctionsManager<LanguageType>;
 
@@ -62,12 +62,6 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
             }
         }
         return true;
-    }
-
-    beforeValidation(_languageRoot: LanguageType, _accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
-        // do nothing
-        // TODO review: Here ValidationRuleStateless is enough, but since it is a function type (and no interface type), it is not possible to implement it here in this class.
-        // Therefore ValidationRuleWithBeforeAfter is chosen, since it is an interface, but the additional methods are not needed and are confusing ...
     }
 
     validation(languageNode: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
@@ -202,10 +196,6 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
         } else {
             assertUnreachable(rule.validateArgumentsOfFunctionCalls);
         }
-    }
-
-    afterValidation(_languageRoot: LanguageType, _accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
-        // do nothing
     }
 
 }

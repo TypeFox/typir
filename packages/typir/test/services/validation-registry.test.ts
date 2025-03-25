@@ -7,7 +7,7 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { Type } from '../../src/graph/type-node.js';
 import { PrimitiveType } from '../../src/kinds/primitive/primitive-type.js';
-import { DefaultValidationCollector, ValidationRule, ValidationRuleOptions, ValidationRuleStateless, ValidationRuleWithBeforeAfter } from '../../src/services/validation.js';
+import { DefaultValidationCollector, ValidationRule, ValidationRuleOptions, ValidationRuleFunctional, ValidationRuleLifecycle } from '../../src/services/validation.js';
 import { booleanTrue, integer123, IntegerLiteral, stringHello, StringLiteral, TestLanguageNode } from '../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../src/typir.js';
 import { RuleRegistry } from '../../src/utils/rule-registration.js';
@@ -17,9 +17,9 @@ describe('Tests the logic for registering rules (applied to state-less validatio
     let typir: TypirServices<TestLanguageNode>;
     let integerType: PrimitiveType;
     let stringType: PrimitiveType;
-    let ruleString: ValidationRuleStateless<TestLanguageNode>;
-    let ruleInteger: ValidationRuleStateless<TestLanguageNode>;
-    let ruleStringInteger: ValidationRuleStateless<TestLanguageNode>;
+    let ruleString: ValidationRuleFunctional<TestLanguageNode>;
+    let ruleInteger: ValidationRuleFunctional<TestLanguageNode>;
+    let ruleStringInteger: ValidationRuleFunctional<TestLanguageNode>;
 
     beforeEach(() => {
         // Typir services
@@ -297,13 +297,13 @@ describe('Tests the logic for registering rules (applied to state-less validatio
     }
 
     function assertNumberRules(size: number): void {
-        const registry = (typir.validation.Collector as TestValidatorImpl).ruleRegistryStateLess;
+        const registry = (typir.validation.Collector as TestValidatorImpl).ruleRegistryFunctional;
         expect(registry.getNumberUniqueRules()).toBe(size);
     }
 });
 
 class TestValidatorImpl extends DefaultValidationCollector<TestLanguageNode> {
     // make the public to access their details
-    override readonly ruleRegistryStateLess: RuleRegistry<ValidationRuleStateless<TestLanguageNode>>;
-    override readonly ruleRegistryBeforeAfter: RuleRegistry<ValidationRuleWithBeforeAfter<TestLanguageNode>>;
+    override readonly ruleRegistryFunctional: RuleRegistry<ValidationRuleFunctional<TestLanguageNode>>;
+    override readonly ruleRegistryLifecycle: RuleRegistry<ValidationRuleLifecycle<TestLanguageNode>>;
 }

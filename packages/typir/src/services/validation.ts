@@ -38,14 +38,14 @@ export type ReducedValidationProblem<LanguageType = unknown, T extends LanguageT
 export type ValidationProblemAcceptor<LanguageType = unknown> = <T extends LanguageType = LanguageType>(problem: ReducedValidationProblem<LanguageType, T>) => void;
 
 export type ValidationRule<LanguageType = unknown, InputType extends LanguageType = LanguageType> =
-    | ValidationRuleStateless<LanguageType, InputType>
-    | ValidationRuleWithBeforeAfter<LanguageType, LanguageType, InputType>;
+    | ValidationRuleFunctional<LanguageType, InputType>
+    | ValidationRuleLifecycle<LanguageType, LanguageType, InputType>;
 
 /**
  * Describes a simple, state-less validation rule,
  * which might produce an unlimited number of problems.
  */
-export type ValidationRuleStateless<LanguageType = unknown, InputType extends LanguageType = LanguageType> =
+export type ValidationRuleFunctional<LanguageType = unknown, InputType extends LanguageType = LanguageType> =
     (languageNode: InputType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
 
 /**
@@ -54,10 +54,10 @@ export type ValidationRuleStateless<LanguageType = unknown, InputType extends La
  * in order to store some information which are calculated during 'validation',
  * which are finally evaluated in 'afterValidation'.
  */
-export interface ValidationRuleWithBeforeAfter<LanguageType = unknown, RootType extends LanguageType = LanguageType, InputType extends LanguageType = LanguageType> {
-    beforeValidation(languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>): void;
-    validation: ValidationRuleStateless<LanguageType, InputType>;
-    afterValidation(languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>): void;
+export interface ValidationRuleLifecycle<LanguageType = unknown, RootType extends LanguageType = LanguageType, InputType extends LanguageType = LanguageType> {
+    beforeValidation?: (languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
+    validation: ValidationRuleFunctional<LanguageType, InputType>;
+    afterValidation?: (languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
 }
 
 
@@ -217,17 +217,17 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
     protected readonly services: TypirServices<LanguageType>;
     protected readonly listeners: Array<ValidationCollectorListener<LanguageType>> = [];
 
-    protected readonly ruleRegistryStateLess: RuleRegistry<ValidationRuleStateless<LanguageType>, LanguageType>;
-    protected readonly ruleRegistryBeforeAfter: RuleRegistry<ValidationRuleWithBeforeAfter<LanguageType>, LanguageType>;
+    protected readonly ruleRegistryFunctional: RuleRegistry<ValidationRuleFunctional<LanguageType>, LanguageType>;
+    protected readonly ruleRegistryLifecycle: RuleRegistry<ValidationRuleLifecycle<LanguageType>, LanguageType>;
 
     constructor(services: TypirServices<LanguageType>) {
         this.services = services;
 
-        this.ruleRegistryStateLess = new RuleRegistry(services);
-        this.ruleRegistryStateLess.addListener(this);
+        this.ruleRegistryFunctional = new RuleRegistry(services);
+        this.ruleRegistryFunctional.addListener(this);
 
-        this.ruleRegistryBeforeAfter = new RuleRegistry(services);
-        this.ruleRegistryBeforeAfter.addListener(this);
+        this.ruleRegistryLifecycle = new RuleRegistry(services);
+        this.ruleRegistryLifecycle.addListener(this);
     }
 
     protected createAcceptor(problems: Array<ValidationProblem<LanguageType>>): ValidationProblemAcceptor<LanguageType> {
@@ -242,8 +242,8 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
     validateBefore(languageRoot: LanguageType): Array<ValidationProblem<LanguageType>> {
         const problems: Array<ValidationProblem<LanguageType>> = [];
         const accept = this.createAcceptor(problems);
-        for (const rule of this.ruleRegistryBeforeAfter.getUniqueRules()) { // the returned rules are unique
-            rule.beforeValidation.call(rule, languageRoot, accept, this.services);
+        for (const rule of this.ruleRegistryLifecycle.getUniqueRules()) { // the returned rules are unique
+            rule.beforeValidation?.call(rule, languageRoot, accept, this.services);
         }
         return problems;
     }
@@ -263,10 +263,10 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
         // execute all rules wich are associated to the relevant language keys
         const problems: Array<ValidationProblem<LanguageType>> = [];
         const accept = this.createAcceptor(problems);
-        const alreadyExecutedRules: Set<ValidationRuleStateless<LanguageType>> = new Set(); // don't execute rules multiple times, if they are associated with multiple keys (with overlapping sub-keys)
+        const alreadyExecutedRules: Set<ValidationRuleFunctional<LanguageType>> = new Set(); // don't execute rules multiple times, if they are associated with multiple keys (with overlapping sub-keys)
         for (const key of keysToApply) {
             // state-less rules
-            for (const ruleStateless of this.ruleRegistryStateLess.getRulesByLanguageKey(key)) {
+            for (const ruleStateless of this.ruleRegistryFunctional.getRulesByLanguageKey(key)) {
                 if (alreadyExecutedRules.has(ruleStateless)) {
                     // don't execute this rule again
                 } else {
@@ -276,7 +276,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
             }
 
             // rules with before and after
-            for (const ruleStateless of this.ruleRegistryBeforeAfter.getRulesByLanguageKey(key)) {
+            for (const ruleStateless of this.ruleRegistryLifecycle.getRulesByLanguageKey(key)) {
                 if (alreadyExecutedRules.has(ruleStateless.validation)) {
                     // don't execute this rule again
                 } else {
@@ -291,25 +291,25 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
     validateAfter(languageRoot: LanguageType): Array<ValidationProblem<LanguageType>> {
         const problems: Array<ValidationProblem<LanguageType>> = [];
         const accept = this.createAcceptor(problems);
-        for (const rule of this.ruleRegistryBeforeAfter.getUniqueRules()) { // the returned rules are unique
-            rule.afterValidation.call(rule, languageRoot, accept, this.services);
+        for (const rule of this.ruleRegistryLifecycle.getUniqueRules()) { // the returned rules are unique
+            rule.afterValidation?.call(rule, languageRoot, accept, this.services);
         }
         return problems;
     }
 
     addValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         if (typeof rule === 'function') {
-            this.ruleRegistryStateLess.addRule(rule as ValidationRuleStateless<LanguageType>, givenOptions);
+            this.ruleRegistryFunctional.addRule(rule as ValidationRuleFunctional<LanguageType>, givenOptions);
         } else {
-            this.ruleRegistryBeforeAfter.addRule(rule as ValidationRuleWithBeforeAfter<LanguageType>, givenOptions);
+            this.ruleRegistryLifecycle.addRule(rule as ValidationRuleLifecycle<LanguageType>, givenOptions);
         }
     }
 
     removeValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         if (typeof rule === 'function') {
-            this.ruleRegistryStateLess.removeRule(rule as ValidationRuleStateless<LanguageType>, givenOptions);
+            this.ruleRegistryFunctional.removeRule(rule as ValidationRuleFunctional<LanguageType>, givenOptions);
         } else {
-            this.ruleRegistryBeforeAfter.removeRule(rule as ValidationRuleWithBeforeAfter<LanguageType>, givenOptions);
+            this.ruleRegistryLifecycle.removeRule(rule as ValidationRuleLifecycle<LanguageType>, givenOptions);
         }
     }
 
@@ -331,7 +331,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
 }
 
 
-export class CompositeValidationRule<LanguageType = unknown> extends DefaultValidationCollector<LanguageType> implements ValidationRuleWithBeforeAfter<LanguageType> {
+export class CompositeValidationRule<LanguageType = unknown> extends DefaultValidationCollector<LanguageType> implements ValidationRuleLifecycle<LanguageType> {
     /** The collector for inference rules, at which this composite rule should be registered. */
     protected readonly collectorToRegisterThisRule: ValidationCollector<LanguageType>;
 
@@ -369,7 +369,7 @@ export class CompositeValidationRule<LanguageType = unknown> extends DefaultVali
 
         // remove this composite rule for all language keys for which no inner rules are registered anymore
         if (diffOptions.languageKey === undefined) {
-            if (this.ruleRegistryStateLess.getRulesByLanguageKey(undefined).length <= 0 && this.ruleRegistryBeforeAfter.getRulesByLanguageKey(undefined).length <= 0) {
+            if (this.ruleRegistryFunctional.getRulesByLanguageKey(undefined).length <= 0 && this.ruleRegistryLifecycle.getRulesByLanguageKey(undefined).length <= 0) {
                 this.collectorToRegisterThisRule.removeValidationRule(this, {
                     ...diffOptions,
                     languageKey: undefined,
@@ -378,7 +378,7 @@ export class CompositeValidationRule<LanguageType = unknown> extends DefaultVali
             }
         } else {
             const languageKeysToUnregister = toArray(diffOptions.languageKey)
-                .filter(key => this.ruleRegistryStateLess.getRulesByLanguageKey(key).length <= 0 && this.ruleRegistryBeforeAfter.getRulesByLanguageKey(key).length <= 0);
+                .filter(key => this.ruleRegistryFunctional.getRulesByLanguageKey(key).length <= 0 && this.ruleRegistryLifecycle.getRulesByLanguageKey(key).length <= 0);
             this.collectorToRegisterThisRule.removeValidationRule(this, {
                 ...diffOptions,
                 languageKey: languageKeysToUnregister,

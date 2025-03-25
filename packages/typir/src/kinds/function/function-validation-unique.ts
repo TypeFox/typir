@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationProblemAcceptor, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
+import { ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { FunctionType, isFunctionType } from './function-type.js';
 
@@ -12,7 +12,7 @@ import { FunctionType, isFunctionType } from './function-type.js';
  * Predefined validation to produce errors for those (overloaded) functions which cannot be distinguished when calling them.
  * By default, only the name and the types of the input parameters are used to distinguish functions.
  */
-export class UniqueFunctionValidation<LanguageType = unknown> implements ValidationRuleWithBeforeAfter<LanguageType> {
+export class UniqueFunctionValidation<LanguageType = unknown> implements ValidationRuleLifecycle<LanguageType> {
     protected readonly foundDeclarations: Map<string, LanguageType[]> = new Map();
     protected readonly services: TypirServices<LanguageType>;
     /**

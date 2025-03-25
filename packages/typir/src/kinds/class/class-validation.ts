@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationProblemAcceptor, ValidationRule, ValidationRuleWithBeforeAfter } from '../../services/validation.js';
+import { ValidationProblemAcceptor, ValidationRule, ValidationRuleLifecycle } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { FunctionType, isFunctionType } from '../function/function-type.js';
 import { ClassType, isClassType } from './class-type.js';
@@ -13,7 +13,7 @@ import { ClassType, isClassType } from './class-type.js';
  * Predefined validation to produce errors, if the same class is declared more than once.
  * This is often relevant for nominally typed classes.
  */
-export class UniqueClassValidation<LanguageType = unknown> implements ValidationRuleWithBeforeAfter<LanguageType> {
+export class UniqueClassValidation<LanguageType = unknown> implements ValidationRuleLifecycle<LanguageType> {
     protected readonly foundDeclarations: Map<string, LanguageType[]> = new Map();
 
     protected readonly services: TypirServices<LanguageType>;
@@ -90,7 +90,7 @@ export interface UniqueMethodValidationOptions<LanguageType = unknown, T extends
 /**
  * Predefined validation to produce errors, if inside a class the same method is declared more than once.
  */
-export class UniqueMethodValidation<LanguageType = unknown, T extends LanguageType = LanguageType> implements ValidationRuleWithBeforeAfter<LanguageType> {
+export class UniqueMethodValidation<LanguageType = unknown, T extends LanguageType = LanguageType> implements ValidationRuleLifecycle<LanguageType> {
     protected readonly foundDeclarations: Map<string, Array<UniqueMethodValidationEntry<LanguageType>>> = new Map();
 
     protected readonly services: TypirServices<LanguageType>;
