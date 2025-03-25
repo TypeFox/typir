@@ -15,6 +15,7 @@ import { CustomTypeInitializer } from './custom-initializer.js';
 import { CustomType } from './custom-type.js';
 
 export interface CustomKindOptions<Properties extends CustomTypeProperties, LanguageType = unknown> {
+    name: string;
     calculateIdentifier: (typeDetails: CustomTypeDetails<Properties, LanguageType>) => string;
 }
 
@@ -31,6 +32,7 @@ export interface CreateCustomTypeDetails<Properties extends CustomTypeProperties
 export interface CustomFactoryService<Properties extends CustomTypeProperties, LanguageType = unknown> {
     create(typeDetails: CustomTypeDetails<Properties, LanguageType>): CustomTypeConfigurationChain<Properties, LanguageType>;
     get(typeDetails: CustomTypeDetails<Properties, LanguageType>): TypeReference<CustomType<Properties, LanguageType>, LanguageType>;
+    // TODO getOrCreateTopCustomType ??
 }
 
 export interface CustomTypeConfigurationChain<Properties extends CustomTypeProperties, LanguageType = unknown> {
@@ -44,17 +46,16 @@ export class CustomKind<Properties extends CustomTypeProperties, LanguageType = 
     readonly services: TypirServices<LanguageType>;
     readonly options: CustomKindOptions<Properties, LanguageType>;
 
-    constructor(services: TypirServices<LanguageType>, options?: Partial<CustomKindOptions<Properties, LanguageType>>) {
+    constructor(services: TypirServices<LanguageType>, options: CustomKindOptions<Properties, LanguageType>) {
         this.$name = 'CustomKind';
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
         this.options = this.collectOptions(options);
     }
 
-    protected collectOptions(options?: Partial<CustomKindOptions<Properties, LanguageType>>): CustomKindOptions<Properties, LanguageType> {
-        // TODO ist optional hier wirklich OK?
+    protected collectOptions(options: CustomKindOptions<Properties, LanguageType>): CustomKindOptions<Properties, LanguageType> {
         return {
-            calculateIdentifier: (details) => `custom-${details.typeName}`,
+            // no default options required here
             ...options,
         };
     }

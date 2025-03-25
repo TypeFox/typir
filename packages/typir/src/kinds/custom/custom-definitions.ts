@@ -16,6 +16,8 @@ export type CustomTypeProperties = Record<string, CustomTypePropertyTypes>;
 // all properties might be optional or mandatory, this is kept in the derived types!
 
 export type CustomTypePropertyTypes =
+    // | CustomTypeProperties // TODO Djinject hat so eine Schachtelung drin!
+    // | Record<string, CustomTypePropertyTypes>
     | Type
     | CustomTypePropertyTypes[] | Map<string, CustomTypePropertyTypes> | Set<CustomTypePropertyTypes>
     | string | number | boolean | bigint;

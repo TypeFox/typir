@@ -127,6 +127,6 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType = 
 
 }
 
-export function isCustomType<Properties extends CustomTypeProperties, LanguageType = unknown>(type: unknown): type is CustomType<Properties, LanguageType> {
-    return type instanceof CustomType;
+export function isCustomType<Properties extends CustomTypeProperties, LanguageType = unknown>(type: unknown, kind: string | CustomKind<Properties, LanguageType>): type is CustomType<Properties, LanguageType> {
+    return type instanceof CustomType && (typeof kind === 'string' ? type.kind.options.name === kind : type.kind === kind);
 }
