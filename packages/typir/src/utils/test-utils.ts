@@ -253,7 +253,7 @@ export function createTypirServicesForTesting(
     customizationForTesting: Module<TypirServices<TestLanguageNode>, PartialTypirServices<TestLanguageNode>> = {},
 ): TypirServices<TestLanguageNode> {
     return createTypirServices<TestLanguageNode>(
-        createDefaultTypirServiceModule(),                      // all default core implementations
+        createDefaultTypirServiceModule(),              // all default core implementations
         {                                               // override some default implementations:
             Printer: () => new TestProblemPrinter(),    // use the dedicated printer for TestLanguageNode's
             Language: () => new TestLanguageService(),  // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)

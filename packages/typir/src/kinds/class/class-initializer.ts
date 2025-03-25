@@ -34,7 +34,7 @@ export class ClassTypeInitializer<LanguageType> extends TypeInitializer<ClassTyp
         }
 
         this.createInferenceAndValidationRules(this.typeDetails, this.initialClassType);
-        // register all the inference rules already now to enable early type inference for this Class type ('undefined', since the Identifier is still missing)
+        // register all the inference rules already now to enable early type inference for this Class type ('undefined', since its Identifier is still missing)
         this.inferenceRules.forEach(rule => services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, undefined)));
         this.validationRules.forEach(rule => services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, undefined)));
 
