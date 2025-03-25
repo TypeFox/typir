@@ -33,7 +33,7 @@ export function createType<T extends CustomTypeProperties>(_values: T) {
 }
 
 
-describe('Tests simple custom types', () => {
+describe('Tests simple custom types for Matrix types', () => {
 
     test('some experiments', () => {
         const typir = createTypirServicesForTesting();
@@ -88,19 +88,21 @@ describe('Tests simple custom types', () => {
 
         // create a custom kind to create custom types with dedicated properties, as defined in <MatrixType>
         const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+            name: 'Matrix',
             // determine which identifier is used to store and retrieve a custom type in the type graph (and to check its uniqueness)
             calculateIdentifier: details =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(details.properties.baseType).getIdentifier()}-${details.properties.width}-${details.properties.height}`,
         });
 
         // now use this custom kind to create some custom types
-        const matrix2x2 = customKind
+        const matrix2x2 = customKind // "lazy" to use matrix2x2 as 'baseType' => review ZOD, separate primitives and Typir-Types
             .create({ typeName: 'My2x2MatrixType', properties: { baseType: integerType, width: 2, height: 2 } })
+            // .create({ typeName: 'My2x2MatrixType', properties: { baseType: () => customKind.get({ }), width: 2, height: 2 } })
             // .inferenceRule({ TODO })
             .finish().getTypeFinal()!; // we know, that the new custom type depends only on types which are already available
         expect(typir.Printer.printTypeUserRepresentation(matrix2x2)).toBe('My2x2MatrixType');
-        assertTypirType(matrix2x2, isCustomType, 'My2x2MatrixType');
-        expectTypirTypes(typir, isCustomType, 'My2x2MatrixType');
+        assertTypirType(matrix2x2, type => isCustomType(type, customKind), 'My2x2MatrixType');
+        expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType');
         expect(matrix2x2.properties.width).toBe(2);
         expect(matrix2x2.properties.height).toBe(2);
         expectToBeType(matrix2x2.properties.baseType.getType(), isPrimitiveType, type => type === integerType); // TODO get rid of ".getType()" ?
@@ -110,8 +112,8 @@ describe('Tests simple custom types', () => {
             // .inferenceRule({ TODO })
             .finish().getTypeFinal()!; // we know, that the new custom type depends only on types which are already available
         expect(typir.Printer.printTypeUserRepresentation(matrix3x3)).toBe('My3x3MatrixType');
-        assertTypirType(matrix3x3, isCustomType, 'My3x3MatrixType');
-        expectTypirTypes(typir, isCustomType, 'My2x2MatrixType', 'My3x3MatrixType');
+        assertTypirType(matrix3x3, type => isCustomType(type, customKind), 'My3x3MatrixType');
+        expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType', 'My3x3MatrixType');
         expect(matrix3x3.properties.width).toBe(3);
         expect(matrix3x3.properties.height).toBe(3);
         expectToBeType(matrix3x3.properties.baseType.getType(), isPrimitiveType, type => type === integerType);

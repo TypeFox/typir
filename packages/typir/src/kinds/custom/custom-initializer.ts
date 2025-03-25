@@ -39,7 +39,7 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
     }
 
     onSwitchedToIdentifiable(customType: Type): void {
-        assertTypirType(customType, isCustomType<Properties, LanguageType>);
+        assertTypirType(customType, type => isCustomType<Properties, LanguageType>(type, this.initialCustomType.kind));
         assertTrue(customType === this.initialCustomType);
         const readyCustomType = this.producedType(customType);
         if (readyCustomType !== customType) {
