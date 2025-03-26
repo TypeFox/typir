@@ -4,7 +4,7 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
 
-## v0.2.0 (2025-??-??)
+## v0.2.0 (2025-03-??)
 
 ### New features
 
@@ -30,12 +30,15 @@ Note that the versions "0.x.0" probably will include breaking changes.
 - Reworked the API of validation rules to create validation issues: Instead of returning `ValidationProblem`s, they need to be given to the `ValidationProblemAcceptor` now, which is provided as additional argument inside validation rules (#64).
 - Reworked the API to add/remove validation rules in the `ValidationCollector` service (#64):
   - Additional arguments need to be specified with an options object now
-  - Unified validation API by defining `ValidationRule = ValidationRuleStateless | ValidationRuleWithBeforeAfter` and removed dedicated `add/removeValidationRuleWithBeforeAndAfter` methods accordingly
+  - Unified validation API by renaming and defining `ValidationRule = ValidationRuleFunctional | ValidationRuleLifecycle` and removed dedicated `add/removeValidationRuleWithBeforeAndAfter` methods accordingly
 - Reworked the API to add/remove rules for type inference in the `TypeInferenceCollector` service (#64):
   - Additional arguments need to be specified with an options object now
 - Reworked the APIs to create types by introducing a chaining API to define optional inference rules. Don't forget to call `.finish();` at the end in order to complete the definition and to create the defined type! Typir will not inform you about forgotten calls of `finish()`! This counts for all provided type factories (#64).
 - Validations for the types of the arguments for function (and operator) calls need to be explicitly requested with the new property `validateArgumentsOfCalls` in the inference rules for calls now. In previous versions, these validations were active by default (#64).
 - The default Typir module was provided as `const DefaultTypirServiceModule`, now it is provided as `function createDefaultTypirServiceModule()` (#64).
+- Most parts of Typir have the additional `<LanguageType>` generic in order to replace `unknown` by your current `LanguageType` (#64).
+  - Use the base type of your AST node implementations as `LanguageType`, e.g. `AstNode` in Typir-Langium or `TestLanguageNode` for the internal test cases of Typir.
+  - Therefore, your `LanguageType` might need to be sometimes specified, e.g. for `createDefaultTypirServiceModule<LanguageType>(...)` and `createTypirServices<LanguageType>(...)`.
 
 ### Fixed bugs
 

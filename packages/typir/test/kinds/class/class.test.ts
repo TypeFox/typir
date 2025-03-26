@@ -46,7 +46,7 @@ describe('Tests some details for class types', () => {
             .inferenceRuleForFieldAccess({
                 filter: node => node instanceof ClassFieldAccess,
                 matching: (node, classType) => {
-                    const variableType = typir.Inference.inferType(node.classVariable); // TODO review: doing type inference on your own here feels a bit strange
+                    const variableType = typir.Inference.inferType(node.classVariable);
                     return variableType === classType;
                 },
                 field: node => node.fieldName,
