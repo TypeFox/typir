@@ -13,9 +13,9 @@ import { isClassType } from './class-type.js';
 import { isTopClassKind, TopClassKind, TopClassTypeDetails } from './top-class-kind.js';
 
 export class TopClassType extends Type implements TypeGraphListener {
-    override readonly kind: TopClassKind;
+    override readonly kind: TopClassKind<unknown>;
 
-    constructor(kind: TopClassKind, identifier: string, typeDetails: TopClassTypeDetails) {
+    constructor(kind: TopClassKind<unknown>, identifier: string, typeDetails: TopClassTypeDetails<unknown>) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions

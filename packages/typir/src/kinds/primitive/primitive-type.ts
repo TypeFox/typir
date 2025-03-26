@@ -11,9 +11,9 @@ import { checkValueForConflict, createKindConflict } from '../../utils/utils-typ
 import { isPrimitiveKind, PrimitiveKind, PrimitiveTypeDetails } from './primitive-kind.js';
 
 export class PrimitiveType extends Type {
-    override readonly kind: PrimitiveKind;
+    override readonly kind: PrimitiveKind<unknown>;
 
-    constructor(kind: PrimitiveKind, identifier: string, typeDetails: PrimitiveTypeDetails) {
+    constructor(kind: PrimitiveKind<unknown>, identifier: string, typeDetails: PrimitiveTypeDetails<unknown>) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions

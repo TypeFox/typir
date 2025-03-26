@@ -26,7 +26,7 @@ export function isSpecificTypirProblem(problem: unknown, $problem: string): prob
 
 export type Types = Type | Type[];
 export type Names = string | string[];
-export type TypeInitializers<T extends Type = Type> = TypeInitializer<T> | Array<TypeInitializer<T>>;
+export type TypeInitializers<T extends Type, LanguageType> = TypeInitializer<T, LanguageType> | Array<TypeInitializer<T, LanguageType>>;
 
 export type NameTypePair = {
     name: string;
@@ -43,12 +43,12 @@ export function isNameTypePair(type: unknown): type is NameTypePair {
 //
 
 /** A pair of a rule for type inference with its additional options. */
-export interface ValidationRuleWithOptions<LanguageType = unknown, T extends LanguageType = LanguageType> {
+export interface ValidationRuleWithOptions<LanguageType, T extends LanguageType = LanguageType> {
     rule: ValidationRule<LanguageType, T>;
     options: Partial<ValidationRuleOptions>;
 }
 
-export function bindValidateCurrentTypeRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType>(
+export function bindValidateCurrentTypeRule<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType>(
     rule: InferCurrentTypeRule<TypeType, LanguageType, T>, type: TypeType
 ): ValidationRuleWithOptions<LanguageType, T> | undefined {
     // check the given rule
@@ -98,7 +98,7 @@ export interface RegistrationOptions {
 //
 
 /** A pair of a rule for type inference with its additional options. */
-export interface InferenceRuleWithOptions<LanguageType = unknown, T extends LanguageType = LanguageType> {
+export interface InferenceRuleWithOptions<LanguageType, T extends LanguageType = LanguageType> {
     rule: TypeInferenceRule<LanguageType, T>;
     options: Partial<TypeInferenceRuleOptions>;
 }
@@ -111,7 +111,7 @@ export function optionsBoundToType<T extends Partial<TypeInferenceRuleOptions> |
 }
 
 export function ruleWithOptionsBoundToType<
-    LanguageType = unknown, T extends LanguageType = LanguageType
+    LanguageType, T extends LanguageType = LanguageType
 >(rule: InferenceRuleWithOptions<LanguageType, T>, type: Type | undefined): InferenceRuleWithOptions<LanguageType, T> {
     return {
         rule: rule.rule,
@@ -125,7 +125,7 @@ export function ruleWithOptionsBoundToType<
  * This utility type is often used for inference rules which are annotated to the declaration of a type.
  * At least one of the properties needs to be specified.
  */
-export interface InferCurrentTypeRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType> {
+export interface InferCurrentTypeRule<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType> {
     languageKey?: string | string[];
     filter?: (languageNode: LanguageType) => languageNode is T;
     matching?: (languageNode: T, typeToInfer: TypeType) => boolean;
@@ -137,17 +137,17 @@ export interface InferCurrentTypeRule<TypeType extends Type = Type, LanguageType
     validation?: InferCurrentTypeValidationRule<TypeType, LanguageType, T> | Array<InferCurrentTypeValidationRule<TypeType, LanguageType, T>>;
 }
 
-export type InferCurrentTypeValidationRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType> =
+export type InferCurrentTypeValidationRule<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType> =
     (languageNode: T, inferredType: TypeType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
 
 
-function checkRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType>(rule: InferCurrentTypeRule<TypeType, LanguageType, T>): void {
+function checkRule<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType>(rule: InferCurrentTypeRule<TypeType, LanguageType, T>): void {
     if (rule.languageKey === undefined && rule.filter === undefined && rule.matching === undefined) {
         throw new Error('This inference rule has none of the properties "languageKey", "filter" and "matching" at all and therefore cannot infer any type!');
     }
 }
 
-export function bindInferCurrentTypeRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType>(
+export function bindInferCurrentTypeRule<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType>(
     rule: InferCurrentTypeRule<TypeType, LanguageType, T>, type: TypeType
 ): InferenceRuleWithOptions<LanguageType, T> {
     checkRule(rule); // fail early
@@ -190,7 +190,7 @@ export function bindInferCurrentTypeRule<TypeType extends Type = Type, LanguageT
     };
 }
 
-export function registerInferCurrentTypeRules<TypeType extends Type = Type, LanguageType = unknown>(
+export function registerInferCurrentTypeRules<TypeType extends Type, LanguageType>(
     rules: InferCurrentTypeRule<TypeType, LanguageType> | Array<InferCurrentTypeRule<TypeType, LanguageType>> | undefined, type: TypeType, services: TypirServices<LanguageType>
 ): void {
     for (const ruleSingle of toArray(rules)) {

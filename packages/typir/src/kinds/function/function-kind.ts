@@ -19,7 +19,7 @@ import { FunctionType } from './function-type.js';
 import { UniqueFunctionValidation } from './function-validation-unique.js';
 
 
-export interface FunctionKindOptions<LanguageType = unknown> {
+export interface FunctionKindOptions<LanguageType> {
     // these three options controls structural vs nominal typing somehow ...
     enforceFunctionName: boolean,
     enforceInputParameterNames: boolean,
@@ -35,24 +35,24 @@ export interface FunctionKindOptions<LanguageType = unknown> {
 export const FunctionKindName = 'FunctionKind';
 
 
-export interface CreateParameterDetails<LanguageType = unknown> {
+export interface CreateParameterDetails<LanguageType> {
     name: string;
     type: TypeSelector<Type, LanguageType>;
 }
 
-export interface FunctionTypeDetails<LanguageType = unknown> extends TypeDetails<LanguageType> {
+export interface FunctionTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
     functionName: string,
     /** The order of parameters is important! */
     outputParameter: CreateParameterDetails<LanguageType> | undefined,
     inputParameters: Array<CreateParameterDetails<LanguageType>>,
 }
 
-export interface CreateFunctionTypeDetails<LanguageType = unknown> extends FunctionTypeDetails<LanguageType> {
+export interface CreateFunctionTypeDetails<LanguageType> extends FunctionTypeDetails<LanguageType> {
     inferenceRulesForDeclaration: Array<InferCurrentTypeRule<FunctionType, LanguageType>>,
     inferenceRulesForCalls: Array<InferFunctionCall<LanguageType, LanguageType>>,
 }
 
-export interface InferFunctionCall<LanguageType = unknown, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<FunctionType, LanguageType, T> {
+export interface InferFunctionCall<LanguageType, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<FunctionType, LanguageType, T> {
     /**
      * In case of overloaded functions, these input arguments are used to determine the actual function
      * by comparing the types of the given arguments with the expected types of the input parameters of the function.
@@ -106,7 +106,7 @@ export interface InferFunctionCall<LanguageType = unknown, T extends LanguageTyp
  */
 
 
-export interface FunctionFactoryService<LanguageType = unknown> {
+export interface FunctionFactoryService<LanguageType> {
     create(typeDetails: FunctionTypeDetails<LanguageType>): FunctionConfigurationChain<LanguageType>;
     get(typeDetails: FunctionTypeDetails<LanguageType>): TypeReference<FunctionType, LanguageType>;
     calculateIdentifier(typeDetails: FunctionTypeDetails<LanguageType>): string;
@@ -119,7 +119,7 @@ export interface FunctionFactoryService<LanguageType = unknown> {
     // benefits of this design decision: the returned rule is easier to exchange, users can use the known factory API with auto-completion (no need to remember the names of the validations)
 }
 
-export interface FunctionConfigurationChain<LanguageType = unknown> {
+export interface FunctionConfigurationChain<LanguageType> {
     /** for function declarations => returns the funtion type (the whole signature including all names) */
     inferenceRuleForDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<FunctionType, LanguageType, T>): FunctionConfigurationChain<LanguageType>;
     /** for function calls => returns the return type of the function */
@@ -146,7 +146,7 @@ export interface FunctionConfigurationChain<LanguageType = unknown> {
  * - optional parameters
  * - parameters which are used for output AND input
  */
-export class FunctionKind<LanguageType = unknown> implements Kind, FunctionFactoryService<LanguageType> {
+export class FunctionKind<LanguageType> implements Kind, FunctionFactoryService<LanguageType> {
     readonly $name: 'FunctionKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<FunctionKindOptions<LanguageType>>;
@@ -245,12 +245,12 @@ export class FunctionKind<LanguageType = unknown> implements Kind, FunctionFacto
     }
 }
 
-export function isFunctionKind(kind: unknown): kind is FunctionKind {
+export function isFunctionKind<LanguageType>(kind: unknown): kind is FunctionKind<LanguageType> {
     return isKind(kind) && kind.$name === FunctionKindName;
 }
 
 
-class FunctionConfigurationChainImpl<LanguageType = unknown> implements FunctionConfigurationChain<LanguageType> {
+class FunctionConfigurationChainImpl<LanguageType> implements FunctionConfigurationChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: FunctionKind<LanguageType>;
     protected readonly currentFunctionDetails: CreateFunctionTypeDetails<LanguageType>;

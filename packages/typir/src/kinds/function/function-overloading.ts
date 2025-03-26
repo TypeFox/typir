@@ -19,7 +19,7 @@ import { FunctionCallArgumentsValidation } from './function-validation-calls.js'
  * Collects information about all functions with the same name.
  * This is required to handle overloaded functions.
  */
-export interface OverloadedFunctionDetails<LanguageType = unknown> {
+export interface OverloadedFunctionDetails<LanguageType> {
     /** All function overloads/signatures with the same name. */
     overloadedFunctions: FunctionType[];
     /** Collects the details of all functions with the same name, grouped by language keys of their inference rules for function calls. */
@@ -30,7 +30,7 @@ export interface OverloadedFunctionDetails<LanguageType = unknown> {
     sameOutputType: Type | undefined;
 }
 
-export interface SingleFunctionDetails<LanguageType = unknown, T extends LanguageType = LanguageType> {
+export interface SingleFunctionDetails<LanguageType, T extends LanguageType = LanguageType> {
     functionType: FunctionType;
     inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
 }
@@ -41,7 +41,7 @@ export interface SingleFunctionDetails<LanguageType = unknown, T extends Languag
  * in particular, to support overloaded functions.
  * In each type system, exactly one instance of this class is stored by the FunctionKind.
  */
-export class AvailableFunctionsManager<LanguageType = unknown> implements TypeGraphListener {
+export class AvailableFunctionsManager<LanguageType> implements TypeGraphListener {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: FunctionKind<LanguageType>;
 

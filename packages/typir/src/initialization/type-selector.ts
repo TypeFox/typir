@@ -10,7 +10,7 @@ import { TypeInitializer } from './type-initializer.js';
 import { TypeReference } from './type-reference.js';
 
 // TODO find better names: TypeSpecification, TypeDesignation/Designator, ... ?
-export type BasicTypeSelector<T extends Type = Type, LanguageType = unknown> =
+export type BasicTypeSelector<T extends Type, LanguageType> =
     | T                                 // the wanted type
     | string                            // identifier of the type (to be searched in the type graph/map)
     | TypeInitializer<T, LanguageType>  // delayed creation of types
@@ -21,13 +21,13 @@ export type BasicTypeSelector<T extends Type = Type, LanguageType = unknown> =
 /**
  * This TypeScript type defines the possible ways to identify a desired Typir type.
  */
-export type TypeSelector<T extends Type = Type, LanguageType = unknown> =
+export type TypeSelector<T extends Type, LanguageType> =
     | BasicTypeSelector<T, LanguageType>          // all base type selectors
     | (() => BasicTypeSelector<T, LanguageType>)  // all type selectors might be given as functions as well, in order to ease delayed specifications
     ;
 
 
-export interface TypeResolvingService<LanguageType = unknown> {
+export interface TypeResolvingService<LanguageType> {
     /**
      * Tries to find the specified type in the type system.
      * This method does not care about the initialization state of the found type,
@@ -35,7 +35,7 @@ export interface TypeResolvingService<LanguageType = unknown> {
      * @param selector the specification for the desired type
      * @returns the found type; or undefined, if there is no such type in the type system
      */
-    tryToResolve<T extends Type = Type>(selector: TypeSelector<T, LanguageType>): T | undefined;
+    tryToResolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T | undefined;
 
     /**
      * Finds the specified type in the type system.
@@ -44,17 +44,17 @@ export interface TypeResolvingService<LanguageType = unknown> {
      * @param selector the specification for the desired type
      * @returns the found type; or an exception, if the type cannot be resolved
      */
-    resolve<T extends Type = Type>(selector: TypeSelector<T, LanguageType>): T;
+    resolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T;
 }
 
-export class DefaultTypeResolver<LanguageType = unknown> implements TypeResolvingService<LanguageType> {
+export class DefaultTypeResolver<LanguageType> implements TypeResolvingService<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
 
     constructor(services: TypirServices<LanguageType>) {
         this.services = services;
     }
 
-    tryToResolve<T extends Type = Type>(selector: TypeSelector<T, LanguageType>): T | undefined {
+    tryToResolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T | undefined {
         if (isType(selector)) {
             // TODO is there a way to explicitly enforce/ensure "as T"?
             return selector as T;
@@ -78,7 +78,7 @@ export class DefaultTypeResolver<LanguageType = unknown> implements TypeResolvin
         }
     }
 
-    resolve<T extends Type = Type>(selector: TypeSelector<T, LanguageType>): T {
+    resolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T {
         if (isType(selector)) {
             return selector as T;
         } else if (typeof selector === 'string') {

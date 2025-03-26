@@ -72,7 +72,7 @@ export interface SubType {
  * so that DSL users might accidentally define e.g. classes with cyclic sub-super classes, resulting in validation errors shown to them.
  * This implementation does not cache any computed sub-type-relationships.
  */
-export class DefaultSubType<LanguageType = unknown> implements SubType {
+export class DefaultSubType<LanguageType> implements SubType {
     protected readonly graph: TypeGraph;
     protected readonly algorithms: GraphAlgorithms;
 

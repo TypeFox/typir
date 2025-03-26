@@ -19,7 +19,7 @@ export interface GraphAlgorithms {
     getEdgePath(from: Type, to: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): TypeEdge[];
 }
 
-export class DefaultGraphAlgorithms<LanguageType = unknown> implements GraphAlgorithms {
+export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
     protected readonly graph: TypeGraph;
 
     constructor(services: TypirServices<LanguageType>) {

@@ -19,7 +19,7 @@ import { FunctionCallInferenceRule } from './function-inference-call.js';
  * In order to deal with multiple matching inference rules for overloaded functions,
  * all available inference rules need to be executed and all successful inference rules need to be collected.
  */
-export class OverloadedFunctionsTypeInferenceRule<LanguageType = unknown> extends CompositeTypeInferenceRule<LanguageType> {
+export class OverloadedFunctionsTypeInferenceRule<LanguageType> extends CompositeTypeInferenceRule<LanguageType> {
 
     protected override inferTypeLogic(languageNode: LanguageType): Type | Array<InferenceProblem<LanguageType>> {
         this.checkForError(languageNode);
@@ -126,7 +126,7 @@ export class OverloadedFunctionsTypeInferenceRule<LanguageType = unknown> extend
     }
 }
 
-interface OverloadedMatch<LanguageType = unknown> {
+interface OverloadedMatch<LanguageType> {
     result: Type;
     rule: FunctionCallInferenceRule<LanguageType>;
 }

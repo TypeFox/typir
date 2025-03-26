@@ -13,7 +13,7 @@ import { NameTypePair } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
 import { ValidationProblemAcceptor } from './validation.js';
 
-export interface InferOperatorWithSingleOperand<LanguageType = unknown, T extends LanguageType = LanguageType> {
+export interface InferOperatorWithSingleOperand<LanguageType, T extends LanguageType = LanguageType> {
     languageKey?: string | string[];
     filter?: (languageNode: LanguageType, operatorName: string) => languageNode is T;
     matching: (languageNode: T, operatorName: string) => boolean;
@@ -21,7 +21,7 @@ export interface InferOperatorWithSingleOperand<LanguageType = unknown, T extend
     validation?: OperatorValidationRule<FunctionType, LanguageType, T> | Array<OperatorValidationRule<FunctionType, LanguageType, T>>;
     validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 }
-export interface InferOperatorWithMultipleOperands<LanguageType = unknown, T extends LanguageType = LanguageType> {
+export interface InferOperatorWithMultipleOperands<LanguageType, T extends LanguageType = LanguageType> {
     languageKey?: string | string[];
     filter?: (languageNode: LanguageType, operatorName: string) => languageNode is T;
     matching: (languageNode: T, operatorName: string) => boolean;
@@ -30,7 +30,7 @@ export interface InferOperatorWithMultipleOperands<LanguageType = unknown, T ext
     validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 }
 
-export type OperatorValidationRule<TypeType extends Type = Type, LanguageType = unknown, T extends LanguageType = LanguageType> =
+export type OperatorValidationRule<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType> =
     (operatorCall: T, operatorName: string, operatorType: TypeType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
 
 export interface AnyOperatorDetails {
@@ -45,7 +45,7 @@ export interface UnaryOperatorSignature {
     operand: Type;
     return: Type;
 }
-interface CreateUnaryOperatorDetails<LanguageType = unknown> extends UnaryOperatorDetails { // only internally used for collecting all information with the chaining API
+interface CreateUnaryOperatorDetails<LanguageType> extends UnaryOperatorDetails { // only internally used for collecting all information with the chaining API
     inferenceRules: Array<InferOperatorWithSingleOperand<LanguageType>>;
 }
 
@@ -58,7 +58,7 @@ export interface BinaryOperatorSignature {
     right: Type;
     return: Type;
 }
-interface CreateBinaryOperatorDetails<LanguageType = unknown> extends BinaryOperatorDetails { // only internally used for collecting all information with the chaining API
+interface CreateBinaryOperatorDetails<LanguageType> extends BinaryOperatorDetails { // only internally used for collecting all information with the chaining API
     inferenceRules: Array<InferOperatorWithMultipleOperands<LanguageType>>;
 }
 
@@ -72,7 +72,7 @@ export interface TernaryOperatorSignature {
     third: Type;
     return: Type;
 }
-interface CreateTernaryOperatorDetails<LanguageType = unknown> extends TernaryOperatorDetails { // only internally used for collecting all information with the chaining API
+interface CreateTernaryOperatorDetails<LanguageType> extends TernaryOperatorDetails { // only internally used for collecting all information with the chaining API
     inferenceRules: Array<InferOperatorWithMultipleOperands<LanguageType>>;
 }
 
@@ -80,11 +80,11 @@ export interface GenericOperatorDetails extends AnyOperatorDetails {
     outputType: Type;
     inputParameter: NameTypePair[];
 }
-interface CreateGenericOperatorDetails<LanguageType = unknown> extends GenericOperatorDetails { // only internally used for collecting all information with the chaining API
+interface CreateGenericOperatorDetails<LanguageType> extends GenericOperatorDetails { // only internally used for collecting all information with the chaining API
     inferenceRules: Array<InferOperatorWithSingleOperand<LanguageType> | InferOperatorWithMultipleOperands<LanguageType>>;
 }
 
-export interface OperatorFactoryService<LanguageType = unknown> {
+export interface OperatorFactoryService<LanguageType> {
     createUnary(typeDetails: UnaryOperatorDetails): OperatorConfigurationUnaryChain<LanguageType>;
     createBinary(typeDetails: BinaryOperatorDetails): OperatorConfigurationBinaryChain<LanguageType>;
     createTernary(typeDetails: TernaryOperatorDetails): OperatorConfigurationTernaryChain<LanguageType>;
@@ -93,19 +93,19 @@ export interface OperatorFactoryService<LanguageType = unknown> {
     createGeneric(typeDetails: GenericOperatorDetails): OperatorConfigurationGenericChain<LanguageType>;
 }
 
-export interface OperatorConfigurationUnaryChain<LanguageType = unknown> {
+export interface OperatorConfigurationUnaryChain<LanguageType> {
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithSingleOperand<LanguageType, T>): OperatorConfigurationUnaryChain<LanguageType>;
     finish(): Array<TypeInitializer<Type, LanguageType>>;
 }
-export interface OperatorConfigurationBinaryChain<LanguageType = unknown> {
+export interface OperatorConfigurationBinaryChain<LanguageType> {
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationBinaryChain<LanguageType>;
     finish(): Array<TypeInitializer<Type, LanguageType>>;
 }
-export interface OperatorConfigurationTernaryChain<LanguageType = unknown> {
+export interface OperatorConfigurationTernaryChain<LanguageType> {
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationTernaryChain<LanguageType>;
     finish(): Array<TypeInitializer<Type, LanguageType>>;
 }
-export interface OperatorConfigurationGenericChain<LanguageType = unknown> {
+export interface OperatorConfigurationGenericChain<LanguageType> {
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithSingleOperand<LanguageType, T> | InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationGenericChain<LanguageType>;
     finish(): TypeInitializer<Type, LanguageType>;
 }
@@ -125,7 +125,7 @@ export interface OperatorConfigurationGenericChain<LanguageType = unknown> {
  *
  * All operands are mandatory.
  */
-export class DefaultOperatorFactory<LanguageType = unknown> implements OperatorFactoryService<LanguageType> {
+export class DefaultOperatorFactory<LanguageType> implements OperatorFactoryService<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
 
     constructor(services: TypirServices<LanguageType>) {
@@ -150,7 +150,7 @@ export class DefaultOperatorFactory<LanguageType = unknown> implements OperatorF
 }
 
 
-class OperatorConfigurationUnaryChainImpl<LanguageType = unknown> implements OperatorConfigurationUnaryChain<LanguageType> {
+class OperatorConfigurationUnaryChainImpl<LanguageType> implements OperatorConfigurationUnaryChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly typeDetails: CreateUnaryOperatorDetails<LanguageType>;
 
@@ -186,7 +186,7 @@ class OperatorConfigurationUnaryChainImpl<LanguageType = unknown> implements Ope
     }
 }
 
-class OperatorConfigurationBinaryChainImpl<LanguageType = unknown> implements OperatorConfigurationBinaryChain<LanguageType> {
+class OperatorConfigurationBinaryChainImpl<LanguageType> implements OperatorConfigurationBinaryChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly typeDetails: CreateBinaryOperatorDetails<LanguageType>;
 
@@ -223,7 +223,7 @@ class OperatorConfigurationBinaryChainImpl<LanguageType = unknown> implements Op
     }
 }
 
-class OperatorConfigurationTernaryChainImpl<LanguageType = unknown> implements OperatorConfigurationTernaryChain<LanguageType> {
+class OperatorConfigurationTernaryChainImpl<LanguageType> implements OperatorConfigurationTernaryChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly typeDetails: CreateTernaryOperatorDetails<LanguageType>;
 
@@ -261,7 +261,7 @@ class OperatorConfigurationTernaryChainImpl<LanguageType = unknown> implements O
     }
 }
 
-class OperatorConfigurationGenericChainImpl<LanguageType = unknown> implements OperatorConfigurationGenericChain<LanguageType> {
+class OperatorConfigurationGenericChainImpl<LanguageType> implements OperatorConfigurationGenericChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly typeDetails: CreateGenericOperatorDetails<LanguageType>;
 

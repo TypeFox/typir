@@ -15,27 +15,27 @@ export interface PrimitiveKindOptions {
     // empty for now
 }
 
-export interface PrimitiveTypeDetails<LanguageType = unknown> extends TypeDetails<LanguageType> {
+export interface PrimitiveTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
     primitiveName: string;
 }
 
-interface CreatePrimitiveTypeDetails<LanguageType = unknown> extends PrimitiveTypeDetails<LanguageType> {
+interface CreatePrimitiveTypeDetails<LanguageType> extends PrimitiveTypeDetails<LanguageType> {
     inferenceRules: Array<InferCurrentTypeRule<PrimitiveType, LanguageType>>;
 }
 
 export const PrimitiveKindName = 'PrimitiveKind';
 
-export interface PrimitiveFactoryService<LanguageType = unknown> {
+export interface PrimitiveFactoryService<LanguageType> {
     create(typeDetails: PrimitiveTypeDetails<LanguageType>): PrimitiveConfigurationChain<LanguageType>;
     get(typeDetails: PrimitiveTypeDetails<LanguageType>): PrimitiveType | undefined;
 }
 
-export interface PrimitiveConfigurationChain<LanguageType = unknown> {
+export interface PrimitiveConfigurationChain<LanguageType> {
     inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<PrimitiveType, LanguageType, T>): PrimitiveConfigurationChain<LanguageType>;
     finish(): PrimitiveType;
 }
 
-export class PrimitiveKind<LanguageType = unknown> implements Kind, PrimitiveFactoryService<LanguageType> {
+export class PrimitiveKind<LanguageType> implements Kind, PrimitiveFactoryService<LanguageType> {
     readonly $name: 'PrimitiveKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: PrimitiveKindOptions;
@@ -68,12 +68,12 @@ export class PrimitiveKind<LanguageType = unknown> implements Kind, PrimitiveFac
     }
 }
 
-export function isPrimitiveKind<LanguageType = unknown>(kind: unknown): kind is PrimitiveKind<LanguageType> {
+export function isPrimitiveKind<LanguageType>(kind: unknown): kind is PrimitiveKind<LanguageType> {
     return isKind(kind) && kind.$name === PrimitiveKindName;
 }
 
 
-class PrimitiveConfigurationChainImpl<LanguageType = unknown> implements PrimitiveConfigurationChain<LanguageType> {
+class PrimitiveConfigurationChainImpl<LanguageType> implements PrimitiveConfigurationChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: PrimitiveKind<LanguageType>;
     protected readonly typeDetails: CreatePrimitiveTypeDetails<LanguageType>;
@@ -94,7 +94,7 @@ class PrimitiveConfigurationChainImpl<LanguageType = unknown> implements Primiti
 
     finish(): PrimitiveType {
         // create the primitive type
-        const currentPrimitiveType = new PrimitiveType(this.kind as PrimitiveKind, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
+        const currentPrimitiveType = new PrimitiveType(this.kind as PrimitiveKind<unknown>, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
         this.services.infrastructure.Graph.addNode(currentPrimitiveType);
 
         // register the inference rules

@@ -29,15 +29,15 @@ stateDiagram-v2
 export type TypeInitializationState = 'Invalid' | 'Identifiable' | 'Completed';
 
 export interface PreconditionsForInitializationState {
-    referencesToBeIdentifiable?: TypeReference[]; // or later/more
-    referencesToBeCompleted?: TypeReference[]; // or later/more
+    referencesToBeIdentifiable?: Array<TypeReference<Type>>; // or later/more
+    referencesToBeCompleted?: Array<TypeReference<Type>>; // or later/more
 }
 
 /**
  * Contains properties which are be relevant for all types to create,
  * i.e. it is used for specifying details of all types to create.
  */
-export interface TypeDetails<LanguageType = unknown> {
+export interface TypeDetails<LanguageType> {
     /** A node from the language might be associated with the new type to create,
      * e.g. the declaration node in the AST (e.g. a FunctionDeclarationNode is associated with the corresponding FunctionType). */
     associatedLanguageNode?: LanguageType;
@@ -72,7 +72,7 @@ export abstract class Type {
      */
     readonly associatedLanguageNode: unknown | undefined;
 
-    constructor(identifier: string | undefined, typeDetails: TypeDetails) {
+    constructor(identifier: string | undefined, typeDetails: TypeDetails<unknown>) {
         this.identifier = identifier;
         this.associatedLanguageNode = typeDetails.associatedLanguageNode;
     }
@@ -187,9 +187,9 @@ export abstract class Type {
     protected onInvalidation: () => void;
 
     // internal helpers
-    protected waitForIdentifiable: WaitingForIdentifiableAndCompletedTypeReferences;
-    protected waitForCompleted: WaitingForIdentifiableAndCompletedTypeReferences;
-    protected waitForInvalid: WaitingForInvalidTypeReferences;
+    protected waitForIdentifiable: WaitingForIdentifiableAndCompletedTypeReferences<Type>;
+    protected waitForCompleted: WaitingForIdentifiableAndCompletedTypeReferences<Type>;
+    protected waitForInvalid: WaitingForInvalidTypeReferences<Type>;
 
     /**
      * Use this method to specify, how THIS new type should be initialized.
@@ -208,7 +208,7 @@ export abstract class Type {
          * don't need to be repeated here, since the completion is done only after the initialization. */
         preconditionsForCompleted?: PreconditionsForInitializationState,
         /** Must contain all(!) TypeReferences of a type. */
-        referencesRelevantForInvalidation?: TypeReference[],
+        referencesRelevantForInvalidation?: Array<TypeReference<Type>>,
         /** typical use cases: calculate the identifier, register inference rules for the type object already now! */
         onIdentifiable?: () => void,
         /** typical use cases: do some internal checks for the completed properties */

@@ -12,7 +12,7 @@ import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions
 import { removeFromArray, toArray } from '../utils/utils.js';
 import { LanguageNodeInferenceCaching } from './caching.js';
 
-export interface InferenceProblem<LanguageType = unknown> extends TypirProblem {
+export interface InferenceProblem<LanguageType> extends TypirProblem {
     $problem: 'InferenceProblem';
     languageNode: LanguageType;
     inferenceCandidate?: Type;
@@ -21,7 +21,7 @@ export interface InferenceProblem<LanguageType = unknown> extends TypirProblem {
     subProblems: TypirProblem[]; // might be missing or empty
 }
 export const InferenceProblem = 'InferenceProblem';
-export function isInferenceProblem<LanguageType = unknown>(problem: unknown): problem is InferenceProblem<LanguageType> {
+export function isInferenceProblem<LanguageType>(problem: unknown): problem is InferenceProblem<LanguageType> {
     return isSpecificTypirProblem(problem, InferenceProblem);
 }
 
@@ -29,7 +29,7 @@ export function isInferenceProblem<LanguageType = unknown>(problem: unknown): pr
 export type InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 export const InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 
-export type TypeInferenceResultWithoutInferringChildren<LanguageType = unknown> =
+export type TypeInferenceResultWithoutInferringChildren<LanguageType> =
     /** the identified type */
     Type |
     /** 'N/A' to indicate, that the current inference rule is not applicable for the given language node at all */
@@ -38,7 +38,7 @@ export type TypeInferenceResultWithoutInferringChildren<LanguageType = unknown> 
     LanguageType |
     /** an inference problem */
     InferenceProblem<LanguageType>;
-export type TypeInferenceResultWithInferringChildren<LanguageType = unknown> =
+export type TypeInferenceResultWithInferringChildren<LanguageType> =
     /** the usual results, since it might be possible to determine the type of the parent without its children */
     TypeInferenceResultWithoutInferringChildren<LanguageType> |
     /** the children whos types need to be inferred and taken into account to determine the parent's type */
@@ -53,17 +53,17 @@ export type TypeInferenceResultWithInferringChildren<LanguageType = unknown> =
  * Within inference rules, don't take the initialization state of the inferred type into account,
  * since such inferrence rules might not work for cyclic type definitions.
  */
-export type TypeInferenceRule<LanguageType = unknown, InputType extends LanguageType = LanguageType> = TypeInferenceRuleWithoutInferringChildren<LanguageType, InputType> | TypeInferenceRuleWithInferringChildren<LanguageType, InputType>;
+export type TypeInferenceRule<LanguageType, InputType extends LanguageType = LanguageType> = TypeInferenceRuleWithoutInferringChildren<LanguageType, InputType> | TypeInferenceRuleWithInferringChildren<LanguageType, InputType>;
 
 /** Usual inference rule which don't depend on children's types. */
-export type TypeInferenceRuleWithoutInferringChildren<LanguageType = unknown, InputType extends LanguageType = LanguageType> =
+export type TypeInferenceRuleWithoutInferringChildren<LanguageType, InputType extends LanguageType = LanguageType> =
     (languageNode: InputType, typir: TypirServices<LanguageType>) => TypeInferenceResultWithoutInferringChildren<LanguageType>;
 
 /**
  * Inference rule which requires for the type inference of the given parent to take the types of its children into account.
  * Therefore, the types of the children need to be inferred first.
  */
-export interface TypeInferenceRuleWithInferringChildren<LanguageType = unknown, InputType extends LanguageType = LanguageType> {
+export interface TypeInferenceRuleWithInferringChildren<LanguageType, InputType extends LanguageType = LanguageType> {
     /**
      * 1st step is to check, whether this inference rule is applicable to the given language node.
      * @param languageNode the language node whose type shall be inferred
@@ -88,7 +88,7 @@ export interface TypeInferenceRuleWithInferringChildren<LanguageType = unknown, 
 }
 
 
-export interface TypeInferenceCollectorListener<LanguageType = unknown> {
+export interface TypeInferenceCollectorListener<LanguageType> {
     onAddedInferenceRule(rule: TypeInferenceRule<LanguageType>, options: TypeInferenceRuleOptions): void;
     onRemovedInferenceRule(rule: TypeInferenceRule<LanguageType>, options: TypeInferenceRuleOptions): void;
 }
@@ -103,7 +103,7 @@ export interface TypeInferenceRuleOptions extends RuleOptions {
  * In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already returned a type.
  * Listeners could be registered in order to get informed about added and removed inference rules.
  */
-export interface TypeInferenceCollector<LanguageType = unknown> {
+export interface TypeInferenceCollector<LanguageType> {
     /**
      * Infers a type for the given language node.
      * @param languageNode the language node whose type shall be inferred
@@ -133,7 +133,7 @@ export interface TypeInferenceCollector<LanguageType = unknown> {
 }
 
 
-export class DefaultTypeInferenceCollector<LanguageType = unknown> implements TypeInferenceCollector<LanguageType>, RuleCollectorListener<TypeInferenceRule<LanguageType>> {
+export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenceCollector<LanguageType>, RuleCollectorListener<TypeInferenceRule<LanguageType>> {
     protected readonly ruleRegistry: RuleRegistry<TypeInferenceRule<LanguageType>, LanguageType>;
 
     protected readonly languageNodeInference: LanguageNodeInferenceCaching;
@@ -385,7 +385,7 @@ export class DefaultTypeInferenceCollector<LanguageType = unknown> implements Ty
  * This composite rule ensures itself, that it is associated to the set of language keys of the inner rules.
  */
 // This design looks a bit ugly ..., but "implements TypeInferenceRuleWithoutInferringChildren" does not work, since it is a function ...
-export class CompositeTypeInferenceRule<LanguageType = unknown> extends DefaultTypeInferenceCollector<LanguageType> implements TypeInferenceRuleWithInferringChildren<LanguageType> {
+export class CompositeTypeInferenceRule<LanguageType> extends DefaultTypeInferenceCollector<LanguageType> implements TypeInferenceRuleWithInferringChildren<LanguageType> {
     /** The collector for inference rules, at which this composite rule should be registered. */
     protected readonly collectorToRegisterThisRule: TypeInferenceCollector<LanguageType>;
 

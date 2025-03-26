@@ -7,13 +7,13 @@
 import { Kind } from '../kinds/kind.js';
 import { TypirServices } from '../typir.js';
 
-export interface KindRegistry<LanguageType = unknown> {
+export interface KindRegistry<LanguageType> {
     register(kind: Kind): void;
     get<T extends Kind>(type: T['$name']): T | undefined;
     getOrCreateKind<T extends Kind>(type: T['$name'], factory: (services: TypirServices<LanguageType>) => T): T;
 }
 
-export class DefaultKindRegistry<LanguageType = unknown> implements KindRegistry<LanguageType> {
+export class DefaultKindRegistry<LanguageType> implements KindRegistry<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kinds: Map<string, Kind> = new Map(); // name of kind => kind (for an easier look-up)
 

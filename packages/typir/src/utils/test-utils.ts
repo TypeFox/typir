@@ -20,7 +20,7 @@ import { Severity } from '../services/validation.js';
  * it is possible to specify names multiple times, if there are multiple types with the same name (e.g. for overloaded functions)
  * @returns all the found types
  */
-export function expectTypirTypes<LanguageType = unknown>(services: TypirServices<LanguageType>, filterTypes: (type: Type) => boolean, ...namesOfExpectedTypes: string[]): Type[] {
+export function expectTypirTypes<LanguageType>(services: TypirServices<LanguageType>, filterTypes: (type: Type) => boolean, ...namesOfExpectedTypes: string[]): Type[] {
     const types = services.infrastructure.Graph.getAllRegisteredTypes().filter(filterTypes);
     types.forEach(type => expect(type.getInitializationState()).toBe('Completed')); // check that all types are 'Completed'
     const typeNames = types.map(t => t.getName());
@@ -50,9 +50,9 @@ export interface ExpectedValidationIssuesOptions {
     severity?: Severity;
 }
 
-export function expectValidationIssues<LanguageType = unknown>(services: TypirServices<LanguageType>, languageNode: LanguageType, expectedIssues: string[]): void;
-export function expectValidationIssues<LanguageType = unknown>(services: TypirServices<LanguageType>, languageNode: LanguageType, options: ExpectedValidationIssuesOptions, expectedIssues: string[]): void;
-export function expectValidationIssues<LanguageType = unknown>(services: TypirServices<LanguageType>, languageNode: LanguageType, optionsOrIssues: ExpectedValidationIssuesOptions | string[], issues?: string[]): void {
+export function expectValidationIssues<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, expectedIssues: string[]): void;
+export function expectValidationIssues<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, options: ExpectedValidationIssuesOptions, expectedIssues: string[]): void;
+export function expectValidationIssues<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, optionsOrIssues: ExpectedValidationIssuesOptions | string[], issues?: string[]): void {
     const expectedIssues = Array.isArray(optionsOrIssues) ? optionsOrIssues : issues ?? [];
     const options = Array.isArray(optionsOrIssues) ? {} : optionsOrIssues;
 

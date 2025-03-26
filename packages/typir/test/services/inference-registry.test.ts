@@ -249,5 +249,5 @@ describe('Tests the logic for registering rules (applied to inference rules)', (
 
 class TestInferenceImpl extends DefaultTypeInferenceCollector<TestLanguageNode> {
     // make the public to access their details
-    override readonly ruleRegistry: RuleRegistry<TypeInferenceRule<TestLanguageNode>>;
+    override readonly ruleRegistry: RuleRegistry<TypeInferenceRule<TestLanguageNode>, TestLanguageNode>;
 }

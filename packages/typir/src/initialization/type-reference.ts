@@ -14,7 +14,7 @@ import { TypeSelector } from './type-selector.js';
 /**
  * A listener for TypeReferences, who will be informed about the resolved/found type of the current TypeReference.
  */
-export interface TypeReferenceListener<T extends Type = Type, LanguageType = unknown> {
+export interface TypeReferenceListener<T extends Type, LanguageType = unknown> {
     /**
      * Informs when the type of the reference is resolved/found.
      * @param reference the currently resolved TypeReference
@@ -43,7 +43,7 @@ export interface TypeReferenceListener<T extends Type = Type, LanguageType = unk
  *
  * Once the type is resolved, listeners are notified about this and all following changes of its state.
  */
-export class TypeReference<T extends Type = Type, LanguageType = unknown> implements TypeGraphListener, TypeInferenceCollectorListener<LanguageType> {
+export class TypeReference<T extends Type, LanguageType = unknown> implements TypeGraphListener, TypeInferenceCollectorListener<LanguageType> {
     protected readonly selector: TypeSelector<T, LanguageType>;
     protected readonly services: TypirServices<LanguageType>;
     protected resolvedType: T | undefined = undefined;

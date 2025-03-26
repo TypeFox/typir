@@ -8,7 +8,7 @@ import { Type, TypeStateListener } from '../graph/type-node.js';
 import { removeFromArray, toArray } from '../utils/utils.js';
 import { TypeReferenceListener, TypeReference } from './type-reference.js';
 
-export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<T extends Type = Type> {
+export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<T extends Type> {
     onFulfilled(waiter: WaitingForIdentifiableAndCompletedTypeReferences<T>): void;
     onInvalidated(waiter: WaitingForIdentifiableAndCompletedTypeReferences<T>): void;
 }
@@ -18,7 +18,7 @@ export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<T exte
  * After that, the listeners might be informed multiple times,
  * if at least one of the TypeReferences was unresolved/invalid, but later on all TypeReferences are again in the desired state, and so on.
  */
-export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = Type> implements TypeReferenceListener<T>, TypeStateListener {
+export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type> implements TypeReferenceListener<T>, TypeStateListener {
     /** Remembers whether all TypeReferences are in the desired states (true) or not (false). */
     protected fulfilled: boolean = false;
     /** This is required for cyclic type definitions:
@@ -198,9 +198,9 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
     }
 }
 
-export type WaitingForInvalidTypeReferencesListener<T extends Type = Type> = (waiter: WaitingForInvalidTypeReferences<T>) => void;
+export type WaitingForInvalidTypeReferencesListener<T extends Type> = (waiter: WaitingForInvalidTypeReferences<T>) => void;
 
-export class WaitingForInvalidTypeReferences<T extends Type = Type> implements TypeReferenceListener<T> {
+export class WaitingForInvalidTypeReferences<T extends Type> implements TypeReferenceListener<T> {
     protected counterInvalid: number; // just count the number of invalid TypeReferences
 
     // At least one of the given TypeReferences must be in the state Invalid.

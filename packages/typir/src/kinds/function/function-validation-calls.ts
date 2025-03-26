@@ -7,7 +7,7 @@
 import { ValidationProblem, ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { RuleCollectorListener, RuleOptions } from '../../utils/rule-registration.js';
-import { checkTypes, checkValueForConflict, createTypeCheckStrategy, TypeToCheck } from '../../utils/utils-type-comparison.js';
+import { checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertUnreachable, toArray } from '../../utils/utils.js';
 import { InferFunctionCall } from './function-kind.js';
 import { AvailableFunctionsManager, SingleFunctionDetails } from './function-overloading.js';
@@ -18,7 +18,7 @@ import { AvailableFunctionsManager, SingleFunctionDetails } from './function-ove
  * - and validates this call according to the specific validation rules for this function call.
  * There is only one instance of this class for each function kind/manager.
  */
-export class FunctionCallArgumentsValidation<LanguageType = unknown> implements ValidationRuleLifecycle<LanguageType>, RuleCollectorListener<SingleFunctionDetails<LanguageType>> {
+export class FunctionCallArgumentsValidation<LanguageType> implements ValidationRuleLifecycle<LanguageType>, RuleCollectorListener<SingleFunctionDetails<LanguageType>> {
     protected readonly services: TypirServices<LanguageType>;
     readonly functions: AvailableFunctionsManager<LanguageType>;
 
@@ -149,7 +149,7 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
             for (let i = 0; i < inputArguments.length; i++) {
                 const expectedType = expectedParameterTypes[i];
                 const inferredType = inferredParameterTypes[i];
-                const parameterProblems = checkTypes(inferredType as TypeToCheck, expectedType, createTypeCheckStrategy('ASSIGNABLE_TYPE', this.services), true);
+                const parameterProblems = checkTypes(inferredType, expectedType, createTypeCheckStrategy('ASSIGNABLE_TYPE', this.services), true);
                 if (parameterProblems.length >= 1) {
                     // the value is not assignable to the type of the input parameter
                     // create one ValidationProblem for each problematic parameter!
@@ -186,7 +186,7 @@ export class FunctionCallArgumentsValidation<LanguageType = unknown> implements 
         }
     }
 
-    protected validateArgumentsOfFunctionCalls<LanguageType = unknown>(rule: InferFunctionCall<LanguageType>, languageNode: LanguageType): boolean {
+    protected validateArgumentsOfFunctionCalls<LanguageType>(rule: InferFunctionCall<LanguageType>, languageNode: LanguageType): boolean {
         if (rule.validateArgumentsOfFunctionCalls === undefined) {
             return false; // the default value
         } else if (typeof rule.validateArgumentsOfFunctionCalls === 'boolean') {

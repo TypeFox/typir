@@ -109,7 +109,7 @@ export interface TypeConversion {
  * - Do not store transitive relationships, since they must be removed, when types of the corresponding path are removed!
  * - Store only EXPLICIT and IMPLICIT relationships, since this is not required, missing edges means NONE/SELF.
  */
-export class DefaultTypeConversion<LanguageType = unknown> implements TypeConversion {
+export class DefaultTypeConversion<LanguageType> implements TypeConversion {
     protected readonly equality: TypeEquality;
     protected readonly graph: TypeGraph;
     protected readonly algorithms: GraphAlgorithms;

@@ -11,10 +11,10 @@ import { assertTrue } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { TopType } from './top-type.js';
 
-export interface TopTypeDetails<LanguageType = unknown> extends TypeDetails<LanguageType> {
+export interface TopTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
     // empty
 }
-interface CreateTopTypeDetails<LanguageType = unknown> extends TopTypeDetails<LanguageType> {
+interface CreateTopTypeDetails<LanguageType> extends TopTypeDetails<LanguageType> {
     inferenceRules: Array<InferCurrentTypeRule<TopType, LanguageType>>;
 }
 
@@ -24,17 +24,17 @@ export interface TopKindOptions {
 
 export const TopKindName = 'TopKind';
 
-export interface TopFactoryService<LanguageType = unknown> {
+export interface TopFactoryService<LanguageType> {
     create(typeDetails: TopTypeDetails<LanguageType>): TopConfigurationChain<LanguageType>;
     get(typeDetails: TopTypeDetails<LanguageType>): TopType | undefined;
 }
 
-export interface TopConfigurationChain<LanguageType = unknown> {
+export interface TopConfigurationChain<LanguageType> {
     inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<TopType, LanguageType, T>): TopConfigurationChain<LanguageType>;
     finish(): TopType;
 }
 
-export class TopKind<LanguageType = unknown> implements Kind, TopFactoryService<LanguageType> {
+export class TopKind<LanguageType> implements Kind, TopFactoryService<LanguageType> {
     readonly $name: 'TopKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<TopKindOptions>;
@@ -71,12 +71,12 @@ export class TopKind<LanguageType = unknown> implements Kind, TopFactoryService<
 
 }
 
-export function isTopKind<LanguageType = unknown>(kind: unknown): kind is TopKind<LanguageType> {
+export function isTopKind<LanguageType>(kind: unknown): kind is TopKind<LanguageType> {
     return isKind(kind) && kind.$name === TopKindName;
 }
 
 
-class TopConfigurationChainImpl<LanguageType = unknown> implements TopConfigurationChain<LanguageType> {
+class TopConfigurationChainImpl<LanguageType> implements TopConfigurationChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: TopKind<LanguageType>;
     protected readonly typeDetails: CreateTopTypeDetails<LanguageType>;
@@ -96,7 +96,7 @@ class TopConfigurationChainImpl<LanguageType = unknown> implements TopConfigurat
     }
 
     finish(): TopType {
-        const topType = new TopType(this.kind as TopKind, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
+        const topType = new TopType(this.kind as TopKind<unknown>, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
         this.services.infrastructure.Graph.addNode(topType);
 
         registerInferCurrentTypeRules(this.typeDetails.inferenceRules, topType, this.services);

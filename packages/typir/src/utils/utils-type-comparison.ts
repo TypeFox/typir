@@ -17,7 +17,7 @@ export type TypeCheckStrategy =
     'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
     'SUB_TYPE'; // more relaxed checking
 
-export function createTypeCheckStrategy<LanguageType = unknown>(strategy: TypeCheckStrategy, typir: TypirServices<LanguageType>): (t1: Type, t2: Type) => TypirProblem | undefined {
+export function createTypeCheckStrategy<LanguageType>(strategy: TypeCheckStrategy, typir: TypirServices<LanguageType>): (t1: Type, t2: Type) => TypirProblem | undefined {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
             return typir.Assignability.getAssignabilityProblem // t1 === source, t2 === target
@@ -91,9 +91,9 @@ export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeC
     return isSpecificTypirProblem(problem, IndexedTypeConflict);
 }
 
-export type TypeToCheck = Type | NameTypePair | undefined | InferenceProblem[];
+export type TypeToCheck<LanguageType> = Type | NameTypePair | undefined | Array<InferenceProblem<LanguageType>>;
 
-export function checkTypes(left: TypeToCheck, right: TypeToCheck,
+export function checkTypes<LanguageType>(left: TypeToCheck<LanguageType>, right: TypeToCheck<LanguageType>,
     relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
@@ -163,7 +163,7 @@ export function checkTypes(left: TypeToCheck, right: TypeToCheck,
     return conflicts;
 }
 
-export function checkTypeArrays(leftTypes: TypeToCheck[], rightTypes: TypeToCheck[],
+export function checkTypeArrays<LanguageType>(leftTypes: Array<TypeToCheck<LanguageType>>, rightTypes: Array<TypeToCheck<LanguageType>>,
     relationToCheck: (l: Type, r: Type, index: number) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices

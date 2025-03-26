@@ -14,7 +14,7 @@ import { InferenceProblem, isInferenceProblem } from './inference.js';
 import { SubTypeProblem, isSubTypeProblem } from './subtype.js';
 import { ValidationProblem, isValidationProblem } from './validation.js';
 
-export interface ProblemPrinter<LanguageType = unknown> {
+export interface ProblemPrinter<LanguageType> {
     printValueConflict(problem: ValueConflict): string;
     printIndexedTypeConflict(problem: IndexedTypeConflict): string;
     printAssignabilityProblem(problem: AssignabilityProblem): string;
@@ -45,7 +45,7 @@ export interface ProblemPrinter<LanguageType = unknown> {
     printTypeUserRepresentation(type: Type): string;
 }
 
-export class DefaultTypeConflictPrinter<LanguageType = unknown> implements ProblemPrinter<LanguageType> {
+export class DefaultTypeConflictPrinter<LanguageType> implements ProblemPrinter<LanguageType> {
 
     constructor() {
     }

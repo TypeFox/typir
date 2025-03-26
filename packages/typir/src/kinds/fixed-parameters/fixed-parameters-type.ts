@@ -22,10 +22,10 @@ export class ParameterValue {
 }
 
 export class FixedParameterType extends Type {
-    override readonly kind: FixedParameterKind;
+    override readonly kind: FixedParameterKind<unknown>;
     readonly parameterValues: ParameterValue[] = [];
 
-    constructor(kind: FixedParameterKind, identifier: string, typeDetails: FixedParameterTypeDetails) {
+    constructor(kind: FixedParameterKind<unknown>, identifier: string, typeDetails: FixedParameterTypeDetails<unknown>) {
         super(identifier, typeDetails);
         this.kind = kind;
 

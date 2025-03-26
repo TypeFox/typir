@@ -11,10 +11,10 @@ import { assertTrue } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { BottomType } from './bottom-type.js';
 
-export interface BottomTypeDetails<LanguageType = unknown> extends TypeDetails<LanguageType> {
+export interface BottomTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
     // empty
 }
-export interface CreateBottomTypeDetails<LanguageType = unknown> extends BottomTypeDetails<LanguageType> {
+export interface CreateBottomTypeDetails<LanguageType> extends BottomTypeDetails<LanguageType> {
     inferenceRules: Array<InferCurrentTypeRule<BottomType, LanguageType>>;
 }
 
@@ -24,17 +24,17 @@ export interface BottomKindOptions {
 
 export const BottomKindName = 'BottomKind';
 
-export interface BottomFactoryService<LanguageType = unknown> {
+export interface BottomFactoryService<LanguageType> {
     create(typeDetails: BottomTypeDetails<LanguageType>): BottomConfigurationChain<LanguageType>;
     get(typeDetails: BottomTypeDetails<LanguageType>): BottomType | undefined;
 }
 
-interface BottomConfigurationChain<LanguageType = unknown> {
+interface BottomConfigurationChain<LanguageType> {
     inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<BottomType, LanguageType, T>): BottomConfigurationChain<LanguageType>;
     finish(): BottomType;
 }
 
-export class BottomKind<LanguageType = unknown> implements Kind, BottomFactoryService<LanguageType> {
+export class BottomKind<LanguageType> implements Kind, BottomFactoryService<LanguageType> {
     readonly $name: 'BottomKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<BottomKindOptions>;
@@ -71,12 +71,12 @@ export class BottomKind<LanguageType = unknown> implements Kind, BottomFactorySe
 
 }
 
-export function isBottomKind<LanguageType = unknown>(kind: unknown): kind is BottomKind<LanguageType> {
+export function isBottomKind<LanguageType>(kind: unknown): kind is BottomKind<LanguageType> {
     return isKind(kind) && kind.$name === BottomKindName;
 }
 
 
-class BottomConfigurationChainImpl<LanguageType = unknown> implements BottomConfigurationChain<LanguageType> {
+class BottomConfigurationChainImpl<LanguageType> implements BottomConfigurationChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: BottomKind<LanguageType>;
     protected readonly typeDetails: CreateBottomTypeDetails<LanguageType>;
@@ -96,7 +96,7 @@ class BottomConfigurationChainImpl<LanguageType = unknown> implements BottomConf
     }
 
     finish(): BottomType {
-        const bottomType = new BottomType(this.kind as BottomKind, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
+        const bottomType = new BottomType(this.kind as BottomKind<unknown>, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
         this.services.infrastructure.Graph.addNode(bottomType);
 
         registerInferCurrentTypeRules(this.typeDetails.inferenceRules, bottomType, this.services);

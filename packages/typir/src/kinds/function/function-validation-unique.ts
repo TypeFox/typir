@@ -12,7 +12,7 @@ import { FunctionType, isFunctionType } from './function-type.js';
  * Predefined validation to produce errors for those (overloaded) functions which cannot be distinguished when calling them.
  * By default, only the name and the types of the input parameters are used to distinguish functions.
  */
-export class UniqueFunctionValidation<LanguageType = unknown> implements ValidationRuleLifecycle<LanguageType> {
+export class UniqueFunctionValidation<LanguageType> implements ValidationRuleLifecycle<LanguageType> {
     protected readonly foundDeclarations: Map<string, LanguageType[]> = new Map();
     protected readonly services: TypirServices<LanguageType>;
     /**

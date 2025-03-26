@@ -13,7 +13,7 @@ import { ClassType, isClassType } from './class-type.js';
  * Predefined validation to produce errors, if the same class is declared more than once.
  * This is often relevant for nominally typed classes.
  */
-export class UniqueClassValidation<LanguageType = unknown> implements ValidationRuleLifecycle<LanguageType> {
+export class UniqueClassValidation<LanguageType> implements ValidationRuleLifecycle<LanguageType> {
     protected readonly foundDeclarations: Map<string, LanguageType[]> = new Map();
 
     protected readonly services: TypirServices<LanguageType>;
@@ -82,7 +82,7 @@ interface UniqueMethodValidationEntry<LanguageType> {
     classType: ClassType;
 }
 
-export interface UniqueMethodValidationOptions<LanguageType = unknown, T extends LanguageType = LanguageType> {
+export interface UniqueMethodValidationOptions<LanguageType, T extends LanguageType = LanguageType> {
     isMethodDeclaration: (languageNode: LanguageType) => languageNode is T,
     getClassOfMethod: (languageNode: T, methodType: FunctionType) => LanguageType,
     uniqueClassValidator?: UniqueClassValidation<LanguageType>,
@@ -90,7 +90,7 @@ export interface UniqueMethodValidationOptions<LanguageType = unknown, T extends
 /**
  * Predefined validation to produce errors, if inside a class the same method is declared more than once.
  */
-export class UniqueMethodValidation<LanguageType = unknown, T extends LanguageType = LanguageType> implements ValidationRuleLifecycle<LanguageType> {
+export class UniqueMethodValidation<LanguageType, T extends LanguageType = LanguageType> implements ValidationRuleLifecycle<LanguageType> {
     protected readonly foundDeclarations: Map<string, Array<UniqueMethodValidationEntry<LanguageType>>> = new Map();
 
     protected readonly services: TypirServices<LanguageType>;
@@ -167,7 +167,7 @@ export class UniqueMethodValidation<LanguageType = unknown, T extends LanguageTy
 }
 
 
-export interface NoSuperClassCyclesValidationOptions<LanguageType = unknown> {
+export interface NoSuperClassCyclesValidationOptions<LanguageType> {
     isRelevant?: (languageNode: LanguageType) => boolean;
 }
 /**
@@ -176,7 +176,7 @@ export interface NoSuperClassCyclesValidationOptions<LanguageType = unknown> {
  * this parameter is the reason, why this validation cannot be registered by default by Typir for classes, since this parameter is DSL-specific
  * @returns a validation rule which checks for any class declaration/type, whether they have no cycles in their sub-super-class-relationships
  */
-export function createNoSuperClassCyclesValidation<LanguageType = unknown>(options: NoSuperClassCyclesValidationOptions<LanguageType>): ValidationRule<LanguageType> {
+export function createNoSuperClassCyclesValidation<LanguageType>(options: NoSuperClassCyclesValidationOptions<LanguageType>): ValidationRule<LanguageType> {
     return (languageNode: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => {
         if (options.isRelevant === undefined || options.isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
             const classType = typir.Inference.inferType(languageNode);

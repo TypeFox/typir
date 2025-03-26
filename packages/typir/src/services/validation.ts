@@ -15,7 +15,7 @@ import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
-export interface ValidationMessageDetails<LanguageType = unknown, T extends LanguageType = LanguageType> {
+export interface ValidationMessageDetails<LanguageType, T extends LanguageType = LanguageType> {
     languageNode: T;
     languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
     languageIndex?: number; // index, if 'languageProperty' is an Array property
@@ -23,21 +23,21 @@ export interface ValidationMessageDetails<LanguageType = unknown, T extends Lang
     message: string;
 }
 
-export interface ValidationProblem<LanguageType = unknown, T extends LanguageType = LanguageType> extends ValidationMessageDetails<LanguageType, T>, TypirProblem {
+export interface ValidationProblem<LanguageType, T extends LanguageType = LanguageType> extends ValidationMessageDetails<LanguageType, T>, TypirProblem {
     $problem: 'ValidationProblem';
     subProblems?: TypirProblem[];
 }
 export const ValidationProblem = 'ValidationProblem';
-export function isValidationProblem<LanguageType = unknown, T extends LanguageType = LanguageType>(problem: unknown): problem is ValidationProblem<LanguageType, T> {
+export function isValidationProblem<LanguageType, T extends LanguageType = LanguageType>(problem: unknown): problem is ValidationProblem<LanguageType, T> {
     return isSpecificTypirProblem(problem, ValidationProblem);
 }
 
 /** Don't specify the $problem-property. */
-export type ReducedValidationProblem<LanguageType = unknown, T extends LanguageType = LanguageType> = Omit<ValidationProblem<LanguageType, T>, '$problem'>;
+export type ReducedValidationProblem<LanguageType, T extends LanguageType = LanguageType> = Omit<ValidationProblem<LanguageType, T>, '$problem'>;
 
-export type ValidationProblemAcceptor<LanguageType = unknown> = <T extends LanguageType = LanguageType>(problem: ReducedValidationProblem<LanguageType, T>) => void;
+export type ValidationProblemAcceptor<LanguageType> = <T extends LanguageType = LanguageType>(problem: ReducedValidationProblem<LanguageType, T>) => void;
 
-export type ValidationRule<LanguageType = unknown, InputType extends LanguageType = LanguageType> =
+export type ValidationRule<LanguageType, InputType extends LanguageType = LanguageType> =
     | ValidationRuleFunctional<LanguageType, InputType>
     | ValidationRuleLifecycle<LanguageType, LanguageType, InputType>;
 
@@ -45,7 +45,7 @@ export type ValidationRule<LanguageType = unknown, InputType extends LanguageTyp
  * Describes a simple, state-less validation rule,
  * which might produce an unlimited number of problems.
  */
-export type ValidationRuleFunctional<LanguageType = unknown, InputType extends LanguageType = LanguageType> =
+export type ValidationRuleFunctional<LanguageType, InputType extends LanguageType = LanguageType> =
     (languageNode: InputType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
 
 /**
@@ -54,7 +54,7 @@ export type ValidationRuleFunctional<LanguageType = unknown, InputType extends L
  * in order to store some information which are calculated during 'validation',
  * which are finally evaluated in 'afterValidation'.
  */
-export interface ValidationRuleLifecycle<LanguageType = unknown, RootType extends LanguageType = LanguageType, InputType extends LanguageType = LanguageType> {
+export interface ValidationRuleLifecycle<LanguageType, RootType extends LanguageType = LanguageType, InputType extends LanguageType = LanguageType> {
     beforeValidation?: (languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
     validation: ValidationRuleFunctional<LanguageType, InputType>;
     afterValidation?: (languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
@@ -67,10 +67,10 @@ export interface AnnotatedTypeAfterValidation {
     userRepresentation: string;
     name: string;
 }
-export type ValidationMessageProvider<LanguageType = unknown, T extends LanguageType = LanguageType> =
+export type ValidationMessageProvider<LanguageType, T extends LanguageType = LanguageType> =
     (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails<LanguageType, T>>;
 
-export interface ValidationConstraints<LanguageType = unknown> {
+export interface ValidationConstraints<LanguageType> {
     ensureNodeIsAssignable<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
         sourceNode: S | undefined, expected: Type | undefined | E,
         accept: ValidationProblemAcceptor<LanguageType>,
@@ -90,7 +90,7 @@ export interface ValidationConstraints<LanguageType = unknown> {
         message: ValidationMessageProvider<LanguageType, T>): void;
 }
 
-export class DefaultValidationConstraints<LanguageType = unknown> implements ValidationConstraints<LanguageType> {
+export class DefaultValidationConstraints<LanguageType> implements ValidationConstraints<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly inference: TypeInferenceCollector<LanguageType>;
     protected readonly printer: ProblemPrinter<LanguageType>;
@@ -182,7 +182,7 @@ export class DefaultValidationConstraints<LanguageType = unknown> implements Val
 }
 
 
-export interface ValidationCollectorListener<LanguageType = unknown> {
+export interface ValidationCollectorListener<LanguageType> {
     onAddedValidationRule(rule: ValidationRule<LanguageType>, options: ValidationRuleOptions): void;
     onRemovedValidationRule(rule: ValidationRule<LanguageType>, options: ValidationRuleOptions): void;
 }
@@ -191,7 +191,7 @@ export interface ValidationRuleOptions extends RuleOptions {
     // no additional properties so far
 }
 
-export interface ValidationCollector<LanguageType = unknown> {
+export interface ValidationCollector<LanguageType> {
     validateBefore(languageNode: LanguageType): Array<ValidationProblem<LanguageType>>;
     validate(languageNode: LanguageType): Array<ValidationProblem<LanguageType>>;
     validateAfter(languageNode: LanguageType): Array<ValidationProblem<LanguageType>>;
@@ -213,7 +213,7 @@ export interface ValidationCollector<LanguageType = unknown> {
     removeListener(listener: ValidationCollectorListener<LanguageType>): void;
 }
 
-export class DefaultValidationCollector<LanguageType = unknown> implements ValidationCollector<LanguageType>, RuleCollectorListener<ValidationRule<LanguageType>> {
+export class DefaultValidationCollector<LanguageType> implements ValidationCollector<LanguageType>, RuleCollectorListener<ValidationRule<LanguageType>> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly listeners: Array<ValidationCollectorListener<LanguageType>> = [];
 
@@ -331,7 +331,7 @@ export class DefaultValidationCollector<LanguageType = unknown> implements Valid
 }
 
 
-export class CompositeValidationRule<LanguageType = unknown> extends DefaultValidationCollector<LanguageType> implements ValidationRuleLifecycle<LanguageType> {
+export class CompositeValidationRule<LanguageType> extends DefaultValidationCollector<LanguageType> implements ValidationRuleLifecycle<LanguageType> {
     /** The collector for inference rules, at which this composite rule should be registered. */
     protected readonly collectorToRegisterThisRule: ValidationCollector<LanguageType>;
 

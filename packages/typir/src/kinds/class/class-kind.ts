@@ -33,22 +33,22 @@ export interface ClassKindOptions {
 
 export const ClassKindName = 'ClassKind';
 
-export interface CreateFieldDetails<LanguageType = unknown> {
+export interface CreateFieldDetails<LanguageType> {
     name: string;
     type: TypeSelector<Type, LanguageType>;
 }
 
-export interface CreateMethodDetails<LanguageType = unknown> {
+export interface CreateMethodDetails<LanguageType> {
     type: TypeSelector<FunctionType, LanguageType>;
 }
 
-export interface ClassTypeDetails<LanguageType = unknown> extends TypeDetails<LanguageType> {
+export interface ClassTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
     className: string;
     superClasses?: TypeSelector<ClassType, LanguageType> | Array<TypeSelector<ClassType, LanguageType>>;
     fields: Array<CreateFieldDetails<LanguageType>>;
     methods: Array<CreateMethodDetails<LanguageType>>;
 }
-export interface CreateClassTypeDetails<LanguageType = unknown> extends ClassTypeDetails<LanguageType> {
+export interface CreateClassTypeDetails<LanguageType> extends ClassTypeDetails<LanguageType> {
     // inference rules for the Class
     inferenceRulesForClassDeclaration: Array<InferCurrentTypeRule<ClassType, LanguageType>>;
     inferenceRulesForClassLiterals: Array<InferClassLiteral<LanguageType>>; // e.g. Constructor calls, References
@@ -60,15 +60,15 @@ export interface CreateClassTypeDetails<LanguageType = unknown> extends ClassTyp
  * Depending on whether the class is structurally or nominally typed,
  * different values might be specified, e.g. 'inputValuesForFields' could be empty for nominal classes.
  */
-export interface InferClassLiteral<LanguageType = unknown, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
+export interface InferClassLiteral<LanguageType, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
     inputValuesForFields: (languageNode: T) => Map<string, LanguageType>; // simple field name (including inherited fields) => value for this field!
 }
 
-export interface InferClassFieldAccess<LanguageType = unknown, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
+export interface InferClassFieldAccess<LanguageType, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
     field: (languageNode: T) => string | LanguageType | InferenceRuleNotApplicable; // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
 }
 
-export interface ClassFactoryService<LanguageType = unknown> {
+export interface ClassFactoryService<LanguageType> {
     create(typeDetails: ClassTypeDetails<LanguageType>): ClassConfigurationChain<LanguageType>;
     get(typeDetails: ClassTypeDetails<LanguageType> | string): TypeReference<ClassType, LanguageType>;
 
@@ -83,7 +83,7 @@ export interface ClassFactoryService<LanguageType = unknown> {
     // benefits of this design decision: the returned rule is easier to exchange, users can use the known factory API with auto-completion (no need to remember the names of the validations)
 }
 
-export interface ClassConfigurationChain<LanguageType = unknown> {
+export interface ClassConfigurationChain<LanguageType> {
     inferenceRuleForClassDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<ClassType, LanguageType, T>): ClassConfigurationChain<LanguageType>;
     inferenceRuleForClassLiterals<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>): ClassConfigurationChain<LanguageType>;
 
@@ -100,7 +100,7 @@ export interface ClassConfigurationChain<LanguageType = unknown> {
  * The field name is used to identify fields of classes.
  * The order of fields is not defined, i.e. there is no order of fields.
  */
-export class ClassKind<LanguageType = unknown> implements Kind, ClassFactoryService<LanguageType> {
+export class ClassKind<LanguageType> implements Kind, ClassFactoryService<LanguageType> {
     readonly $name: 'ClassKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<ClassKindOptions>;
@@ -249,12 +249,12 @@ export class ClassKind<LanguageType = unknown> implements Kind, ClassFactoryServ
     }
 }
 
-export function isClassKind<LanguageType = unknown>(kind: unknown): kind is ClassKind<LanguageType> {
+export function isClassKind<LanguageType>(kind: unknown): kind is ClassKind<LanguageType> {
     return isKind(kind) && kind.$name === ClassKindName;
 }
 
 
-class ClassConfigurationChainImpl<LanguageType = unknown> implements ClassConfigurationChain<LanguageType> {
+class ClassConfigurationChainImpl<LanguageType> implements ClassConfigurationChain<LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: ClassKind<LanguageType>;
     protected readonly typeDetails: CreateClassTypeDetails<LanguageType>;

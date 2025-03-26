@@ -14,7 +14,7 @@ import { assertType, toArray } from '../../utils/utils.js';
 import { ClassKind, CreateClassTypeDetails, InferClassLiteral } from './class-kind.js';
 import { ClassType, isClassType } from './class-type.js';
 
-export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitializer<ClassType, LanguageType> implements TypeStateListener {
+export class ClassTypeInitializer<LanguageType> extends TypeInitializer<ClassType, LanguageType> implements TypeStateListener {
     protected readonly typeDetails: CreateClassTypeDetails<LanguageType>;
     protected readonly kind: ClassKind<LanguageType>;
     protected inferenceRules: Array<InferenceRuleWithOptions<LanguageType>> = [];
@@ -27,7 +27,7 @@ export class ClassTypeInitializer<LanguageType = unknown> extends TypeInitialize
         this.kind = kind;
 
         // create the class type
-        this.initialClassType = new ClassType(kind as ClassKind, typeDetails as CreateClassTypeDetails);
+        this.initialClassType = new ClassType(kind as ClassKind<unknown>, typeDetails as CreateClassTypeDetails<unknown>);
         if (kind.options.typing === 'Structural') {
             // register structural classes also by their names, since these names are usually used for reference in the DSL/AST!
             this.services.infrastructure.Graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));

@@ -30,7 +30,7 @@ export interface MethodDetails {
 }
 
 export class ClassType extends Type {
-    override readonly kind: ClassKind;
+    override readonly kind: ClassKind<unknown>;
     readonly className: string;
     /** The super classes are readonly, since they might be used to calculate the identifier of the current class, which must be stable. */
     protected superClasses: Array<TypeReference<ClassType>>; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
@@ -38,7 +38,7 @@ export class ClassType extends Type {
     protected readonly fields: Map<string, FieldDetails> = new Map(); // unordered
     protected methods: MethodDetails[]; // unordered
 
-    constructor(kind: ClassKind, typeDetails: ClassTypeDetails) {
+    constructor(kind: ClassKind<unknown>, typeDetails: ClassTypeDetails<unknown>) {
         super(kind.options.typing === 'Nominal'
             ? kind.calculateIdentifierWithClassNameOnly(typeDetails) // use the name of the class as identifier already now
             : undefined, // the identifier for structurally typed classes will be set later after resolving all fields and methods
@@ -86,7 +86,7 @@ export class ClassType extends Type {
                     this.fields.set(field.name, field);
                 }
             });
-        const refFields: TypeReference[] = [];
+        const refFields: Array<TypeReference<Type>> = [];
         [...this.fields.values()].forEach(f => refFields.push(f.type));
 
         // resolve methods

@@ -41,7 +41,7 @@ import { inject, Module } from './utils/dependency-injection.js';
  * - How to bundle Typir configurations for reuse ("presets")?
  */
 
-export type TypirServices<LanguageType = unknown> = {
+export type TypirServices<LanguageType> = {
     readonly Assignability: TypeAssignability;
     readonly Equality: TypeEquality;
     readonly Conversion: TypeConversion;
@@ -73,7 +73,7 @@ export type TypirServices<LanguageType = unknown> = {
     };
 };
 
-export function createDefaultTypirServiceModule<LanguageType = unknown>(): Module<TypirServices<LanguageType>> {
+export function createDefaultTypirServiceModule<LanguageType>(): Module<TypirServices<LanguageType>> {
     return {
         Assignability: (services) => new DefaultTypeAssignability(services),
         Equality: (services) => new DefaultTypeEquality(services),
@@ -114,7 +114,7 @@ export function createDefaultTypirServiceModule<LanguageType = unknown>(): Modul
  * @param customization3 optional Typir module with customizations
  * @returns a Typir instance, i.e. the TypirServices with implementations
  */
-export function createTypirServices<LanguageType = unknown>(
+export function createTypirServices<LanguageType>(
     customization1: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
     customization2: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
     customization3: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
@@ -135,4 +135,4 @@ export type DeepPartial<T> = T[keyof T] extends Function ? T : {
 /**
  * Language-specific services to be partially overridden via dependency injection.
  */
-export type PartialTypirServices<LanguageType = unknown> = DeepPartial<TypirServices<LanguageType>>
+export type PartialTypirServices<LanguageType> = DeepPartial<TypirServices<LanguageType>>

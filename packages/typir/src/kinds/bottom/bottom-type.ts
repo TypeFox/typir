@@ -12,9 +12,9 @@ import { createKindConflict } from '../../utils/utils-type-comparison.js';
 import { BottomKind, BottomTypeDetails, isBottomKind } from './bottom-kind.js';
 
 export class BottomType extends Type implements TypeGraphListener {
-    override readonly kind: BottomKind;
+    override readonly kind: BottomKind<unknown>;
 
-    constructor(kind: BottomKind, identifier: string, typeDetails: BottomTypeDetails) {
+    constructor(kind: BottomKind<unknown>, identifier: string, typeDetails: BottomTypeDetails<unknown>) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions

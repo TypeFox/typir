@@ -17,7 +17,7 @@
  *
  * Language keys might have sub/super language keys ("sub-type relationship of language keys").
  */
-export interface LanguageService<LanguageType = unknown> {
+export interface LanguageService<LanguageType> {
     /**
      * Returns the language key for a given language node
      * @param languageNode the given language node
@@ -44,7 +44,7 @@ export interface LanguageService<LanguageType = unknown> {
 /**
  * This default implementation provides no information about the current language.
  */
-export class DefaultLanguageService<LanguageType = unknown> implements LanguageService<LanguageType> {
+export class DefaultLanguageService<LanguageType> implements LanguageService<LanguageType> {
 
     getLanguageNodeKey(_languageNode: LanguageType): string | undefined {
         return undefined;

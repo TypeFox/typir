@@ -25,7 +25,7 @@ import { FunctionType } from './function-type.js';
  * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
  *   (exception: the options contain a type to return in this special case)
  */
-export class FunctionCallInferenceRule<LanguageType = unknown, T extends LanguageType = LanguageType> implements TypeInferenceRuleWithInferringChildren<LanguageType> {
+export class FunctionCallInferenceRule<LanguageType, T extends LanguageType = LanguageType> implements TypeInferenceRuleWithInferringChildren<LanguageType> {
     protected readonly typeDetails: FunctionTypeDetails<LanguageType>;
     protected readonly inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
     protected readonly functionType: FunctionType;

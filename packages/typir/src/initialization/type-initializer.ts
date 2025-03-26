@@ -7,7 +7,7 @@
 import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 
-export type TypeInitializerListener<T extends Type = Type> = (type: T) => void;
+export type TypeInitializerListener<T extends Type> = (type: T) => void;
 
 /**
  * The purpose of a TypeInitializer is to ensure, that the same type is created and registered only _once_ in the type system.
@@ -26,7 +26,7 @@ export type TypeInitializerListener<T extends Type = Type> = (type: T) => void;
  * a common super class (or interface) of all type initializers is useful nevertheless,
  * since they all can be used as TypeSelector in an easy way.
  */
-export abstract class TypeInitializer<T extends Type = Type, LanguageType = unknown> {
+export abstract class TypeInitializer<T extends Type, LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected typeToReturn: T | undefined;
     protected listeners: Array<TypeInitializerListener<T>> = [];

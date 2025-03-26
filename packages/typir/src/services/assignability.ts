@@ -54,7 +54,7 @@ export interface TypeAssignability {
 /**
  * This implementation for assignability checks step-by-step (1) equality, (2) implicit conversion, and (3) sub-type relationships of the source and target type.
  */
-export class DefaultTypeAssignability<LanguageType = unknown> implements TypeAssignability {
+export class DefaultTypeAssignability<LanguageType> implements TypeAssignability {
     protected readonly conversion: TypeConversion;
     protected readonly subtype: SubType;
     protected readonly equality: TypeEquality;

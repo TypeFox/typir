@@ -31,7 +31,7 @@ export type EdgeCachingInformation =
     /** The current relationship does not exist. */
     'NO_LINK';
 
-export class DefaultTypeRelationshipCaching<LanguageType = unknown> implements TypeRelationshipCaching {
+export class DefaultTypeRelationshipCaching<LanguageType> implements TypeRelationshipCaching {
     protected readonly graph: TypeGraph;
 
     constructor(services: TypirServices<LanguageType>) {

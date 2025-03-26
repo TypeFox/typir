@@ -304,6 +304,6 @@ describe('Tests the logic for registering rules (applied to state-less validatio
 
 class TestValidatorImpl extends DefaultValidationCollector<TestLanguageNode> {
     // make the public to access their details
-    override readonly ruleRegistryFunctional: RuleRegistry<ValidationRuleFunctional<TestLanguageNode>>;
-    override readonly ruleRegistryLifecycle: RuleRegistry<ValidationRuleLifecycle<TestLanguageNode>>;
+    override readonly ruleRegistryFunctional: RuleRegistry<ValidationRuleFunctional<TestLanguageNode>, TestLanguageNode>;
+    override readonly ruleRegistryLifecycle: RuleRegistry<ValidationRuleLifecycle<TestLanguageNode>, TestLanguageNode>;
 }

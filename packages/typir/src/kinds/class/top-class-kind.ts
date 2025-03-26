@@ -11,7 +11,7 @@ import { assertTrue } from '../../utils/utils.js';
 import { isKind, Kind } from '../kind.js';
 import { TopClassType } from './top-class-type.js';
 
-export interface TopClassTypeDetails<LanguageType = unknown> extends TypeDetails<LanguageType> {
+export interface TopClassTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
     inferenceRules?: InferCurrentTypeRule<TopClassType, LanguageType> | Array<InferCurrentTypeRule<TopClassType, LanguageType>>
 }
 
@@ -21,7 +21,7 @@ export interface TopClassKindOptions {
 
 export const TopClassKindName = 'TopClassKind';
 
-export class TopClassKind<LanguageType = unknown> implements Kind {
+export class TopClassKind<LanguageType> implements Kind {
     readonly $name: 'TopClassKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: TopClassKindOptions;
@@ -56,7 +56,7 @@ export class TopClassKind<LanguageType = unknown> implements Kind {
             // note, that the given inference rules are ignored in this case!
             return this.instance;
         }
-        const topType = new TopClassType(this as TopClassKind, this.calculateIdentifier(typeDetails), typeDetails as TopClassTypeDetails);
+        const topType = new TopClassType(this as TopClassKind<unknown>, this.calculateIdentifier(typeDetails), typeDetails as TopClassTypeDetails<unknown>);
         this.instance = topType;
         this.services.infrastructure.Graph.addNode(topType);
 
@@ -71,6 +71,6 @@ export class TopClassKind<LanguageType = unknown> implements Kind {
 
 }
 
-export function isTopClassKind<LanguageType = unknown>(kind: unknown): kind is TopClassKind<LanguageType> {
+export function isTopClassKind<LanguageType>(kind: unknown): kind is TopClassKind<LanguageType> {
     return isKind(kind) && kind.$name === TopClassKindName;
 }

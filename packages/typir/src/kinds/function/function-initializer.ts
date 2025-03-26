@@ -21,7 +21,7 @@ import { FunctionType, isFunctionType } from './function-type.js';
  *
  * If the function type to create already exists, the given inference rules (and its validation rules) will be registered for the existing function type.
  */
-export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitializer<FunctionType, LanguageType> implements TypeStateListener {
+export class FunctionTypeInitializer<LanguageType> extends TypeInitializer<FunctionType, LanguageType> implements TypeStateListener {
     protected readonly typeDetails: CreateFunctionTypeDetails<LanguageType>;
     protected readonly functions: AvailableFunctionsManager<LanguageType>;
     protected inferenceRules: FunctionInferenceRules<LanguageType>;
@@ -42,7 +42,7 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
         kind.enforceFunctionName(functionName, kind.options.enforceFunctionName);
 
         // create the new Function type
-        this.initialFunctionType = new FunctionType(kind as FunctionKind, typeDetails as FunctionTypeDetails);
+        this.initialFunctionType = new FunctionType(kind as FunctionKind<unknown>, typeDetails as FunctionTypeDetails<unknown>);
 
         this.inferenceRules = this.createInferenceRules(this.initialFunctionType);
         this.registerRules(functionName, undefined);
@@ -131,7 +131,7 @@ export class FunctionTypeInitializer<LanguageType = unknown> extends TypeInitial
     }
 }
 
-interface FunctionInferenceRules<LanguageType = unknown> {
+interface FunctionInferenceRules<LanguageType> {
     inferenceForCall: Array<InferenceRuleWithOptions<LanguageType>>;
     inferenceForDeclaration: Array<InferenceRuleWithOptions<LanguageType>>;
 }

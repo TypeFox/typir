@@ -157,7 +157,7 @@ export class TestProblemPrinter extends DefaultTypeConflictPrinter<TestLanguageN
     }
 }
 
-export class TestLanguageService extends DefaultLanguageService {
+export class TestLanguageService extends DefaultLanguageService<TestLanguageNode> {
     override getLanguageNodeKey(languageNode: TestLanguageNode): string | undefined {
         return languageNode.constructor.name;
     }
