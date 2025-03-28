@@ -9,7 +9,7 @@ import { isClassType } from '../../../src/kinds/class/class-type.js';
 import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { BooleanLiteral, ClassConstructorCall, ClassFieldAccess, IntegerLiteral, Variable } from '../../../src/test/predefined-language-nodes.js';
 import { createTypirServicesForTesting, expectToBeType, expectTypirTypes, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
-import { assertType } from '../../../src/utils/utils.js';
+import { assertTypirType } from '../../../src/utils/utils.js';
 
 describe('Tests some details for class types', () => {
 
@@ -18,7 +18,7 @@ describe('Tests some details for class types', () => {
         const classType1 = typir.factory.Classes
             .create({ className: 'MyClass1', fields: [], methods: [] }).finish()
             .getTypeFinal(); // since this class has no delayed dependencies, the new class type is directly available!
-        assertType(classType1, isClassType, 'MyClass1');
+        assertTypirType(classType1, isClassType, 'MyClass1');
         expectTypirTypes(typir, isClassType, 'MyClass1');
     });
 
@@ -58,7 +58,7 @@ describe('Tests some details for class types', () => {
                 },
             })
             .finish().getTypeFinal();
-        assertType(classType1, isClassType, 'MyClass1');
+        assertTypirType(classType1, isClassType, 'MyClass1');
         typir.Inference.addInferenceRule((node: Variable) => node.initialValue, { languageKey: Variable.name }); // infer the type of variables
 
 
