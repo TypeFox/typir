@@ -20,7 +20,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 - Typir-Langium: new API to register inference rules to the `$type` of the `AstNode` to validate,
   e.g. `addInferenceRulesForAstNodes({ MemberCall: <InferenceRule1>, VariableDeclaration: <InferenceRule2>, ...})`, see (L)OX for some examples (#64)
 - Thanks to the new chaining API for defining types (see corresponding breaking changes below), they can be annotated in TypeScript-type-safe way with multiple inference rules, e.g. multiple inference rules for class literals with `typir.factory.Classes.create({...}).inferenceRuleForClassLiterals({...}).inferenceRuleForClassLiterals({...}).finish();` (#64).
-- Provide new `expectValidationIssues()` utility for developers to ease the writing of test cases for Typir-based type systems (#64).
+- Provide new `expectValidationIssues*(...)` utilities for developers to ease the writing of test cases for Typir-based type systems (#64).
 - Create the predefined validations using the factory API, e.g. `typir.factory.Functions.createUniqueFunctionValidation()` and `typir.factory.Classes.createNoSuperClassCyclesValidation()`, see LOX for examples. Benefits of this design decision: the returned rule is easier to exchange, users can use the known factory API with auto-completion (no need to remember the names of the validations) (#64)
 
 ### Breaking changes

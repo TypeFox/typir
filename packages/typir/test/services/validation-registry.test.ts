@@ -7,11 +7,11 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { Type } from '../../src/graph/type-node.js';
 import { PrimitiveType } from '../../src/kinds/primitive/primitive-type.js';
-import { DefaultValidationCollector, ValidationRule, ValidationRuleOptions, ValidationRuleFunctional, ValidationRuleLifecycle } from '../../src/services/validation.js';
+import { DefaultValidationCollector, ValidationRule, ValidationRuleFunctional, ValidationRuleLifecycle, ValidationRuleOptions } from '../../src/services/validation.js';
 import { booleanTrue, integer123, IntegerLiteral, stringHello, StringLiteral, TestLanguageNode } from '../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../src/typir.js';
 import { RuleRegistry } from '../../src/utils/rule-registration.js';
-import { createTypirServicesForTesting, expectValidationIssues } from '../../src/utils/test-utils.js';
+import { createTypirServicesForTesting, expectValidationIssuesStrict } from '../../src/utils/test-utils.js';
 
 describe('Tests the logic for registering rules (applied to state-less validation rules)', () => {
     let typir: TypirServices<TestLanguageNode>;
@@ -58,64 +58,64 @@ describe('Tests the logic for registering rules (applied to state-less validatio
     describe('Add validation rules with different language keys', () => {
         test('String rule without any options', () => {
             addValidationRule(ruleString, {});
-            expectValidationIssues(typir, stringHello, ['s1-Hello']);
-            expectValidationIssues(typir, integer123, []); // integer values are ignored by the rule for strings
-            expectValidationIssues(typir, booleanTrue, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s1-Hello']);
+            expectValidationIssuesStrict(typir, integer123, []); // integer values are ignored by the rule for strings
+            expectValidationIssuesStrict(typir, booleanTrue, []);
         });
 
         test('String rule registered for String', () => {
             addValidationRule(ruleString, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, ['s1-Hello']);
-            expectValidationIssues(typir, integer123, []); // integer values are ignored by the rule for strings
-            expectValidationIssues(typir, booleanTrue, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s1-Hello']);
+            expectValidationIssuesStrict(typir, integer123, []); // integer values are ignored by the rule for strings
+            expectValidationIssuesStrict(typir, booleanTrue, []);
         });
 
         test('String rule registered for Integer => no validation issues', () => {
             addValidationRule(ruleString, { languageKey: IntegerLiteral.name });
-            expectValidationIssues(typir, stringHello, []);
-            expectValidationIssues(typir, integer123, []); // integer values are ignored by the rule for strings
-            expectValidationIssues(typir, booleanTrue, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, integer123, []); // integer values are ignored by the rule for strings
+            expectValidationIssuesStrict(typir, booleanTrue, []);
         });
 
         test('String+Integer rule without any options', () => {
             addValidationRule(ruleStringInteger, {});
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, ['i3-123']);
-            expectValidationIssues(typir, booleanTrue, ['failure3-BooleanLiteral']); // generic message for everything else than strings and integers
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, booleanTrue, ['failure3-BooleanLiteral']); // generic message for everything else than strings and integers
         });
 
         test('String+Integer rule registered for String', () => {
             addValidationRule(ruleStringInteger, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, []); // no messages for not-evaluated validations
-            expectValidationIssues(typir, booleanTrue, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, []); // no messages for not-evaluated validations
+            expectValidationIssuesStrict(typir, booleanTrue, []);
         });
         test('String+Integer rule registered for Integer', () => {
             addValidationRule(ruleStringInteger, { languageKey: IntegerLiteral.name });
-            expectValidationIssues(typir, stringHello, []);
-            expectValidationIssues(typir, integer123, ['i3-123']);
-            expectValidationIssues(typir, booleanTrue, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, booleanTrue, []);
         });
         test('String+Integer rule registered for String and Integer', () => {
             addValidationRule(ruleStringInteger, { languageKey: [StringLiteral.name, IntegerLiteral.name] });
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, ['i3-123']);
-            expectValidationIssues(typir, booleanTrue, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, booleanTrue, []);
         });
 
         test('String rule + Integer rule without any options', () => {
             addValidationRule(ruleString, { });
             addValidationRule(ruleInteger, { });
-            expectValidationIssues(typir, stringHello, ['s1-Hello']);
-            expectValidationIssues(typir, integer123, ['i2-123']);
-            expectValidationIssues(typir, booleanTrue, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s1-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i2-123']);
+            expectValidationIssuesStrict(typir, booleanTrue, []);
         });
         test('String rule + Integer registered for their respective language keys', () => {
             addValidationRule(ruleString, { languageKey: StringLiteral.name });
             addValidationRule(ruleInteger, { languageKey: IntegerLiteral.name });
-            expectValidationIssues(typir, stringHello, ['s1-Hello']);
-            expectValidationIssues(typir, integer123, ['i2-123']);
-            expectValidationIssues(typir, booleanTrue, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s1-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i2-123']);
+            expectValidationIssuesStrict(typir, booleanTrue, []);
         });
 
         test('String rule + Integer + String+Integer rule without any options', () => {
@@ -123,9 +123,9 @@ describe('Tests the logic for registering rules (applied to state-less validatio
             addValidationRule(ruleInteger, { });
             addValidationRule(ruleStringInteger, { });
             assertNumberRules(3);
-            expectValidationIssues(typir, stringHello, ['s1-Hello', 's3-Hello']);
-            expectValidationIssues(typir, integer123, ['i2-123', 'i3-123']);
-            expectValidationIssues(typir, booleanTrue, ['failure3-BooleanLiteral']);
+            expectValidationIssuesStrict(typir, stringHello, ['s1-Hello', 's3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i2-123', 'i3-123']);
+            expectValidationIssuesStrict(typir, booleanTrue, ['failure3-BooleanLiteral']);
         });
 
         test('adding different rules', () => {
@@ -140,12 +140,12 @@ describe('Tests the logic for registering rules (applied to state-less validatio
 
         test('Add the same rule for dedicated language keys and "undefined"', () => {
             addValidationRule(ruleStringInteger, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, []);
             addValidationRule(ruleStringInteger, { languageKey: undefined });
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
         });
 
     });
@@ -167,37 +167,37 @@ describe('Tests the logic for registering rules (applied to state-less validatio
             assertNumberRules(1);
             addValidationRule(ruleStringInteger, { languageKey: IntegerLiteral.name });
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, ['i3-123']);
-            expectValidationIssues(typir, booleanTrue, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, booleanTrue, []);
         });
     });
 
     describe('Remove validation rules with different language keys', () => {
 
         test('Removing a rule', () => {
-            expectValidationIssues(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
             addValidationRule(ruleString, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, ['s1-Hello']);
+            expectValidationIssuesStrict(typir, stringHello, ['s1-Hello']);
             removeValidationRule(ruleString, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
         });
         test('Removing a rule (which was added twice)', () => {
-            expectValidationIssues(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
             addValidationRule(ruleString, { languageKey: StringLiteral.name });
             addValidationRule(ruleString, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, ['s1-Hello']);
+            expectValidationIssuesStrict(typir, stringHello, ['s1-Hello']);
             removeValidationRule(ruleString, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
         });
 
         test('Removing a rule more often that it was added is OK', () => {
             removeValidationRule(ruleString, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
             addValidationRule(ruleString, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, ['s1-Hello']);
+            expectValidationIssuesStrict(typir, stringHello, ['s1-Hello']);
             removeValidationRule(ruleString, { languageKey: StringLiteral.name });
-            expectValidationIssues(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
             removeValidationRule(ruleString, { languageKey: StringLiteral.name });
         });
 
@@ -205,19 +205,19 @@ describe('Tests the logic for registering rules (applied to state-less validatio
             addValidationRule(ruleStringInteger, { languageKey: undefined });
             removeValidationRule(ruleStringInteger, { languageKey: StringLiteral.name });
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, ['s3-Hello']); // it is still validated, since the rule is still registed for 'undefined'
-            expectValidationIssues(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']); // it is still validated, since the rule is still registed for 'undefined'
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
         });
 
         test('Remove the same rule for dedicated language keys and "undefined"', () => {
             addValidationRule(ruleStringInteger, { languageKey: StringLiteral.name });
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, []);
             removeValidationRule(ruleStringInteger, { languageKey: undefined }); // the rule is removed for all language keys
             assertNumberRules(0);
-            expectValidationIssues(typir, stringHello, []);
-            expectValidationIssues(typir, integer123, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, integer123, []);
         });
     });
 
@@ -227,61 +227,61 @@ describe('Tests the logic for registering rules (applied to state-less validatio
         test('remove bound rule automatically ("undefined" as language key)', () => {
             addValidationRule(ruleStringInteger, { boundToType: stringType });
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
             removeType(stringType);
             assertNumberRules(0);
-            expectValidationIssues(typir, stringHello, []);
-            expectValidationIssues(typir, integer123, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, integer123, []);
         });
 
         test('remove bound rule automatically (one dedicated language key: String)', () => {
             addValidationRule(ruleStringInteger, { boundToType: stringType, languageKey: [StringLiteral.name] });
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, []);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, []);
             removeType(stringType);
             assertNumberRules(0);
-            expectValidationIssues(typir, stringHello, []);
-            expectValidationIssues(typir, integer123, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, integer123, []);
         });
 
         test('remove bound rule automatically (one dedicated language key: Integer)', () => {
             addValidationRule(ruleStringInteger, { boundToType: stringType, languageKey: [IntegerLiteral.name] });
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, []);
-            expectValidationIssues(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
             removeType(stringType);
             assertNumberRules(0);
-            expectValidationIssues(typir, stringHello, []);
-            expectValidationIssues(typir, integer123, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, integer123, []);
         });
 
         test('remove bound rule automatically (multiple dedicated language keys)', () => {
             addValidationRule(ruleStringInteger, { boundToType: stringType, languageKey: [StringLiteral.name, IntegerLiteral.name] });
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
             assertNumberRules(1);
             removeType(stringType); // rule is removed for all language keys!
             assertNumberRules(0);
-            expectValidationIssues(typir, stringHello, []);
-            expectValidationIssues(typir, integer123, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, integer123, []);
         });
 
         test('remove bound rule automatically, when the last type is removed', () => {
             addValidationRule(ruleStringInteger, { boundToType: [stringType, integerType] });
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
             removeType(stringType);
             assertNumberRules(1);
-            expectValidationIssues(typir, stringHello, ['s3-Hello']);
-            expectValidationIssues(typir, integer123, ['i3-123']);
+            expectValidationIssuesStrict(typir, stringHello, ['s3-Hello']);
+            expectValidationIssuesStrict(typir, integer123, ['i3-123']);
             removeType(integerType);
             assertNumberRules(0);
-            expectValidationIssues(typir, stringHello, []);
-            expectValidationIssues(typir, integer123, []);
+            expectValidationIssuesStrict(typir, stringHello, []);
+            expectValidationIssuesStrict(typir, integer123, []);
         });
     });
 

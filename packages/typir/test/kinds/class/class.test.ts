@@ -8,7 +8,7 @@ import { describe, test } from 'vitest';
 import { isClassType } from '../../../src/kinds/class/class-type.js';
 import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { BooleanLiteral, ClassConstructorCall, ClassFieldAccess, IntegerLiteral, Variable } from '../../../src/test/predefined-language-nodes.js';
-import { createTypirServicesForTesting, expectToBeType, expectTypirTypes, expectValidationIssues } from '../../../src/utils/test-utils.js';
+import { createTypirServicesForTesting, expectToBeType, expectTypirTypes, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
 import { assertType } from '../../../src/utils/utils.js';
 
 describe('Tests some details for class types', () => {
@@ -64,17 +64,17 @@ describe('Tests some details for class types', () => {
 
         // var1 := new MyClass1();
         const varClass = new Variable('var1', new ClassConstructorCall('MyClass1'));
-        expectValidationIssues(typir, varClass.initialValue, ["Called constructor for 'MyClass1'."]);
+        expectValidationIssuesStrict(typir, varClass.initialValue, ["Called constructor for 'MyClass1'."]);
 
         // var2 := var1.fieldInteger;
         const varFieldIntegerValue = new Variable('var2', new ClassFieldAccess(varClass, 'fieldInteger'));
         expectToBeType(typir.Inference.inferType(varFieldIntegerValue), isPrimitiveType, type => type.getName() === 'integer');
-        expectValidationIssues(typir, varFieldIntegerValue.initialValue, []);
+        expectValidationIssuesStrict(typir, varFieldIntegerValue.initialValue, []);
 
         // var3 := var1.fieldBoolean;
         const varFieldBooleanValue = new Variable('var3', new ClassFieldAccess(varClass, 'fieldBoolean'));
         expectToBeType(typir.Inference.inferType(varFieldBooleanValue), isPrimitiveType, type => type.getName() === 'boolean');
-        expectValidationIssues(typir, varFieldBooleanValue.initialValue, ["Validated access of 'fieldBoolean' of the variable 'var1'."]);
+        expectValidationIssuesStrict(typir, varFieldBooleanValue.initialValue, ["Validated access of 'fieldBoolean' of the variable 'var1'."]);
     });
 
 });
