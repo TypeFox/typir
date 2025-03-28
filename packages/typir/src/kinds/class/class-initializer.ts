@@ -10,7 +10,7 @@ import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from 
 import { TypirServices } from '../../typir.js';
 import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
 import { checkNameTypesMap, createTypeCheckStrategy, MapListConverter } from '../../utils/utils-type-comparison.js';
-import { assertType, toArray } from '../../utils/utils.js';
+import { assertTypirType, toArray } from '../../utils/utils.js';
 import { ClassKind, CreateClassTypeDetails, InferClassLiteral } from './class-kind.js';
 import { ClassType, isClassType } from './class-type.js';
 
@@ -34,7 +34,7 @@ export class ClassTypeInitializer<LanguageType> extends TypeInitializer<ClassTyp
         }
 
         this.createInferenceAndValidationRules(this.typeDetails, this.initialClassType);
-        // register all the inference rules already now to enable early type inference for this Class type ('undefined', since the Identifier is still missing)
+        // register all the inference rules already now to enable early type inference for this Class type ('undefined', since its Identifier is still missing)
         this.inferenceRules.forEach(rule => services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, undefined)));
         this.validationRules.forEach(rule => services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, undefined)));
 
@@ -47,7 +47,7 @@ export class ClassTypeInitializer<LanguageType> extends TypeInitializer<ClassTyp
          * - By waiting untile the new class has its identifier, 'producedType(...)' is able to check, whether this class type is already existing!
          * - Accordingly, 'classType' and 'readyClassType' might have different values!
          */
-        assertType(classType, isClassType);
+        assertTypirType(classType, isClassType);
         const readyClassType = this.producedType(classType);
 
         // remove/invalidate the duplicated and skipped class type now

@@ -9,7 +9,7 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeInferenceRule } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
 import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType } from '../../utils/utils-definitions.js';
-import { assertType } from '../../utils/utils.js';
+import { assertTypirType } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
 import { CreateFunctionTypeDetails, FunctionKind, FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
 import { AvailableFunctionsManager } from './function-overloading.js';
@@ -56,7 +56,7 @@ export class FunctionTypeInitializer<LanguageType> extends TypeInitializer<Funct
 
     onSwitchedToIdentifiable(functionType: Type): void {
         const functionName = this.typeDetails.functionName;
-        assertType(functionType, isFunctionType);
+        assertTypirType(functionType, isFunctionType);
         const readyFunctionType = this.producedType(functionType);
         if (readyFunctionType !== functionType) {
             functionType.removeListener(this);

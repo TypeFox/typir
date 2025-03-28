@@ -99,7 +99,7 @@ export function createDefaultTypirServiceModule<LanguageType>(): Module<TypirSer
             Operators: (services) => new DefaultOperatorFactory(services),
         },
         infrastructure: {
-            Graph: () =>  new TypeGraph(),
+            Graph: () => new TypeGraph(),
             GraphAlgorithms: (services) => new DefaultGraphAlgorithms(services),
             Kinds: (services) => new DefaultKindRegistry(services),
             TypeResolver: (services) => new DefaultTypeResolver(services),

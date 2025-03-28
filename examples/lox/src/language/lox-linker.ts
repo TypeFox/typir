@@ -7,11 +7,11 @@
 import { AstNodeDescription, DefaultLinker, LinkingError, ReferenceInfo } from 'langium';
 import { LangiumServicesForTypirBinding } from 'typir-langium';
 import { isType } from '../../../../packages/typir/lib/graph/type-node.js';
-import { isClass, isFunctionDeclaration, isMemberCall, isMethodMember } from './generated/ast.js';
+import { isClass, isFunctionDeclaration, isMemberCall, isMethodMember, LoxAstType } from './generated/ast.js';
 import { LoxServices } from './lox-module.js';
 
 export class LoxLinker extends DefaultLinker {
-    protected readonly typir: LangiumServicesForTypirBinding;
+    protected readonly typir: LangiumServicesForTypirBinding<LoxAstType>;
 
     constructor(services: LoxServices) {
         super(services);

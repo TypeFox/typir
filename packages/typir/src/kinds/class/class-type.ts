@@ -99,8 +99,7 @@ export class ClassType extends Type {
         // const all: Array<TypeReference<Type | FunctionType>> = [];
         const fieldsAndMethods: Array<TypeReference<Type>> = [];
         fieldsAndMethods.push(...refFields);
-        fieldsAndMethods.push(...(refMethods as unknown as Array<TypeReference<Type>>)); // TODO dirty hack?!
-        // all.push(...refMethods); // does not work
+        fieldsAndMethods.push(...(refMethods as unknown as Array<TypeReference<Type>>));
 
         this.defineTheInitializationProcessOfThisType({
             preconditionsForIdentifiable: {

@@ -14,13 +14,13 @@ export type LangiumTypeInferenceRules<T extends LangiumAstTypes> = {
     AstNode?: TypeInferenceRule<AstNode, AstNode> | Array<TypeInferenceRule<AstNode, AstNode>>;
 }
 
-export interface LangiumTypeInferenceCollector extends TypeInferenceCollector<AstNode> {
-    addInferenceRulesForAstNodes<AstTypes extends LangiumAstTypes>(rules: LangiumTypeInferenceRules<AstTypes>): void;
+export interface LangiumTypeInferenceCollector<AstTypes extends LangiumAstTypes> extends TypeInferenceCollector<AstNode> {
+    addInferenceRulesForAstNodes(rules: LangiumTypeInferenceRules<AstTypes>): void;
 }
 
-export class DefaultLangiumTypeInferenceCollector extends DefaultTypeInferenceCollector<AstNode> implements LangiumTypeInferenceCollector {
+export class DefaultLangiumTypeInferenceCollector<AstTypes extends LangiumAstTypes> extends DefaultTypeInferenceCollector<AstNode> implements LangiumTypeInferenceCollector<AstTypes> {
 
-    addInferenceRulesForAstNodes<AstTypes extends LangiumAstTypes>(rules: LangiumTypeInferenceRules<AstTypes>): void {
+    addInferenceRulesForAstNodes(rules: LangiumTypeInferenceRules<AstTypes>): void {
         // map this approach for registering inference rules to the key-value approach from core Typir
         for (const [type, ruleCallbacks] of Object.entries(rules)) {
             const languageKey = type === 'AstNode' ? undefined : type; // using 'AstNode' as key is equivalent to specifying no key
