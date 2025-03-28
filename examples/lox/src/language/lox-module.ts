@@ -6,12 +6,13 @@
 
 import { LangiumSharedCoreServices, Module, PartialLangiumCoreServices, createDefaultCoreModule, inject } from 'langium';
 import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
-import { LangiumServicesForTypirBinding, createLangiumModuleForTypirBinding, initializeLangiumTypirServices } from 'typir-langium';
+import { LangiumServicesForTypirBinding, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
+import { LoxAstType, reflection } from './generated/ast.js';
 import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module.js';
-import { LoxScopeProvider } from './lox-scope.js';
-import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
-import { createLoxTypirModule } from './lox-type-checking.js';
 import { LoxLinker } from './lox-linker.js';
+import { LoxScopeProvider } from './lox-scope.js';
+import { LoxTypeSystem } from './lox-type-checking.js';
+import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -20,7 +21,7 @@ export type LoxAddedServices = {
     validation: {
         LoxValidator: LoxValidator,
     },
-    typir: LangiumServicesForTypirBinding,
+    typir: LangiumServicesForTypirBinding<LoxAstType>,
 }
 
 /**
@@ -41,10 +42,7 @@ export function createLoxModule(shared: LangiumSharedCoreServices): Module<LoxSe
             LoxValidator: () => new LoxValidator(),
         },
         // For type checking with Typir, inject and merge these modules:
-        typir: () => inject(Module.merge(
-            createLangiumModuleForTypirBinding(shared), // the Typir default services
-            createLoxTypirModule(shared), // custom Typir services for LOX
-        )),
+        typir: () => createTypirLangiumServices(shared, reflection, new LoxTypeSystem()),
         references: {
             ScopeProvider: (services) => new LoxScopeProvider(services),
             Linker: (services) => new LoxLinker(services),

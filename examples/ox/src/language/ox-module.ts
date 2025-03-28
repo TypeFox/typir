@@ -6,9 +6,10 @@
 
 import { LangiumSharedCoreServices, Module, inject } from 'langium';
 import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, PartialLangiumServices, createDefaultModule, createDefaultSharedModule } from 'langium/lsp';
-import { LangiumServicesForTypirBinding, createLangiumModuleForTypirBinding, initializeLangiumTypirServices } from 'typir-langium';
+import { LangiumServicesForTypirBinding, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
+import { OxAstType, reflection } from './generated/ast.js';
 import { OxGeneratedModule, OxGeneratedSharedModule } from './generated/module.js';
-import { createOxTypirModule } from './ox-type-checking.js';
+import { OxTypeSystem } from './ox-type-checking.js';
 import { OxValidator, registerValidationChecks } from './ox-validator.js';
 
 /**
@@ -18,7 +19,7 @@ export type OxAddedServices = {
     validation: {
         OxValidator: OxValidator
     },
-    typir: LangiumServicesForTypirBinding,
+    typir: LangiumServicesForTypirBinding<OxAstType>,
 }
 
 /**
@@ -38,10 +39,7 @@ export function createOxModule(shared: LangiumSharedCoreServices): Module<OxServ
             OxValidator: () => new OxValidator()
         },
         // For type checking with Typir, inject and merge these modules:
-        typir: () => inject(Module.merge(
-            createLangiumModuleForTypirBinding(shared), // the Typir default services
-            createOxTypirModule(shared), // custom Typir services for LOX
-        )),
+        typir: () => createTypirLangiumServices(shared, reflection, new OxTypeSystem()),
     };
 }
 

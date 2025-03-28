@@ -4,37 +4,41 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
-import { createDefaultTypirServiceModule, DeepPartial, Module, PartialTypirServices, TypirServices } from 'typir';
+import { AbstractAstReflection, AstNode, LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
+import { createDefaultTypirServiceModule, DeepPartial, inject, Module, PartialTypirServices, TypirServices } from 'typir';
 import { LangiumLanguageNodeInferenceCaching } from './features/langium-caching.js';
+import { DefaultLangiumTypeInferenceCollector, LangiumTypeInferenceCollector } from './features/langium-inference.js';
 import { LangiumLanguageService } from './features/langium-language.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
-import { LangiumTypeCreator, PlaceholderLangiumTypeCreator } from './features/langium-type-creator.js';
+import { DefaultLangiumTypeCreator, LangiumTypeCreator, LangiumTypeSystemDefinition } from './features/langium-type-creator.js';
 import { DefaultLangiumTypirValidator, DefaultLangiumValidationCollector, LangiumTypirValidator, LangiumValidationCollector, registerTypirValidationChecks } from './features/langium-validation.js';
-import { DefaultLangiumTypeInferenceCollector, LangiumTypeInferenceCollector } from './features/langium-inference.js';
+import { LangiumAstTypes } from './utils/typir-langium-utils.js';
 
 /**
  * Additional Typir-Langium services to manage the Typir services
  * in order to be used e.g. for scoping/linking in Langium.
  */
-export type TypirLangiumServices = {
-    readonly Inference: LangiumTypeInferenceCollector; // concretizes the TypeInferenceCollector for Langium
-    readonly validation: {
-        readonly Collector: LangiumValidationCollector; // concretizes the ValidationCollector for Langium
-        readonly TypeValidation: LangiumTypirValidator;
+export type TypirLangiumServices<AstTypes extends LangiumAstTypes> = {
+    readonly Inference: LangiumTypeInferenceCollector<AstTypes>; // concretizes the TypeInferenceCollector for Langium
+    readonly langium: { // new services which are specific for Langium
+        readonly TypeCreator: LangiumTypeCreator;
+        readonly TypeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>;
     };
-    readonly TypeCreator: LangiumTypeCreator;
+    readonly validation: {
+        readonly Collector: LangiumValidationCollector<AstTypes>; // concretizes the ValidationCollector for Langium
+        readonly TypeValidation: LangiumTypirValidator; // new service to integrate the validations into the Langium infrastructure
+    };
 }
 
-export type LangiumServicesForTypirBinding = TypirServices<AstNode> & TypirLangiumServices
+export type LangiumServicesForTypirBinding<AstTypes extends LangiumAstTypes> = TypirServices<AstNode> & TypirLangiumServices<AstTypes>
 
-export type PartialTypirLangiumServices = DeepPartial<LangiumServicesForTypirBinding>
+export type PartialTypirLangiumServices<AstTypes extends LangiumAstTypes> = DeepPartial<LangiumServicesForTypirBinding<AstTypes>>
 
 export function createLangiumSpecificTypirServicesModule(langiumServices: LangiumSharedCoreServices): Module<TypirServices<AstNode>> {
     // replace some implementations for the core Typir services
     const LangiumSpecifics: Module<TypirServices<AstNode>, PartialTypirServices<AstNode>> = {
         Printer: () => new LangiumProblemPrinter(),
-        Language: () => new LangiumLanguageService(undefined), // replace 'undefined' by your generated XXXAstReflection!
+        Language: () => { throw new Error('Use new LangiumLanguageService(undefined), and replace "undefined" by the generated XXXAstReflection!'); }, // to be replaced later
         caching: {
             LanguageNodeInference: () => new LangiumLanguageNodeInferenceCaching(langiumServices),
         },
@@ -47,36 +51,60 @@ export function createLangiumSpecificTypirServicesModule(langiumServices: Langiu
     );
 }
 
-export function createDefaultTypirLangiumServices(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, TypirLangiumServices> {
+export function createDefaultTypirLangiumServices<AstTypes extends LangiumAstTypes>(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding<AstTypes>, TypirLangiumServices<AstTypes>> {
     return {
         Inference: (typirServices) => new DefaultLangiumTypeInferenceCollector(typirServices),
+        langium: {
+            TypeCreator: (typirServices) => new DefaultLangiumTypeCreator(typirServices, langiumServices),
+            TypeSystemDefinition: () => { throw new Error('The type system needs to be specified!'); }, // to be replaced later
+        },
         validation: {
             Collector: (typirServices) => new DefaultLangiumValidationCollector(typirServices),
             TypeValidation: (typirServices) => new DefaultLangiumTypirValidator(typirServices),
         },
-        TypeCreator: (typirServices) => new PlaceholderLangiumTypeCreator(typirServices, langiumServices),
     };
 }
 
+
 /**
- * Contains all customizations of Typir to simplify type checking for DSLs developed with Langium,
+ * This is the entry point to create Typir-Langium services to simplify type checking for DSLs developed with Langium,
  * the language workbench for textual domain-specific languages (DSLs) in the web (https://langium.org/).
+ * @param langiumServices Typir-Langium needs to interact with the Langium lifecycle
+ * @param reflection Typir-Langium needs to know the existing AstNode$.types in order to do some performance optimizations
+ * @param typeSystemDefinition the actual definition of the type system
+ * @param customization1 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for production
+ * @param customization2 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
+ * @returns the Typir services configured for the current Langium-based language
  */
-export function createLangiumModuleForTypirBinding(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding> {
-    return Module.merge(
+export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
+    langiumServices: LangiumSharedCoreServices, reflection: AbstractAstReflection, typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>,
+    customization1: Module<PartialTypirLangiumServices<AstTypes>> = {},
+    customization2: Module<PartialTypirLangiumServices<AstTypes>> = {},
+): LangiumServicesForTypirBinding<AstTypes> {
+    return inject(
         // the core Typir services (with adapted implementations for Typir-Langium)
         createLangiumSpecificTypirServicesModule(langiumServices),
         // the additional services for the Typir-Langium binding (with implementations)
-        createDefaultTypirLangiumServices(langiumServices),
+        createDefaultTypirLangiumServices<AstTypes>(langiumServices),
+        // add the language-specific parts provided by Langium into the Typir-Services
+        <Module<PartialTypirLangiumServices<AstTypes>>>{
+            langium: {
+                TypeSystemDefinition: () => typeSystemDefinition,
+            },
+            Language: () => new LangiumLanguageService(reflection),
+        },
+        // optionally add some more language-specific customization, e.g. for ...
+        customization1, // ... production
+        customization2, // ... and some more customizations for testing
     );
 }
 
-export function initializeLangiumTypirServices(langiumServices: LangiumDefaultCoreServices, typirServices: LangiumServicesForTypirBinding): void {
+export function initializeLangiumTypirServices<AstTypes extends LangiumAstTypes>(langiumServices: LangiumDefaultCoreServices, typirServices: LangiumServicesForTypirBinding<AstTypes>): void {
     // register the type-related validations of Typir at the Langium validation registry
     registerTypirValidationChecks(langiumServices, typirServices);
 
     // initialize the type creation (this is not done automatically by dependency injection!)
-    typirServices.TypeCreator.triggerInitialization();
+    typirServices.langium.TypeCreator.triggerInitialization();
 
     /*
     Don't use the following code ...

@@ -4,33 +4,27 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
+import { AstNode, AstUtils, assertUnreachable } from 'langium';
 import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices } from 'typir';
-import { AbstractLangiumTypeCreator, LangiumLanguageService, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
+import { LangiumServicesForTypirBinding, LangiumTypeSystemDefinition } from 'typir-langium';
 import { ValidationProblemAcceptor } from '../../../../packages/typir/lib/services/validation.js';
-import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration, reflection } from './generated/ast.js';
+import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 
-export class OxTypeCreator extends AbstractLangiumTypeCreator {
-    protected readonly typir: LangiumServicesForTypirBinding;
+export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
 
-    constructor(typirServices: LangiumServicesForTypirBinding, langiumServices: LangiumSharedCoreServices) {
-        super(typirServices, langiumServices);
-        this.typir = typirServices;
-    }
-
-    onInitialize(): void {
+    onInitialize(typir: LangiumServicesForTypirBinding<OxAstType>): void {
         // define primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
-        const typeBool = this.typir.factory.Primitives.create({ primitiveName: 'boolean' })
+        const typeBool = typir.factory.Primitives.create({ primitiveName: 'boolean' })
             .inferenceRule({ filter: isBooleanLiteral })
             .inferenceRule({ filter: isTypeReference, matching: node => node.primitive === 'boolean' })
             .finish();
         // ... but their primitive kind is provided/preset by Typir
-        const typeNumber = this.typir.factory.Primitives.create({ primitiveName: 'number' })
+        const typeNumber = typir.factory.Primitives.create({ primitiveName: 'number' })
             .inferenceRule({ languageKey: NumberLiteral })
             .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'number' })
             .finish();
-        const typeVoid = this.typir.factory.Primitives.create({ primitiveName: 'void' })
+        const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' })
             .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'void' })
             .finish();
 
@@ -51,28 +45,28 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         // define operators
         // binary operators: numbers => number
         for (const operator of ['+', '-', '*', '/']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
         }
         // TODO better name for "inferenceRule": astSelectors
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
         }
         // binary operators: booleans => boolean
         for (const operator of ['and', 'or']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
         }
         // ==, != for booleans and numbers
         for (const operator of ['==', '!=']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signatures: [
+            typir.factory.Operators.createBinary({ name: operator, signatures: [
                 { left: typeNumber, right: typeNumber, return: typeBool },
                 { left: typeBool, right: typeBool, return: typeBool },
             ]}).inferenceRule(binaryInferenceRule).finish();
         }
 
         // unary operators
-        this.typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }}).inferenceRule(unaryInferenceRule).finish();
-        this.typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }}).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
 
         /** Hints regarding the order of Typir configurations for OX:
          * - In general, Typir aims to not depend on the order of configurations.
@@ -86,7 +80,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
          */
 
         // additional inference rules ...
-        this.typir.Inference.addInferenceRulesForAstNodes<OxAstType>({
+        typir.Inference.addInferenceRulesForAstNodes({
             // ... for member calls (which are used in expressions)
             MemberCall: (languageNode) => {
                 const ref = languageNode.element.ref;
@@ -120,7 +114,7 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         });
 
         // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
-        this.typir.validation.Collector.addValidationRulesForAstNodes<OxAstType>({
+        typir.validation.Collector.addValidationRulesForAstNodes({
             AssignmentStatement: (node, accept, typir) => {
                 if (node.varRef.ref) {
                     typir.validation.Constraints.ensureNodeIsAssignable(node.value, node.varRef.ref, accept,
@@ -154,13 +148,13 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
         }
     }
 
-    onNewAstNode(languageNode: AstNode): void {
+    onNewAstNode(languageNode: AstNode, typir: LangiumServicesForTypirBinding<OxAstType>): void {
         // define function types
         // they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
         if (isFunctionDeclaration(languageNode)) {
             const functionName = languageNode.name;
             // define function type
-            this.typir.factory.Functions.create({
+            typir.factory.Functions.create({
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
                 outputParameter: { name: NO_PARAMETER_NAME, type: languageNode.returnType },
@@ -186,13 +180,5 @@ export class OxTypeCreator extends AbstractLangiumTypeCreator {
                 .finish();
         }
     }
-}
 
-
-export function createOxTypirModule(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, PartialTypirLangiumServices> {
-    return {
-        // specific configurations for OX
-        TypeCreator: (typirServices) => new OxTypeCreator(typirServices, langiumServices), // specify the type system for OX
-        Language: () => new LangiumLanguageService(reflection), // tell Typir-Langium something about the LX implementation with Langium
-    };
 }
