@@ -18,6 +18,7 @@ import { DefaultTypeConversion, TypeConversion } from './services/conversion.js'
 import { DefaultTypeEquality, TypeEquality } from './services/equality.js';
 import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './services/inference.js';
 import { DefaultKindRegistry, KindRegistry } from './services/kind-registry.js';
+import { DefaultLanguageService, LanguageService } from './services/language.js';
 import { DefaultOperatorFactory, OperatorFactoryService } from './services/operator.js';
 import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.js';
 import { DefaultSubType, SubType } from './services/subtype.js';
@@ -37,71 +38,74 @@ import { inject, Module } from './utils/dependency-injection.js';
  */
 
 /** Some open design questions for future releases TODO
- * - Replace "unknown" as a generic "<T = unknown>" for whole Typir? For Typir-Langium T would be AstNode!
  * - How to bundle Typir configurations for reuse ("presets")?
  */
 
-export type TypirServices = {
+export type TypirServices<LanguageType> = {
     readonly Assignability: TypeAssignability;
     readonly Equality: TypeEquality;
     readonly Conversion: TypeConversion;
     readonly Subtype: SubType;
-    readonly Inference: TypeInferenceCollector;
+    readonly Inference: TypeInferenceCollector<LanguageType>;
     readonly caching: {
         readonly TypeRelationships: TypeRelationshipCaching;
         readonly LanguageNodeInference: LanguageNodeInferenceCaching;
     };
-    readonly Printer: ProblemPrinter;
+    readonly Printer: ProblemPrinter<LanguageType>;
+    readonly Language: LanguageService<LanguageType>;
     readonly validation: {
-        readonly Collector: ValidationCollector;
-        readonly Constraints: ValidationConstraints;
+        readonly Collector: ValidationCollector<LanguageType>;
+        readonly Constraints: ValidationConstraints<LanguageType>;
     };
     readonly factory: {
-        readonly Primitives: PrimitiveFactoryService;
-        readonly Functions: FunctionFactoryService;
-        readonly Classes: ClassFactoryService;
-        readonly Top: TopFactoryService;
-        readonly Bottom: BottomFactoryService;
-        readonly Operators: OperatorFactoryService;
+        readonly Primitives: PrimitiveFactoryService<LanguageType>;
+        readonly Functions: FunctionFactoryService<LanguageType>;
+        readonly Classes: ClassFactoryService<LanguageType>;
+        readonly Top: TopFactoryService<LanguageType>;
+        readonly Bottom: BottomFactoryService<LanguageType>;
+        readonly Operators: OperatorFactoryService<LanguageType>;
     };
     readonly infrastructure: {
         readonly Graph: TypeGraph;
         readonly GraphAlgorithms: GraphAlgorithms;
-        readonly Kinds: KindRegistry;
-        readonly TypeResolver: TypeResolvingService;
+        readonly Kinds: KindRegistry<LanguageType>;
+        readonly TypeResolver: TypeResolvingService<LanguageType>;
     };
 };
 
-export const DefaultTypirServiceModule: Module<TypirServices> = {
-    Assignability: (services) => new DefaultTypeAssignability(services),
-    Equality: (services) => new DefaultTypeEquality(services),
-    Conversion: (services) => new DefaultTypeConversion(services),
-    Subtype: (services) => new DefaultSubType(services),
-    Inference: (services) => new DefaultTypeInferenceCollector(services),
-    caching: {
-        TypeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
-        LanguageNodeInference: () => new DefaultLanguageNodeInferenceCaching(),
-    },
-    Printer: () => new DefaultTypeConflictPrinter(),
-    validation: {
-        Collector: (services) => new DefaultValidationCollector(services),
-        Constraints: (services) => new DefaultValidationConstraints(services),
-    },
-    factory: {
-        Primitives: (services) => services.infrastructure.Kinds.getOrCreateKind(PrimitiveKindName, services => new PrimitiveKind(services)),
-        Functions: (services) => services.infrastructure.Kinds.getOrCreateKind(FunctionKindName, services => new FunctionKind(services)),
-        Classes: (services) => services.infrastructure.Kinds.getOrCreateKind(ClassKindName, services => new ClassKind(services, { typing: 'Nominal' })),
-        Top: (services) => services.infrastructure.Kinds.getOrCreateKind(TopKindName, services => new TopKind(services)),
-        Bottom: (services) => services.infrastructure.Kinds.getOrCreateKind(BottomKindName, services => new BottomKind(services)),
-        Operators: (services) => new DefaultOperatorFactory(services),
-    },
-    infrastructure: {
-        Graph: () =>  new TypeGraph(),
-        GraphAlgorithms: (services) => new DefaultGraphAlgorithms(services),
-        Kinds: (services) => new DefaultKindRegistry(services),
-        TypeResolver: (services) => new DefaultTypeResolver(services),
-    },
-};
+export function createDefaultTypirServiceModule<LanguageType>(): Module<TypirServices<LanguageType>> {
+    return {
+        Assignability: (services) => new DefaultTypeAssignability(services),
+        Equality: (services) => new DefaultTypeEquality(services),
+        Conversion: (services) => new DefaultTypeConversion(services),
+        Subtype: (services) => new DefaultSubType(services),
+        Inference: (services) => new DefaultTypeInferenceCollector(services),
+        caching: {
+            TypeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
+            LanguageNodeInference: () => new DefaultLanguageNodeInferenceCaching(),
+        },
+        Printer: () => new DefaultTypeConflictPrinter(),
+        Language: () => new DefaultLanguageService(),
+        validation: {
+            Collector: (services) => new DefaultValidationCollector(services),
+            Constraints: (services) => new DefaultValidationConstraints(services),
+        },
+        factory: {
+            Primitives: (services) => services.infrastructure.Kinds.getOrCreateKind(PrimitiveKindName, services => new PrimitiveKind(services)),
+            Functions: (services) => services.infrastructure.Kinds.getOrCreateKind(FunctionKindName, services => new FunctionKind(services)),
+            Classes: (services) => services.infrastructure.Kinds.getOrCreateKind(ClassKindName, services => new ClassKind(services, { typing: 'Nominal' })),
+            Top: (services) => services.infrastructure.Kinds.getOrCreateKind(TopKindName, services => new TopKind(services)),
+            Bottom: (services) => services.infrastructure.Kinds.getOrCreateKind(BottomKindName, services => new BottomKind(services)),
+            Operators: (services) => new DefaultOperatorFactory(services),
+        },
+        infrastructure: {
+            Graph: () =>  new TypeGraph(),
+            GraphAlgorithms: (services) => new DefaultGraphAlgorithms(services),
+            Kinds: (services) => new DefaultKindRegistry(services),
+            TypeResolver: (services) => new DefaultTypeResolver(services),
+        },
+    };
+}
 
 /**
  * Creates the TypirServices with the default module containing the default implements for Typir, which might be exchanged by the given optional customized modules.
@@ -110,12 +114,12 @@ export const DefaultTypirServiceModule: Module<TypirServices> = {
  * @param customization3 optional Typir module with customizations
  * @returns a Typir instance, i.e. the TypirServices with implementations
  */
-export function createTypirServices(
-    customization1: Module<TypirServices, PartialTypirServices> = {},
-    customization2: Module<TypirServices, PartialTypirServices> = {},
-    customization3: Module<TypirServices, PartialTypirServices> = {},
-): TypirServices {
-    return inject(DefaultTypirServiceModule, customization1, customization2, customization3);
+export function createTypirServices<LanguageType>(
+    customization1: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
+    customization2: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
+    customization3: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
+): TypirServices<LanguageType> {
+    return inject(createDefaultTypirServiceModule<LanguageType>(), customization1, customization2, customization3);
 }
 
 /**
@@ -131,4 +135,4 @@ export type DeepPartial<T> = T[keyof T] extends Function ? T : {
 /**
  * Language-specific services to be partially overridden via dependency injection.
  */
-export type PartialTypirServices = DeepPartial<TypirServices>
+export type PartialTypirServices<LanguageType> = DeepPartial<TypirServices<LanguageType>>

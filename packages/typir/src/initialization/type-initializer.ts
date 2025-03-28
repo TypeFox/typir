@@ -7,7 +7,7 @@
 import { Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 
-export type TypeInitializerListener<T extends Type = Type> = (type: T) => void;
+export type TypeInitializerListener<T extends Type> = (type: T) => void;
 
 /**
  * The purpose of a TypeInitializer is to ensure, that the same type is created and registered only _once_ in the type system.
@@ -17,21 +17,21 @@ export type TypeInitializerListener<T extends Type = Type> = (type: T) => void;
  * Without checking for duplicates, the same type might be created twice, e.g. in the following scenario:
  * If the creation of A is delayed, since a type B which is required for some properties of A is not yet created, A will be created not now, but later.
  * During the "waiting time" for B, another declaration in the AST might be found with the same Typir type A.
- * (The second declaration might be wrong, but the user expects to get a validation hint, and not Typir to crash, or the current DSL might allow duplicated type declarations.)
+ * (The second declaration might be wrong, but the user expects to get a validation issue, and not Typir to crash, or the current DSL might allow duplicated type declarations.)
  * Since the first Typir type is not yet in the type systems (since it still waits for B) and therefore remains unknown,
  * it will be tried to create A a second time, again delayed, since B is still not yet available.
  * When B is created, A is waiting twice and might be created twice, if no TypeInitializer is used.
  *
- * Design decision: While this class does not provide some many default implementations,
- * a common super class (or interface) of all type initializers is useful,
+ * Design decision: While this class does not provide so many default implementations,
+ * a common super class (or interface) of all type initializers is useful nevertheless,
  * since they all can be used as TypeSelector in an easy way.
  */
-export abstract class TypeInitializer<T extends Type = Type> {
-    protected readonly services: TypirServices;
+export abstract class TypeInitializer<T extends Type, LanguageType> {
+    protected readonly services: TypirServices<LanguageType>;
     protected typeToReturn: T | undefined;
     protected listeners: Array<TypeInitializerListener<T>> = [];
 
-    constructor(services: TypirServices) {
+    constructor(services: TypirServices<LanguageType>) {
         this.services = services;
     }
 

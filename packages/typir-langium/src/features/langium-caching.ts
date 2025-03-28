@@ -29,6 +29,10 @@ export class LangiumLanguageNodeInferenceCaching implements LanguageNodeInferenc
         }
     }
 
+    cacheClear(): void {
+        this.cache.clear();
+    }
+
     pendingSet(languageNode: AstNode): void {
         this.cache.set(getDocumentKey(languageNode), languageNode, CachePending);
     }

@@ -31,10 +31,10 @@ export type EdgeCachingInformation =
     /** The current relationship does not exist. */
     'NO_LINK';
 
-export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
+export class DefaultTypeRelationshipCaching<LanguageType> implements TypeRelationshipCaching {
     protected readonly graph: TypeGraph;
 
-    constructor(services: TypirServices) {
+    constructor(services: TypirServices<LanguageType>) {
         this.graph = services.infrastructure.Graph;
     }
 
@@ -107,6 +107,7 @@ export class DefaultTypeRelationshipCaching implements TypeRelationshipCaching {
 export interface LanguageNodeInferenceCaching {
     cacheSet(languageNode: unknown, type: Type): void;
     cacheGet(languageNode: unknown): Type | undefined;
+    cacheClear(): void
     pendingSet(languageNode: unknown): void;
     pendingClear(languageNode: unknown): void;
     pendingGet(languageNode: unknown): boolean;
@@ -137,6 +138,10 @@ export class DefaultLanguageNodeInferenceCaching implements LanguageNodeInferenc
         } else {
             return this.cache.get(languageNode) as (Type | undefined);
         }
+    }
+
+    cacheClear(): void {
+        this.cache.clear();
     }
 
     pendingSet(languageNode: unknown): void {

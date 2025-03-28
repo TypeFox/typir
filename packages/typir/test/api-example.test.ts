@@ -7,29 +7,31 @@
 /* eslint-disable @typescript-eslint/parameter-properties */
 
 import { describe, expect, test } from 'vitest';
-import { InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, ValidationMessageDetails } from '../src/index.js';
+import { InferenceRuleNotApplicable } from '../src/services/inference.js';
+import { InferOperatorWithMultipleOperands } from '../src/services/operator.js';
 import { createTypirServices } from '../src/typir.js';
 
 describe('Tiny Typir', () => {
 
     test('Set-up and test some expressions', async () => {
-        const typir = createTypirServices(); // set-up the type system
+        const typir = createTypirServices<AstElement>(); // set-up the type system, <AstElement> specifies the root type of all language nodes
 
         // primitive types
-        const numberType = typir.factory.Primitives.create({ primitiveName: 'number', inferenceRules: node => node instanceof NumberLiteral });
-        const stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
+        const numberType = typir.factory.Primitives.create({ primitiveName: 'number' }).inferenceRule({ filter: node => node instanceof NumberLiteral }).finish();
+        const stringType = typir.factory.Primitives.create({ primitiveName: 'string' }).inferenceRule({ filter: node => node instanceof StringLiteral }).finish();
 
         // operators
-        const inferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
+        const inferenceRule: InferOperatorWithMultipleOperands<AstElement, BinaryExpression> = {
             filter: node => node instanceof BinaryExpression,
             matching: (node, operatorName) => node.operator === operatorName,
             operands: node => [node.left, node.right],
+            validateArgumentsOfCalls: true, // explicitly request to check, that the types of the arguments in operator calls fit to the parameters
         };
         typir.factory.Operators.createBinary({ name: '+', signatures: [ // operator overloading
             { left: numberType, right: numberType, return: numberType }, // 2 + 3
             { left: stringType, right: stringType, return: stringType }, // "2" + "3"
-        ], inferenceRule });
-        typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }], inferenceRule }); // 2 - 3
+        ] }).inferenceRule(inferenceRule).finish();
+        typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }] }).inferenceRule(inferenceRule).finish(); // 2 - 3
 
         // numbers are implicitly convertable to strings
         typir.Conversion.markAsConvertible(numberType, stringType, 'IMPLICIT_EXPLICIT');
@@ -43,12 +45,11 @@ describe('Tiny Typir', () => {
         });
 
         // register a type-related validation
-        typir.validation.Collector.addValidationRule(node => {
+        typir.validation.Collector.addValidationRule((node, accept) => {
             if (node instanceof AssignmentStatement) {
-                return typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
-                    `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
+                typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => ({ message:
+                    `The type '${actual.name}' is not assignable to the type '${expected.name}'.` }));
             }
-            return [];
         });
 
         // 2 + 3 => OK

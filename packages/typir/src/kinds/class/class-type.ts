@@ -9,7 +9,7 @@ import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy, IndexedTypeConflict } from '../../utils/utils-type-comparison.js';
-import { assertUnreachable, toArray } from '../../utils/utils.js';
+import { assertUnreachable, removeFromArray, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
 import { ClassKind, ClassTypeDetails, isClassKind } from './class-kind.js';
 
@@ -30,7 +30,7 @@ export interface MethodDetails {
 }
 
 export class ClassType extends Type {
-    override readonly kind: ClassKind;
+    override readonly kind: ClassKind<unknown>;
     readonly className: string;
     /** The super classes are readonly, since they might be used to calculate the identifier of the current class, which must be stable. */
     protected superClasses: Array<TypeReference<ClassType>>; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
@@ -38,7 +38,7 @@ export class ClassType extends Type {
     protected readonly fields: Map<string, FieldDetails> = new Map(); // unordered
     protected methods: MethodDetails[]; // unordered
 
-    constructor(kind: ClassKind, typeDetails: ClassTypeDetails) {
+    constructor(kind: ClassKind<unknown>, typeDetails: ClassTypeDetails<unknown>) {
         super(kind.options.typing === 'Nominal'
             ? kind.calculateIdentifierWithClassNameOnly(typeDetails) // use the name of the class as identifier already now
             : undefined, // the identifier for structurally typed classes will be set later after resolving all fields and methods
@@ -62,7 +62,7 @@ export class ClassType extends Type {
                 onTypeReferenceInvalidated(_reference, superType) {
                     if (superType) {
                         // if the superType gets invalid ...
-                        superType.subClasses.splice(superType.subClasses.indexOf(thisType), 1); // de-register this class as sub-class of the super-class
+                        removeFromArray(thisType, superType.subClasses); // de-register this class as sub-class of the super-class
                         // TODO unmark sub-type relationship (or already done automatically, since the type is removed from the graph?? gibt es noch andere Möglichkeiten eine Reference zu invalidieren außer dass der Type entfernt wurde??)
                     } else {
                         // initially do nothing
@@ -86,12 +86,12 @@ export class ClassType extends Type {
                     this.fields.set(field.name, field);
                 }
             });
-        const refFields: TypeReference[] = [];
+        const refFields: Array<TypeReference<Type>> = [];
         [...this.fields.values()].forEach(f => refFields.push(f.type));
 
         // resolve methods
         this.methods = typeDetails.methods.map(method => <MethodDetails>{
-            type: new TypeReference(kind.getMethodFactory().create(method), kind.services),
+            type: new TypeReference<FunctionType>(method.type, kind.services),
         });
         const refMethods = this.methods.map(m => m.type);
         // the uniqueness of methods can be checked with the predefined UniqueMethodValidation below

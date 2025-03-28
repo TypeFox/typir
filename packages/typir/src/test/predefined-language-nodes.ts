@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { DefaultLanguageService } from '../services/language.js';
 import { InferOperatorWithMultipleOperands } from '../services/operator.js';
 import { DefaultTypeConflictPrinter } from '../services/printing.js';
 
@@ -48,8 +49,6 @@ export abstract class TestStatementNode extends TestLanguageNode {
 }
 
 
-// TODO review: Should the following classes have "Test" as prefix for their names?
-
 export class IntegerLiteral extends TestExpressionNode {
     constructor(
         public value: number,
@@ -89,6 +88,22 @@ export const string123 = new StringLiteral('123');
 export const string456 = new StringLiteral('456');
 export const string2 = new StringLiteral('2');
 export const string3 = new StringLiteral('3');
+export const stringHello = new StringLiteral('Hello');
+export const stringWorld = new StringLiteral('World');
+
+
+export class ClassConstructorCall extends TestExpressionNode {
+    constructor(
+        public className: string,
+    ) { super(); }
+}
+
+export class ClassFieldAccess extends TestExpressionNode {
+    constructor(
+        public classVariable: Variable,
+        public fieldName: string,
+    ) { super(); }
+}
 
 
 export class BinaryExpression extends TestExpressionNode {
@@ -126,17 +141,24 @@ export class StatementBlock extends TestStatementNode {
  * Some predefined utils for configuring Typir accordingly
  */
 
-export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<BinaryExpression> = {
+export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<TestLanguageNode, BinaryExpression> = {
     filter: node => node instanceof BinaryExpression,
     matching: (node, operatorName) => node.operator === operatorName,
     operands: node => [node.left, node.right],
+    validateArgumentsOfCalls: true,
 };
 
-export class TestProblemPrinter extends DefaultTypeConflictPrinter {
-    override printLanguageNode(languageNode: unknown, sentenceBegin?: boolean | undefined): string {
+export class TestProblemPrinter extends DefaultTypeConflictPrinter<TestLanguageNode> {
+    override printLanguageNode(languageNode: TestLanguageNode, sentenceBegin?: boolean | undefined): string {
         if (languageNode instanceof TestLanguageNode) {
             return `${sentenceBegin ? 'T' : 't'}he language node '${languageNode.print()}'`;
         }
         return super.printLanguageNode(languageNode, sentenceBegin);
+    }
+}
+
+export class TestLanguageService extends DefaultLanguageService<TestLanguageNode> {
+    override getLanguageNodeKey(languageNode: TestLanguageNode): string | undefined {
+        return languageNode.constructor.name;
     }
 }

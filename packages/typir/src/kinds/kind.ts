@@ -8,6 +8,15 @@
 /**
  * Typir provides a default set of Kinds, e.g. primitive types and class types.
  * For domain-specific kinds, implement this interface or create a new sub-class of an existing kind-class.
+ *
+ * Purposes of Kinds:
+ * - Factory to create new types
+ * - implements a chaining API to configure types to create
+ * - Entry point for ensuring, that the same type is added only once in the type graph
+ *
+ * Note that types must be created by their corresponding Kind, e.g. FunctionTypes must be created by the FunctionKind.
+ * It might or might not work to manually create types, e.g. by calling "new FunctionType(...)",
+ * since this case is no intended use case and this case is not considered during the design and implementation of Typir.
  */
 export interface Kind {
     readonly $name: string;

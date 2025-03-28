@@ -5,15 +5,14 @@
  ******************************************************************************/
 
 import { describe, expect, test } from 'vitest';
-import { createTypirServicesForTesting } from '../../src/index.js';
-import { TypirServices } from '../../src/typir.js';
+import { createTypirServicesForTesting } from '../../src/utils/test-utils.js';
 
 describe('Testing conversion', () => {
 
     test('exception in case of cyclic conversion rules', () => {
-        const typir: TypirServices = createTypirServicesForTesting();
-        const integerType = typir.factory.Primitives.create({ primitiveName: 'integer' });
-        const doubleType = typir.factory.Primitives.create({ primitiveName: 'double' });
+        const typir = createTypirServicesForTesting();
+        const integerType = typir.factory.Primitives.create({ primitiveName: 'integer' }).finish();
+        const doubleType = typir.factory.Primitives.create({ primitiveName: 'double' }).finish();
 
         // define cyclic relationships between types
         typir.Conversion.markAsConvertible(integerType, doubleType, 'IMPLICIT_EXPLICIT');

@@ -27,6 +27,7 @@ Typir provides these core features:
   - Classes
   - Top, bottom
   - (more are planned)
+- Operators (with overloading)
 - Implementations for core type-checking services:
   - Assignability
   - Equality
@@ -34,7 +35,8 @@ Typir provides these core features:
   - Type inference, i.e. determining the Typir type for a language node (e.g. an element of the current AST)
   - Sub-typing
   - Validation
-- Solutions for: circular type definitions, caching, operators
+- Circular type definitions (e.g. `Node { children: Node[] }`)
+- Caching
 - Meaningful and customizable error messages
 - The provided default implementations are customizable by dependency injection
 
@@ -82,7 +84,7 @@ Feel free to check out the others in the [test code](./packages/typir/test/api-e
 Let's head into setting up the Typir type system and creating the primitive types for our NumberLiteral and StringLiteral, which is a one line of code job each, as we use the Typir's predefined Primitives factory service:
 
 ```typescript
-const typir = createTypirServices();
+const typir = createTypirServices<AstElement>(); // <AstElement> specifies the root type of all language nodes
 
 const numberType = typir.factory.Primitives.create({ primitiveName: 'number', inferenceRules: node => node instanceof NumberLiteral });
 
@@ -92,10 +94,11 @@ const stringType = typir.factory.Primitives.create({ primitiveName: 'string', in
 Note that the inference rules are included in this. For the operators this is a bit longer, as we have to take care of the left and right operand and the operator of the binary expression, so we extract it and will resuse it later for both the `+` and `-` operators:
 
 ```typescript
-const inferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
+const inferenceRule: InferOperatorWithMultipleOperands<AstElement, BinaryExpression> = {
     filter: node => node instanceof BinaryExpression,
     matching: (node, operatorName) => node.operator === operatorName,
     operands: node => [node.left, node.right],
+    validateArgumentsOfCalls: true, // explicitly request to check, that the types of the arguments in operator calls fit to the parameters
 };
 ```
 
@@ -129,12 +132,11 @@ typir.Inference.addInferenceRule(node => {
 Finally, we add a type related validation rule for our small example: In case we have an AssignmentStatement, we check whether the type to be assigned is an assignable match for the variable type. We can do that with a custom message. An error with this message will show up for example when we try to assign the string literal "hello" to a number variable. It will not show up in case we assign the number literal 123 to a string variable, as we have defined the implicit conversion above.
 
 ```typescript
-typir.validation.Collector.addValidationRule(node => {
+typir.validation.Collector.addValidationRule((node, accept) => {
     if (node instanceof AssignmentStatement) {
-        return typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
-            `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
+        typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => ({ message:
+            `The type '${actual.name}' is not assignable to the type '${expected.name}'.` }));
     }
-    return [];
 });
 ```
 

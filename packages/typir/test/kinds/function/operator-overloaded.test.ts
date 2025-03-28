@@ -7,15 +7,19 @@
 /* eslint-disable @typescript-eslint/parameter-properties */
 
 import { beforeAll, describe, expect, test } from 'vitest';
-import { assertTrue, ConversionEdge, isAssignabilityProblem, isAssignabilitySuccess, isPrimitiveType, PrimitiveType, SubTypeEdge, Type } from '../../../src/index.js';
+import { Type } from '../../../src/graph/type-node.js';
+import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
+import { isAssignabilityProblem, isAssignabilitySuccess } from '../../../src/services/assignability.js';
+import { ConversionEdge } from '../../../src/services/conversion.js';
 import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
-import { ValidationMessageDetails } from '../../../src/services/validation.js';
-import { AssignmentStatement, BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, double2_0, double3_0, DoubleLiteral, InferenceRuleBinaryExpression, integer2, integer3, IntegerLiteral, string2, string3, StringLiteral, TestExpressionNode, Variable } from '../../../src/test/predefined-language-nodes.js';
+import { SubTypeEdge } from '../../../src/services/subtype.js';
+import { AssignmentStatement, BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, double2_0, double3_0, DoubleLiteral, InferenceRuleBinaryExpression, integer2, integer3, IntegerLiteral, string2, string3, StringLiteral, TestExpressionNode, TestLanguageNode, Variable } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting, expectToBeType } from '../../../src/utils/test-utils.js';
+import { assertTrue } from '../../../src/utils/utils.js';
 
 describe('Multiple best matches for overloaded operators', () => {
-    let typir: TypirServices;
+    let typir: TypirServices<TestLanguageNode>;
     let integerType: PrimitiveType;
     let doubleType: PrimitiveType;
     let stringType: PrimitiveType;
@@ -25,10 +29,10 @@ describe('Multiple best matches for overloaded operators', () => {
         typir = createTypirServicesForTesting();
 
         // primitive types
-        integerType = typir.factory.Primitives.create({ primitiveName: 'integer', inferenceRules: node => node instanceof IntegerLiteral });
-        doubleType = typir.factory.Primitives.create({ primitiveName: 'double', inferenceRules: node => node instanceof DoubleLiteral });
-        stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
-        booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean', inferenceRules: node => node instanceof BooleanLiteral });
+        integerType = typir.factory.Primitives.create({ primitiveName: 'integer' }).inferenceRule({ filter: node => node instanceof IntegerLiteral }).finish();
+        doubleType = typir.factory.Primitives.create({ primitiveName: 'double' }).inferenceRule({ filter: node => node instanceof DoubleLiteral }).finish();
+        stringType = typir.factory.Primitives.create({ primitiveName: 'string' }).inferenceRule({ filter: node => node instanceof StringLiteral }).finish();
+        booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean' }).inferenceRule({ filter: node => node instanceof BooleanLiteral }).finish();
 
         // operators
         typir.factory.Operators.createBinary({ name: '+', signatures: [ // operator overloading
@@ -36,7 +40,7 @@ describe('Multiple best matches for overloaded operators', () => {
             { left: doubleType, right: doubleType, return: doubleType }, // 2.0 + 3.0 => 5.0
             { left: stringType, right: stringType, return: stringType }, // "2" + "3" => "23"
             { left: booleanType, right: booleanType, return: booleanType }, // TRUE + TRUE => FALSE
-        ], inferenceRule: InferenceRuleBinaryExpression });
+        ] }).inferenceRule(InferenceRuleBinaryExpression).finish();
 
         // define relationships between types
         typir.Conversion.markAsConvertible(booleanType, integerType, 'IMPLICIT_EXPLICIT'); // integerVariable := booleanValue;
@@ -52,12 +56,11 @@ describe('Multiple best matches for overloaded operators', () => {
         });
 
         // register a type-related validation
-        typir.validation.Collector.addValidationRule(node => {
+        typir.validation.Collector.addValidationRule((node, accept) => {
             if (node instanceof AssignmentStatement) {
-                return typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, (actual, expected) => <ValidationMessageDetails>{ message:
-                    `The type '${actual.name}' is not assignable to the type '${expected.name}'.` });
+                typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => ({ message:
+                    `The type '${actual.name}' is not assignable to the type '${expected.name}'.` }));
             }
-            return [];
         });
     });
 
@@ -180,7 +183,8 @@ describe('Multiple best matches for overloaded operators', () => {
 
         function expectOverload(left: TestExpressionNode, right: TestExpressionNode, typeName: 'string'|'integer'|'double'|'boolean'): void {
             const example = new BinaryExpression(left, '+', right);
-            expect(typir.validation.Collector.validate(example)).toHaveLength(0);
+            const validationProblems = typir.validation.Collector.validate(example);
+            expect(validationProblems, validationProblems.map(p => typir.Printer.printValidationProblem(p)).join('\n')).toHaveLength(0);
             const inferredType = typir.Inference.inferType(example);
             expectToBeType(inferredType, isPrimitiveType, type => type.getName() === typeName);
         }

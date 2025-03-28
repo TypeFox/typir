@@ -19,7 +19,7 @@ describe('Tests for Typir', () => {
         const typir = createTypirServices({
             // customize some default factories for predefined types
             factory: {
-                Classes: (services) =>new ClassKind(typir, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' }),
+                Classes: (services) => new ClassKind(services, { typing: 'Structural', maximumNumberOfSuperClasses: 1, subtypeFieldChecking: 'SUB_TYPE' }),
             },
         });
 
@@ -29,10 +29,10 @@ describe('Tests for Typir', () => {
         const mapKind = new FixedParameterKind(typir, 'Map', { parameterSubtypeCheckingStrategy: 'EQUAL_TYPE' }, 'key', 'value');
 
         // create some primitive types
-        const typeInt = typir.factory.Primitives.create({ primitiveName: 'Integer' });
-        const typeString = typir.factory.Primitives.create({ primitiveName: 'String',
-            inferenceRules: languageNode => typeof languageNode === 'string'}); // combine type definition with a dedicated inference rule for it
-        const typeBoolean = typir.factory.Primitives.create({ primitiveName: 'Boolean' });
+        const typeInt = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
+        const typeString = typir.factory.Primitives.create({ primitiveName: 'String' })
+            .inferenceRule({ filter: languageNode => typeof languageNode === 'string' }).finish(); // combine type definition with a dedicated inference rule for it
+        const typeBoolean = typir.factory.Primitives.create({ primitiveName: 'Boolean' }).finish();
 
         // create class type Person with 1 firstName and 1..2 lastNames and an age properties
         const typeOneOrTwoStrings = multiplicityKind.createMultiplicityType({ constrainedType: typeString, lowerBound: 1, upperBound: 2 });
@@ -44,7 +44,7 @@ describe('Tests for Typir', () => {
                 { name: 'age', type: typeInt }
             ],
             methods: [],
-        });
+        }).finish();
         console.log(typePerson.getTypeFinal()!.getUserRepresentation());
         const typeStudent = typir.factory.Classes.create({
             className: 'Student',
@@ -53,7 +53,7 @@ describe('Tests for Typir', () => {
                 { name: 'studentNumber', type: typeInt }
             ],
             methods: []
-        });
+        }).finish();
 
         // create some more types
         const typeListInt = listKind.createFixedParameterType({ parameterTypes: typeInt });
@@ -63,30 +63,30 @@ describe('Tests for Typir', () => {
             functionName: 'length',
             outputParameter: { name: NO_PARAMETER_NAME, type: typeInt },
             inputParameters: [{ name: 'value', type: typeString }]
-        });
+        }).finish();
 
         // binary operators on Integers
-        const opAdd = typir.factory.Operators.createBinary({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } });
-        const opMinus = typir.factory.Operators.createBinary({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } });
-        const opLess = typir.factory.Operators.createBinary({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } });
-        const opEqualInt = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean },
-            inferenceRule: {
+        const opAdd = typir.factory.Operators.createBinary({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } }).finish();
+        const opMinus = typir.factory.Operators.createBinary({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } }).finish();
+        const opLess = typir.factory.Operators.createBinary({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } }).finish();
+        const opEqualInt = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean } })
+            .inferenceRule({
                 filter: (languageNode): languageNode is string => typeof languageNode === 'string',
                 matching: languageNode => languageNode.includes('=='),
                 operands: languageNode => []
-            }});
+            }).finish();
         // binary operators on Booleans
-        const opEqualBool = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
-        const opAnd = typir.factory.Operators.createBinary({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } });
+        const opEqualBool = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } }).finish();
+        const opAnd = typir.factory.Operators.createBinary({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } }).finish();
         // unary operators
-        const opNotBool = typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBoolean, return: typeBoolean },
-            inferenceRule: {
+        const opNotBool = typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBoolean, return: typeBoolean } })
+            .inferenceRule({
                 filter: (languageNode): languageNode is string => typeof languageNode === 'string',
                 matching: languageNode => languageNode.includes('NOT'),
                 operand: languageNode => []
-            }});
+            }).finish();
         // ternary operator
-        const opTernaryIf = typir.factory.Operators.createTernary({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } });
+        const opTernaryIf = typir.factory.Operators.createTernary({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } }).finish();
 
         // automated conversion from int to string
         typir.Conversion.markAsConvertible(typeInt, typeString, 'EXPLICIT');

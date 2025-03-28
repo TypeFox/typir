@@ -9,9 +9,8 @@ import { parseDocument } from 'langium/test';
 import { deleteAllDocuments } from 'typir-langium';
 import { afterEach, expect } from 'vitest';
 import { isFunctionType } from '../../../packages/typir/lib/kinds/function/function-type.js';
-import { expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
+import { compareValidationIssuesStrict, expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
 import { createOxServices } from '../src/language/ox-module.js';
-import { fail } from 'assert';
 
 export const oxServices = createOxServices(EmptyFileSystem).Ox;
 export const operatorNames = ['-', '*', '/', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '==', '!=', '!=', '!', '-'];
@@ -32,11 +31,6 @@ export async function validateOx(ox: string, errors: number | string | string[])
         expect(diagnostics, msgError).toHaveLength(1);
         expect(diagnostics[0], msgError).includes(errors);
     } else {
-        expect(diagnostics, msgError).toHaveLength(errors.length);
-        for (const expected of errors) {
-            if (diagnostics.some(dia => dia.includes(expected)) === false) {
-                fail(`This issue is expected:\n${expected}\n... but it is not contained in these found issues:\n${msgError}`);
-            }
-        }
+        compareValidationIssuesStrict(diagnostics, errors);
     }
 }

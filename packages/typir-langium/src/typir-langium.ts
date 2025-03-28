@@ -4,45 +4,56 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
-import { DeepPartial, DefaultTypirServiceModule, Module, PartialTypirServices, TypirServices } from 'typir';
+import { AstNode, LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
+import { createDefaultTypirServiceModule, DeepPartial, Module, PartialTypirServices, TypirServices } from 'typir';
 import { LangiumLanguageNodeInferenceCaching } from './features/langium-caching.js';
+import { LangiumLanguageService } from './features/langium-language.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
 import { LangiumTypeCreator, PlaceholderLangiumTypeCreator } from './features/langium-type-creator.js';
-import { DefaultLangiumTypirValidator, LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
+import { DefaultLangiumTypirValidator, DefaultLangiumValidationCollector, LangiumTypirValidator, LangiumValidationCollector, registerTypirValidationChecks } from './features/langium-validation.js';
+import { DefaultLangiumTypeInferenceCollector, LangiumTypeInferenceCollector } from './features/langium-inference.js';
 
 /**
  * Additional Typir-Langium services to manage the Typir services
  * in order to be used e.g. for scoping/linking in Langium.
  */
 export type TypirLangiumServices = {
-    readonly TypeValidation: LangiumTypirValidator,
-    readonly TypeCreator: LangiumTypeCreator,
+    readonly Inference: LangiumTypeInferenceCollector; // concretizes the TypeInferenceCollector for Langium
+    readonly validation: {
+        readonly Collector: LangiumValidationCollector; // concretizes the ValidationCollector for Langium
+        readonly TypeValidation: LangiumTypirValidator;
+    };
+    readonly TypeCreator: LangiumTypeCreator;
 }
 
-export type LangiumServicesForTypirBinding = TypirServices & TypirLangiumServices
+export type LangiumServicesForTypirBinding = TypirServices<AstNode> & TypirLangiumServices
 
 export type PartialTypirLangiumServices = DeepPartial<LangiumServicesForTypirBinding>
 
-export function createLangiumSpecificTypirServicesModule(langiumServices: LangiumSharedCoreServices): Module<TypirServices> {
+export function createLangiumSpecificTypirServicesModule(langiumServices: LangiumSharedCoreServices): Module<TypirServices<AstNode>> {
     // replace some implementations for the core Typir services
-    const LangiumSpecifics: Module<TypirServices, PartialTypirServices> = {
+    const LangiumSpecifics: Module<TypirServices<AstNode>, PartialTypirServices<AstNode>> = {
         Printer: () => new LangiumProblemPrinter(),
+        Language: () => new LangiumLanguageService(undefined), // replace 'undefined' by your generated XXXAstReflection!
         caching: {
             LanguageNodeInference: () => new LangiumLanguageNodeInferenceCaching(langiumServices),
         },
     };
     return Module.merge(
         // use all core Typir services:
-        DefaultTypirServiceModule,
+        createDefaultTypirServiceModule<AstNode>(),
         // replace some of the core Typir default implementations for Langium:
-        LangiumSpecifics
+        LangiumSpecifics,
     );
 }
 
 export function createDefaultTypirLangiumServices(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, TypirLangiumServices> {
     return {
-        TypeValidation: (typirServices) => new DefaultLangiumTypirValidator(typirServices),
+        Inference: (typirServices) => new DefaultLangiumTypeInferenceCollector(typirServices),
+        validation: {
+            Collector: (typirServices) => new DefaultLangiumValidationCollector(typirServices),
+            TypeValidation: (typirServices) => new DefaultLangiumTypirValidator(typirServices),
+        },
         TypeCreator: (typirServices) => new PlaceholderLangiumTypeCreator(typirServices, langiumServices),
     };
 }

@@ -12,12 +12,12 @@ import { checkValueForConflict, createKindConflict } from '../../utils/utils-typ
 import { isMultiplicityKind, MultiplicityKind, MultiplicityTypeDetails } from './multiplicity-kind.js';
 
 export class MultiplicityType extends Type {
-    override readonly kind: MultiplicityKind;
+    override readonly kind: MultiplicityKind<unknown>;
     readonly constrainedType: Type;
     readonly lowerBound: number;
     readonly upperBound: number;
 
-    constructor(kind: MultiplicityKind, identifier: string, typeDetails: MultiplicityTypeDetails) {
+    constructor(kind: MultiplicityKind<unknown>, identifier: string, typeDetails: MultiplicityTypeDetails<unknown>) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.constrainedType = typeDetails.constrainedType;

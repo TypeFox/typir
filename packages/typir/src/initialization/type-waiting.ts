@@ -5,10 +5,10 @@
  ******************************************************************************/
 
 import { Type, TypeStateListener } from '../graph/type-node.js';
-import { toArray } from '../utils/utils.js';
+import { removeFromArray, toArray } from '../utils/utils.js';
 import { TypeReferenceListener, TypeReference } from './type-reference.js';
 
-export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<T extends Type = Type> {
+export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<T extends Type> {
     onFulfilled(waiter: WaitingForIdentifiableAndCompletedTypeReferences<T>): void;
     onInvalidated(waiter: WaitingForIdentifiableAndCompletedTypeReferences<T>): void;
 }
@@ -18,7 +18,7 @@ export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<T exte
  * After that, the listeners might be informed multiple times,
  * if at least one of the TypeReferences was unresolved/invalid, but later on all TypeReferences are again in the desired state, and so on.
  */
-export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = Type> implements TypeReferenceListener, TypeStateListener {
+export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type> implements TypeReferenceListener<T>, TypeStateListener {
     /** Remembers whether all TypeReferences are in the desired states (true) or not (false). */
     protected fulfilled: boolean = false;
     /** This is required for cyclic type definitions:
@@ -74,10 +74,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
     }
 
     removeListener(listenerToRemove: WaitingForIdentifiableAndCompletedTypeReferencesListener<T>): void {
-        const index = this.listeners.indexOf(listenerToRemove);
-        if (index >= 0) {
-            this.listeners.splice(index, 1);
-        }
+        removeFromArray(listenerToRemove, this.listeners);
     }
 
     /**
@@ -125,7 +122,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         }
     }
 
-    onTypeReferenceResolved(_reference: TypeReference<Type>, resolvedType: Type): void {
+    onTypeReferenceResolved(_reference: TypeReference<T>, resolvedType: Type): void {
         // inform the referenced type about the types to ignore for completion, so that the type could switch to its next phase (if needed)
         resolvedType.ignoreDependingTypesDuringInitialization(this.typesToIgnoreForCycles);
         resolvedType.addListener(this, false);
@@ -134,7 +131,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
         // TODO is a more performant solution possible, e.g. by counting or using "resolvedType"?
     }
 
-    onTypeReferenceInvalidated(_reference: TypeReference<Type>, previousType: Type | undefined): void {
+    onTypeReferenceInvalidated(_reference: TypeReference<T>, previousType: Type | undefined): void {
         // since at least one TypeReference was reset, the listeners might be informed (again), when all TypeReferences reached the desired state (again)
         this.switchToNotFulfilled();
         if (previousType) {
@@ -201,9 +198,9 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type = T
     }
 }
 
-export type WaitingForInvalidTypeReferencesListener<T extends Type = Type> = (waiter: WaitingForInvalidTypeReferences<T>) => void;
+export type WaitingForInvalidTypeReferencesListener<T extends Type> = (waiter: WaitingForInvalidTypeReferences<T>) => void;
 
-export class WaitingForInvalidTypeReferences<T extends Type = Type> implements TypeReferenceListener {
+export class WaitingForInvalidTypeReferences<T extends Type> implements TypeReferenceListener<T> {
     protected counterInvalid: number; // just count the number of invalid TypeReferences
 
     // At least one of the given TypeReferences must be in the state Invalid.
@@ -238,17 +235,14 @@ export class WaitingForInvalidTypeReferences<T extends Type = Type> implements T
     }
 
     removeListener(listenerToRemove: WaitingForInvalidTypeReferencesListener<T>): void {
-        const index = this.listeners.indexOf(listenerToRemove);
-        if (index >= 0) {
-            this.listeners.splice(index, 1);
-        }
+        removeFromArray(listenerToRemove, this.listeners);
     }
 
-    onTypeReferenceResolved(_reference: TypeReference<Type>, _resolvedType: Type): void {
+    onTypeReferenceResolved(_reference: TypeReference<T>, _resolvedType: Type): void {
         this.counterInvalid--;
     }
 
-    onTypeReferenceInvalidated(_reference: TypeReference<Type>, _previousType: Type | undefined): void {
+    onTypeReferenceInvalidated(_reference: TypeReference<T>, _previousType: Type | undefined): void {
         this.counterInvalid++;
         if (this.isFulfilled()) {
             this.listeners.slice().forEach(listener => listener(this));

@@ -7,17 +7,17 @@
 import { Kind } from '../kinds/kind.js';
 import { TypirServices } from '../typir.js';
 
-export interface KindRegistry {
+export interface KindRegistry<LanguageType> {
     register(kind: Kind): void;
     get<T extends Kind>(type: T['$name']): T | undefined;
-    getOrCreateKind<T extends Kind>(type: T['$name'], factory: (services: TypirServices) => T): T;
+    getOrCreateKind<T extends Kind>(type: T['$name'], factory: (services: TypirServices<LanguageType>) => T): T;
 }
 
-export class DefaultKindRegistry implements KindRegistry {
-    protected readonly services: TypirServices;
+export class DefaultKindRegistry<LanguageType> implements KindRegistry<LanguageType> {
+    protected readonly services: TypirServices<LanguageType>;
     protected readonly kinds: Map<string, Kind> = new Map(); // name of kind => kind (for an easier look-up)
 
-    constructor(services: TypirServices) {
+    constructor(services: TypirServices<LanguageType>) {
         this.services = services;
     }
 
@@ -38,7 +38,7 @@ export class DefaultKindRegistry implements KindRegistry {
         return this.kinds.get(type) as (T | undefined);
     }
 
-    getOrCreateKind<T extends Kind>(type: T['$name'], factory: (services: TypirServices) => T): T {
+    getOrCreateKind<T extends Kind>(type: T['$name'], factory: (services: TypirServices<LanguageType>) => T): T {
         const existing = this.get(type);
         if (existing) {
             return existing;

@@ -143,7 +143,7 @@ describe('Test overloaded methods', () => {
             var v = MyClass();
             v.method1("wrong"); // the linker provides an Method here, but the arguments don't match
         `, [
-            "The given operands for the overloaded function 'method1' match the expected types only partially.",
+            "The given operands for the call of the overload 'method1' don't match",
         ]);
     });
 

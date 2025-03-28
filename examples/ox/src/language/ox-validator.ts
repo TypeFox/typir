@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstUtils, type ValidationAcceptor, type ValidationChecks } from 'langium';
-import { isFunctionDeclaration, isVariableDeclaration, OxElement, VariableDeclaration, type OxAstType, type ReturnStatement } from './generated/ast.js';
+import { AstUtils, MultiMap, type ValidationAcceptor, type ValidationChecks } from 'langium';
+import { FunctionDeclaration, isFunctionDeclaration, isVariableDeclaration, OxElement, OxProgram, VariableDeclaration, type OxAstType, type ReturnStatement } from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
 
 /**
@@ -16,7 +16,10 @@ export function registerValidationChecks(services: OxServices) {
     const validator = services.validation.OxValidator;
     const checks: ValidationChecks<OxAstType> = {
         ReturnStatement: validator.checkReturnTypeIsCorrect,
-        OxProgram: validator.checkUniqueVariableNames,
+        OxProgram: [
+            validator.checkUniqueVariableNames,
+            validator.checkUniqueFunctionNames,
+        ],
         Block: validator.checkUniqueVariableNames,
     };
     registry.register(checks, validator);
@@ -68,6 +71,21 @@ export class OxValidator {
                 for (const v of vars) {
                     accept('error', 'Variables need to have unique names: ' + name, {
                         node: v,
+                        property: 'name'
+                    });
+                }
+            }
+        }
+    }
+
+    checkUniqueFunctionNames(root: OxProgram, accept: ValidationAcceptor): void {
+        const mappedFunctions: MultiMap<string, FunctionDeclaration> = new MultiMap();
+        root.elements.filter(isFunctionDeclaration).forEach(decl => mappedFunctions.add(decl.name, decl));
+        for (const [name, declarations] of mappedFunctions.entriesGroupedByKey()) {
+            if (declarations.length >= 2) {
+                for (const f of declarations) {
+                    accept('error', 'Functions need to have unique names: ' + name, {
+                        node: f,
                         property: 'name'
                     });
                 }

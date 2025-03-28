@@ -4,17 +4,17 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { DefaultScopeProvider, EMPTY_SCOPE, AstUtils, ReferenceInfo, Scope } from 'langium';
-import { Class, isClass, isMemberCall, MemberCall } from './generated/ast.js';
-import { getClassChain } from './lox-utils.js';
-import { LoxServices } from './lox-module.js';
-import { TypirServices } from '../../../../packages/typir/lib/typir.js';
+import { AstUtils, DefaultScopeProvider, EMPTY_SCOPE, ReferenceInfo, Scope } from 'langium';
+import { LangiumServicesForTypirBinding } from 'typir-langium';
 import { isClassType } from '../../../../packages/typir/lib/kinds/class/class-type.js';
+import { Class, isClass, isMemberCall, MemberCall } from './generated/ast.js';
+import { LoxServices } from './lox-module.js';
+import { getClassChain } from './lox-utils.js';
 // import { isClassType } from './type-system/descriptions.js';
 // import { getClassChain, inferType } from './type-system/infer.js';
 
 export class LoxScopeProvider extends DefaultScopeProvider {
-    protected readonly typir: TypirServices;
+    protected readonly typir: LangiumServicesForTypirBinding;
 
     constructor(services: LoxServices) {
         super(services);

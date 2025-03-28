@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 import { AstNode, AstUtils, LangiumDocument, LangiumSharedCoreServices, URI } from 'langium';
+import { assertTrue } from 'typir';
 
 export function getDocumentKeyForURI(document: URI): string {
     return document.toString();
@@ -15,6 +16,7 @@ export function getDocumentKeyForDocument(document: LangiumDocument): string {
 }
 
 export function getDocumentKey(node: AstNode): string {
+    assertTrue(node !== undefined); // eases debugging / error detecting
     return getDocumentKeyForDocument(AstUtils.getDocument(node));
 }
 
@@ -27,3 +29,7 @@ export async function deleteAllDocuments(services: LangiumSharedCoreServices) {
         docsToDelete // delete all documents
     );
 }
+
+
+/** Generic super type for the Langium-generated XXXAstType. */
+export type LangiumAstTypes = Record<string, AstNode>;

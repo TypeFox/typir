@@ -14,19 +14,20 @@ import { InferenceProblem, isInferenceProblem } from './inference.js';
 import { SubTypeProblem, isSubTypeProblem } from './subtype.js';
 import { ValidationProblem, isValidationProblem } from './validation.js';
 
-export interface ProblemPrinter {
+export interface ProblemPrinter<LanguageType> {
     printValueConflict(problem: ValueConflict): string;
     printIndexedTypeConflict(problem: IndexedTypeConflict): string;
     printAssignabilityProblem(problem: AssignabilityProblem): string;
     printSubTypeProblem(problem: SubTypeProblem): string;
     printTypeEqualityProblem(problem: TypeEqualityProblem): string;
-    printInferenceProblem(problem: InferenceProblem): string;
-    printValidationProblem(problem: ValidationProblem): string
+    printInferenceProblem(problem: InferenceProblem<LanguageType>): string;
+    printValidationProblem(problem: ValidationProblem<LanguageType>): string
 
     printTypirProblem(problem: TypirProblem): string;
     printTypirProblems(problems: TypirProblem[]): string;
 
-    printLanguageNode(languageNode: unknown, sentenceBegin: boolean): string;
+    printLanguageNode(languageNode: LanguageType, sentenceBegin: boolean): string;
+
     /**
      * This function should be used by other services, instead of using type.getName().
      * This enables to customize the printing of type names by overriding only this implementation.
@@ -34,6 +35,7 @@ export interface ProblemPrinter {
      * @returns the name of the given type
      */
     printTypeName(type: Type): string;
+
     /**
      * This function should be used by other services, instead of using type.getUserRepresentation().
      * This enables to customize the printing of type names by overriding only this implementation.
@@ -43,7 +45,7 @@ export interface ProblemPrinter {
     printTypeUserRepresentation(type: Type): string;
 }
 
-export class DefaultTypeConflictPrinter implements ProblemPrinter {
+export class DefaultTypeConflictPrinter<LanguageType> implements ProblemPrinter<LanguageType> {
 
     constructor() {
     }
@@ -115,7 +117,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         return result;
     }
 
-    printInferenceProblem(problem: InferenceProblem, level: number = 0): string {
+    printInferenceProblem(problem: InferenceProblem<LanguageType>, level: number = 0): string {
         let result = `While inferring the type for ${this.printLanguageNode(problem.languageNode)}, at ${problem.location}`;
         if (problem.inferenceCandidate) {
             result += ` of the type '${this.printTypeName(problem.inferenceCandidate)}' as candidate to infer`;
@@ -127,7 +129,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         return result;
     }
 
-    printValidationProblem(problem: ValidationProblem, level: number = 0): string {
+    printValidationProblem(problem: ValidationProblem<LanguageType>, level: number = 0): string {
         let result = `While validating ${this.printLanguageNode(problem.languageNode)}, this ${problem.severity} is found: ${problem.message}`.trim();
         result = this.printIndentation(result, level);
         result = this.printSubProblems(result, problem.subProblems, level);
@@ -145,9 +147,9 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
             return this.printSubTypeProblem(problem, level);
         } else if (isTypeEqualityProblem(problem)) {
             return this.printTypeEqualityProblem(problem, level);
-        } else if (isInferenceProblem(problem)) {
+        } else if (isInferenceProblem<LanguageType>(problem)) {
             return this.printInferenceProblem(problem, level);
-        } else if (isValidationProblem(problem)) {
+        } else if (isValidationProblem<LanguageType>(problem)) {
             return this.printValidationProblem(problem, level);
         } else {
             throw new Error(`Unhandled typir problem ${problem.$problem}`);
@@ -158,7 +160,7 @@ export class DefaultTypeConflictPrinter implements ProblemPrinter {
         return problems.map(p => this.printTypirProblem(p, level)).join('\n');
     }
 
-    printLanguageNode(languageNode: unknown, sentenceBegin: boolean = false): string {
+    printLanguageNode(languageNode: LanguageType, sentenceBegin: boolean = false): string {
         return `${sentenceBegin ? 'T' : 't'}he language node '${languageNode}'`;
     }
 

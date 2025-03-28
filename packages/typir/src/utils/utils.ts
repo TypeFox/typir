@@ -13,14 +13,41 @@ export function assertTrue(condition: boolean, msg?: string): asserts condition 
     }
 }
 
-export function toArray<T>(value: undefined | T | T[]): T[] {
+export function toArray<T>(value: undefined | T | T[], options?: { newArray: boolean }): T[] {
     if (value === undefined) {
         return [];
     }
     if (Array.isArray(value)) {
-        return value;
+        if (options?.newArray) {
+            return [...value];
+        } else {
+            return value;
+        }
     }
     return [value];
+}
+export function toArrayWithValue<T>(value: T, array?: undefined | T | T[]): T[] {
+    if (array === undefined) {
+        return [value];
+    }
+    if (Array.isArray(array)) {
+        array.push(value);
+        return array;
+    }
+    return [array, value];
+}
+
+export function removeFromArray<T>(value: T | undefined, array: T[] | undefined): boolean {
+    if (value === undefined || array === undefined) {
+        return false;
+    }
+    const index = array.indexOf(value);
+    if (index >= 0) {
+        array.splice(index, 1);
+        return true;
+    } else {
+        return false;
+    }
 }
 
 export function assertUnreachable(_: never): never {

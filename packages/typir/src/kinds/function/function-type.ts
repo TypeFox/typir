@@ -18,13 +18,13 @@ export interface ParameterDetails {
 }
 
 export class FunctionType extends Type {
-    override readonly kind: FunctionKind;
+    override readonly kind: FunctionKind<unknown>;
 
     readonly functionName: string;
     readonly outputParameter: ParameterDetails | undefined;
     readonly inputParameters: ParameterDetails[];
 
-    constructor(kind: FunctionKind, typeDetails: FunctionTypeDetails) {
+    constructor(kind: FunctionKind<unknown>, typeDetails: FunctionTypeDetails<unknown>) {
         super(undefined, typeDetails);
         this.kind = kind;
         this.functionName = typeDetails.functionName;

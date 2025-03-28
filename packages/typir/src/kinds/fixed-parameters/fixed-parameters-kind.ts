@@ -21,7 +21,7 @@ export class Parameter {
     }
 }
 
-export interface FixedParameterTypeDetails extends TypeDetails {
+export interface FixedParameterTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
     parameterTypes: Type | Type[]
 }
 
@@ -34,14 +34,14 @@ export const FixedParameterKindName = 'FixedParameterKind';
 /**
  * Suitable for kinds like Collection<T>, List<T>, Array<T>, Map<K, V>, ..., i.e. types with a fixed number of arbitrary parameter types
  */
-export class FixedParameterKind implements Kind {
+export class FixedParameterKind<LanguageType> implements Kind {
     readonly $name: `FixedParameterKind-${string}`;
-    readonly services: TypirServices;
+    readonly services: TypirServices<LanguageType>;
     readonly baseName: string;
     readonly options: Readonly<FixedParameterKindOptions>;
     readonly parameters: Parameter[]; // assumption: the parameters are in the correct order!
 
-    constructor(typir: TypirServices, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
+    constructor(typir: TypirServices<LanguageType>, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
         this.$name = `${FixedParameterKindName}-${baseName}`;
         this.services = typir;
         this.services.infrastructure.Kinds.register(this);
@@ -62,17 +62,17 @@ export class FixedParameterKind implements Kind {
         };
     }
 
-    getFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType | undefined {
+    getFixedParameterType(typeDetails: FixedParameterTypeDetails<LanguageType>): FixedParameterType | undefined {
         const key = this.calculateIdentifier(typeDetails);
         return this.services.infrastructure.Graph.getType(key) as FixedParameterType;
     }
 
     // the order of parameters matters!
-    createFixedParameterType(typeDetails: FixedParameterTypeDetails): FixedParameterType {
+    createFixedParameterType(typeDetails: FixedParameterTypeDetails<LanguageType>): FixedParameterType {
         assertTrue(this.getFixedParameterType(typeDetails) === undefined);
 
         // create the class type
-        const typeWithParameters = new FixedParameterType(this, this.calculateIdentifier(typeDetails), typeDetails);
+        const typeWithParameters = new FixedParameterType(this as FixedParameterKind<unknown>, this.calculateIdentifier(typeDetails), typeDetails);
         this.services.infrastructure.Graph.addNode(typeWithParameters);
 
         this.registerInferenceRules(typeDetails, typeWithParameters);
@@ -80,11 +80,11 @@ export class FixedParameterKind implements Kind {
         return typeWithParameters;
     }
 
-    protected registerInferenceRules(_typeDetails: FixedParameterTypeDetails, _typeWithParameters: FixedParameterType): void {
+    protected registerInferenceRules(_typeDetails: FixedParameterTypeDetails<LanguageType>, _typeWithParameters: FixedParameterType): void {
         // TODO
     }
 
-    calculateIdentifier(typeDetails: FixedParameterTypeDetails): string {
+    calculateIdentifier(typeDetails: FixedParameterTypeDetails<LanguageType>): string {
         return this.printSignature(this.baseName, toArray(typeDetails.parameterTypes), ','); // use the signature for a unique name
     }
 
@@ -94,6 +94,6 @@ export class FixedParameterKind implements Kind {
 
 }
 
-export function isFixedParametersKind(kind: unknown): kind is FixedParameterKind {
+export function isFixedParametersKind<LanguageType>(kind: unknown): kind is FixedParameterKind<LanguageType> {
     return isKind(kind) && kind.$name.startsWith('FixedParameterKind-');
 }
