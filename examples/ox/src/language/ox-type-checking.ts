@@ -47,7 +47,6 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
         for (const operator of ['+', '-', '*', '/']) {
             typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
         }
-        // TODO better name for "inferenceRule": astSelectors
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
             typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();

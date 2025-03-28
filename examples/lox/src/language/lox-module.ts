@@ -21,7 +21,7 @@ export type LoxAddedServices = {
     validation: {
         LoxValidator: LoxValidator,
     },
-    typir: LangiumServicesForTypirBinding<LoxAstType>,
+    typir: LangiumServicesForTypirBinding<LoxAstType>, // all Langium services are able to access these Typir services for type-checking
 }
 
 /**
@@ -41,8 +41,8 @@ export function createLoxModule(shared: LangiumSharedCoreServices): Module<LoxSe
             ValidationRegistry: (services) => new LoxValidationRegistry(services),
             LoxValidator: () => new LoxValidator(),
         },
-        // For type checking with Typir, inject and merge these modules:
-        typir: () => createTypirLangiumServices(shared, reflection, new LoxTypeSystem()),
+        // For type checking with Typir, configure the Typir & Typir-Langium services in this way:
+        typir: () => createTypirLangiumServices(shared, reflection, new LoxTypeSystem(), { /* customize Typir services here */ }),
         references: {
             ScopeProvider: (services) => new LoxScopeProvider(services),
             Linker: (services) => new LoxLinker(services),
@@ -79,6 +79,6 @@ export function createLoxServices(context: DefaultSharedModuleContext): {
         createLoxModule(shared),
     );
     shared.ServiceRegistry.register(Lox);
-    initializeLangiumTypirServices(Lox, Lox.typir);
+    initializeLangiumTypirServices(Lox, Lox.typir); // initialize the Typir type system once
     return { shared, Lox };
 }

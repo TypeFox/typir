@@ -117,4 +117,6 @@ export function initializeLangiumTypirServices<AstTypes extends LangiumAstTypes>
 
     // maybe using services.shared.workspace.WorkspaceManager.initializeWorkspace/loadAdditionalDocuments
     // another idea is to use eagerLoad(inject(...)) when creating the services
+
+    // => improvements for the future
 }

@@ -19,7 +19,7 @@ export type OxAddedServices = {
     validation: {
         OxValidator: OxValidator
     },
-    typir: LangiumServicesForTypirBinding<OxAstType>,
+    typir: LangiumServicesForTypirBinding<OxAstType>, // all Langium services are able to access these Typir services for type-checking
 }
 
 /**
@@ -38,8 +38,8 @@ export function createOxModule(shared: LangiumSharedCoreServices): Module<OxServ
         validation: {
             OxValidator: () => new OxValidator()
         },
-        // For type checking with Typir, inject and merge these modules:
-        typir: () => createTypirLangiumServices(shared, reflection, new OxTypeSystem()),
+        // For type checking with Typir, configure the Typir & Typir-Langium services in this way:
+        typir: () => createTypirLangiumServices(shared, reflection, new OxTypeSystem(), { /* customize Typir services here */ }),
     };
 }
 
@@ -73,6 +73,6 @@ export function createOxServices(context: DefaultSharedModuleContext): {
     );
     shared.ServiceRegistry.register(Ox);
     registerValidationChecks(Ox);
-    initializeLangiumTypirServices(Ox, Ox.typir);
+    initializeLangiumTypirServices(Ox, Ox.typir); // initialize the Typir type system once
     return { shared, Ox };
 }
