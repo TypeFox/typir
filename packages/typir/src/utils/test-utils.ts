@@ -143,11 +143,6 @@ function validateAndFilter<LanguageType>(services: TypirServices<LanguageType>, 
         .map(v => services.Printer.printTypirProblem(v));
 }
 
-// expectValidationIssues       (s, ln, opts?, expected: [])
-// expectValidationIssuesStrict (s, ln, opts?, expectedStrict: [])
-// expectValidationIssuesAbsent (s, ln, opts?, forbidden: [])
-// expectValidationIssuesNone   (s, ln, opts?)                      === Strict([])
-
 export function compareValidationIssues(actualIssues: string[], expectedIssues: string[]): void {
     compareValidationIssuesLogic(actualIssues, expectedIssues);
 }
@@ -188,13 +183,13 @@ function compareValidationIssuesLogic(actualIssues: string[], expectedErrors: st
     const msgActual = actualIssues.join('\n').trim();
     if (msgExpected.length >= 1 && msgActual.length >= 1) {
         if (options?.strict) {
-            expect.fail(`Didn't found expected issues:\n${msgExpected}\nBut found some more issues:\n${msgActual}`);
+            expect.fail(`Didn't find expected issues:\n${msgExpected}\nBut found some more issues:\n${msgActual}`);
         } else {
-            expect.fail(`Didn't found expected issues:\n${msgExpected}\nThese other issues are ignored:\n${msgActual}`);
+            expect.fail(`Didn't find expected issues:\n${msgExpected}\nThese other issues are ignored:\n${msgActual}`);
             // printing the ignored issues help to identify typos, ... in the specified issues
         }
     } else if (msgExpected.length >= 1) {
-        expect.fail(`Didn't found expected issues:\n${msgExpected}`);
+        expect.fail(`Didn't find expected issues:\n${msgExpected}`);
     } else if (msgActual.length >= 1) {
         if (options?.strict) {
             expect.fail(`Found some more issues:\n${msgActual}`);
