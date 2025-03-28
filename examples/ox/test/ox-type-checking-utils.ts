@@ -9,7 +9,7 @@ import { parseDocument } from 'langium/test';
 import { deleteAllDocuments } from 'typir-langium';
 import { afterEach, expect } from 'vitest';
 import { isFunctionType } from '../../../packages/typir/lib/kinds/function/function-type.js';
-import { compareValidationIssues, expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
+import { compareValidationIssuesStrict, expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
 import { createOxServices } from '../src/language/ox-module.js';
 
 export const oxServices = createOxServices(EmptyFileSystem).Ox;
@@ -31,6 +31,6 @@ export async function validateOx(ox: string, errors: number | string | string[])
         expect(diagnostics, msgError).toHaveLength(1);
         expect(diagnostics[0], msgError).includes(errors);
     } else {
-        compareValidationIssues(diagnostics, errors);
+        compareValidationIssuesStrict(diagnostics, errors);
     }
 }

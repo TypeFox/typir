@@ -6,7 +6,7 @@
 
 import { EmptyFileSystem, LangiumDocument } from 'langium';
 import { parseDocument } from 'langium/test';
-import { compareValidationIssues, expectTypirTypes, isClassType, isFunctionType } from 'typir';
+import { compareValidationIssuesStrict, expectTypirTypes, isClassType, isFunctionType } from 'typir';
 import { deleteAllDocuments } from 'typir-langium';
 import { afterEach, expect } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
@@ -46,6 +46,6 @@ function checkIssues(diagnosticsErrors: string[], errors: number | string | stri
         expect(diagnosticsErrors, msgError).toHaveLength(1);
         expect(diagnosticsErrors[0], msgError).includes(errors);
     } else {
-        compareValidationIssues(diagnosticsErrors, errors);
+        compareValidationIssuesStrict(diagnosticsErrors, errors);
     }
 }
