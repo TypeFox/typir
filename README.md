@@ -182,11 +182,11 @@ Typir is presented in these talks:
 
 The roadmap of Typir is organized with [milestones in GitHub](https://github.com/TypeFox/typir/milestones).
 
-The roadmap include, among other, these features:
+The roadmap includes, among other, these features:
 
 - More predefined types: structurally typed classes, lambdas, generics, constrained primitive types (e.g. numbers with upper and lower bound), ...
 - Calculate types, e.g. operators whose return types depend on their current input types
-- Optimized APIs to register rules for inference and validation
+- Simplified API for custom types
 
 For the released versions of Typir, see the [CHANGELOG.md](./CHANGELOG.md).
 

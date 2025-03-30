@@ -73,7 +73,7 @@ export type TypirServices<LanguageType> = {
     };
 };
 
-export function createDefaultTypirServiceModule<LanguageType>(): Module<TypirServices<LanguageType>> {
+export function createDefaultTypirServicesModule<LanguageType>(): Module<TypirServices<LanguageType>> {
     return {
         Assignability: (services) => new DefaultTypeAssignability(services),
         Equality: (services) => new DefaultTypeEquality(services),
@@ -119,7 +119,7 @@ export function createTypirServices<LanguageType>(
     customization2: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
     customization3: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
 ): TypirServices<LanguageType> {
-    return inject(createDefaultTypirServiceModule<LanguageType>(), customization1, customization2, customization3);
+    return inject(createDefaultTypirServicesModule<LanguageType>(), customization1, customization2, customization3);
 }
 
 /**
