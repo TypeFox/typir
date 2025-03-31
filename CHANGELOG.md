@@ -4,7 +4,7 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
 
-## v0.2.0 (2025-03-??)
+## v0.2.0 (2025-03-31)
 
 ### New features
 
