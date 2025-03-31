@@ -1,6 +1,6 @@
 {
   "name": "typir",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "General purpose type checking library",
   "homepage": "https://typir.org",
   "author": {
