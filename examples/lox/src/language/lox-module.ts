@@ -6,7 +6,7 @@
 
 import { LangiumSharedCoreServices, Module, PartialLangiumCoreServices, createDefaultCoreModule, inject } from 'langium';
 import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
-import { LangiumServicesForTypirBinding, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
+import { TypirLangiumServices, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
 import { LoxAstType, reflection } from './generated/ast.js';
 import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module.js';
 import { LoxLinker } from './lox-linker.js';
@@ -21,7 +21,7 @@ export type LoxAddedServices = {
     validation: {
         LoxValidator: LoxValidator,
     },
-    typir: LangiumServicesForTypirBinding<LoxAstType>, // all Langium services are able to access these Typir services for type-checking
+    typir: TypirLangiumServices<LoxAstType>, // all Langium services are able to access these Typir services for type-checking
 }
 
 /**

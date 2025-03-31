@@ -6,7 +6,7 @@
 
 import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument, LangiumSharedCoreServices } from 'langium';
 import { Type, TypeGraph, TypeGraphListener } from 'typir';
-import { LangiumServicesForTypirBinding } from '../typir-langium.js';
+import { TypirLangiumServices } from '../typir-langium.js';
 import { getDocumentKeyForDocument, getDocumentKeyForURI, LangiumAstTypes } from '../utils/typir-langium-utils.js';
 
 /**
@@ -20,7 +20,7 @@ export interface LangiumTypeSystemDefinition<AstTypes extends LangiumAstTypes> {
      * This method will be executed once before the first added/updated/removed language node.
      * @param typir the current Typir services
      */
-    onInitialize(typir: LangiumServicesForTypirBinding<AstTypes>): void;
+    onInitialize(typir: TypirLangiumServices<AstTypes>): void;
 
     /**
      * React on updates of the AST in order to add/remove corresponding types from the type system,
@@ -28,7 +28,7 @@ export interface LangiumTypeSystemDefinition<AstTypes extends LangiumAstTypes> {
      * @param languageNode an AstNode of the current AST
      * @param typir the current Typir services
      */
-    onNewAstNode(languageNode: AstNode, typir: LangiumServicesForTypirBinding<AstTypes>): void;
+    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<AstTypes>): void;
 }
 
 
@@ -48,11 +48,11 @@ export class DefaultLangiumTypeCreator<AstTypes extends LangiumAstTypes> impleme
     protected initialized: boolean = false;
     protected currentDocumentKey: string = '';
     protected readonly documentTypesMap: Map<string, Type[]> = new Map();
-    protected readonly typir: LangiumServicesForTypirBinding<AstTypes>;
+    protected readonly typir: TypirLangiumServices<AstTypes>;
     protected readonly typeGraph: TypeGraph;
     protected readonly typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>;
 
-    constructor(typirServices: LangiumServicesForTypirBinding<AstTypes>, langiumServices: LangiumSharedCoreServices) {
+    constructor(typirServices: TypirLangiumServices<AstTypes>, langiumServices: LangiumSharedCoreServices) {
         this.typir = typirServices;
         this.typeGraph = typirServices.infrastructure.Graph;
         this.typeSystemDefinition = typirServices.langium.TypeSystemDefinition;

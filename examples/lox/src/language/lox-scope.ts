@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { AstUtils, DefaultScopeProvider, EMPTY_SCOPE, ReferenceInfo, Scope } from 'langium';
-import { LangiumServicesForTypirBinding } from 'typir-langium';
+import { TypirLangiumServices } from 'typir-langium';
 import { isClassType } from '../../../../packages/typir/lib/kinds/class/class-type.js';
 import { Class, isClass, isMemberCall, LoxAstType, MemberCall } from './generated/ast.js';
 import { LoxServices } from './lox-module.js';
@@ -14,7 +14,7 @@ import { getClassChain } from './lox-utils.js';
 // import { getClassChain, inferType } from './type-system/infer.js';
 
 export class LoxScopeProvider extends DefaultScopeProvider {
-    protected readonly typir: LangiumServicesForTypirBinding<LoxAstType>;
+    protected readonly typir: TypirLangiumServices<LoxAstType>;
 
     constructor(services: LoxServices) {
         super(services);

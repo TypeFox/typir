@@ -6,10 +6,10 @@
 
 import { AstNode, LangiumDefaultCoreServices, ValidationAcceptor, ValidationChecks } from 'langium';
 import { DefaultValidationCollector, TypirServices, ValidationCollector, ValidationProblem, ValidationRule } from 'typir';
-import { LangiumServicesForTypirBinding } from '../typir-langium.js';
+import { TypirLangiumServices } from '../typir-langium.js';
 import { LangiumAstTypes } from '../utils/typir-langium-utils.js';
 
-export function registerTypirValidationChecks<AstTypes extends LangiumAstTypes>(langiumServices: LangiumDefaultCoreServices, typirServices: LangiumServicesForTypirBinding<AstTypes>) {
+export function registerTypirValidationChecks<AstTypes extends LangiumAstTypes>(langiumServices: LangiumDefaultCoreServices, typirServices: TypirLangiumServices<AstTypes>) {
     const registry = langiumServices.validation.ValidationRegistry;
     const validator = typirServices.validation.TypeValidation;
     registry.registerBeforeDocument(validator.checkTypingProblemsWithTypirBeforeDocument, validator);
@@ -69,7 +69,7 @@ export interface LangiumTypirValidator {
 export class DefaultLangiumTypirValidator<AstTypes extends LangiumAstTypes> implements LangiumTypirValidator {
     protected readonly services: TypirServices<AstNode>;
 
-    constructor(services: LangiumServicesForTypirBinding<AstTypes>) {
+    constructor(services: TypirLangiumServices<AstTypes>) {
         this.services = services;
     }
 

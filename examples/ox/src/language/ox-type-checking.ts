@@ -6,13 +6,13 @@
 
 import { AstNode, AstUtils, assertUnreachable } from 'langium';
 import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices } from 'typir';
-import { LangiumServicesForTypirBinding, LangiumTypeSystemDefinition } from 'typir-langium';
+import { TypirLangiumServices, LangiumTypeSystemDefinition } from 'typir-langium';
 import { ValidationProblemAcceptor } from '../../../../packages/typir/lib/services/validation.js';
 import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 
 export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
 
-    onInitialize(typir: LangiumServicesForTypirBinding<OxAstType>): void {
+    onInitialize(typir: TypirLangiumServices<OxAstType>): void {
         // define primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
         const typeBool = typir.factory.Primitives.create({ primitiveName: 'boolean' })
@@ -147,7 +147,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
         }
     }
 
-    onNewAstNode(languageNode: AstNode, typir: LangiumServicesForTypirBinding<OxAstType>): void {
+    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<OxAstType>): void {
         // define function types
         // they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
         if (isFunctionDeclaration(languageNode)) {

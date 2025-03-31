@@ -6,13 +6,13 @@
 
 import { AstNode, AstUtils, assertUnreachable } from 'langium';
 import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, ValidationProblemAcceptor } from 'typir';
-import { LangiumServicesForTypirBinding, LangiumTypeSystemDefinition } from 'typir-langium';
+import { TypirLangiumServices, LangiumTypeSystemDefinition } from 'typir-langium';
 import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, VariableDeclaration, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMethodMember, isParameter, isVariableDeclaration } from './generated/ast.js';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
 
-    onInitialize(typir: LangiumServicesForTypirBinding<LoxAstType>): void {
+    onInitialize(typir: TypirLangiumServices<LoxAstType>): void {
         // primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
         const typeBool = typir.factory.Primitives.create({ primitiveName: 'boolean' })
@@ -168,7 +168,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         typir.factory.Classes.createNoSuperClassCyclesValidation({ registration: { languageKey: Class } });
     }
 
-    onNewAstNode(node: AstNode, typir: LangiumServicesForTypirBinding<LoxAstType>): void {
+    onNewAstNode(node: AstNode, typir: TypirLangiumServices<LoxAstType>): void {
         // define types which are declared by the users of LOX => investigate the current AST
 
         // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
@@ -226,7 +226,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         }
     }
 
-    protected createFunctionDetails(node: FunctionDeclaration | MethodMember, typir: LangiumServicesForTypirBinding<LoxAstType>): TypeInitializer<FunctionType, AstNode> {
+    protected createFunctionDetails(node: FunctionDeclaration | MethodMember, typir: TypirLangiumServices<LoxAstType>): TypeInitializer<FunctionType, AstNode> {
         const config = typir.factory.Functions
             .create({
                 functionName: node.name,

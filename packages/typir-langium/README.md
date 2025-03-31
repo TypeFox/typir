@@ -25,12 +25,12 @@ Integrate Typir as additional Langium service into your DSL:
 ```typescript
 export type MyDSLAddedServices = {
     // ...
-    typir: LangiumServicesForTypirBinding<MyDSLAstType>,
+    typir: TypirLangiumServices<MyDSLAstType>,
     // ...
 }
 ```
 
-In case of a [multi-language project](https://langium.org/docs/recipes/multiple-languages/), this approach enables you to manage multiple type systems in parallel by having `typir1: LangiumServicesForTypirBinding`, `typir2: LangiumServicesForTypirBinding` and so on.
+In case of a [multi-language project](https://langium.org/docs/recipes/multiple-languages/), this approach enables you to manage multiple type systems in parallel by having `typir1: TypirLangiumServices`, `typir2: TypirLangiumServices` and so on.
 
 The Typir services are created in your module in this way:
 
@@ -46,11 +46,11 @@ The actual type system for your Langium-based language is defined as an implemen
 
 ```typescript
 export class MyDSLTypeSystem implements LangiumTypeSystemDefinition<MyDSLAstType> {
-    onInitialize(typir: LangiumServicesForTypirBinding<MyDSLAstType>): void {
+    onInitialize(typir: TypirLangiumServices<MyDSLAstType>): void {
       // define constant types and rules for conversion, inference and validation here
     }
 
-    onNewAstNode(languageNode: AstNode, typir: LangiumServicesForTypirBinding<OxAstType>): void {
+    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<OxAstType>): void {
       // define types and their rules which depend on the current AST (as parsed by Langium from programs written by users of your language) here
     }
 }

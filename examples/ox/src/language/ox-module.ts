@@ -6,7 +6,7 @@
 
 import { LangiumSharedCoreServices, Module, inject } from 'langium';
 import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, PartialLangiumServices, createDefaultModule, createDefaultSharedModule } from 'langium/lsp';
-import { LangiumServicesForTypirBinding, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
+import { TypirLangiumServices, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
 import { OxAstType, reflection } from './generated/ast.js';
 import { OxGeneratedModule, OxGeneratedSharedModule } from './generated/module.js';
 import { OxTypeSystem } from './ox-type-checking.js';
@@ -19,7 +19,7 @@ export type OxAddedServices = {
     validation: {
         OxValidator: OxValidator
     },
-    typir: LangiumServicesForTypirBinding<OxAstType>, // all Langium services are able to access these Typir services for type-checking
+    typir: TypirLangiumServices<OxAstType>, // all Langium services are able to access these Typir services for type-checking
 }
 
 /**
