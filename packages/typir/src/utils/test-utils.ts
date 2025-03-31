@@ -7,7 +7,7 @@
 import { expect } from 'vitest';
 import { Type } from '../graph/type-node.js';
 import { TestLanguageNode, TestLanguageService, TestProblemPrinter } from '../test/predefined-language-nodes.js';
-import { createDefaultTypirServiceModule, createTypirServices, PartialTypirServices, TypirServices } from '../typir.js';
+import { createDefaultTypirServicesModule, createTypirServices, PartialTypirServices, TypirServices } from '../typir.js';
 import { Module } from './dependency-injection.js';
 import { Severity } from '../services/validation.js';
 
@@ -248,7 +248,7 @@ export function createTypirServicesForTesting(
     customizationForTesting: Module<TypirServices<TestLanguageNode>, PartialTypirServices<TestLanguageNode>> = {},
 ): TypirServices<TestLanguageNode> {
     return createTypirServices<TestLanguageNode>(
-        createDefaultTypirServiceModule(),                      // all default core implementations
+        createDefaultTypirServicesModule(),              // all default core implementations
         {                                               // override some default implementations:
             Printer: () => new TestProblemPrinter(),    // use the dedicated printer for TestLanguageNode's
             Language: () => new TestLanguageService(),  // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)

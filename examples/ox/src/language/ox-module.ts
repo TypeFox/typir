@@ -6,9 +6,10 @@
 
 import { LangiumSharedCoreServices, Module, inject } from 'langium';
 import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, PartialLangiumServices, createDefaultModule, createDefaultSharedModule } from 'langium/lsp';
-import { LangiumServicesForTypirBinding, createLangiumModuleForTypirBinding, initializeLangiumTypirServices } from 'typir-langium';
+import { TypirLangiumServices, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
+import { OxAstType, reflection } from './generated/ast.js';
 import { OxGeneratedModule, OxGeneratedSharedModule } from './generated/module.js';
-import { createOxTypirModule } from './ox-type-checking.js';
+import { OxTypeSystem } from './ox-type-checking.js';
 import { OxValidator, registerValidationChecks } from './ox-validator.js';
 
 /**
@@ -18,7 +19,7 @@ export type OxAddedServices = {
     validation: {
         OxValidator: OxValidator
     },
-    typir: LangiumServicesForTypirBinding,
+    typir: TypirLangiumServices<OxAstType>, // all Langium services are able to access these Typir services for type-checking
 }
 
 /**
@@ -37,11 +38,8 @@ export function createOxModule(shared: LangiumSharedCoreServices): Module<OxServ
         validation: {
             OxValidator: () => new OxValidator()
         },
-        // For type checking with Typir, inject and merge these modules:
-        typir: () => inject(Module.merge(
-            createLangiumModuleForTypirBinding(shared), // the Typir default services
-            createOxTypirModule(shared), // custom Typir services for LOX
-        )),
+        // For type checking with Typir, configure the Typir & Typir-Langium services in this way:
+        typir: () => createTypirLangiumServices(shared, reflection, new OxTypeSystem(), { /* customize Typir services here */ }),
     };
 }
 
@@ -75,6 +73,6 @@ export function createOxServices(context: DefaultSharedModuleContext): {
     );
     shared.ServiceRegistry.register(Ox);
     registerValidationChecks(Ox);
-    initializeLangiumTypirServices(Ox, Ox.typir);
+    initializeLangiumTypirServices(Ox, Ox.typir); // initialize the Typir type system once
     return { shared, Ox };
 }

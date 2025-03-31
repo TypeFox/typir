@@ -5,9 +5,32 @@
  ******************************************************************************/
 
 import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument, LangiumSharedCoreServices } from 'langium';
-import { Type, TypeEdge, TypeGraph, TypeGraphListener } from 'typir';
-import { LangiumServicesForTypirBinding } from '../typir-langium.js';
-import { getDocumentKeyForDocument, getDocumentKeyForURI } from '../utils/typir-langium-utils.js';
+import { Type, TypeGraph, TypeGraphListener } from 'typir';
+import { TypirLangiumServices } from '../typir-langium.js';
+import { getDocumentKeyForDocument, getDocumentKeyForURI, LangiumAstTypes } from '../utils/typir-langium-utils.js';
+
+/**
+ * This service provides the API to define the actual types, inference rules and validation rules
+ * for a textual DSL developed with Langium.
+ */
+export interface LangiumTypeSystemDefinition<AstTypes extends LangiumAstTypes> {
+    /**
+     * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules,
+     * which are constant and don't depend on the actual language nodes.
+     * This method will be executed once before the first added/updated/removed language node.
+     * @param typir the current Typir services
+     */
+    onInitialize(typir: TypirLangiumServices<AstTypes>): void;
+
+    /**
+     * React on updates of the AST in order to add/remove corresponding types from the type system,
+     * e.g. for user-defined functions to create corresponding function types in the type graph.
+     * @param languageNode an AstNode of the current AST
+     * @param typir the current Typir services
+     */
+    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<AstTypes>): void;
+}
+
 
 /**
  * This service provides the API to define the actual types, inference rules and validation rules
@@ -19,30 +42,20 @@ export interface LangiumTypeCreator {
      * Depending on the implemention, it might or might not call onInitialize().
      */
     triggerInitialization(): void;
-
-    /**
-     * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules,
-     * which are constant and don't depend on the actual language nodes.
-     * This method will be executed once before the first added/updated/removed language node.
-     */
-    onInitialize(): void;
-
-    /**
-     * React on updates of the AST in order to add/remove corresponding types from the type system,
-     * e.g. for user-defined functions to create corresponding function types in the type graph.
-     * @param languageNode an AstNode of the current AST
-     */
-    onNewAstNode(languageNode: AstNode): void;
 }
 
-export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, TypeGraphListener {
+export class DefaultLangiumTypeCreator<AstTypes extends LangiumAstTypes> implements LangiumTypeCreator, TypeGraphListener {
     protected initialized: boolean = false;
     protected currentDocumentKey: string = '';
     protected readonly documentTypesMap: Map<string, Type[]> = new Map();
+    protected readonly typir: TypirLangiumServices<AstTypes>;
     protected readonly typeGraph: TypeGraph;
+    protected readonly typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>;
 
-    constructor(typirServices: LangiumServicesForTypirBinding, langiumServices: LangiumSharedCoreServices) {
+    constructor(typirServices: TypirLangiumServices<AstTypes>, langiumServices: LangiumSharedCoreServices) {
+        this.typir = typirServices;
         this.typeGraph = typirServices.infrastructure.Graph;
+        this.typeSystemDefinition = typirServices.langium.TypeSystemDefinition;
 
         // for new and updated documents:
         // Create Typir types after completing the Langium 'ComputedScopes' phase, since they need to be available for the following Linking phase
@@ -67,17 +80,13 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
         this.typeGraph.addListener(this);
     }
 
-    abstract onInitialize(): void;
-
-    abstract onNewAstNode(languageNode: AstNode): void;
-
     /**
      * Starts the initialization.
      * If this method is called multiple times, the initialization is done only once.
      */
     triggerInitialization() {
         if (!this.initialized) {
-            this.onInitialize();
+            this.typeSystemDefinition.onInitialize(this.typir);
             this.initialized = true;
         }
     }
@@ -93,7 +102,7 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
 
         // create all types for this document
         AstUtils.streamAst(document.parseResult.value)
-            .forEach((node: AstNode) => this.onNewAstNode(node));
+            .forEach((node: AstNode) => this.typeSystemDefinition.onNewAstNode(node, this.typir));
 
         this.currentDocumentKey = ''; // reset the key, newly created types will be associated with no document now
     }
@@ -127,22 +136,5 @@ export abstract class AbstractLangiumTypeCreator implements LangiumTypeCreator, 
     onRemovedType(_type: Type): void {
         // since this type creator actively removes types from the type graph itself, there is no need to react on removed types
     }
-    onAddedEdge(_edge: TypeEdge): void {
-        // this type creator does not care about edges => do nothing
-    }
-    onRemovedEdge(_edge: TypeEdge): void {
-        // this type creator does not care about edges => do nothing
-    }
-}
 
-export class PlaceholderLangiumTypeCreator extends AbstractLangiumTypeCreator {
-    constructor(typirServices: LangiumServicesForTypirBinding, langiumServices: LangiumSharedCoreServices) {
-        super(typirServices, langiumServices);
-    }
-    override onInitialize(): void {
-        throw new Error('This method needs to be implemented! Extend the AbstractLangiumTypeCreator and register it in the Typir module: TypeCreator: (typirServices) => new MyLangiumTypeCreator(typirServices, langiumServices)');
-    }
-    override onNewAstNode(_languageNode: AstNode): void {
-        throw new Error('This method needs to be implemented! Extend the AbstractLangiumTypeCreator and register it in the Typir module: TypeCreator: (typirServices) => new MyLangiumTypeCreator(typirServices, langiumServices)');
-    }
 }

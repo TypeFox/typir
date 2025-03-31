@@ -5,8 +5,8 @@
  ******************************************************************************/
 
 import { AbstractAstReflection, AstNode } from 'langium';
+import { removeFromArray } from 'typir';
 import { DefaultLanguageService, LanguageService } from '../../../typir/lib/services/language.js';
-import { assertTrue, removeFromArray } from 'typir';
 
 /**
  * The default implementation of the 'LanguageService' for Langium exploits the generated XXXAstReflection,
@@ -16,12 +16,8 @@ export class LangiumLanguageService extends DefaultLanguageService<AstNode> impl
     protected readonly reflection: AbstractAstReflection;
     protected superKeys: Map<string, string[]> | undefined = undefined; // key => all its super-keys
 
-    constructor(reflection: AbstractAstReflection | undefined) {
+    constructor(reflection: AbstractAstReflection) {
         super();
-        if (reflection === undefined) {
-            throw new Error("'undefined' is only the default value, insert the generated XXXAstReflection instead");
-        }
-        assertTrue(reflection !== undefined);
         this.reflection = reflection;
     }
 

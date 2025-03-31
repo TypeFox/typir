@@ -14,7 +14,7 @@ import { ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { assertTrue, assertType, toArray } from '../../utils/utils.js';
+import { assertTrue, assertTypirType, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
 import { Kind, isKind } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
@@ -185,7 +185,7 @@ export class ClassKind<LanguageType> implements Kind, ClassFactoryService<Langua
             const superClasses: string = toArray(typeDetails.superClasses)
                 .map(selector => {
                     const type = this.services.infrastructure.TypeResolver.resolve(selector);
-                    assertType(type, isClassType);
+                    assertTypirType(type, isClassType);
                     return type.getIdentifier();
                 })
                 .sort()

@@ -4,47 +4,41 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, LangiumSharedCoreServices, Module, assertUnreachable } from 'langium';
+import { AstNode, AstUtils, assertUnreachable } from 'langium';
 import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, ValidationProblemAcceptor } from 'typir';
-import { AbstractLangiumTypeCreator, LangiumLanguageService, LangiumServicesForTypirBinding, PartialTypirLangiumServices } from 'typir-langium';
-import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, VariableDeclaration, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMethodMember, isParameter, isVariableDeclaration, reflection } from './generated/ast.js';
+import { TypirLangiumServices, LangiumTypeSystemDefinition } from 'typir-langium';
+import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, VariableDeclaration, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMethodMember, isParameter, isVariableDeclaration } from './generated/ast.js';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
-export class LoxTypeCreator extends AbstractLangiumTypeCreator {
-    protected readonly typir: LangiumServicesForTypirBinding;
+export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
 
-    constructor(typirServices: LangiumServicesForTypirBinding, langiumServices: LangiumSharedCoreServices) {
-        super(typirServices, langiumServices);
-        this.typir = typirServices;
-    }
-
-    onInitialize(): void {
+    onInitialize(typir: TypirLangiumServices<LoxAstType>): void {
         // primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
-        const typeBool = this.typir.factory.Primitives.create({ primitiveName: 'boolean' })
+        const typeBool = typir.factory.Primitives.create({ primitiveName: 'boolean' })
             .inferenceRule({ languageKey: BooleanLiteral }) // this is the more performant notation compared to ...
             // .inferenceRule({ filter: isBooleanLiteral }) // ... this alternative solution, but they provide the same functionality
             .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'boolean' }) // this is the more performant notation compared to ...
             // .inferenceRule({ filter: isTypeReference, matching: node => node.primitive === 'boolean' }) // ... this "easier" notation, but they provide the same functionality
             .finish();
         // ... but their primitive kind is provided/preset by Typir
-        const typeNumber = this.typir.factory.Primitives.create({ primitiveName: 'number' })
+        const typeNumber = typir.factory.Primitives.create({ primitiveName: 'number' })
             .inferenceRule({ languageKey: NumberLiteral })
             .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'number' })
             .finish();
-        const typeString = this.typir.factory.Primitives.create({ primitiveName: 'string' })
+        const typeString = typir.factory.Primitives.create({ primitiveName: 'string' })
             .inferenceRule({ languageKey: StringLiteral })
             .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'string' })
             .finish();
-        const typeVoid = this.typir.factory.Primitives.create({ primitiveName: 'void' })
+        const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' })
             .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'void' })
             .inferenceRule({ languageKey: PrintStatement })
             .inferenceRule({ languageKey: ReturnStatement, matching: (node: ReturnStatement) => node.value === undefined })
             .finish();
-        const typeNil = this.typir.factory.Primitives.create({ primitiveName: 'nil' })
+        const typeNil = typir.factory.Primitives.create({ primitiveName: 'nil' })
             .inferenceRule({ languageKey: NilLiteral })
             .finish(); // 'nil' is only assignable to variables with a class as type in the LOX implementation here
-        const typeAny = this.typir.factory.Top.create({}).finish();
+        const typeAny = typir.factory.Top.create({}).finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
         const binaryInferenceRule: InferOperatorWithMultipleOperands<AstNode, BinaryExpression> = {
@@ -62,9 +56,9 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // binary operators: numbers => number
         for (const operator of ['-', '*', '/']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
         }
-        this.typir.factory.Operators.createBinary({ name: '+', signatures: [
+        typir.factory.Operators.createBinary({ name: '+', signatures: [
             { left: typeNumber, right: typeNumber, return: typeNumber },
             { left: typeString, right: typeString, return: typeString },
             { left: typeNumber, right: typeString, return: typeString },
@@ -73,17 +67,17 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
         }
 
         // binary operators: booleans => boolean
         for (const operator of ['and', 'or']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
         }
 
         // ==, != for all data types (the warning for different types is realized below)
         for (const operator of ['==', '!=']) {
-            this.typir.factory.Operators.createBinary({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }})
+            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }})
                 .inferenceRule({
                     ...binaryInferenceRule,
                     // show a warning to the user, if something like "3 == false" is compared, since different types already indicate, that the IF condition will be evaluated to false
@@ -98,7 +92,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                 .finish();
         }
         // = for SuperType = SubType (Note that this implementation of LOX realized assignments as operators!)
-        this.typir.factory.Operators.createBinary({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }})
+        typir.factory.Operators.createBinary({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }})
             .inferenceRule({
                 ...binaryInferenceRule,
                 // this validation will be checked for each call of this operator!
@@ -108,11 +102,11 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
             .finish();
 
         // unary operators
-        this.typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }}).inferenceRule(unaryInferenceRule).finish();
-        this.typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }}).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
 
         // additional inference rules for ...
-        this.typir.Inference.addInferenceRulesForAstNodes<LoxAstType>({
+        typir.Inference.addInferenceRulesForAstNodes({
             // ... member calls
             MemberCall: (languageNode) => {
                 const ref = languageNode.element?.ref;
@@ -149,7 +143,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         });
 
         // some explicit validations for typing issues with Typir (replaces corresponding functions in the LoxValidator!)
-        this.typir.validation.Collector.addValidationRulesForAstNodes<LoxAstType>({
+        typir.validation.Collector.addValidationRulesForAstNodes({
             ForStatement: this.validateCondition,
             IfStatement: this.validateCondition,
             ReturnStatement: this.validateReturnStatement,
@@ -158,28 +152,28 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         });
 
         // check for unique function declarations
-        this.typir.factory.Functions.createUniqueFunctionValidation({ registration: { languageKey: FunctionDeclaration }});
+        typir.factory.Functions.createUniqueFunctionValidation({ registration: { languageKey: FunctionDeclaration }});
 
         // check for unique class declarations
-        const uniqueClassValidator = this.typir.factory.Classes.createUniqueClassValidation({ registration: 'MYSELF' });
+        const uniqueClassValidator = typir.factory.Classes.createUniqueClassValidation({ registration: 'MYSELF' });
         // check for unique method declarations
-        this.typir.factory.Classes.createUniqueMethodValidation({
+        typir.factory.Classes.createUniqueMethodValidation({
             isMethodDeclaration: (node) => isMethodMember(node), // MethodMembers could have other $containers?
             getClassOfMethod: (method, _type) => method.$container,
             uniqueClassValidator: uniqueClassValidator,
             registration: { languageKey: MethodMember },
         });
-        this.typir.validation.Collector.addValidationRule(uniqueClassValidator, { languageKey: Class }); // TODO this order is important, solve it in a different way!
+        typir.validation.Collector.addValidationRule(uniqueClassValidator, { languageKey: Class }); // TODO this order is important, solve it in a different way!
         // check for cycles in super-sub-type relationships
-        this.typir.factory.Classes.createNoSuperClassCyclesValidation({ registration: { languageKey: Class } });
+        typir.factory.Classes.createNoSuperClassCyclesValidation({ registration: { languageKey: Class } });
     }
 
-    onNewAstNode(node: AstNode): void {
+    onNewAstNode(node: AstNode, typir: TypirLangiumServices<LoxAstType>): void {
         // define types which are declared by the users of LOX => investigate the current AST
 
         // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
         if (isFunctionDeclaration(node)) {
-            this.createFunctionDetails(node); // this logic is reused for methods of classes, since the LOX grammar defines them very similar
+            this.createFunctionDetails(node, typir); // this logic is reused for methods of classes, since the LOX grammar defines them very similar
         }
 
         // TODO support lambda (type references)!
@@ -187,7 +181,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
         // class types (nominal typing):
         if (isClass(node)) {
             const className = node.name;
-            const classType = this.typir.factory.Classes
+            const classType = typir.factory.Classes
                 .create({
                     className,
                     superClasses: node.superClass?.ref, // note that type inference is used here
@@ -199,7 +193,7 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
                         }),
                     methods: node.members
                         .filter(isMethodMember) // only Methods, no Fields
-                        .map(member => <CreateMethodDetails<AstNode>>{ type: this.createFunctionDetails(member) }), // same logic as for functions, since the LOX grammar defines them very similar
+                        .map(member => <CreateMethodDetails<AstNode>>{ type: this.createFunctionDetails(member, typir) }), // same logic as for functions, since the LOX grammar defines them very similar
                     associatedLanguageNode: node, // this is used by the ScopeProvider to get the corresponding class declaration after inferring the (class) type of an expression
                 })
                 // inference rule for declaration
@@ -225,15 +219,15 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
 
             // explicitly declare, that 'nil' can be assigned to any Class variable
             classType.addListener(type => {
-                this.typir.Conversion.markAsConvertible(this.typir.factory.Primitives.get({ primitiveName: 'nil' })!, type, 'IMPLICIT_EXPLICIT');
+                typir.Conversion.markAsConvertible(typir.factory.Primitives.get({ primitiveName: 'nil' })!, type, 'IMPLICIT_EXPLICIT');
             });
             // The following idea does not work, since variables in LOX have a concrete class type and not an "any class" type:
-            // this.typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateTopClassType({}), 'IMPLICIT_EXPLICIT');
+            // typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateTopClassType({}), 'IMPLICIT_EXPLICIT');
         }
     }
 
-    protected createFunctionDetails(node: FunctionDeclaration | MethodMember): TypeInitializer<FunctionType, AstNode> {
-        const config = this.typir.factory.Functions
+    protected createFunctionDetails(node: FunctionDeclaration | MethodMember, typir: TypirLangiumServices<LoxAstType>): TypeInitializer<FunctionType, AstNode> {
+        const config = typir.factory.Functions
             .create({
                 functionName: node.name,
                 outputParameter: { name: NO_PARAMETER_NAME, type: node.returnType },
@@ -300,12 +294,3 @@ export class LoxTypeCreator extends AbstractLangiumTypeCreator {
     }
 
 }
-
-export function createLoxTypirModule(langiumServices: LangiumSharedCoreServices): Module<LangiumServicesForTypirBinding, PartialTypirLangiumServices> {
-    return {
-        // specific configurations for LOX
-        TypeCreator: (typirServices) => new LoxTypeCreator(typirServices, langiumServices), // specify the type system for LOX
-        Language: () => new LangiumLanguageService(reflection), // tell Typir-Langium something about the LOX implementation with Langium
-    };
-}
-// TODO doch noch eine Utils-Function hierfür schreiben, damit die Angabe der Reflection "erzwungen" werden kann?

@@ -10,7 +10,7 @@ import { isClassType } from '../../../packages/typir/lib/kinds/class/class-type.
 import { isFunctionType } from '../../../packages/typir/lib/kinds/function/function-type.js';
 import { isPrimitiveType } from '../../../packages/typir/lib/kinds/primitive/primitive-type.js';
 import { expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
-import { assertTrue, assertType } from '../../../packages/typir/lib/utils/utils.js';
+import { assertTrue, assertTypirType } from '../../../packages/typir/lib/utils/utils.js';
 import { isMemberCall, isMethodMember, LoxProgram } from '../src/language/generated/ast.js';
 import { loxServices, operatorNames, validateLox } from './lox-type-checking-utils.js';
 
@@ -121,7 +121,7 @@ describe('Test overloaded methods', () => {
         // check type inference
         const call1Type = loxServices.typir.Inference.inferType(call1Node);
         expect(isType(call1Type)).toBeTruthy();
-        assertType(call1Type, isPrimitiveType);
+        assertTypirType(call1Type, isPrimitiveType);
         expect(call1Type.getName()).toBe('number');
 
         // Call 2 should be boolean
@@ -134,7 +134,7 @@ describe('Test overloaded methods', () => {
         // check type inference
         const call2Type = loxServices.typir.Inference.inferType(call2Node);
         expect(isType(call2Type)).toBeTruthy();
-        assertType(call2Type, isPrimitiveType);
+        assertTypirType(call2Type, isPrimitiveType);
         expect(call2Type.getName()).toBe('boolean');
     });
 
