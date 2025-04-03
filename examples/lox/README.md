@@ -4,7 +4,7 @@ This package contains an adapted version of [LOX](https://craftinginterpreters.c
 
 Typir is used here to make LOX a statically typed language:
 
-- Variables have one type, which is either explicitly declared (e.g. `var v1: string`) or derived from the initial value (e.g. `var v2: 2 <= 3`).
+- Variables have one type, which is either explicitly declared (e.g. `var v1: string`) or derived from the initial value (e.g. `var v2 = 2 <= 3`).
 - Lox supports these types here:
   - primitives: boolean, string, number, void
   - Classes (nominally typed)
