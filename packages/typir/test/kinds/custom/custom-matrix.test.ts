@@ -120,6 +120,6 @@ describe('Tests simple custom types for Matrix types', () => {
         expectToBeType(matrix3x3.properties.baseType.getType(), isPrimitiveType, type => type === integerType);
     });
 
-    // TODO test cases for: different TypeSelectors, (multiple) waiting for / cycles, inference rules, validation rules, assignability, Set/Array/Map
+    // TODO test cases for: different TypeSelectors, inference rules, validation rules, assignability, Set/Array/Map
 
 });

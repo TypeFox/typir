@@ -34,7 +34,7 @@ export function expectTypirTypes<LanguageType>(services: TypirServices<LanguageT
     return types;
 }
 
-export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails: (t: T) => boolean): void {
+export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails: (t: T) => boolean): asserts type is T {
     if (checkType(type)) {
         if (checkDetails(type)) {
             // everything is fine

@@ -25,7 +25,11 @@ export type CustomTypePropertyTypes =
 
 /* Corresponding properties for specification during the initialization */
 
-export type TypeSelectorForCustomTypes<T extends Type, LanguageType> = Exclude<TypeSelector<T, LanguageType>, string>; // no strings, since they shall by used as primitive properties
+/**
+ * TypeSelectors for custom types don't support strings, since they shall by used as primitive properties (and uncertainty needs to be prevented!).
+ * As a workaround, encode the string value as a function, e.g. "() => 'MyIndentifer'".
+ */
+export type TypeSelectorForCustomTypes<T extends Type, LanguageType> = Exclude<TypeSelector<T, LanguageType>, string>;
 
 export type CustomTypePropertyInitialization<T extends CustomTypePropertyTypes, LanguageType> =
     // replace Type by a TypeSelector for it ...
