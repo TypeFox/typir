@@ -16,7 +16,7 @@ import { CustomType } from './custom-type.js';
 
 export interface CustomKindOptions<Properties extends CustomTypeProperties, LanguageType> {
     name: string;
-    calculateIdentifier: (typeDetails: CustomTypeDetails<Properties, LanguageType>) => string;
+    calculateIdentifier: (properties: CustomTypeInitialization<Properties, LanguageType>) => string; // instead of "typeDetails: CustomTypeDetails<Properties, LanguageType>"
 }
 
 export interface CustomTypeDetails<Properties extends CustomTypeProperties, LanguageType> extends TypeDetails<LanguageType> {
@@ -31,7 +31,7 @@ export interface CreateCustomTypeDetails<Properties extends CustomTypeProperties
 
 export interface CustomFactoryService<Properties extends CustomTypeProperties, LanguageType> {
     create(typeDetails: CustomTypeDetails<Properties, LanguageType>): CustomTypeConfigurationChain<Properties, LanguageType>;
-    get(typeDetails: CustomTypeDetails<Properties, LanguageType>): TypeReference<CustomType<Properties, LanguageType>, LanguageType>;
+    get(properties: CustomTypeInitialization<Properties, LanguageType>): TypeReference<CustomType<Properties, LanguageType>, LanguageType>;
     // TODO getOrCreateTopCustomType ??
 }
 
@@ -60,16 +60,16 @@ export class CustomKind<Properties extends CustomTypeProperties, LanguageType> i
         };
     }
 
-    get(typeDetails: CustomTypeDetails<Properties, LanguageType>): TypeReference<CustomType<Properties, LanguageType>, LanguageType> {
-        return new TypeReference<CustomType<Properties, LanguageType>, LanguageType>(() => this.calculateIdentifier(typeDetails), this.services);
+    get(properties: CustomTypeInitialization<Properties, LanguageType>): TypeReference<CustomType<Properties, LanguageType>, LanguageType> {
+        return new TypeReference<CustomType<Properties, LanguageType>, LanguageType>(() => this.calculateIdentifier(properties), this.services);
     }
 
     create(typeDetails: CustomTypeDetails<Properties, LanguageType>): CustomTypeConfigurationChain<Properties, LanguageType> {
         return new CustomConfigurationChainImpl(this.services, this, typeDetails);
     }
 
-    calculateIdentifier(typeDetails: CustomTypeDetails<Properties, LanguageType>): string {
-        return this.options.calculateIdentifier(typeDetails);
+    calculateIdentifier(properties: CustomTypeInitialization<Properties, LanguageType>): string {
+        return this.options.calculateIdentifier(properties);
     }
 }
 
