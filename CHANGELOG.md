@@ -4,6 +4,23 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
 
+## v0.3.0 (2025-??-??)
+
+### New features
+
+- New API to support custom types, i.e. types which are not predefined by Typir, but are created by users of Typir and tailored to the current language:
+  - TODO details
+- ...
+
+### Breaking changes
+
+- ...
+
+### Fixed bugs
+
+- ...
+
+
 ## v0.2.1 (2025-04-09)
 
 - Export `test-utils.ts` which are using `vitest` via the new namespace `'typir/test'` in order to not pollute production code with vitest dependencies (#68)

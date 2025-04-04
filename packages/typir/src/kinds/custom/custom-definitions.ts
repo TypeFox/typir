@@ -25,7 +25,7 @@ export type CustomTypePropertyTypes =
 
 /* Corresponding properties for specification during the initialization */
 
-export type CustomTypePropertyInitialization<T extends CustomTypePropertyTypes, LanguageType = unknown> =
+export type CustomTypePropertyInitialization<T extends CustomTypePropertyTypes, LanguageType> =
     // replace Type by a TypeSelector for it ...
     T extends Type ? TypeSelector<T, LanguageType> : // note that TypeSelector includes "unknown" (if the LanguageType is not specified), which makes the TypeScript type-checking "useless" here!
     // ... in recursive way for the composites:
@@ -35,14 +35,14 @@ export type CustomTypePropertyInitialization<T extends CustomTypePropertyTypes, 
     // unchanged for the atomic cases:
     T;
 
-export type CustomTypeInitialization<T extends CustomTypeProperties, LanguageType = unknown> = {
+export type CustomTypeInitialization<T extends CustomTypeProperties, LanguageType> = {
     [P in keyof T]: CustomTypePropertyInitialization<T[P], LanguageType>;
 };
 
 
 /* Corresponding properties to store inside the type */
 
-export type CustomTypePropertyStorage<T extends CustomTypePropertyTypes, LanguageType = unknown> =
+export type CustomTypePropertyStorage<T extends CustomTypePropertyTypes, LanguageType> =
     // replace Type by a TypeReference to it ...
     T extends Type ? TypeReference<T, LanguageType> :
     // ... in recursive way for the composites:
@@ -52,6 +52,6 @@ export type CustomTypePropertyStorage<T extends CustomTypePropertyTypes, Languag
     // unchanged for the atomic cases:
     T;
 
-export type CustomTypeStorage<T extends CustomTypeProperties, LanguageType = unknown> = {
+export type CustomTypeStorage<T extends CustomTypeProperties, LanguageType> = {
     [P in keyof T]: CustomTypePropertyStorage<T[P], LanguageType>;
 };

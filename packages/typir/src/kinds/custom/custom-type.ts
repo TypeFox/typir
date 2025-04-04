@@ -13,7 +13,7 @@ import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyIniti
 import { CustomKind, CustomTypeDetails } from './custom-kind.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
 
-export class CustomType<Properties extends CustomTypeProperties, LanguageType = unknown> extends Type {
+export class CustomType<Properties extends CustomTypeProperties, LanguageType> extends Type {
     override readonly kind: CustomKind<Properties, LanguageType>;
     protected readonly typeName: string | undefined;
     protected readonly typeUserRepresentation?: string;
@@ -27,7 +27,7 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType = 
 
         const collectedReferences: Array<TypeReference<Type, LanguageType>> = [];
         this.properties = this.replaceWhole(typeDetails.properties, collectedReferences) as CustomTypeStorage<Properties, LanguageType>;
-        const allReferences: Array<TypeReference<Type, unknown>> = collectedReferences as Array<TypeReference<Type, unknown>>; // TODO type-node.ts does not yet use <LanguageType = unknown>
+        const allReferences: Array<TypeReference<Type, unknown>> = collectedReferences as Array<TypeReference<Type, unknown>>; // type-node.ts does not use <LanguageType>
 
         this.defineTheInitializationProcessOfThisType({
             preconditionsForIdentifiable: {
@@ -127,6 +127,6 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType = 
 
 }
 
-export function isCustomType<Properties extends CustomTypeProperties, LanguageType = unknown>(type: unknown, kind: string | CustomKind<Properties, LanguageType>): type is CustomType<Properties, LanguageType> {
+export function isCustomType<Properties extends CustomTypeProperties, LanguageType>(type: unknown, kind: string | CustomKind<Properties, LanguageType>): type is CustomType<Properties, LanguageType> {
     return type instanceof CustomType && (typeof kind === 'string' ? type.kind.options.name === kind : type.kind === kind);
 }

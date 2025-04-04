@@ -14,34 +14,34 @@ import { CustomTypeInitialization, CustomTypeProperties } from './custom-definit
 import { CustomTypeInitializer } from './custom-initializer.js';
 import { CustomType } from './custom-type.js';
 
-export interface CustomKindOptions<Properties extends CustomTypeProperties, LanguageType = unknown> {
+export interface CustomKindOptions<Properties extends CustomTypeProperties, LanguageType> {
     name: string;
     calculateIdentifier: (typeDetails: CustomTypeDetails<Properties, LanguageType>) => string;
 }
 
-export interface CustomTypeDetails<Properties extends CustomTypeProperties, LanguageType = unknown> extends TypeDetails<LanguageType> {
+export interface CustomTypeDetails<Properties extends CustomTypeProperties, LanguageType> extends TypeDetails<LanguageType> {
     properties: CustomTypeInitialization<Properties, LanguageType>;
     typeName?: string;
     typeUserRepresentation?: string;
 }
 
-export interface CreateCustomTypeDetails<Properties extends CustomTypeProperties, LanguageType = unknown> extends CustomTypeDetails<Properties, LanguageType> {
+export interface CreateCustomTypeDetails<Properties extends CustomTypeProperties, LanguageType> extends CustomTypeDetails<Properties, LanguageType> {
     inferenceRules: Array<InferCurrentTypeRule<CustomType<Properties, LanguageType>, LanguageType>>;
 }
 
-export interface CustomFactoryService<Properties extends CustomTypeProperties, LanguageType = unknown> {
+export interface CustomFactoryService<Properties extends CustomTypeProperties, LanguageType> {
     create(typeDetails: CustomTypeDetails<Properties, LanguageType>): CustomTypeConfigurationChain<Properties, LanguageType>;
     get(typeDetails: CustomTypeDetails<Properties, LanguageType>): TypeReference<CustomType<Properties, LanguageType>, LanguageType>;
     // TODO getOrCreateTopCustomType ??
 }
 
-export interface CustomTypeConfigurationChain<Properties extends CustomTypeProperties, LanguageType = unknown> {
-    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<CustomType<Properties>, LanguageType, T>): CustomTypeConfigurationChain<Properties, LanguageType>;
+export interface CustomTypeConfigurationChain<Properties extends CustomTypeProperties, LanguageType> {
+    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<CustomType<Properties, LanguageType>, LanguageType, T>): CustomTypeConfigurationChain<Properties, LanguageType>;
     finish(): TypeInitializer<CustomType<Properties, LanguageType>, LanguageType>;
 }
 
 
-export class CustomKind<Properties extends CustomTypeProperties, LanguageType = unknown> implements Kind, CustomFactoryService<Properties, LanguageType> {
+export class CustomKind<Properties extends CustomTypeProperties, LanguageType> implements Kind, CustomFactoryService<Properties, LanguageType> {
     readonly $name: 'CustomKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: CustomKindOptions<Properties, LanguageType>;
@@ -73,12 +73,12 @@ export class CustomKind<Properties extends CustomTypeProperties, LanguageType = 
     }
 }
 
-export function isCustomKind<Properties extends CustomTypeProperties, LanguageType = unknown>(kind: unknown): kind is CustomKind<Properties, LanguageType> {
+export function isCustomKind<Properties extends CustomTypeProperties, LanguageType>(kind: unknown): kind is CustomKind<Properties, LanguageType> {
     return kind instanceof CustomKind;
 }
 
 
-class CustomConfigurationChainImpl<Properties extends CustomTypeProperties, LanguageType = unknown> implements CustomConfigurationChainImpl<Properties, LanguageType> {
+class CustomConfigurationChainImpl<Properties extends CustomTypeProperties, LanguageType> implements CustomConfigurationChainImpl<Properties, LanguageType> {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: CustomKind<Properties, LanguageType>;
     protected readonly typeDetails: CreateCustomTypeDetails<Properties, LanguageType>;
@@ -92,7 +92,7 @@ class CustomConfigurationChainImpl<Properties extends CustomTypeProperties, Lang
         };
     }
 
-    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<CustomType<Properties>, LanguageType, T>): CustomConfigurationChainImpl<Properties, LanguageType> {
+    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<CustomType<Properties, LanguageType>, LanguageType, T>): CustomConfigurationChainImpl<Properties, LanguageType> {
         this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<CustomType<Properties, LanguageType>, LanguageType>);
         return this;
     }

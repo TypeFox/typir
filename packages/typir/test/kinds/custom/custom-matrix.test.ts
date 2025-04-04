@@ -83,7 +83,8 @@ describe('Tests simple custom types for Matrix types', () => {
     });
 
     test('Matrix type', () => {
-        const typir = createTypirServicesForTesting(); // TODO does not yet work: { factory: { Matrix: services => new CustomKind<MatrixType, TestLanguageNode>(services, { ... }) } }
+        const typir = createTypirServicesForTesting();
+        // TODO does not yet work: { factory: { Matrix: services => new CustomKind<MatrixType, TestLanguageNode>(services, { ... }) } }
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
 
         // create a custom kind to create custom types with dedicated properties, as defined in <MatrixType>
@@ -119,6 +120,6 @@ describe('Tests simple custom types for Matrix types', () => {
         expectToBeType(matrix3x3.properties.baseType.getType(), isPrimitiveType, type => type === integerType);
     });
 
-    // TODO test cases for: different TypeSelectors, (multiple) waiting for, inference rules, validation rules, assignability, Set/Array/Map
+    // TODO test cases for: different TypeSelectors, (multiple) waiting for / cycles, inference rules, validation rules, assignability, Set/Array/Map
 
 });
