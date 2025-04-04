@@ -35,7 +35,7 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
             },
             referencesRelevantForInvalidation: allReferences,
             onIdentifiable: () => {
-                this.identifier = this.kind.calculateIdentifier(typeDetails);
+                this.identifier = this.kind.calculateIdentifier(typeDetails.properties);
             }
         }); // TODO Are there more preconditions? deregistration from listeners?
     }

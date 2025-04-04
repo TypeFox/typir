@@ -91,8 +91,8 @@ describe('Tests simple custom types for Matrix types', () => {
         const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
             name: 'Matrix',
             // determine which identifier is used to store and retrieve a custom type in the type graph (and to check its uniqueness)
-            calculateIdentifier: details =>
-                `custom-matrix-${typir.infrastructure.TypeResolver.resolve(details.properties.baseType).getIdentifier()}-${details.properties.width}-${details.properties.height}`,
+            calculateIdentifier: properties =>
+                `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
         });
 
         // now use this custom kind to create some custom types
