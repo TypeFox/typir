@@ -119,7 +119,12 @@ export function createTypirServices<LanguageType>(
     customization2: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
     customization3: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
 ): TypirServices<LanguageType> {
-    return inject(createDefaultTypirServicesModule<LanguageType>(), customization1, customization2, customization3);
+    return inject(
+        createDefaultTypirServicesModule<LanguageType>(),
+        customization1,
+        customization2,
+        customization3,
+    );
 }
 
 /**

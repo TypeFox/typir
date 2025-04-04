@@ -12,7 +12,7 @@ import { CustomTypeProperties } from './custom-definitions.js';
 import { CreateCustomTypeDetails, CustomKind } from './custom-kind.js';
 import { CustomType, isCustomType } from './custom-type.js';
 
-export class CustomTypeInitializer<Properties extends CustomTypeProperties, LanguageType = unknown> extends TypeInitializer<CustomType<Properties, LanguageType>, LanguageType> implements TypeStateListener {
+export class CustomTypeInitializer<Properties extends CustomTypeProperties, LanguageType> extends TypeInitializer<CustomType<Properties, LanguageType>, LanguageType> implements TypeStateListener {
     protected readonly typeDetails: CreateCustomTypeDetails<Properties, LanguageType>;
     protected initialCustomType: CustomType<Properties, LanguageType>;
 
