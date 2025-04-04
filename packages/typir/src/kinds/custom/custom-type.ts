@@ -61,7 +61,7 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         // TypeSelector --> TypeReference
         //      function
         //      Type
-        //      string                              TODO: not unique, treat it as content!
+        //      string                              forbidden/not supported, since it is not unique, treat it as content/primitive property!
         //      TypeInitializer
         //      TypeReference
         //      LanguageType                        TODO: ??

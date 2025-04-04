@@ -20,14 +20,16 @@ export type CustomTypePropertyTypes =
     // | Record<string, CustomTypePropertyTypes>
     | Type
     | CustomTypePropertyTypes[] | Map<string, CustomTypePropertyTypes> | Set<CustomTypePropertyTypes>
-    | string | number | boolean | bigint;
+    | string | number | boolean | bigint | symbol;
 
 
 /* Corresponding properties for specification during the initialization */
 
+export type TypeSelectorForCustomTypes<T extends Type, LanguageType> = Exclude<TypeSelector<T, LanguageType>, string>; // no strings, since they shall by used as primitive properties
+
 export type CustomTypePropertyInitialization<T extends CustomTypePropertyTypes, LanguageType> =
     // replace Type by a TypeSelector for it ...
-    T extends Type ? TypeSelector<T, LanguageType> : // note that TypeSelector includes "unknown" (if the LanguageType is not specified), which makes the TypeScript type-checking "useless" here!
+    T extends Type ? TypeSelectorForCustomTypes<T, LanguageType> : // note that TypeSelector includes "unknown" (if the LanguageType is not specified), which makes the TypeScript type-checking "useless" here!
     // ... in recursive way for the composites:
     T extends Array<infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Array<CustomTypePropertyInitialization<ValueType, LanguageType>> : never) :
     T extends Map<string, infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Map<string, CustomTypePropertyInitialization<ValueType, LanguageType>> : never) :
