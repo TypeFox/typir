@@ -5,15 +5,15 @@
  ******************************************************************************/
 
 import { describe, expect, test } from 'vitest';
+import { assertTypirType, InferenceRuleNotApplicable } from '../../../src/index.js';
 import { TypeInitializer } from '../../../src/initialization/type-initializer.js';
 import { TypeReference } from '../../../src/initialization/type-reference.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypeStorage } from '../../../src/kinds/custom/custom-definitions.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { isCustomType } from '../../../src/kinds/custom/custom-type.js';
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { IntegerLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
 import { createTypirServicesForTesting, expectToBeType, expectTypirTypes } from '../../../src/utils/test-utils.js';
-import { assertTypirType } from '../../../src/index.js';
 
 export type MatrixType = { // "interface" instead of "type" does not work!
     baseType: PrimitiveType;
@@ -120,6 +120,137 @@ describe('Tests simple custom types for Matrix types', () => {
         expectToBeType(matrix3x3.properties.baseType.getType(), isPrimitiveType, type => type === integerType);
     });
 
-    // TODO test cases for: different TypeSelectors, inference rules, validation rules, assignability, Set/Array/Map
+    test('Matrix type with very simple inference rules', () => {
+        const typir = createTypirServicesForTesting();
+        const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
+        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+            name: 'Matrix',
+            calculateIdentifier: properties =>
+                `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
+        });
+
+        const matrix2x2 = customKind
+            .create({ typeName: 'My2x2MatrixType', properties: { baseType: integerType, width: 2, height: 2 } })
+            .inferenceRule({ matching: node => node === matrixLiteral2x2 }) // very limited inference rule, only for testing
+            .finish().getTypeFinal()!;
+        const matrix3x3 = customKind
+            .create({ typeName: 'My3x3MatrixType', properties: { baseType: integerType, width: 3, height: 3 } })
+            .inferenceRule({ matching: node => node === matrixLiteral3x3 }) // very limited inference rule, only for testing
+            .finish().getTypeFinal()!;
+
+        expectToBeType(typir.Inference.inferType(matrixLiteral3x3), result => isCustomType(result, customKind), result => result === matrix3x3);
+        expectToBeType(typir.Inference.inferType(matrixLiteral2x2), result => isCustomType(result, customKind), result => result === matrix2x2);
+
+        expect(typir.Inference.inferType(matrixLiteral1x1)).toHaveLength(1); // no type, but a problem, since there is no 1x1 matrix type!
+    });
+
+    test('Matrix type with generic inference rule: only get', () => {
+        const typir = createTypirServicesForTesting();
+        const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
+        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+            name: 'Matrix',
+            calculateIdentifier: properties =>
+                `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
+        });
+
+        const matrix2x2 = customKind
+            .create({ typeName: 'My2x2MatrixType', properties: { baseType: integerType, width: 2, height: 2 } })
+            // no inference rule here
+            .finish().getTypeFinal()!;
+        const matrix3x3 = customKind
+            .create({ typeName: 'My3x3MatrixType', properties: { baseType: integerType, width: 3, height: 3 } })
+            // no inference rule here
+            .finish().getTypeFinal()!;
+
+        // ... but a generic inference rule
+        typir.Inference.addInferenceRule(node => {
+            if (node instanceof MatrixLiteral) {
+                const width = node.elements.length;
+                const height = node.elements.map(row => row.length).reduce((l, r) => Math.max(l, r), 0);
+                const type = customKind.get({ baseType: integerType, width, height });
+                return type.getType() || InferenceRuleNotApplicable;
+            }
+            return InferenceRuleNotApplicable;
+        });
+
+        expectToBeType(typir.Inference.inferType(matrixLiteral3x3), result => isCustomType(result, customKind), result => result === matrix3x3);
+        expectToBeType(typir.Inference.inferType(matrixLiteral2x2), result => isCustomType(result, customKind), result => result === matrix2x2);
+
+        expect(typir.Inference.inferType(matrixLiteral1x1)).toHaveLength(1); // no type, but a problem, since there is no 1x1 matrix type!
+
+        const matrix1x1 = customKind
+            .create({ typeName: 'My1x1MatrixType', properties: { baseType: integerType, width: 1, height: 1 } })
+            .finish().getTypeFinal()!;
+        // now the 1x1 matrix type exists and can be inferred!
+        expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind), result => result === matrix1x1);
+    });
+
+    test('Matrix type with generic inference rule: get or create', () => {
+        const typir = createTypirServicesForTesting();
+        const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
+        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+            name: 'Matrix',
+            calculateIdentifier: properties =>
+                `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
+        });
+        typir.Inference.addInferenceRule(node => {
+            if (node instanceof MatrixLiteral) {
+                const width = node.elements.length;
+                const height = node.elements.map(row => row.length).reduce((l, r) => Math.max(l, r), 0);
+                return customKind.create({ typeName: 'My1x1MatrixType', properties: { baseType: integerType, width, height }})
+                    .finish().getTypeFinal()!; // we know, that the type can be created now, without delay
+            }
+            return InferenceRuleNotApplicable;
+        });
+
+        // we create some Matrix types in advance
+        const matrix2x2 = customKind
+            .create({ typeName: 'My2x2MatrixType', properties: { baseType: integerType, width: 2, height: 2 } })
+            .finish().getTypeFinal()!;
+        const matrix3x3 = customKind
+            .create({ typeName: 'My3x3MatrixType', properties: { baseType: integerType, width: 3, height: 3 } })
+            .finish().getTypeFinal()!;
+
+        // the already created Matrix types are inferred
+        expectToBeType(typir.Inference.inferType(matrixLiteral3x3), result => isCustomType(result, customKind), result => result === matrix3x3);
+        expectToBeType(typir.Inference.inferType(matrixLiteral2x2), result => isCustomType(result, customKind), result => result === matrix2x2);
+        expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType', 'My3x3MatrixType'); // we have only 2 Matrix types in the type graph
+
+        // a new Matrix type is created and inferred for the 1x1 matrix literal:
+        expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind),
+            result => result.properties.height === 1 && result.properties.width === 1 && result.properties.baseType.getType() === integerType);
+        expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType', 'My3x3MatrixType', 'My1x1MatrixType'); // now we have 3 Matrix types
+
+        // we trying to explicitly create the 1x1 Matrix type ...
+        const matrix1x1 = customKind
+            .create({ typeName: 'My1x1MatrixType', properties: { baseType: integerType, width: 1, height: 1 } })
+            .finish().getTypeFinal()!; // ... the already existing 1x1 Matrix type is returned: 'create' behaves like 'getOrCreate', since no duplicated types should be created
+        expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind), result => result === matrix1x1);
+    });
+
+    // TODO test cases for: different TypeSelectors, validation rules, assignability, Set/Array/Map
 
 });
+
+/* eslint-disable @typescript-eslint/parameter-properties */
+
+class MatrixLiteral extends TestExpressionNode {
+    constructor(
+        public elements: IntegerLiteral[][],
+    ) { super(); }
+}
+
+const matrixLiteral1x1 = new MatrixLiteral([
+    [new IntegerLiteral(1)],
+]);
+
+const matrixLiteral2x2 = new MatrixLiteral([
+    [new IntegerLiteral(1), new IntegerLiteral(2)],
+    [new IntegerLiteral(3), new IntegerLiteral(4)],
+]);
+
+const matrixLiteral3x3 = new MatrixLiteral([
+    [new IntegerLiteral(1), new IntegerLiteral(2), new IntegerLiteral(3)],
+    [new IntegerLiteral(4), new IntegerLiteral(5), new IntegerLiteral(6)],
+    [new IntegerLiteral(7), new IntegerLiteral(8), new IntegerLiteral(9)],
+]);
