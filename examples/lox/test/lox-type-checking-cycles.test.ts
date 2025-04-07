@@ -4,11 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { isClassType, isFunctionType } from 'typir';
+import { expectTypirTypes } from 'typir/test';
 import { describe, test } from 'vitest';
 import { loxServices, operatorNames, validateLox } from './lox-type-checking-utils.js';
-import { isClassType } from '../../../packages/typir/lib/kinds/class/class-type.js';
-import { expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
-import { isFunctionType } from '../../../packages/typir/lib/kinds/function/function-type.js';
 
 describe('Cyclic type definitions where a Class is declared and already used', () => {
     test('Class with field of its own type', async () => {

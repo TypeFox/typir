@@ -5,10 +5,9 @@
  ******************************************************************************/
 
 import { AstUtils } from 'langium';
+import { isClassType, isPrimitiveType } from 'typir';
+import { expectToBeType, expectTypirTypes } from 'typir/test';
 import { describe, expect, test } from 'vitest';
-import { isClassType } from '../../../packages/typir/lib/kinds/class/class-type.js';
-import { isPrimitiveType } from '../../../packages/typir/lib/kinds/primitive/primitive-type.js';
-import { expectToBeType, expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
 import { isVariableDeclaration, LoxProgram } from '../src/language/generated/ast.js';
 import { loxServices, validateLox } from './lox-type-checking-utils.js';
 

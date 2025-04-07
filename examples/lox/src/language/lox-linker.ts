@@ -5,8 +5,8 @@
  ******************************************************************************/
 
 import { AstNodeDescription, DefaultLinker, LinkingError, ReferenceInfo } from 'langium';
+import { isType } from 'typir';
 import { TypirLangiumServices } from 'typir-langium';
-import { isType } from '../../../../packages/typir/lib/graph/type-node.js';
 import { isClass, isFunctionDeclaration, isMemberCall, isMethodMember, LoxAstType } from './generated/ast.js';
 import { LoxServices } from './lox-module.js';
 

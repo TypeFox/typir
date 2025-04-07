@@ -6,10 +6,10 @@
 
 import { EmptyFileSystem } from 'langium';
 import { parseDocument } from 'langium/test';
+import { isFunctionType } from 'typir';
 import { deleteAllDocuments } from 'typir-langium';
+import { compareValidationIssuesStrict, expectTypirTypes } from 'typir/test';
 import { afterEach, expect } from 'vitest';
-import { isFunctionType } from '../../../packages/typir/lib/kinds/function/function-type.js';
-import { compareValidationIssuesStrict, expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
 import { createOxServices } from '../src/language/ox-module.js';
 
 export const oxServices = createOxServices(EmptyFileSystem).Ox;

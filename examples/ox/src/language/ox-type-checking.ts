@@ -5,9 +5,8 @@
 ******************************************************************************/
 
 import { AstNode, AstUtils, assertUnreachable } from 'langium';
-import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices } from 'typir';
-import { TypirLangiumServices, LangiumTypeSystemDefinition } from 'typir-langium';
-import { ValidationProblemAcceptor } from '../../../../packages/typir/lib/services/validation.js';
+import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, ValidationProblemAcceptor } from 'typir';
+import { LangiumTypeSystemDefinition, TypirLangiumServices } from 'typir-langium';
 import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 
 export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
