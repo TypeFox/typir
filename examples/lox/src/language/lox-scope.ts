@@ -5,8 +5,8 @@
  ******************************************************************************/
 
 import { AstUtils, DefaultScopeProvider, EMPTY_SCOPE, ReferenceInfo, Scope } from 'langium';
+import { isClassType } from 'typir';
 import { TypirLangiumServices } from 'typir-langium';
-import { isClassType } from '../../../../packages/typir/lib/kinds/class/class-type.js';
 import { Class, isClass, isMemberCall, LoxAstType, MemberCall } from './generated/ast.js';
 import { LoxServices } from './lox-module.js';
 import { getClassChain } from './lox-utils.js';

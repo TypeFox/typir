@@ -6,8 +6,9 @@
 
 import { EmptyFileSystem, LangiumDocument } from 'langium';
 import { parseDocument } from 'langium/test';
-import { compareValidationIssuesStrict, expectTypirTypes, isClassType, isFunctionType } from 'typir';
+import { isClassType, isFunctionType } from 'typir';
 import { deleteAllDocuments } from 'typir-langium';
+import { compareValidationIssuesStrict, expectTypirTypes } from 'typir/test';
 import { afterEach, expect } from 'vitest';
 import type { Diagnostic } from 'vscode-languageserver-types';
 import { DiagnosticSeverity } from 'vscode-languageserver-types';
