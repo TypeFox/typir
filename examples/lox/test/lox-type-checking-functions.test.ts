@@ -4,12 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { assertTrue, assertTypirType, isFunctionType, isPrimitiveType, isType } from 'typir';
+import { expectTypirTypes, } from 'typir/test';
 import { describe, expect, test } from 'vitest';
-import { isType } from '../../../packages/typir/lib/graph/type-node.js';
-import { isFunctionType } from '../../../packages/typir/lib/kinds/function/function-type.js';
-import { isPrimitiveType } from '../../../packages/typir/lib/kinds/primitive/primitive-type.js';
-import { expectTypirTypes } from '../../../packages/typir/lib/utils/test-utils.js';
-import { assertTrue, assertTypirType } from '../../../packages/typir/lib/utils/utils.js';
 import { isFunctionDeclaration, isMemberCall, LoxProgram } from '../src/language/generated/ast.js';
 import { loxServices, operatorNames, validateLox } from './lox-type-checking-utils.js';
 

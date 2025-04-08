@@ -12,6 +12,10 @@
     ".": {
       "import": "./lib/index.js",
       "types": "./lib/index.d.ts"
+    },
+    "./test": {
+      "import": "./lib/index-test.js",
+      "types": "./lib/index-test.d.ts"
     }
   },
   "type": "module",
