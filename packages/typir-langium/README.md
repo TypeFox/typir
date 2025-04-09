@@ -15,6 +15,14 @@ npm install typir-langium
 
 ## Documentation
 
+Typir-Langium provides all features of Typir and adds some specifics for Langium projects:
+
+- Integration of Typir into the lifecycle of Langium, including:
+  - For validations, you don't need to traverse the AST on your own, since Typir-Langium hooks into Langium's traversal during the validation phase.
+  - Types which depend on `AstNode`s (e.g. user-defined functions or classes) are created and deleted according to Langium's build process.
+- Customizations of implementations for some Typir services, e.g. caches use Langium's `DocumentCache`
+- Additional APIs to register inference rules and validation rules in the usual Langium style (see below)
+
 For an overview about the core features of Typir with a simple application example, see the [root README.md of the Typir project](../../README.md).
 
 Important design decision for Typir-Langium:
