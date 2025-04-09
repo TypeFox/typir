@@ -4,6 +4,11 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
 
+## v0.2.1 (2025-04-09)
+
+- Export `test-utils.ts` which are using `vitest` via the new namespace `'typir/test'` in order to not pollute production code with vitest dependencies (#68)
+
+
 ## v0.2.0 (2025-03-31)
 
 ### New features

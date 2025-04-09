@@ -54,9 +54,9 @@ Typir does intentionally _not_ include ...
 
 This repository is a NPM workspace. It contains the following packages:
 
-- [Typir](./packages/typir/README.md) - the core package of Typir with default implementations for type checking services and some predefined types
-- [Typir-Langium](./packages/typir-langium/README.md) - a binding of Typir for [Langium](https://github.com/eclipse-langium/langium), a language workbench for developing textual DSLs in the web,
-in order to ease type checking for Langium-based languages
+- [Typir](./packages/typir/README.md) is the core package of Typir with default implementations for type checking services and some predefined types. Typir is published as `typir` at [NPM](https://www.npmjs.com/package/typir?activeTab=versions).
+- [Typir-Langium](./packages/typir-langium/README.md) is the binding of Typir for [Langium](https://github.com/eclipse-langium/langium), a language workbench for developing textual DSLs in the web,
+in order to ease type checking for Langium-based languages. Typir-Langium is published as `typir-langium` at [NPM](https://www.npmjs.com/package/typir-langium?activeTab=versions).
 
 This repository contains the following stand-alone applications, which demonstrate how to use Typir for type checking:
 
@@ -86,9 +86,9 @@ Let's head into setting up the Typir type system and creating the primitive type
 ```typescript
 const typir = createTypirServices<AstElement>(); // <AstElement> specifies the root type of all language nodes
 
-const numberType = typir.factory.Primitives.create({ primitiveName: 'number', inferenceRules: node => node instanceof NumberLiteral });
+const numberType = typir.factory.Primitives.create({ primitiveName: 'number' }).inferenceRule({ filter: node => node instanceof NumberLiteral }).finish();
 
-const stringType = typir.factory.Primitives.create({ primitiveName: 'string', inferenceRules: node => node instanceof StringLiteral });
+const stringType = typir.factory.Primitives.create({ primitiveName: 'string' }).inferenceRule({ filter: node => node instanceof StringLiteral }).finish();
 ```
 
 Note that the inference rules are included in this. For the operators this is a bit longer, as we have to take care of the left and right operand and the operator of the binary expression, so we extract it and will resuse it later for both the `+` and `-` operators:
@@ -108,8 +108,8 @@ We wish to have two operators, the `+` operator, which should be overloaded to a
 typir.factory.Operators.createBinary({ name: '+', signatures: [
     { left: numberType, right: numberType, return: numberType },
     { left: stringType, right: stringType, return: stringType },
-], inferenceRule });
-typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }], inferenceRule });
+] }).inferenceRule(inferenceRule).finish();
+typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }] }).inferenceRule(inferenceRule).finish();
 ```
 
 As we'd like to be able to convert numbers to strings implicitly, we add the following line. Note that this will for example make it possible to concatenate numbers and strings with the `+` operator, though it has no signature for a number and a string parameter in the operator definition above.
