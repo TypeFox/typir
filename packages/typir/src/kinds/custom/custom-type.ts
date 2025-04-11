@@ -116,11 +116,15 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
     }
 
     override getName(): string {
-        return this.typeName ?? this.getIdentifier();
+        return this.typeName // type-specific
+            ?? this.kind.options.calculateTypeName?.call(this.kind.options.calculateTypeName, this.properties) // kind-specific
+            ?? this.getIdentifier(); // fall-back
     }
 
     override getUserRepresentation(): string {
-        return this.typeUserRepresentation ?? this.getName();
+        return this.typeUserRepresentation // type-specific
+            ?? this.kind.options.calculateTypeUserRepresentation?.call(this.kind.options.calculateTypeUserRepresentation, this.properties) // kind-specific
+            ?? this.getName(); // fall-back
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {

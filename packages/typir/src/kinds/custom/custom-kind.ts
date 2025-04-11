@@ -17,7 +17,12 @@ import { CustomType } from './custom-type.js';
 
 export interface CustomKindOptions<Properties extends CustomTypeProperties, LanguageType> {
     name: string;
-    calculateIdentifier: (properties: CustomTypeInitialization<Properties, LanguageType>) => string; // instead of "typeDetails: CustomTypeDetails<Properties, LanguageType>"
+    /** This identifier needs to consider all properties which make the custom type unique. The identifiers are used to detect unique custom types. */
+    calculateTypeIdentifier: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
+    /** Define the name for each custom type; might be overridden by the custom type-specific name. */
+    calculateTypeName?: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
+    /** Define the user representation for each custom type; might be overridden by the custom type-specific user representation. */
+    calculateTypeUserRepresentation?: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
     // SubType
     getSubTypesOfNewCustomType?: (superNewCustom: CustomType<Properties, LanguageType>) => Type[];
     getSuperTypesOfNewCustomType?: (subNewCustom: CustomType<Properties, LanguageType>) => Type[];
@@ -35,8 +40,11 @@ export interface CustomKindOptions<Properties extends CustomTypeProperties, Lang
 }
 
 export interface CustomTypeDetails<Properties extends CustomTypeProperties, LanguageType> extends TypeDetails<LanguageType> {
+    /** Values for all custom properties of the custom type. Note that TypeSelector<A> are supported to initialize type properties of Type A. */
     properties: CustomTypeInitialization<Properties, LanguageType>;
-    typeName?: string;
+    /** If specified, overrides the kind-specific name for custom types. */
+    typeName?: string; // TODO review: skip this property to simplify custom types?
+    /** If specified, overrides the kind-specific user representation for custom types. */
     typeUserRepresentation?: string;
 }
 
@@ -84,7 +92,7 @@ export class CustomKind<Properties extends CustomTypeProperties, LanguageType> i
     }
 
     calculateIdentifier(properties: CustomTypeInitialization<Properties, LanguageType>): string {
-        return this.options.calculateIdentifier(properties);
+        return this.options.calculateTypeIdentifier(properties);
     }
 }
 
