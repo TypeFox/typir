@@ -5,15 +5,15 @@
  ******************************************************************************/
 
 import { describe, expect, test } from 'vitest';
-import { assertTypirType, InferenceRuleNotApplicable } from '../../../src/index.js';
+import { assertTypirType, InferenceRuleNotApplicable, ValidationProblemAcceptor } from '../../../src/index.js';
 import { TypeInitializer } from '../../../src/initialization/type-initializer.js';
 import { TypeReference } from '../../../src/initialization/type-reference.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypeStorage } from '../../../src/kinds/custom/custom-definitions.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
-import { isCustomType } from '../../../src/kinds/custom/custom-type.js';
+import { CustomType, isCustomType } from '../../../src/kinds/custom/custom-type.js';
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { IntegerLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
-import { createTypirServicesForTesting, expectToBeType, expectTypirTypes } from '../../../src/utils/test-utils.js';
+import { createTypirServicesForTesting, expectToBeType, expectTypirTypes, expectValidationIssuesNone, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
 
 export type MatrixType = { // "interface" instead of "type" does not work!
     baseType: PrimitiveType;
@@ -141,6 +141,46 @@ describe('Tests simple custom types for Matrix types', () => {
         expect(typir.Inference.inferType(matrixLiteral1x1)).toHaveLength(1); // no type, but a problem, since there is no 1x1 matrix type!
     });
 
+    test('Matrix type with very simple inference rules (+ validation rule)', () => {
+        const typir = createTypirServicesForTesting();
+        const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
+        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+            name: 'Matrix',
+            calculateIdentifier: properties =>
+                `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
+        });
+
+        function checkCompleteness(node: MatrixLiteral, matrixType: CustomType<MatrixType, TestLanguageNode>, accept: ValidationProblemAcceptor<TestLanguageNode>): void {
+            const height = matrixType.properties.height;
+            if (node.elements.some(column => column.length !== height)) {
+                accept({ languageNode: node, severity: 'error', message: 'Unbalanced content in matrix literal found' });
+            }
+        }
+
+        const matrix2x2 = customKind
+            .create({ typeName: 'My2x2MatrixType', properties: { baseType: integerType, width: 2, height: 2 } })
+            .inferenceRule({
+                matching: node => node === matrixLiteral2x2 || node === matrixLiteral2x2Incomplete,
+                validation: checkCompleteness }) // very limited inference rule, only for testing
+            .finish().getTypeFinal()!;
+        const matrix3x3 = customKind
+            .create({ typeName: 'My3x3MatrixType', properties: { baseType: integerType, width: 3, height: 3 } })
+            .inferenceRule({
+                matching: node => node === matrixLiteral3x3 || node === matrixLiteral3x3Incomplete,
+                validation: checkCompleteness }) // very limited inference rule, only for testing
+            .finish().getTypeFinal()!;
+
+        expectToBeType(typir.Inference.inferType(matrixLiteral2x2), result => isCustomType(result, customKind), result => result === matrix2x2);
+        expectToBeType(typir.Inference.inferType(matrixLiteral2x2Incomplete), result => isCustomType(result, customKind), result => result === matrix2x2);
+        expectToBeType(typir.Inference.inferType(matrixLiteral3x3), result => isCustomType(result, customKind), result => result === matrix3x3);
+        expectToBeType(typir.Inference.inferType(matrixLiteral3x3Incomplete), result => isCustomType(result, customKind), result => result === matrix3x3);
+
+        expectValidationIssuesNone(typir, matrixLiteral2x2);
+        expectValidationIssuesStrict(typir, matrixLiteral2x2Incomplete, ['Unbalanced content in matrix literal found']);
+        expectValidationIssuesNone(typir, matrixLiteral3x3);
+        expectValidationIssuesStrict(typir, matrixLiteral3x3Incomplete, ['Unbalanced content in matrix literal found']);
+    });
+
     test('Matrix type with generic inference rule: only get', () => {
         const typir = createTypirServicesForTesting();
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
@@ -159,7 +199,7 @@ describe('Tests simple custom types for Matrix types', () => {
             // no inference rule here
             .finish().getTypeFinal()!;
 
-        // ... but a generic inference rule
+        // ... but a single, generic inference rule here
         typir.Inference.addInferenceRule(node => {
             if (node instanceof MatrixLiteral) {
                 const width = node.elements.length;
@@ -190,6 +230,7 @@ describe('Tests simple custom types for Matrix types', () => {
             calculateIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
         });
+        // a single, generic inference rule
         typir.Inference.addInferenceRule(node => {
             if (node instanceof MatrixLiteral) {
                 const width = node.elements.length;
@@ -225,7 +266,7 @@ describe('Tests simple custom types for Matrix types', () => {
         expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind), result => result === matrix1x1);
     });
 
-    // TODO test cases for: different TypeSelectors, validation rules, Set/Array/Map
+    // TODO test cases for: different TypeSelectors, Set/Array/Map, .getTypeFinal()! überprüfen
 
 });
 
@@ -245,9 +286,18 @@ const matrixLiteral2x2 = new MatrixLiteral([
     [new IntegerLiteral(1), new IntegerLiteral(2)],
     [new IntegerLiteral(3), new IntegerLiteral(4)],
 ]);
+const matrixLiteral2x2Incomplete = new MatrixLiteral([
+    [new IntegerLiteral(1), new IntegerLiteral(2)],
+    [new IntegerLiteral(3), /* incomplete here */],
+]);
 
 const matrixLiteral3x3 = new MatrixLiteral([
     [new IntegerLiteral(1), new IntegerLiteral(2), new IntegerLiteral(3)],
     [new IntegerLiteral(4), new IntegerLiteral(5), new IntegerLiteral(6)],
     [new IntegerLiteral(7), new IntegerLiteral(8), new IntegerLiteral(9)],
+]);
+const matrixLiteral3x3Incomplete = new MatrixLiteral([
+    [new IntegerLiteral(1), new IntegerLiteral(2), new IntegerLiteral(3)],
+    [new IntegerLiteral(4), new IntegerLiteral(5), new IntegerLiteral(6)],
+    [new IntegerLiteral(7), new IntegerLiteral(8), /* incomplete here */],
 ]);
