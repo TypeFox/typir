@@ -21,22 +21,18 @@ export class BottomType extends Type implements TypeGraphListener {
 
         // ensure, that this Bottom type is a sub-type of all (other) types:
         const graph = kind.services.infrastructure.Graph;
-        graph.getAllRegisteredTypes().forEach(t => this.markAsSubType(t)); // the already existing types
-        graph.addListener(this); // all upcomping types
+        graph.addListener(this, { callOnAddedForAllExisting: true });
     }
 
     override dispose(): void {
         this.kind.services.infrastructure.Graph.removeListener(this);
     }
 
-    protected markAsSubType(type: Type): void {
+    onAddedType(type: Type, _key: string): void {
+        // this method is called for the already existing types and for all upcomping types
         if (type !== this) {
             this.kind.services.Subtype.markAsSubType(this, type, { checkForCycles: false });
         }
-    }
-
-    onAddedType(type: Type, _key: string): void {
-        this.markAsSubType(type);
     }
 
     override getName(): string {
