@@ -28,6 +28,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 
 ### Fixed bugs
 
+- Clear edges from invalid types, which are never added into the type graph
 - ...
 
 
