@@ -4,15 +4,21 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
+import { MarkSubTypeOptions } from '../../services/subtype.js';
 import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
 import { assertTrue, assertTypirType } from '../../utils/utils.js';
 import { CustomTypeProperties } from './custom-definitions.js';
 import { CreateCustomTypeDetails, CustomKind } from './custom-kind.js';
 import { CustomType, isCustomType } from './custom-type.js';
 
-export class CustomTypeInitializer<Properties extends CustomTypeProperties, LanguageType> extends TypeInitializer<CustomType<Properties, LanguageType>, LanguageType> implements TypeStateListener {
+export class CustomTypeInitializer<Properties extends CustomTypeProperties, LanguageType>
+    extends TypeInitializer<CustomType<Properties, LanguageType>, LanguageType>
+    implements TypeStateListener, TypeGraphListener
+{
+    protected readonly kind: CustomKind<Properties, LanguageType>;
     protected readonly typeDetails: CreateCustomTypeDetails<Properties, LanguageType>;
     protected initialCustomType: CustomType<Properties, LanguageType>;
 
@@ -21,6 +27,7 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
 
     constructor(kind: CustomKind<Properties, LanguageType>, typeDetails: CreateCustomTypeDetails<Properties, LanguageType>) {
         super(kind.services);
+        this.kind = kind;
         this.typeDetails = typeDetails;
 
         // create the new Custom type
@@ -51,14 +58,74 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
             this.deregisterRules(undefined);
             this.registerRules(readyCustomType);
         }
+
+        // TODO Review: where to call this? already after creating the type or after Completed?
+        // Benefit here: The final type is already produced!
+        this.handleEdgeRelationshipsOfNewType();
     }
 
     onSwitchedToCompleted(_customType: Type): void {
         this.initialCustomType.removeListener(this);
+        this.services.infrastructure.Graph.removeListener(this);
     }
 
     onSwitchedToInvalid(_customType: Type): void {
         // nothing special required here
+    }
+
+    protected handleEdgeRelationshipsOfNewType(): void {
+        // handle relationships of the new custom type to existing and known types
+        const newCustomType = this.getTypeFinal() ?? this.getTypeInitial();
+        const options = this.kind.options;
+
+        // sub-type
+        const subTypeOptions: Partial<MarkSubTypeOptions> = { checkForCycles: false };
+        (options?.getSubTypesOfNewCustomType?.call(options.getSubTypesOfNewCustomType, newCustomType) ?? [])
+            .forEach(subType => this.services.Subtype.markAsSubType(subType, newCustomType, subTypeOptions));
+        (options?.getSuperTypesOfNewCustomType?.call(options.getSuperTypesOfNewCustomType, newCustomType) ?? [])
+            .forEach(superType => this.services.Subtype.markAsSubType(newCustomType, superType, subTypeOptions));
+
+        // conversion
+        (options?.getNewCustomTypeImplicitlyConvertibleToTypes?.call(options.getNewCustomTypeImplicitlyConvertibleToTypes, newCustomType) ?? [])
+            .forEach(to => this.services.Conversion.markAsConvertible(newCustomType, to, 'IMPLICIT_EXPLICIT'));
+        (options?.getNewCustomTypeExplicitlyConvertibleToTypes?.call(options.getNewCustomTypeExplicitlyConvertibleToTypes, newCustomType) ?? [])
+            .forEach(to => this.services.Conversion.markAsConvertible(newCustomType, to, 'EXPLICIT'));
+        (options?.getTypesImplicitlyConvertibleToNewCustomType?.call(options.getTypesImplicitlyConvertibleToNewCustomType, newCustomType) ?? [])
+            .forEach(from => this.services.Conversion.markAsConvertible(from, newCustomType, 'IMPLICIT_EXPLICIT'));
+        (options?.getTypesExplicitlyConvertibleToNewCustomType?.call(options.getTypesExplicitlyConvertibleToNewCustomType, newCustomType) ?? [])
+            .forEach(from => this.services.Conversion.markAsConvertible(from, newCustomType, 'EXPLICIT'));
+
+        // handle relationships of the new custom type to types which are not known in advance
+        if (options.isNewCustomTypeSubTypeOf || options.isNewCustomTypeSuperTypeOf ||
+            options.isNewCustomTypeConvertibleToType || options.isTypeConvertibleToNewCustomType
+        ) {
+            this.services.infrastructure.Graph.addListener(this, { callOnAddedForAllExisting: true });
+        }
+    }
+
+    onAddedType(newOtherType: Type, _key: string): void {
+        const newCustomType = this.getTypeFinal() ?? this.getTypeInitial();
+        if (newOtherType !== newCustomType) { // don't relate the new custom type to itself
+            const options = this.kind.options;
+
+            // sub-type
+            if (options.isNewCustomTypeSubTypeOf?.call(options.isNewCustomTypeSubTypeOf, newCustomType, newOtherType)) {
+                this.services.Subtype.markAsSubType(newCustomType, newOtherType, { checkForCycles: false });
+            }
+            if (options.isNewCustomTypeSuperTypeOf?.call(options.isNewCustomTypeSuperTypeOf, newOtherType, newCustomType)) {
+                this.services.Subtype.markAsSubType(newOtherType, newCustomType, { checkForCycles: false });
+            }
+
+            // conversion
+            const convertCustomToOther = options.isNewCustomTypeConvertibleToType?.call(options.isNewCustomTypeConvertibleToType, newCustomType, newOtherType) ?? 'NONE';
+            if (convertCustomToOther === 'IMPLICIT_EXPLICIT' || convertCustomToOther === 'EXPLICIT') {
+                this.services.Conversion.markAsConvertible(newCustomType, newOtherType, convertCustomToOther);
+            }
+            const convertOtherToCustom = options.isTypeConvertibleToNewCustomType?.call(options.isTypeConvertibleToNewCustomType, newOtherType, newCustomType) ?? 'NONE';
+            if (convertOtherToCustom === 'IMPLICIT_EXPLICIT' || convertOtherToCustom === 'EXPLICIT') {
+                this.services.Conversion.markAsConvertible(newOtherType, newCustomType, convertOtherToCustom);
+            }
+        }
     }
 
     protected createRules(customType: CustomType<Properties, LanguageType>): void {

@@ -12,6 +12,8 @@ import { TypirProblem } from '../../utils/utils-definitions.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage } from './custom-definitions.js';
 import { CustomKind, CustomTypeDetails } from './custom-kind.js';
 import { TypeSelector } from '../../initialization/type-selector.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import { checkValueForConflict, createKindConflict, ValueConflict } from '../../utils/utils-type-comparison.js';
 
 export class CustomType<Properties extends CustomTypeProperties, LanguageType> extends Type {
     override readonly kind: CustomKind<Properties, LanguageType>;
@@ -121,8 +123,34 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         return this.typeUserRepresentation ?? this.getName();
     }
 
-    override analyzeTypeEqualityProblems(_otherType: Type): TypirProblem[] {
-        throw new Error('Method not implemented.');
+    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+        if (otherType instanceof CustomType) {
+            if (otherType.kind.options.name === this.kind.options.name) {
+                // TODO compare all properties
+                return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
+            } else {
+                return [<TypeEqualityProblem>{
+                    $problem: TypeEqualityProblem,
+                    type1: this,
+                    type2: otherType,
+                    subProblems: [
+                        <ValueConflict>{
+                            $problem: ValueConflict,
+                            firstValue: this.kind.options.name,
+                            secondValue: otherType.kind.options.name,
+                            location: 'kind',
+                        },
+                    ],
+                }];
+            }
+        } else {
+            return [<TypeEqualityProblem>{
+                $problem: TypeEqualityProblem,
+                type1: this,
+                type2: otherType,
+                subProblems: [createKindConflict(otherType, this)],
+            }];
+        }
     }
 
 }
