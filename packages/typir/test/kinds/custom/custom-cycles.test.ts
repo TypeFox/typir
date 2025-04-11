@@ -31,7 +31,7 @@ describe('Check custom types depending on other types', () => {
         customKind = new CustomKind<MyCustomType, TestLanguageNode>(typir, {
             name: 'MyCustom',
             // determine which identifier is used to store and retrieve a custom type in the type graph (and to check its uniqueness)
-            calculateIdentifier: properties =>
+            calculateTypeIdentifier: properties =>
                 `custom-mycustom-${typir.infrastructure.TypeResolver.resolve(properties.dependsOnType).getIdentifier()}-${properties.myProperty}`,
         });
     });

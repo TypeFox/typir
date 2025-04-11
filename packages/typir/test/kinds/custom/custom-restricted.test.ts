@@ -27,8 +27,10 @@ describe('Tests inference and assignability for Integers with an upper bound', (
 
         customKind = new CustomKind<RestrictedInteger, TestLanguageNode>(typir, {
             name: 'RestrictedInteger',
-            calculateIdentifier: properties => `custom-restricted-integer-${properties.upperBound}`,
-            getSuperTypesOfNewCustomType: (_subNewCustom) => [integerType], // each RestrictedIntegerType is an IntegerType!
+            calculateTypeIdentifier: properties => `custom-restricted-integer-${properties.upperBound}`,
+            calculateTypeName: properties => `RI-${properties.upperBound}`, // the name for each RestrictedInteger type
+            // each RestrictedIntegerType is an IntegerType!
+            getSuperTypesOfNewCustomType: (_subNewCustom) => [integerType],
             // For conversion of RestrictedIntegers, both directions need to be specified, since:
             // - conversion is a directed relationship
             // - this RestrictedInteger might be converted to another RestrictedIntger, or another RestrictedInteger might be converted to this RestrictedInteger => these are two (slightly) different cases
@@ -41,14 +43,14 @@ describe('Tests inference and assignability for Integers with an upper bound', (
                 return integerType;
             }
             if (node instanceof RestrictedIntegerLiteral) {
-                return restrictedType(node.upperBound);
+                return restrictedType(node.upperBound); // creates (or gets) a corresponding RestrictedInteger type
             }
             return InferenceRuleNotApplicable;
         });
     });
 
     function restrictedType(upperBound: number): CustomType<RestrictedInteger, TestLanguageNode> {
-        return customKind.create({ typeName: `RI-${upperBound}`, properties: { upperBound }}).finish().getTypeFinal()!;
+        return customKind.create({ properties: { upperBound } }).finish().getTypeFinal()!;
     }
 
     test('Check type inference', () => {

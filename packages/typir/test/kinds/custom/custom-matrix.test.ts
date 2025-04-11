@@ -91,7 +91,7 @@ describe('Tests simple custom types for Matrix types', () => {
         const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
             name: 'Matrix',
             // determine which identifier is used to store and retrieve a custom type in the type graph (and to check its uniqueness)
-            calculateIdentifier: properties =>
+            calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
         });
 
@@ -122,7 +122,7 @@ describe('Tests simple custom types for Matrix types', () => {
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
         const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
             name: 'Matrix',
-            calculateIdentifier: properties =>
+            calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
         });
 
@@ -146,14 +146,14 @@ describe('Tests simple custom types for Matrix types', () => {
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
         const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
             name: 'Matrix',
-            calculateIdentifier: properties =>
+            calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
         });
 
         function checkCompleteness(node: MatrixLiteral, matrixType: CustomType<MatrixType, TestLanguageNode>, accept: ValidationProblemAcceptor<TestLanguageNode>): void {
             const height = matrixType.properties.height;
             if (node.elements.some(column => column.length !== height)) {
-                accept({ languageNode: node, severity: 'error', message: 'Unbalanced content in matrix literal found' });
+                accept({ languageNode: node, severity: 'error', message: 'Incomplete content in matrix literal found' });
             }
         }
 
@@ -176,9 +176,9 @@ describe('Tests simple custom types for Matrix types', () => {
         expectToBeType(typir.Inference.inferType(matrixLiteral3x3Incomplete), result => isCustomType(result, customKind), result => result === matrix3x3);
 
         expectValidationIssuesNone(typir, matrixLiteral2x2);
-        expectValidationIssuesStrict(typir, matrixLiteral2x2Incomplete, ['Unbalanced content in matrix literal found']);
+        expectValidationIssuesStrict(typir, matrixLiteral2x2Incomplete, ['Incomplete content in matrix literal found']);
         expectValidationIssuesNone(typir, matrixLiteral3x3);
-        expectValidationIssuesStrict(typir, matrixLiteral3x3Incomplete, ['Unbalanced content in matrix literal found']);
+        expectValidationIssuesStrict(typir, matrixLiteral3x3Incomplete, ['Incomplete content in matrix literal found']);
     });
 
     test('Matrix type with generic inference rule: only get', () => {
@@ -186,7 +186,7 @@ describe('Tests simple custom types for Matrix types', () => {
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
         const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
             name: 'Matrix',
-            calculateIdentifier: properties =>
+            calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
         });
 
@@ -227,7 +227,7 @@ describe('Tests simple custom types for Matrix types', () => {
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
         const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
             name: 'Matrix',
-            calculateIdentifier: properties =>
+            calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
         });
         // a single, generic inference rule
@@ -259,14 +259,14 @@ describe('Tests simple custom types for Matrix types', () => {
             result => result.properties.height === 1 && result.properties.width === 1 && result.properties.baseType.getType() === integerType);
         expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType', 'My3x3MatrixType', 'My1x1MatrixType'); // now we have 3 Matrix types
 
-        // we trying to explicitly create the 1x1 Matrix type ...
+        // we try to explicitly create the 1x1 Matrix type ...
         const matrix1x1 = customKind
             .create({ typeName: 'My1x1MatrixType', properties: { baseType: integerType, width: 1, height: 1 } })
             .finish().getTypeFinal()!; // ... the already existing 1x1 Matrix type is returned: 'create' behaves like 'getOrCreate', since no duplicated types should be created
         expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind), result => result === matrix1x1);
     });
 
-    // TODO test cases for: different TypeSelectors, Set/Array/Map, .getTypeFinal()! überprüfen
+    // TODO test cases for: different TypeSelectors, Set/Array/Map, .getTypeFinal()! überprüfen, multiple custom types in parallel
 
 });
 
