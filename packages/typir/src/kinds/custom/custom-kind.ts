@@ -4,9 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeDetails } from '../../graph/type-node.js';
+import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
+import { ConversionMode } from '../../services/conversion.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
 import { Kind } from '../kind.js';
@@ -17,6 +18,20 @@ import { CustomType } from './custom-type.js';
 export interface CustomKindOptions<Properties extends CustomTypeProperties, LanguageType> {
     name: string;
     calculateIdentifier: (properties: CustomTypeInitialization<Properties, LanguageType>) => string; // instead of "typeDetails: CustomTypeDetails<Properties, LanguageType>"
+    // SubType
+    getSubTypesOfNewCustomType?: (superNewCustom: CustomType<Properties, LanguageType>) => Type[];
+    getSuperTypesOfNewCustomType?: (subNewCustom: CustomType<Properties, LanguageType>) => Type[];
+    isNewCustomTypeSubTypeOf?: (subNewCustom: CustomType<Properties, LanguageType>, superOther: Type) => boolean;
+    isNewCustomTypeSuperTypeOf?: (subOther: Type, superNewCustom: CustomType<Properties, LanguageType>) => boolean;
+    // Conversion
+    getNewCustomTypeImplicitlyConvertibleToTypes?: (fromNewCustom: CustomType<Properties, LanguageType>) => Type[];
+    getTypesImplicitlyConvertibleToNewCustomType?: (toNewCustom: CustomType<Properties, LanguageType>) => Type[];
+    getNewCustomTypeExplicitlyConvertibleToTypes?: (fromNewCustom: CustomType<Properties, LanguageType>) => Type[];
+    getTypesExplicitlyConvertibleToNewCustomType?: (toNewCustom: CustomType<Properties, LanguageType>) => Type[];
+    isNewCustomTypeConvertibleToType?: (fromNewCustom: CustomType<Properties, LanguageType>, toOther: Type) => ConversionMode;
+    isTypeConvertibleToNewCustomType?: (fromOther: Type, toNewCustom: CustomType<Properties, LanguageType>) => ConversionMode;
+    // in order to have linear effort (instead of square effort), these methods are called only for the current, new CustomType (not for all existing types)!
+    // TODO analog für Equality, ... ?
 }
 
 export interface CustomTypeDetails<Properties extends CustomTypeProperties, LanguageType> extends TypeDetails<LanguageType> {
