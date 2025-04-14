@@ -266,7 +266,7 @@ describe('Tests simple custom types for Matrix types', () => {
         expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind), result => result === matrix1x1);
     });
 
-    // TODO test cases for: different TypeSelectors, Set/Array/Map, .getTypeFinal()! überprüfen, multiple custom types in parallel
+    // TODO test cases for: different TypeSelectors, Set/Array/Map, .getTypeFinal()! überprüfen
 
 });
 
