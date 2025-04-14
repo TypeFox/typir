@@ -65,12 +65,12 @@ export interface CustomTypeConfigurationChain<Properties extends CustomTypePrope
 
 
 export class CustomKind<Properties extends CustomTypeProperties, LanguageType> implements Kind, CustomFactoryService<Properties, LanguageType> {
-    readonly $name: 'CustomKind';
+    readonly $name: `CustomKind-${string}`;
     readonly services: TypirServices<LanguageType>;
     readonly options: CustomKindOptions<Properties, LanguageType>;
 
     constructor(services: TypirServices<LanguageType>, options: CustomKindOptions<Properties, LanguageType>) {
-        this.$name = 'CustomKind';
+        this.$name = `CustomKind-${options.name}`;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
         this.options = this.collectOptions(options);
