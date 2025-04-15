@@ -112,7 +112,6 @@ describe('Tests inference and assignability for Integers with an upper bound', (
 
 });
 
-/* eslint-disable @typescript-eslint/parameter-properties */
 
 class RestrictedIntegerLiteral extends TestExpressionNode {
     constructor(

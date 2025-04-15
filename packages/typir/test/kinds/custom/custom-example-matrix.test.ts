@@ -266,11 +266,10 @@ describe('Tests simple custom types for Matrix types', () => {
         expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind), result => result === matrix1x1);
     });
 
-    // TODO test cases for: different TypeSelectors, Set/Array/Map, .getTypeFinal()! überprüfen
+    // TODO test cases for: different TypeSelectors, Set/Array/Map, .getTypeFinal()! überprüfen (undefined and TypeSelector as result of TypeInference??)
 
 });
 
-/* eslint-disable @typescript-eslint/parameter-properties */
 
 class MatrixLiteral extends TestExpressionNode {
     constructor(

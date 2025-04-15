@@ -4,8 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-/* eslint-disable @typescript-eslint/parameter-properties */
-
 import { beforeAll, describe, expect, test } from 'vitest';
 import { Type } from '../../../src/graph/type-node.js';
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
