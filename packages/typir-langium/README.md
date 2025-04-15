@@ -58,7 +58,7 @@ export class MyDSLTypeSystem implements LangiumTypeSystemDefinition<MyDSLAstType
       // define constant types and rules for conversion, inference and validation here
     }
 
-    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<OxAstType>): void {
+    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<MyDSLAstType>): void {
       // define types and their rules which depend on the current AST (as parsed by Langium from programs written by users of your language) here
     }
 }
