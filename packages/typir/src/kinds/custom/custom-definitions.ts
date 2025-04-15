@@ -12,15 +12,17 @@ import { TypeSelector } from '../../initialization/type-selector.js';
 
 /* Base properties */
 
-export type CustomTypeProperties = Record<string, CustomTypePropertyTypes>;
+export type CustomTypeProperties = {
+    [key: string]: CustomTypePropertyTypes
+};
 // all properties might be optional or mandatory, this is kept in the derived types!
 
 export type CustomTypePropertyTypes =
-    // | CustomTypeProperties // TODO Djinject hat so eine Schachtelung drin!
-    // | Record<string, CustomTypePropertyTypes>
     | Type
+    | string | number | boolean | bigint | symbol
     | CustomTypePropertyTypes[] | Map<string, CustomTypePropertyTypes> | Set<CustomTypePropertyTypes>
-    | string | number | boolean | bigint | symbol;
+    | CustomTypeProperties // recursive nesting
+    ;
 
 
 /* Corresponding properties for specification during the initialization */
@@ -34,12 +36,14 @@ export type TypeSelectorForCustomTypes<T extends Type, LanguageType> = Exclude<T
 export type CustomTypePropertyInitialization<T extends CustomTypePropertyTypes, LanguageType> =
     // replace Type by a TypeSelector for it ...
     T extends Type ? TypeSelectorForCustomTypes<T, LanguageType> : // note that TypeSelector includes "unknown" (if the LanguageType is not specified), which makes the TypeScript type-checking "useless" here!
+    // unchanged for the atomic cases:
+    T extends (string | number | boolean | bigint | symbol) ? T :
     // ... in recursive way for the composites:
     T extends Array<infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Array<CustomTypePropertyInitialization<ValueType, LanguageType>> : never) :
     T extends Map<string, infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Map<string, CustomTypePropertyInitialization<ValueType, LanguageType>> : never) :
     T extends Set<infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Set<CustomTypePropertyInitialization<ValueType, LanguageType>> : never) :
-    // unchanged for the atomic cases:
-    T;
+    T extends CustomTypeProperties ? CustomTypeInitialization<T, LanguageType> :
+    never;
 
 export type CustomTypeInitialization<T extends CustomTypeProperties, LanguageType> = {
     [P in keyof T]: CustomTypePropertyInitialization<T[P], LanguageType>;
@@ -51,12 +55,14 @@ export type CustomTypeInitialization<T extends CustomTypeProperties, LanguageTyp
 export type CustomTypePropertyStorage<T extends CustomTypePropertyTypes, LanguageType> =
     // replace Type by a TypeReference to it ...
     T extends Type ? TypeReference<T, LanguageType> :
+    // unchanged for the atomic cases:
+    T extends (string | number | boolean | bigint | symbol) ? T :
     // ... in recursive way for the composites:
     T extends Array<infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Array<CustomTypePropertyStorage<ValueType, LanguageType>> : never) :
     T extends Map<string, infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Map<string, CustomTypePropertyStorage<ValueType, LanguageType>> : never) :
     T extends Set<infer ContentType> ? (ContentType extends CustomTypePropertyTypes ? Set<CustomTypePropertyStorage<ContentType, LanguageType>> : never) :
-    // unchanged for the atomic cases:
-    T;
+    T extends CustomTypeProperties ? CustomTypeStorage<T, LanguageType> :
+    never;
 
 export type CustomTypeStorage<T extends CustomTypeProperties, LanguageType> = {
     [P in keyof T]: CustomTypePropertyStorage<T[P], LanguageType>;

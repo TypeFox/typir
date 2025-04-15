@@ -16,18 +16,23 @@ import { CustomTypeInitializer } from './custom-initializer.js';
 import { CustomType } from './custom-type.js';
 
 export interface CustomKindOptions<Properties extends CustomTypeProperties, LanguageType> {
+    /** Name for this custom kind. */
     name: string;
+
     /** This identifier needs to consider all properties which make the custom type unique. The identifiers are used to detect unique custom types. */
     calculateTypeIdentifier: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
+
     /** Define the name for each custom type; might be overridden by the custom type-specific name. */
     calculateTypeName?: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
     /** Define the user representation for each custom type; might be overridden by the custom type-specific user representation. */
     calculateTypeUserRepresentation?: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
+
     // SubType
     getSubTypesOfNewCustomType?: (superNewCustom: CustomType<Properties, LanguageType>) => Type[];
     getSuperTypesOfNewCustomType?: (subNewCustom: CustomType<Properties, LanguageType>) => Type[];
     isNewCustomTypeSubTypeOf?: (subNewCustom: CustomType<Properties, LanguageType>, superOther: Type) => boolean;
     isNewCustomTypeSuperTypeOf?: (subOther: Type, superNewCustom: CustomType<Properties, LanguageType>) => boolean;
+
     // Conversion
     getNewCustomTypeImplicitlyConvertibleToTypes?: (fromNewCustom: CustomType<Properties, LanguageType>) => Type[];
     getTypesImplicitlyConvertibleToNewCustomType?: (toNewCustom: CustomType<Properties, LanguageType>) => Type[];
@@ -36,7 +41,8 @@ export interface CustomKindOptions<Properties extends CustomTypeProperties, Lang
     isNewCustomTypeConvertibleToType?: (fromNewCustom: CustomType<Properties, LanguageType>, toOther: Type) => ConversionMode;
     isTypeConvertibleToNewCustomType?: (fromOther: Type, toNewCustom: CustomType<Properties, LanguageType>) => ConversionMode;
     // in order to have linear effort (instead of square effort), these methods are called only for the current, new CustomType (not for all existing types)!
-    // TODO analog für Equality, ... ?
+
+    // TODO same for Equality in the future
 }
 
 export interface CustomTypeDetails<Properties extends CustomTypeProperties, LanguageType> extends TypeDetails<LanguageType> {
