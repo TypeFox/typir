@@ -67,11 +67,11 @@ export class DefaultLanguageService<LanguageType> implements LanguageService<Lan
         return [];
     }
 
-    isLanguageNode(node: unknown): node is LanguageType {
+    isLanguageNode(node: unknown): node is LanguageType { // TODO make this property optional?
+        // explicitly check for some common TypeSelectors
         if (typeof node === 'function') {
             return false;
         }
-        // TODO list more cases?
         if (node instanceof TypeReference || node instanceof TypeInitializer || node instanceof Type || isKind(node)) {
             return false;
         }

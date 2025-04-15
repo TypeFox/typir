@@ -43,12 +43,12 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
     }
 
     protected replaceWhole(properties: CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypeStorage<CustomTypeProperties, LanguageType> {
-        const result2: CustomTypeStorage<CustomTypeProperties, LanguageType> = {};
+        const result: CustomTypeStorage<CustomTypeProperties, LanguageType> = {};
         for (const [key, value] of Object.entries(properties)) {
             const transformed: CustomTypePropertyStorage<CustomTypePropertyTypes, LanguageType> = this.replace(value, collectedReferences);
-            result2[key] = transformed;
+            result[key] = transformed;
         }
-        return result2;
+        return result;
         // for (const key in properties) {
         //     if (Object.prototype.hasOwnProperty.call(properties, key)) { // https://eslint.org/docs/latest/rules/guard-for-in
         //         const  value = properties[key];
@@ -63,10 +63,10 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         // TypeSelector --> TypeReference
         //      function
         //      Type
-        //      string                              forbidden/not supported, since it is not unique, treat it as content/primitive property!
+        //      (string)                            forbidden/not supported, since it is not unique, treat it as content/primitive property!
         //      TypeInitializer
         //      TypeReference
-        //      LanguageType                        TODO: ??
+        //      LanguageType                        TODO: additional "Language"-Service required to distinguish it from object with index signature
         // Array --> Array
         //      values: recursive transformation
         // Map --> Map
@@ -78,6 +78,9 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         //      number
         //      boolean
         //      bigint
+        //      symbol
+
+        // all possible TypeSelectors
         if (typeof value === 'function') {
             const result = new TypeReference<Type, LanguageType>(value as TypeSelector<Type, LanguageType>, this.kind.services);
             collectedReferences.push(result);
@@ -98,7 +101,9 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
             const result = new TypeReference<Type, LanguageType>(value, this.kind.services);
             collectedReferences.push(result);
             return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
-        } else if (Array.isArray(value)) {
+        }
+        // grouping with Array, Set, Map
+        else if (Array.isArray(value)) {
             return value.map(content => this.replace(content, collectedReferences)) as unknown as CustomTypePropertyStorage<T, LanguageType>;
         } else if (isSet(value)) {
             const result = new Set<CustomTypePropertyStorage<T, LanguageType>>();
@@ -108,10 +113,18 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
             return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
         } else if (isMap(value)) {
             const result: Map<string, CustomTypePropertyStorage<T, LanguageType>> = new Map();
-            value.forEach((key, content) => result.set(key, this.replace(content, collectedReferences)));
+            value.forEach((content, key) => result.set(key, this.replace(content, collectedReferences)));
             return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
-        } else {
+        }
+        // primitives
+        else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint' || typeof value === 'symbol') {
             return value as unknown as CustomTypePropertyStorage<T, LanguageType>;
+        }
+        // composite with recursive object / index signature
+        else if (typeof value === 'object' && value !== null) {
+            return this.replaceWhole(value as CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences) as CustomTypePropertyStorage<T, LanguageType>;
+        } else {
+            throw new Error(`missing implementation for ${value}`);
         }
     }
 
