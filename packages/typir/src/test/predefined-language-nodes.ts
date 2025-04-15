@@ -8,8 +8,6 @@ import { DefaultLanguageService } from '../services/language.js';
 import { InferOperatorWithMultipleOperands } from '../services/operator.js';
 import { DefaultTypeConflictPrinter } from '../services/printing.js';
 
-/* eslint-disable @typescript-eslint/parameter-properties */
-
 /**
  * Base class for all language nodes,
  * which are predefined for test cases.
