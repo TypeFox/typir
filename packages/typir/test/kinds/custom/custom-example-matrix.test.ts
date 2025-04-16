@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { describe, expect, test } from 'vitest';
-import { assertTypirType, InferenceRuleNotApplicable, ValidationProblemAcceptor } from '../../../src/index.js';
+import { beforeEach, describe, expect, test } from 'vitest';
+import { assertTypirType, DefaultTypeInferenceCollector, InferenceRuleNotApplicable, RuleRegistry, TypeInferenceRule, TypirServices, ValidationProblemAcceptor } from '../../../src/index.js';
 import { TypeInitializer } from '../../../src/initialization/type-initializer.js';
 import { TypeReference } from '../../../src/initialization/type-reference.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypeStorage } from '../../../src/kinds/custom/custom-definitions.js';
@@ -266,7 +266,78 @@ describe('Tests simple custom types for Matrix types', () => {
         expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind), result => result === matrix1x1);
     });
 
-    // TODO test cases for: different TypeSelectors, Set/Array/Map, .getTypeFinal()! überprüfen (undefined and TypeSelector as result of TypeInference??)
+    describe('Matrix type with type-specific inference rules', () => {
+        let typir: TypirServices<TestLanguageNode>;
+        let integerType: PrimitiveType;
+        let customKind: CustomKind<MatrixType, TestLanguageNode>;
+
+        // customize Typir in order to count the number of registered inference rules
+        class TestInferenceImpl extends DefaultTypeInferenceCollector<TestLanguageNode> {
+            override readonly ruleRegistry: RuleRegistry<TypeInferenceRule<TestLanguageNode>, TestLanguageNode>;
+        }
+
+        beforeEach(() => {
+            typir = createTypirServicesForTesting({
+                Inference: (services) => new TestInferenceImpl(services),
+            });
+
+            integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
+
+            customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+                name: 'Matrix',
+                calculateTypeIdentifier: properties =>
+                    `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
+                calculateTypeName: properties =>
+                    `${properties.width}x${properties.height}-Matrix`,
+            });
+        });
+
+        function countInferenceRules(): number {
+            return (typir.Inference as TestInferenceImpl).ruleRegistry.getNumberUniqueRules();
+        }
+
+        function getOrCreateMatrixType(width: number, height: number, skipThisRuleIfThisTypeAlreadyExists: boolean): CustomType<MatrixType, TestLanguageNode> {
+            return customKind
+                .create({ properties: { baseType: integerType, width, height } })
+                // each matrix type has its own custom inference rule
+                .inferenceRule({
+                    filter: node => node instanceof MatrixLiteral,
+                    matching: (node, type) => node.elements.length === type.properties.width && node.elements.map(row => row.length).reduce((l, r) => Math.max(l, r), 0) === type.properties.height,
+                    skipThisRuleIfThisTypeAlreadyExists, // control how to deal with this inference rule for an already existing custom type
+                })
+                .finish()
+                .getTypeFinal()!;
+        }
+
+        test('Additional inference rules for already existing types', () => {
+            const initialInferenceRuleSize = countInferenceRules();
+            // create a new Matrix type
+            const matrix2x2 = getOrCreateMatrixType(2, 2, false);
+            expect(countInferenceRules()).toBe(initialInferenceRuleSize + 1); // new Matrix type with its own inference rule
+            // "create it again" => in the end, the existing Matrix type is reused
+            const matrix2x2Another = getOrCreateMatrixType(2, 2, false);
+            // both types are the same, ...
+            expect(matrix2x2).toBe(matrix2x2Another);
+            // ... but we have another inference rule now, since the rules for the new type are moved to the existing type!
+            expect(countInferenceRules()).toBe(initialInferenceRuleSize + 2);
+        });
+
+        test('Dont create inference rules for already existing types', () => {
+            const initialInferenceRuleSize = countInferenceRules();
+            // create a new Matrix type
+            const matrix2x2 = getOrCreateMatrixType(2, 2, true);
+            expect(countInferenceRules()).toBe(initialInferenceRuleSize + 1); // new Matrix type with its own inference rule
+            // "create it again" => in the end, the existing Matrix type is reused
+            const matrix2x2Another = getOrCreateMatrixType(2, 2, true);
+            // both types are the same, ...
+            expect(matrix2x2).toBe(matrix2x2Another);
+            // ... but there is no additional inference rule!
+            expect(countInferenceRules()).toBe(initialInferenceRuleSize + 1);
+        });
+
+    });
+
+    // TODO test cases for: different TypeSelectors, .getTypeFinal()! überprüfen (undefined and TypeSelector as result of TypeInference??)
 
 });
 

@@ -30,7 +30,17 @@ describe('Tests some details for primitive types', () => {
         assertTypirType(integerType1, isPrimitiveType, 'integer');
         // creating the 2nd integer will fail
         expect(() => typir.factory.Primitives.create({ primitiveName: 'integer' }).finish())
-            .toThrowError();
+            .toThrowError("There is already a primitive type with name 'integer'.");
+    });
+    test('error when trying to create the same primitive twice (with delayed finish())', () => {
+        const typir = createTypirServicesForTesting();
+        // start both type definitions
+        const integerType1 = typir.factory.Primitives.create({ primitiveName: 'integer' });
+        const integerType2 = typir.factory.Primitives.create({ primitiveName: 'integer' });
+        // now finish the types
+        assertTypirType(integerType1.finish(), isPrimitiveType, 'integer');
+        expect(() => integerType2.finish())
+            .toThrowError("There is already a type with the identifier 'integer'.");
     });
 
     describe('Test validation for inference rule of a primitive type', () => {

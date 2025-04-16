@@ -8,7 +8,7 @@ import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { MarkSubTypeOptions } from '../../services/subtype.js';
-import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
+import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
 import { assertTrue, assertTypirType } from '../../utils/utils.js';
 import { CustomTypeProperties } from './custom-definitions.js';
 import { CreateCustomTypeDetails, CustomKind } from './custom-kind.js';
@@ -20,7 +20,7 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
 {
     protected readonly kind: CustomKind<Properties, LanguageType>;
     protected readonly typeDetails: CreateCustomTypeDetails<Properties, LanguageType>;
-    protected initialCustomType: CustomType<Properties, LanguageType>;
+    protected readonly initialCustomType: CustomType<Properties, LanguageType>;
 
     protected inferenceRules: Array<InferenceRuleWithOptions<LanguageType>> = [];
     protected validationRules: Array<ValidationRuleWithOptions<LanguageType>> = [];
@@ -134,9 +134,13 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
         this.validationRules.splice(0, this.validationRules.length);
 
         // ... and recreate all rules
-        for (const inferenceRulesForClassLiterals of this.typeDetails.inferenceRules) {
-            this.inferenceRules.push(bindInferCurrentTypeRule(inferenceRulesForClassLiterals, customType));
-            const validate = bindValidateCurrentTypeRule(inferenceRulesForClassLiterals, customType);
+        for (const inferenceRule of this.typeDetails.inferenceRules) {
+            if (skipInferenceRuleForExistingType(inferenceRule, this.initialCustomType, customType)) { // this means: the 'initialCustomType' is the newly created type, the 'customType' is the already existing type
+                // don't create (additional) rules for the already existing type
+                continue;
+            }
+            this.inferenceRules.push(bindInferCurrentTypeRule(inferenceRule, customType));
+            const validate = bindValidateCurrentTypeRule(inferenceRule, customType);
             if (validate) {
                 this.validationRules.push(validate);
             }
