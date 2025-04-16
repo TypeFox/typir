@@ -21,22 +21,17 @@ export class TopType extends Type implements TypeGraphListener {
 
         // ensure, that all (other) types are a sub-type of this Top type:
         const graph = kind.services.infrastructure.Graph;
-        graph.getAllRegisteredTypes().forEach(t => this.markAsSubType(t)); // the already existing types
-        graph.addListener(this); // all upcomping types
+        graph.addListener(this, { callOnAddedForAllExisting: true }); // all upcomping types
     }
 
     override dispose(): void {
         this.kind.services.infrastructure.Graph.removeListener(this);
     }
 
-    protected markAsSubType(type: Type): void {
+    onAddedType(type: Type, _key: string): void {
         if (type !== this) {
             this.kind.services.Subtype.markAsSubType(type, this, { checkForCycles: false });
         }
-    }
-
-    onAddedType(type: Type, _key: string): void {
-        this.markAsSubType(type);
     }
 
     override getName(): string {
