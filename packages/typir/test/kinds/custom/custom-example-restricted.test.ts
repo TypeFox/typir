@@ -5,10 +5,13 @@
  ******************************************************************************/
 
 import { beforeEach, describe, expect, test } from 'vitest';
-import { InferenceRuleNotApplicable, PrimitiveType, Type, TypirServices } from '../../../src/index.js';
+import { Type } from '../../../src/graph/type-node.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { CustomType, isCustomType } from '../../../src/kinds/custom/custom-type.js';
+import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
+import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
 import { IntegerLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting, expectToBeType } from '../../../src/utils/test-utils.js';
 
 export type RestrictedInteger = {
