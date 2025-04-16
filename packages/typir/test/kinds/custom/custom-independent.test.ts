@@ -5,9 +5,10 @@
  ******************************************************************************/
 
 import { beforeEach, describe, expect, test } from 'vitest';
-import { isCustomType, TypirServices } from '../../../src/index.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
+import { isCustomType } from '../../../src/kinds/custom/custom-type.js';
 import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting, expectTypirTypes } from '../../../src/utils/test-utils.js';
 
 export type MyCustomType1 = {

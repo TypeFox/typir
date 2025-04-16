@@ -5,82 +5,24 @@
  ******************************************************************************/
 
 import { beforeEach, describe, expect, test } from 'vitest';
-import { assertTypirType, DefaultTypeInferenceCollector, InferenceRuleNotApplicable, RuleRegistry, TypeInferenceRule, TypirServices, ValidationProblemAcceptor } from '../../../src/index.js';
-import { TypeInitializer } from '../../../src/initialization/type-initializer.js';
-import { TypeReference } from '../../../src/initialization/type-reference.js';
-import { CustomTypeInitialization, CustomTypeProperties, CustomTypeStorage } from '../../../src/kinds/custom/custom-definitions.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { CustomType, isCustomType } from '../../../src/kinds/custom/custom-type.js';
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
+import { DefaultTypeInferenceCollector, InferenceRuleNotApplicable, TypeInferenceRule } from '../../../src/services/inference.js';
+import { ValidationProblemAcceptor } from '../../../src/services/validation.js';
 import { IntegerLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { TypirServices } from '../../../src/typir.js';
+import { RuleRegistry } from '../../../src/utils/rule-registration.js';
 import { createTypirServicesForTesting, expectToBeType, expectTypirTypes, expectValidationIssuesNone, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
+import { assertTypirType } from '../../../src/utils/utils.js';
 
 export type MatrixType = { // "interface" instead of "type" does not work!
     baseType: PrimitiveType;
-    // baseTypes: PrimitiveType[];
     width: number;
     height: number;
-    // map: Map<string, PrimitiveType>;
-    // parent: MatrixType;  // TODO how to support this?
-    // height2: number[][]; // works
-    // gol: TestClass;      // not supported
-}; // TODO satisfies CustomTypeProperties ??
-
-// export class TestClass {}
-
-export function createType<T extends CustomTypeProperties>(_values: T) {
-
-}
-
+};
 
 describe('Tests simple custom types for Matrix types', () => {
-
-    test('some experiments', () => {
-        const typir = createTypirServicesForTesting();
-        const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
-        // const mapValue: Map<string, PrimitiveType> = new Map();
-
-        const matrixValues: MatrixType = {
-            baseType: integerType,
-            // baseTypes: [integerType],
-            width: 2,
-            height: 3,
-            // map: mapValue,
-            // height2: [[3]],
-            // gol: new TestClass(),
-        };
-
-        // using
-        const k1: CustomTypeProperties = matrixValues;
-        console.log(k1);
-
-        createType<MatrixType>(matrixValues);
-
-
-        // TypeSelector
-        const typeInitializer: TypeInitializer<PrimitiveType, TestLanguageNode> = undefined!;
-        const k2: CustomTypeInitialization<MatrixType, TestLanguageNode> = {
-            baseType: typeInitializer,
-            // baseTypes: ['Selector for integerType'],
-            width: 2,
-            height: 3,
-            // map: mapValue,
-        };
-        console.log(k2);
-
-        // TypeReference
-        const typeReference: TypeReference<PrimitiveType, TestLanguageNode> = undefined!;
-        // const mapReference: Map<string, TypeReference<PrimitiveType, TestLanguageNode>> = undefined!;
-        const k3: CustomTypeStorage<MatrixType, TestLanguageNode> = {
-            baseType: typeReference,
-            // baseTypes: [integerType],
-            // baseTypes: [typeReference],
-            width: 2,
-            height: 3,
-            // map: mapReference,
-        };
-        console.log(k3);
-    });
 
     test('Matrix type', () => {
         const typir = createTypirServicesForTesting();

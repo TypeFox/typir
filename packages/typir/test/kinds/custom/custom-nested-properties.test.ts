@@ -5,9 +5,11 @@
  ******************************************************************************/
 
 import { beforeEach, describe, expect, test } from 'vitest';
-import { CustomTypeInitialization, CustomTypeStorage, PrimitiveType, TypirServices } from '../../../src/index.js';
+import { CustomTypeInitialization, CustomTypeStorage } from '../../../src/kinds/custom/custom-definitions.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
+import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting } from '../../../src/utils/test-utils.js';
 
 export type NestedProperty = {
