@@ -46,7 +46,7 @@ describe('Tests simple custom types for Matrix types', () => {
         expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType');
         expect(matrix2x2.properties.width).toBe(2);
         expect(matrix2x2.properties.height).toBe(2);
-        expectToBeType(matrix2x2.properties.baseType.getType(), isPrimitiveType, type => type === integerType); // TODO get rid of ".getType()" ?
+        expectToBeType(matrix2x2.properties.baseType.getType(), isPrimitiveType, type => type === integerType);
 
         const matrix3x3 = customKind
             .create({ typeName: 'My3x3MatrixType', properties: { baseType: integerType, width: 3, height: 3 } })
@@ -278,8 +278,6 @@ describe('Tests simple custom types for Matrix types', () => {
         });
 
     });
-
-    // TODO test cases for: different TypeSelectors, .getTypeFinal()! überprüfen (undefined and TypeSelector as result of TypeInference??)
 
 });
 
