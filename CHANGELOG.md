@@ -28,6 +28,9 @@ For each minor and major version, there is a [milestone on GitHub](https://githu
   - Specific rules for conversion and sub-type which are applied to all custom types
   - Builtin support for dependencies between probably delayed (custom) types and unique custom types
   - See some examples in `packages/typir/test/kinds/custom/custom-matrix.test.ts` and `packages/typir/test/kinds/custom/custom-restricted.test.ts`
+- If you try to create the function types, class type or custom type a second time, the existing implementation already ensured, that the already existing type is reused and no new type is created:
+  - For the type-specific inference rules, there is now an additional property `skipThisRuleIfThisTypeAlreadyExists` (in `InferCurrentTypeRule`) to control, whether these given inference rules for the "second new type" should be added to the existing type or whether they should be skipped.
+  - The default value is `false`, meaning that these type-specific inference (and validation) rules are attached to the existing type. That conforms to the behaviour before introducing this new property.
 - ...
 
 ### Breaking changes

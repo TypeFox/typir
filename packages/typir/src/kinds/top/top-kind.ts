@@ -61,7 +61,7 @@ export class TopKind<LanguageType> implements Kind, TopFactoryService<LanguageTy
     }
 
     create(typeDetails: TopTypeDetails<LanguageType>): TopConfigurationChain<LanguageType> {
-        assertTrue(this.get(typeDetails) === undefined); // ensure that the type is not created twice
+        assertTrue(this.get(typeDetails) === undefined, 'The top type already exists.'); // ensure that the type is not created twice
         return new TopConfigurationChainImpl(this.services, this, typeDetails);
     }
 
