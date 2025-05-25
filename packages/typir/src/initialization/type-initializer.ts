@@ -42,6 +42,9 @@ export abstract class TypeInitializer<T extends Type, LanguageType> {
         }
         const existingType = this.services.infrastructure.Graph.getType(key);
         if (existingType) {
+            if (newType.kind !== existingType.kind) {
+                throw new Error(`A new type with identifier '${key}' and kind '${newType.kind.$name}' (implemented in ${newType.kind.constructor.name}) shall be created, but there is already a type with identifier '${key}' and kind '${existingType.kind.$name}' (implemented in ${existingType.kind.constructor.name}) in the type graph.`);
+            }
             // ensure, that the same type is not duplicated!
             this.typeToReturn = existingType as T;
             newType.dispose();
