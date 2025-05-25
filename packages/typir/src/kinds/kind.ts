@@ -29,3 +29,11 @@ export interface Kind {
     */
 
 }
+
+/**
+ * Options which are relevant for all kinds.
+ */
+export interface KindOptions {
+    /** Customize the name which is used to register the kind in the kind registry. */
+    $name: string;
+}

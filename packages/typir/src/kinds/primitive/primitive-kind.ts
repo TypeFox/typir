@@ -8,10 +8,10 @@ import { TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
-import { Kind } from '../kind.js';
+import { Kind, KindOptions } from '../kind.js';
 import { PrimitiveType } from './primitive-type.js';
 
-export interface PrimitiveKindOptions {
+export interface PrimitiveKindOptions extends KindOptions {
     // empty for now
 }
 
@@ -36,19 +36,22 @@ export interface PrimitiveConfigurationChain<LanguageType> {
 }
 
 export class PrimitiveKind<LanguageType> implements Kind, PrimitiveFactoryService<LanguageType> {
-    readonly $name: 'PrimitiveKind';
+    readonly $name: string;
     readonly services: TypirServices<LanguageType>;
     readonly options: PrimitiveKindOptions;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<PrimitiveKindOptions>) {
-        this.$name = PrimitiveKindName;
+        this.options = this.collectOptions(options);
+        this.$name = this.options.$name;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = this.collectOptions(options);
     }
 
     protected collectOptions(options?: Partial<PrimitiveKindOptions>): PrimitiveKindOptions {
         return {
+            // the default values:
+            $name: PrimitiveKindName,
+            // the actually overriden values:
             ...options,
         };
     }
