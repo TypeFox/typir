@@ -8,6 +8,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 
 ### New features
 
+- Introduced new function `createTypirServicesWithAdditionalServices<AdditionalTypirServices>(Module<AdditionalTypirServices>, ...)` to create Typir services with additional services, which are specific for the current application. See `customization-example.test.ts` for examples and explanations.
 - The `$name`s of kinds are configurable now.
 
 ### Fixed bugs
