@@ -78,16 +78,19 @@ export function createDefaultTypirLangiumServicesModule<AstTypes extends Langium
  * @param typeSystemDefinition the actual definition of the type system
  * @param customization1 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for production
  * @param customization2 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
+ * @param customization3 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
  * @returns the Typir services configured for the current Langium-based language
  */
 export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
-    langiumServices: LangiumSharedCoreServices, reflection: AbstractAstReflection, typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>,
-    customization1: Module<PartialTypirLangiumServices<AstTypes>> = {},
-    customization2: Module<PartialTypirLangiumServices<AstTypes>> = {},
-    customization3: Module<PartialTypirLangiumServices<AstTypes>> = {},
+    langiumServices: LangiumSharedCoreServices,
+    reflection: AbstractAstReflection,
+    typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>,
+    customization1?: Module<PartialTypirLangiumServices<AstTypes>>,
+    customization2?: Module<PartialTypirLangiumServices<AstTypes>>,
+    customization3?: Module<PartialTypirLangiumServices<AstTypes>>,
 ): TypirLangiumServices<AstTypes> {
     return inject(
-        // use all core Typir services ...
+        // use the default implementations for all core Typir services ...
         createDefaultTypirServicesModule<AstNode>(),
         // ... with adapted implementations for Typir-Langium
         createLangiumSpecificTypirServicesModule(langiumServices),
