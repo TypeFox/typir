@@ -16,11 +16,11 @@ import { InferCurrentTypeRule, RegistrationOptions } from '../../utils/utils-def
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertTypirType, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
-import { Kind, isKind } from '../kind.js';
+import { Kind } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
 import { ClassType, isClassType } from './class-type.js';
 import { NoSuperClassCyclesValidationOptions, UniqueClassValidation, UniqueMethodValidation, UniqueMethodValidationOptions, createNoSuperClassCyclesValidation } from './class-validation.js';
-import { TopClassKind, TopClassKindName, isTopClassKind } from './top-class-kind.js';
+import { TopClassKind, TopClassKindName } from './top-class-kind.js';
 
 export interface ClassKindOptions {
     typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
@@ -214,8 +214,7 @@ export class ClassKind<LanguageType> implements Kind, ClassFactoryService<Langua
 
     getTopClassKind(): TopClassKind<LanguageType> {
         // ensure, that Typir uses the predefined 'TopClass' kind
-        const kind = this.services.infrastructure.Kinds.get(TopClassKindName);
-        return isTopClassKind<LanguageType>(kind) ? kind : new TopClassKind<LanguageType>(this.services);
+        return this.services.infrastructure.Kinds.getOrCreateKind(TopClassKindName, services => new TopClassKind<LanguageType>(services));
     }
 
     createUniqueClassValidation(options: RegistrationOptions): UniqueClassValidation<LanguageType> {
@@ -250,7 +249,7 @@ export class ClassKind<LanguageType> implements Kind, ClassFactoryService<Langua
 }
 
 export function isClassKind<LanguageType>(kind: unknown): kind is ClassKind<LanguageType> {
-    return isKind(kind) && kind.$name === ClassKindName;
+    return kind instanceof ClassKind;
 }
 
 
