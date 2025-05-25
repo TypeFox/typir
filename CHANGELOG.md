@@ -44,6 +44,13 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 - ...
 
 
+## v0.3.0 (2025-??-??)
+
+### Fixed bugs
+
+- The logic to ensure that types are not created multiple times needs to check that the kind of the types is the same. Otherwise a collision of duplicated identifiers of types needs to be reported.
+
+
 ## v0.2.1 (2025-04-09)
 
 - Export `test-utils.ts` which are using `vitest` via the new namespace `'typir/test'` in order to not pollute production code with vitest dependencies (#68)
