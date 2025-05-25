@@ -8,7 +8,7 @@ import { TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
-import { isKind, Kind } from '../kind.js';
+import { Kind } from '../kind.js';
 import { BottomType } from './bottom-type.js';
 
 export interface BottomTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
@@ -72,7 +72,7 @@ export class BottomKind<LanguageType> implements Kind, BottomFactoryService<Lang
 }
 
 export function isBottomKind<LanguageType>(kind: unknown): kind is BottomKind<LanguageType> {
-    return isKind(kind) && kind.$name === BottomKindName;
+    return kind instanceof BottomKind;
 }
 
 

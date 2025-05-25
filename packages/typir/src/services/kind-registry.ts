@@ -9,8 +9,8 @@ import { TypirServices } from '../typir.js';
 
 export interface KindRegistry<LanguageType> {
     register(kind: Kind): void;
-    get<T extends Kind>(type: T['$name']): T | undefined;
-    getOrCreateKind<T extends Kind>(type: T['$name'], factory: (services: TypirServices<LanguageType>) => T): T;
+    get<T extends Kind>($name: string): T | undefined;
+    getOrCreateKind<T extends Kind>($name: string, factory: (services: TypirServices<LanguageType>) => T): T;
 }
 
 export class DefaultKindRegistry<LanguageType> implements KindRegistry<LanguageType> {
@@ -34,14 +34,14 @@ export class DefaultKindRegistry<LanguageType> implements KindRegistry<LanguageT
         }
     }
 
-    get<T extends Kind>(type: T['$name']): T | undefined {
-        return this.kinds.get(type) as (T | undefined);
+    get<T extends Kind>($name: string): T | undefined {
+        return this.kinds.get($name) as (T | undefined);
     }
 
-    getOrCreateKind<T extends Kind>(type: T['$name'], factory: (services: TypirServices<LanguageType>) => T): T {
-        const existing = this.get(type);
+    getOrCreateKind<T extends Kind>($name: string, factory: (services: TypirServices<LanguageType>) => T): T {
+        const existing = this.get($name);
         if (existing) {
-            return existing;
+            return existing as T;
         }
         return factory(this.services);
     }

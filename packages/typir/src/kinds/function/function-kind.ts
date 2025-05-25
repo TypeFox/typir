@@ -12,7 +12,7 @@ import { ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, NameTypePair, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { isKind, Kind } from '../kind.js';
+import { Kind } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
 import { AvailableFunctionsManager } from './function-overloading.js';
 import { FunctionType } from './function-type.js';
@@ -246,7 +246,7 @@ export class FunctionKind<LanguageType> implements Kind, FunctionFactoryService<
 }
 
 export function isFunctionKind<LanguageType>(kind: unknown): kind is FunctionKind<LanguageType> {
-    return isKind(kind) && kind.$name === FunctionKindName;
+    return kind instanceof FunctionKind;
 }
 
 

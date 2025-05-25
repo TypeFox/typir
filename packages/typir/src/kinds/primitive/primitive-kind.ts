@@ -8,7 +8,7 @@ import { TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
-import { isKind, Kind } from '../kind.js';
+import { Kind } from '../kind.js';
 import { PrimitiveType } from './primitive-type.js';
 
 export interface PrimitiveKindOptions {
@@ -69,7 +69,7 @@ export class PrimitiveKind<LanguageType> implements Kind, PrimitiveFactoryServic
 }
 
 export function isPrimitiveKind<LanguageType>(kind: unknown): kind is PrimitiveKind<LanguageType> {
-    return isKind(kind) && kind.$name === PrimitiveKindName;
+    return kind instanceof PrimitiveKind;
 }
 
 

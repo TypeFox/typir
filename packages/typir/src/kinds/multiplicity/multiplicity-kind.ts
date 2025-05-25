@@ -7,7 +7,7 @@
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { assertTrue } from '../../utils/utils.js';
-import { Kind, isKind } from '../kind.js';
+import { Kind } from '../kind.js';
 import { MultiplicityType } from './multiplicity-type.js';
 
 export interface MultiplicityTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
@@ -115,5 +115,5 @@ export class MultiplicityKind<LanguageType> implements Kind {
 }
 
 export function isMultiplicityKind<LanguageType>(kind: unknown): kind is MultiplicityKind<LanguageType> {
-    return isKind(kind) && kind.$name === MultiplicityKindName;
+    return kind instanceof MultiplicityKind;
 }

@@ -8,7 +8,7 @@ import { TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
-import { isKind, Kind } from '../kind.js';
+import { Kind } from '../kind.js';
 import { TopClassType } from './top-class-type.js';
 
 export interface TopClassTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
@@ -72,5 +72,5 @@ export class TopClassKind<LanguageType> implements Kind {
 }
 
 export function isTopClassKind<LanguageType>(kind: unknown): kind is TopClassKind<LanguageType> {
-    return isKind(kind) && kind.$name === TopClassKindName;
+    return kind instanceof TopClassKind;
 }

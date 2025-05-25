@@ -8,7 +8,7 @@ import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
-import { Kind, isKind } from '../kind.js';
+import { Kind } from '../kind.js';
 import { FixedParameterType } from './fixed-parameters-type.js';
 
 export class Parameter {
@@ -95,5 +95,5 @@ export class FixedParameterKind<LanguageType> implements Kind {
 }
 
 export function isFixedParametersKind<LanguageType>(kind: unknown): kind is FixedParameterKind<LanguageType> {
-    return isKind(kind) && kind.$name.startsWith('FixedParameterKind-');
+    return kind instanceof FixedParameterKind;
 }
