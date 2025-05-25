@@ -59,10 +59,9 @@ export class MyDSLTypeSystem implements LangiumTypeSystemDefinition<MyDSLAstType
     }
 
     onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<MyDSLAstType>): void {
-      // define types and their rules which depend on the current AST (as parsed by Langium from programs written by users of your language) here
+      // define types and their rules which depend on the current AST respectively the given AstNode (as parsed by Langium from programs written by users of your language) here
     }
 }
-
 ```
 
 Beyond the APIs inherited from Typir core, Typir-Langium provides some *additional APIs* to ease type checking with Typir in Langium projects.
