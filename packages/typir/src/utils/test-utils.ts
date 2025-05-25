@@ -34,9 +34,9 @@ export function expectTypirTypes<LanguageType>(services: TypirServices<LanguageT
     return types;
 }
 
-export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails: (t: T) => boolean): asserts type is T {
+export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails?: (t: T) => boolean): asserts type is T {
     if (checkType(type)) {
-        if (checkDetails(type)) {
+        if (checkDetails === undefined || checkDetails(type)) {
             // everything is fine
         } else {
             expect.fail(`'${type.getIdentifier()}' is the actual Typir type, but the details are wrong`);
