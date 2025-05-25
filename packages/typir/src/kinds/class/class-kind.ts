@@ -16,13 +16,13 @@ import { InferCurrentTypeRule, RegistrationOptions } from '../../utils/utils-def
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertTypirType, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
-import { Kind } from '../kind.js';
+import { Kind, KindOptions } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
 import { ClassType, isClassType } from './class-type.js';
 import { NoSuperClassCyclesValidationOptions, UniqueClassValidation, UniqueMethodValidation, UniqueMethodValidationOptions, createNoSuperClassCyclesValidation } from './class-validation.js';
 import { TopClassKind, TopClassKindName } from './top-class-kind.js';
 
-export interface ClassKindOptions {
+export interface ClassKindOptions extends KindOptions {
     typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
     /** Values < 0 indicate an arbitrary number of super classes. */
     maximumNumberOfSuperClasses: number,
@@ -101,21 +101,22 @@ export interface ClassConfigurationChain<LanguageType> {
  * The order of fields is not defined, i.e. there is no order of fields.
  */
 export class ClassKind<LanguageType> implements Kind, ClassFactoryService<LanguageType> {
-    readonly $name: 'ClassKind';
+    readonly $name: string;
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<ClassKindOptions>;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<ClassKindOptions>) {
-        this.$name = ClassKindName;
+        this.options = this.collectOptions(options);
+        this.$name = this.options.$name;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = this.collectOptions(options);
         assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
 
     protected collectOptions(options?: Partial<ClassKindOptions>): ClassKindOptions {
         return {
             // the default values:
+            $name: ClassKindName,
             typing: 'Nominal',
             maximumNumberOfSuperClasses: 1,
             subtypeFieldChecking: 'EQUAL_TYPE',

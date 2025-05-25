@@ -12,14 +12,14 @@ import { ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, NameTypePair, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { Kind } from '../kind.js';
+import { Kind, KindOptions } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
 import { AvailableFunctionsManager } from './function-overloading.js';
 import { FunctionType } from './function-type.js';
 import { UniqueFunctionValidation } from './function-validation-unique.js';
 
 
-export interface FunctionKindOptions<LanguageType> {
+export interface FunctionKindOptions<LanguageType> extends KindOptions {
     // these three options controls structural vs nominal typing somehow ...
     enforceFunctionName: boolean,
     enforceInputParameterNames: boolean,
@@ -147,22 +147,23 @@ export interface FunctionConfigurationChain<LanguageType> {
  * - parameters which are used for output AND input
  */
 export class FunctionKind<LanguageType> implements Kind, FunctionFactoryService<LanguageType> {
-    readonly $name: 'FunctionKind';
+    readonly $name: string;
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<FunctionKindOptions<LanguageType>>;
     readonly functions: AvailableFunctionsManager<LanguageType>;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<FunctionKindOptions<LanguageType>>) {
-        this.$name = FunctionKindName;
+        this.options = this.collectOptions(options);
+        this.$name = this.options.$name;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = this.collectOptions(options);
         this.functions = this.createFunctionManager();
     }
 
     protected collectOptions(options?: Partial<FunctionKindOptions<LanguageType>>): FunctionKindOptions<LanguageType> {
         return {
             // the default values:
+            $name: FunctionKindName,
             enforceFunctionName: false,
             enforceInputParameterNames: false,
             enforceOutputParameterName: false,

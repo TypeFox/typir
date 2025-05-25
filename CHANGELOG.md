@@ -6,6 +6,10 @@ Note that the versions "0.x.0" probably will include breaking changes.
 
 ## v0.3.0 (2025-??-??)
 
+### New features
+
+- The `$name`s of kinds are configurable now.
+
 ### Fixed bugs
 
 - The logic to ensure that types are not created multiple times needs to check that the kind of the types is the same. Otherwise a collision of duplicated identifiers of types needs to be reported.
