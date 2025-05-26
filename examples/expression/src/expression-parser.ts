@@ -1,10 +1,10 @@
 /******************************************************************************
- * Copyright 2024 TypeFox GmbH
+ * Copyright 2025 TypeFox GmbH
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Expression, BinaryExpression, UnaryExpression, VariableUsage, Numeric, CharString, VariableDeclaration, Printout, Model as AST, Statement, Assignment } from './expression-ast.js';
+import { Assignment, Model as AST, BinaryExpression, CharString, Expression, Numeric, Printout, Statement, UnaryExpression, VariableDeclaration, VariableUsage } from './expression-ast.js';
 import { Token, tokenize, TokenType } from './expression-lexer.js';
 
 /**

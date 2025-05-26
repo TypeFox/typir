@@ -1,38 +1,44 @@
 /******************************************************************************
- * Copyright 2024 TypeFox GmbH
+ * Copyright 2025 TypeFox GmbH
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 import { createTypirServices, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NO_PARAMETER_NAME } from 'typir';
-import { BinaryExpression, isAssignment, isBinaryExpression, isCharString, isNumeric, isPrintout, isUnaryExpression, isVariableDeclaration, isVariableUsage, UnaryExpression } from './expression-ast.js';
+import { BinaryExpression, isAssignment, isBinaryExpression, isCharString, isNumeric, isPrintout, isUnaryExpression, isVariableDeclaration, isVariableUsage, Node, UnaryExpression } from './expression-ast.js';
 
 export function initializeTypir() {
-    const typir = createTypirServices();
+    const typir = createTypirServices<Node>();
     const typeNumber = typir.factory.Primitives.create({
-        primitiveName: 'number', inferenceRules: isNumeric
-    });
+        primitiveName: 'number',
+    }).inferenceRule({
+        filter: isNumeric,
+    }).finish();
     const typeString = typir.factory.Primitives.create({
-        primitiveName: 'string', inferenceRules: isCharString
-    });
-    const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' });
+        primitiveName: 'string',
+    }).inferenceRule({
+        filter: isCharString,
+    }).finish();
+    const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' }).finish();
 
-    const binaryInferenceRule: InferOperatorWithMultipleOperands<BinaryExpression> = {
+    const binaryInferenceRule: InferOperatorWithMultipleOperands<Node, BinaryExpression> = {
         filter: isBinaryExpression,
         matching: (node: BinaryExpression, name: string) => node.op === name,
         operands: (node: BinaryExpression) => [node.left, node.right],
+        validateArgumentsOfCalls: true,
     };
     for (const operator of ['+', '-', '/', '*', '%']) {
-        typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }, inferenceRule: binaryInferenceRule });
+        typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber } }).inferenceRule(binaryInferenceRule).finish();
     }
-    typir.factory.Operators.createBinary({ name: '+', signature: { left: typeString, right: typeString, return: typeString }, inferenceRule: binaryInferenceRule });
+    typir.factory.Operators.createBinary({ name: '+', signature: { left: typeString, right: typeString, return: typeString } }).inferenceRule(binaryInferenceRule).finish();
 
-    const unaryInferenceRule: InferOperatorWithSingleOperand<UnaryExpression> = {
+    const unaryInferenceRule: InferOperatorWithSingleOperand<Node, UnaryExpression> = {
         filter: isUnaryExpression,
         matching: (node: UnaryExpression, name: string) => node.op === name,
         operand: (node: UnaryExpression, _name: string) => node.operand,
+        validateArgumentsOfCalls: true,
     };
-    typir.factory.Operators.createUnary({ name: '+', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
-    typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }, inferenceRule: unaryInferenceRule });
+    typir.factory.Operators.createUnary({ name: '+', signature: { operand: typeNumber, return: typeNumber } }).inferenceRule(unaryInferenceRule).finish();
+    typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber } }).inferenceRule(unaryInferenceRule).finish();
 
     typir.factory.Functions.create({
         functionName: 'print',
@@ -41,12 +47,11 @@ export function initializeTypir() {
             type: typeString,
         }],
         outputParameter: { name: NO_PARAMETER_NAME, type: typeVoid },
-        inferenceRuleForCalls: {
-            filter: isPrintout,
-            matching: () => true,
-            inputArguments: (node) => [node.value],
-        }
-    });
+    }).inferenceRuleForCalls({
+        filter: isPrintout,
+        matching: () => true,
+        inputArguments: (node) => [node.value],
+    }).finish();
 
     typir.Conversion.markAsConvertible(typeNumber, typeString, 'IMPLICIT_EXPLICIT');
 

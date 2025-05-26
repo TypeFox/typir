@@ -1,13 +1,13 @@
 /******************************************************************************
- * Copyright 2024 TypeFox GmbH
+ * Copyright 2025 TypeFox GmbH
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 import { TypirServices } from 'typir';
-import { Expression, Model } from './expression-ast.js';
+import { Expression, Model, Node } from './expression-ast.js';
 
-export function validate(typir: TypirServices, model: Model, accept: (message: string) => void) {
-    function runValidator(languageNode: unknown) {
+export function validate(typir: TypirServices<Node>, model: Model, accept: (message: string) => void) {
+    function runValidator(languageNode: Node) {
         typir.validation.Collector.validate(languageNode).forEach(m => accept(m.message));
     }
     function visitExpression(expr: Expression) {
