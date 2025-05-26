@@ -12,6 +12,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
   - Typir core: `createTypirServicesWithAdditionalServices<..., AdditionalServices>(Module<AdditionalServices>, ...)`, see `customization-example.test.ts` for examples and explanations
   - Typir-Langium: `createTypirLangiumServicesWithAdditionalServices<..., AdditionalServices>(..., Module<AdditionalServices>, ...)` works in the same way
 - The `$name`s of kinds are configurable now.
+- Typir-Langium: The Langium services are stored in the `TypirLangiumAddedServices` now as `services.langium.LangiumServices` in order to make them available for all Typir services.
 
 ### Fixed bugs
 
