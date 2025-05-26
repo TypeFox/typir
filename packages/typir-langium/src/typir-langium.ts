@@ -21,6 +21,7 @@ import { LangiumAstTypes } from './utils/typir-langium-utils.js';
 export type TypirLangiumAddedServices<AstTypes extends LangiumAstTypes> = {
     readonly Inference: LangiumTypeInferenceCollector<AstTypes>; // concretizes the TypeInferenceCollector for Langium
     readonly langium: { // new services which are specific for Langium
+        readonly LangiumServices: LangiumSharedCoreServices; // store the Langium services to make them usable for all Typir services
         readonly TypeCreator: LangiumTypeCreator;
         readonly TypeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>;
     };
@@ -40,12 +41,12 @@ export type PartialTypirLangiumServices<AstTypes extends LangiumAstTypes> = Deep
  * @param langiumServices Typir-Langium needs to interact with the Langium lifecycle
  * @returns (only) the replaced implementations
  */
-export function createLangiumSpecificTypirServicesModule(langiumServices: LangiumSharedCoreServices): Module<PartialTypirServices<AstNode>> {
+export function createLangiumSpecificTypirServicesModule<AstTypes extends LangiumAstTypes>(_langiumServices: LangiumSharedCoreServices): Module<TypirLangiumServices<AstTypes>, PartialTypirServices<AstNode>> {
     return {
         Printer: () => new LangiumProblemPrinter(),
         Language: () => { throw new Error('Use new LangiumLanguageService(undefined), and replace "undefined" by the generated XXXAstReflection!'); }, // to be replaced later
         caching: {
-            LanguageNodeInference: () => new LangiumLanguageNodeInferenceCaching(langiumServices),
+            LanguageNodeInference: (typirServices) => new LangiumLanguageNodeInferenceCaching(typirServices),
         },
     };
 }
@@ -59,7 +60,8 @@ export function createDefaultTypirLangiumServicesModule<AstTypes extends Langium
     return {
         Inference: (typirServices) => new DefaultLangiumTypeInferenceCollector(typirServices),
         langium: {
-            TypeCreator: (typirServices) => new DefaultLangiumTypeCreator(typirServices, langiumServices),
+            LangiumServices: () => langiumServices,
+            TypeCreator: (typirServices) => new DefaultLangiumTypeCreator(typirServices),
             TypeSystemDefinition: () => { throw new Error('The type system needs to be specified!'); }, // to be replaced later
         },
         validation: {
@@ -93,7 +95,7 @@ export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
         // use the default implementations for all core Typir services ...
         createDefaultTypirServicesModule<AstNode>(),
         // ... with adapted implementations for Typir-Langium
-        createLangiumSpecificTypirServicesModule(langiumServices),
+        createLangiumSpecificTypirServicesModule<AstTypes>(langiumServices),
         // add the additional services for the Typir-Langium binding
         createDefaultTypirLangiumServicesModule<AstTypes>(langiumServices),
         // add the language-specific parts provided by Langium into the Typir-Services
@@ -138,7 +140,7 @@ export function createTypirLangiumServicesWithAdditionalServices<AstTypes extend
         // use the default implementations for all core Typir services ...
         createDefaultTypirServicesModule<AstNode>(),
         // ... with adapted implementations for Typir-Langium
-        createLangiumSpecificTypirServicesModule(langiumServices),
+        createLangiumSpecificTypirServicesModule<AstTypes>(langiumServices),
         // add the additional services for the Typir-Langium binding
         createDefaultTypirLangiumServicesModule<AstTypes>(langiumServices),
         // add the language-specific parts provided by Langium into the Typir-Services

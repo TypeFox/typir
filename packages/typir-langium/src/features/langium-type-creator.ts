@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument, LangiumSharedCoreServices } from 'langium';
+import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument } from 'langium';
 import { Type, TypeGraph, TypeGraphListener } from 'typir';
 import { TypirLangiumServices } from '../typir-langium.js';
 import { getDocumentKeyForDocument, getDocumentKeyForURI, LangiumAstTypes } from '../utils/typir-langium-utils.js';
@@ -55,14 +55,14 @@ export class DefaultLangiumTypeCreator<AstTypes extends LangiumAstTypes> impleme
     protected readonly typeGraph: TypeGraph;
     protected readonly typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>;
 
-    constructor(typirServices: TypirLangiumServices<AstTypes>, langiumServices: LangiumSharedCoreServices) {
+    constructor(typirServices: TypirLangiumServices<AstTypes>) {
         this.typir = typirServices;
         this.typeGraph = typirServices.infrastructure.Graph;
         this.typeSystemDefinition = typirServices.langium.TypeSystemDefinition;
 
         // for new and updated documents:
         // Create Typir types after completing the Langium 'ComputedScopes' phase, since they need to be available for the following Linking phase
-        langiumServices.workspace.DocumentBuilder.onBuildPhase(DocumentState.ComputedScopes, async (documents, cancelToken) => {
+        typirServices.langium.LangiumServices.workspace.DocumentBuilder.onBuildPhase(DocumentState.ComputedScopes, async (documents, cancelToken) => {
             for (const document of documents) {
                 await interruptAndCheck(cancelToken);
 
@@ -73,7 +73,7 @@ export class DefaultLangiumTypeCreator<AstTypes extends LangiumAstTypes> impleme
 
         // for deleted documents:
         // Delete Typir types which are derived from AstNodes of deleted documents
-        langiumServices.workspace.DocumentBuilder.onUpdate((_changed, deleted) => {
+        typirServices.langium.LangiumServices.workspace.DocumentBuilder.onUpdate((_changed, deleted) => {
             deleted
                 .map(del => getDocumentKeyForURI(del))
                 .forEach(del => this.invalidateTypesOfDocument(del));
