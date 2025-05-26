@@ -48,7 +48,9 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 ### New features
 
-- Introduced new function `createTypirServicesWithAdditionalServices<AdditionalTypirServices>(Module<AdditionalTypirServices>, ...)` to create Typir services with additional services, which are specific for the current application. See `customization-example.test.ts` for examples and explanations.
+- Create Typir services with additional services, which are specific for the current application:
+  - Typir core: `createTypirServicesWithAdditionalServices<..., AdditionalServices>(Module<AdditionalServices>, ...)`, see `customization-example.test.ts` for examples and explanations
+  - Typir-Langium: `createTypirLangiumServicesWithAdditionalServices<..., AdditionalServices>(..., Module<AdditionalServices>, ...)` works in the same way
 - The `$name`s of kinds are configurable now.
 
 ### Fixed bugs
