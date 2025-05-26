@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 import { TypirServices } from 'typir';
-import { Expression, Model } from './ast.js';
+import { Expression, Model } from './expression-ast.js';
 
 export function validate(typir: TypirServices, model: Model, accept: (message: string) => void) {
     function runValidator(languageNode: unknown) {

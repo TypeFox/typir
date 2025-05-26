@@ -4,9 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 import { describe, expect, test } from 'vitest';
-import { Parser } from '../src/parser.js';
-import { initializeTypir } from '../src/type-system.js';
-import { validate } from '../src/validator.js';
+import { Parser } from '../src/expression-parser.js';
+import { initializeTypir } from '../src/expression-type-system.js';
+import { validate } from '../src/expression-validator.js';
 
 const typir = initializeTypir();
 

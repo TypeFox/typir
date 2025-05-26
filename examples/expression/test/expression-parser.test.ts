@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 import { describe, expect, test } from 'vitest';
-import { AST, Model } from '../src/ast.js';
-import { Parser } from '../src/parser.js';
+import { AST, Model } from '../src/expression-ast.js';
+import { Parser } from '../src/expression-parser.js';
 
 describe('Parser', () => {
     test('parse', () => {

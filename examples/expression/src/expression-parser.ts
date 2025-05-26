@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Expression, BinaryExpression, UnaryExpression, VariableUsage, Numeric, CharString, VariableDeclaration, Printout, Model as AST, Statement, Assignment } from './ast.js';
-import { Token, tokenize, TokenType } from './lexer.js';
+import { Expression, BinaryExpression, UnaryExpression, VariableUsage, Numeric, CharString, VariableDeclaration, Printout, Model as AST, Statement, Assignment } from './expression-ast.js';
+import { Token, tokenize, TokenType } from './expression-lexer.js';
 
 /**
  * A parser receives a stream of tokens, analyzes it and returns an abstract syntax tree.
