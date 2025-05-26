@@ -34,7 +34,7 @@
     "src"
   ],
   "scripts": {
-    "clean": "shx rm -rf lib out coverage",
+    "clean": "shx rm -rf lib out coverage *.tsbuildinfo",
     "build": "tsc",
     "watch": "tsc --watch",
     "lint": "eslint src test --ext .ts",

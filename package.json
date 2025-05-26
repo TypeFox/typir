@@ -16,9 +16,9 @@
     },
     "scripts": {
         "postinstall": "npm run langium:generate",
-        "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo examples/**/lib examples/**/out examples/**/*.tsbuildinfo",
+        "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo examples/**/lib examples/**/out examples/**/*.tsbuildinfo && npm run clean --workspaces",
         "build": "tsc -b tsconfig.build.json && npm run build --workspaces",
-        "watch": "concurrently -n typir,typir-langium,ox,lox -c blue,blue,green,green \"tsc -b tsconfig.build.json -w\" \"npm run watch --workspace=typir\" \"npm run watch --workspace=typir-langium\" \"npm run watch --workspace=examples/ox\" \"npm run watch --workspace=examples/lox\"",
+        "watch": "concurrently -n typir,typir-langium,ox,lox,expression -c blue,blue,green,green \"tsc -b tsconfig.build.json -w\" \"npm run watch --workspace=typir\" \"npm run watch --workspace=typir-langium\" \"npm run watch --workspace=examples/ox\" \"npm run watch --workspace=examples/lox\" \"npm run watch --workspace=examples/expression\"",
         "lint": "npm run lint --workspaces",
         "test": "vitest",
         "test:run": "vitest --run",
