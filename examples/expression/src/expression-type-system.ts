@@ -64,23 +64,12 @@ export function initializeTypir() {
         return InferenceRuleNotApplicable;
     });
 
-    typir.validation.Collector.addValidationRule((node) => {
-        if(isAssignment(node)) {
-            const left = typir.Inference.inferType(node.variable);
-            const right = typir.Inference.inferType(node.value);
-            if(!Array.isArray(left) && !Array.isArray(right)) {
-                const problem = typir.Assignability.getAssignabilityProblem(right, left);
-                if(problem) {
-                    return [{
-                        $problem: 'ValidationProblem',
-                        languageNode: node,
-                        message: `'${right.getName()}' is not assignable to '${left.getName()}'.`,
-                        severity: 'error',
-                    }];
-                }
-            }
+    typir.validation.Collector.addValidationRule((node, accept) => {
+        if (isAssignment(node)) {
+            return typir.validation.Constraints.ensureNodeIsAssignable(node.value, node.variable, accept, (actual, expected) => ({
+                languageNode: node, severity: 'error', message: `'${actual.name}' is not assignable to '${expected.name}'.`,
+            }));
         }
-        return [];
     });
 
     return typir;
