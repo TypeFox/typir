@@ -87,10 +87,6 @@ export default defineConfig([
 
             "use-isnan": "error",
 
-            // "header/header": [2, "block", {
-            //     pattern: "MIT License|DO NOT EDIT MANUALLY!",
-            // }],
-
             "@typescript-eslint/adjacent-overload-signatures": "error",
 
             "@typescript-eslint/array-type": [
