@@ -8,7 +8,7 @@ import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeInferenceRule } from '../../services/inference.js';
 import { TypirServices } from '../../typir.js';
-import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType } from '../../utils/utils-definitions.js';
+import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType } from '../../utils/utils-definitions.js';
 import { assertTypirType } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
 import { CreateFunctionTypeDetails, FunctionKind, FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
@@ -25,7 +25,7 @@ export class FunctionTypeInitializer<LanguageType> extends TypeInitializer<Funct
     protected readonly typeDetails: CreateFunctionTypeDetails<LanguageType>;
     protected readonly functions: AvailableFunctionsManager<LanguageType>;
     protected inferenceRules: FunctionInferenceRules<LanguageType>;
-    protected initialFunctionType: FunctionType;
+    protected readonly initialFunctionType: FunctionType;
 
     constructor(services: TypirServices<LanguageType>, kind: FunctionKind<LanguageType>, typeDetails: CreateFunctionTypeDetails<LanguageType>) {
         super(services);
@@ -106,12 +106,15 @@ export class FunctionTypeInitializer<LanguageType> extends TypeInitializer<Funct
             inferenceForDeclaration: [],
         };
 
-        for (const rule of this.typeDetails.inferenceRulesForCalls) {
+        for (const inferenceRuleForCall of this.typeDetails.inferenceRulesForCalls) {
+            if (skipInferenceRuleForExistingType(inferenceRuleForCall, this.initialFunctionType, functionType)) {
+                continue;
+            }
             // create inference rule for calls of the new function
             result.inferenceForCall.push({
-                rule: this.createFunctionCallInferenceRule(rule, functionType),
+                rule: this.createFunctionCallInferenceRule(inferenceRuleForCall, functionType),
                 options: {
-                    languageKey: rule.languageKey,
+                    languageKey: inferenceRuleForCall.languageKey,
                     // boundToType: ... this property will be specified outside of this method, when this rule is registered
                 },
             });
@@ -119,8 +122,11 @@ export class FunctionTypeInitializer<LanguageType> extends TypeInitializer<Funct
 
         // create inference rule for the declaration of the new function
         // (regarding overloaded function, for now, it is assumed, that the given inference rule itself is concrete enough to handle overloaded functions itself!)
-        for (const rule of this.typeDetails.inferenceRulesForDeclaration) {
-            result.inferenceForDeclaration.push(bindInferCurrentTypeRule(rule, functionType));
+        for (const inferenceRuleForDeclaration of this.typeDetails.inferenceRulesForDeclaration) {
+            if (skipInferenceRuleForExistingType(inferenceRuleForDeclaration, this.initialFunctionType, functionType)) {
+                continue;
+            }
+            result.inferenceForDeclaration.push(bindInferCurrentTypeRule(inferenceRuleForDeclaration, functionType));
         }
 
         return result;

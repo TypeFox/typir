@@ -2,6 +2,35 @@
 
 We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
+For each minor and major version, there is a [milestone on GitHub](https://github.com/TypeFox/typir/milestones).
+
+
+## v0.3.0 (2025-??-??)
+
+[Linked issues and PRs](https://github.com/TypeFox/typir/milestone/4)
+
+### New features
+
+- New API to support custom types, i.e. types which are not predefined by Typir, but are created by users of Typir and tailored to the current language:
+  - Supports custom properties with arrays, sets, maps, primitives and types
+  - Create a new `CustomKind` and use it to create corresponding `CustomType`s, which support the desired custom properties in TypeScript-safe way
+  - Type-specific names, user representations, inference rules and validation rules
+  - Specific rules for conversion and sub-type which are applied to all custom types
+  - Builtin support for dependencies between probably delayed (custom) types and unique custom types
+  - See some examples in `packages/typir/test/kinds/custom/custom-matrix.test.ts` and `packages/typir/test/kinds/custom/custom-restricted.test.ts`
+- If you try to create the function types, class type or custom type a second time, the existing implementation already ensured, that the already existing type is reused and no new type is created:
+  - For the type-specific inference rules, there is now an additional property `skipThisRuleIfThisTypeAlreadyExists` (in `InferCurrentTypeRule`) to control, whether these given inference rules for the "second new type" should be added to the existing type or whether they should be skipped.
+  - The default value is `false`, meaning that these type-specific inference (and validation) rules are attached to the existing type. That conforms to the behaviour before introducing this new property.
+- ...
+
+### Breaking changes
+
+- ...
+
+### Fixed bugs
+
+- Clear edges from invalid types, which are never added into the type graph
+- ...
 
 
 ## v0.3.0 (2025-??-??)
@@ -17,6 +46,8 @@ Note that the versions "0.x.0" probably will include breaking changes.
 
 
 ## v0.2.0 (2025-03-31)
+
+[Linked issues and PRs](https://github.com/TypeFox/typir/milestone/3)
 
 ### New features
 

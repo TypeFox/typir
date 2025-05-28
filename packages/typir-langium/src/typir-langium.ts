@@ -34,6 +34,7 @@ export type TypirLangiumServices<AstTypes extends LangiumAstTypes> = TypirServic
 
 export type PartialTypirLangiumServices<AstTypes extends LangiumAstTypes> = DeepPartial<TypirLangiumServices<AstTypes>>
 
+
 /**
  * Creates a module that replaces some implementations of the core Typir services in order to be used with Langium.
  * @param langiumServices Typir-Langium needs to interact with the Langium lifecycle

@@ -61,7 +61,7 @@ export class BottomKind<LanguageType> implements Kind, BottomFactoryService<Lang
     }
 
     create(typeDetails: BottomTypeDetails<LanguageType>): BottomConfigurationChain<LanguageType> {
-        assertTrue(this.get(typeDetails) === undefined);
+        assertTrue(this.get(typeDetails) === undefined, 'The bottom type already exists.');
         return new BottomConfigurationChainImpl(this.services, this, typeDetails);
     }
 
