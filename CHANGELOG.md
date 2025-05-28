@@ -4,6 +4,13 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
 
+## v0.3.0 (2025-??-??)
+
+## Fixed bugs
+
+- Fixed the implementation for merging modules for dependency injection, it is exactly the same fix from [Langium](https://github.com/eclipse-langium/langium/pull/1939), since we reused its DI implementation (#79).
+
+
 ## v0.2.1 (2025-04-09)
 
 - Export `test-utils.ts` which are using `vitest` via the new namespace `'typir/test'` in order to not pollute production code with vitest dependencies (#68)
