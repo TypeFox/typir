@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+    tags-ignore:
+      - "**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  format:
+    name: typir-format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Volta
+        uses: volta-cli/action@v4
+      - name: Install
+        shell: bash
+        run: |
+          npm ci
+      - name: Format
+        shell: bash
+        run: |
+          npm run pretty:check
+
+  lint:
+    name: typir-lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Volta
+        uses: volta-cli/action@v4
+      - name: Install
+        shell: bash
+        run: |
+          npm ci
+      - name: Format
+        shell: bash
+        run: |
+          npm run lint
+
+  build:
+    name: typir-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Volta
+        uses: volta-cli/action@v4
+      - name: Install
+        shell: bash
+        run: |
+          npm ci
+      - name: Build
+        shell: bash
+        run: |
+          npm run build
+      - name: Test
+        shell: bash
+        run: |
+          npm run test:run
