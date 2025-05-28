@@ -4,12 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from "../../graph/type-graph.js";
-import { isType, Type } from "../../graph/type-node.js";
-import { TypeEqualityProblem } from "../../services/equality.js";
-import { TypirProblem } from "../../utils/utils-definitions.js";
-import { createKindConflict } from "../../utils/utils-type-comparison.js";
-import { BottomKind, BottomTypeDetails, isBottomKind } from "./bottom-kind.js";
+import type { TypeGraphListener } from '../../graph/type-graph.js';
+import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
+import { createKindConflict } from '../../utils/utils-type-comparison.js';
+import type { BottomKind, BottomTypeDetails } from './bottom-kind.js';
+import { isBottomKind } from './bottom-kind.js';
 
 export class BottomType extends Type implements TypeGraphListener {
     override readonly kind: BottomKind<unknown>;

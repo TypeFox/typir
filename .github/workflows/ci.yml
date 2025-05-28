@@ -11,24 +11,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  format:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Volta
-        uses: volta-cli/action@v4
-      - name: Install
-        shell: bash
-        run: |
-          npm ci
-      - name: Format
-        shell: bash
-        run: |
-          npm run pretty:check
-
-  lint:
+  format-and-lint:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

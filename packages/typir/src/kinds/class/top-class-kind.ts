@@ -4,15 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeDetails } from "../../graph/type-node.js";
-import { TypirServices } from "../../typir.js";
-import {
-    InferCurrentTypeRule,
-    registerInferCurrentTypeRules,
-} from "../../utils/utils-definitions.js";
-import { assertTrue } from "../../utils/utils.js";
-import { isKind, Kind } from "../kind.js";
-import { TopClassType } from "./top-class-type.js";
+import type { TypeDetails } from '../../graph/type-node.js';
+import type { TypirServices } from '../../typir.js';
+import type { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
+import { registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
+import { assertTrue } from '../../utils/utils.js';
+import type { Kind } from '../kind.js';
+import { isKind } from '../kind.js';
+import { TopClassType } from './top-class-type.js';
 
 export interface TopClassTypeDetails<LanguageType>
     extends TypeDetails<LanguageType> {
@@ -25,10 +24,10 @@ export interface TopClassKindOptions {
     name: string;
 }
 
-export const TopClassKindName = "TopClassKind";
+export const TopClassKindName = 'TopClassKind';
 
 export class TopClassKind<LanguageType> implements Kind {
-    readonly $name: "TopClassKind";
+    readonly $name: 'TopClassKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: TopClassKindOptions;
     protected instance: TopClassType | undefined;
@@ -48,7 +47,7 @@ export class TopClassKind<LanguageType> implements Kind {
     ): TopClassKindOptions {
         return {
             // the default values:
-            name: "TopClass",
+            name: 'TopClass',
             // the actually overriden values:
             ...options,
         };

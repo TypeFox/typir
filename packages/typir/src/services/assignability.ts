@@ -4,27 +4,25 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { GraphAlgorithms } from "../graph/graph-algorithms.js";
-import { Type } from "../graph/type-node.js";
-import { TypirServices } from "../typir.js";
-import { TypirProblem } from "../utils/utils-definitions.js";
-import {
-    ConversionEdge,
-    isConversionEdge,
-    TypeConversion,
-} from "./conversion.js";
-import { TypeEquality } from "./equality.js";
-import { SubType, SubTypeEdge } from "./subtype.js";
+import type { GraphAlgorithms } from '../graph/graph-algorithms.js';
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
+import type { TypirProblem } from '../utils/utils-definitions.js';
+import type { TypeConversion } from './conversion.js';
+import { ConversionEdge, isConversionEdge } from './conversion.js';
+import type { TypeEquality } from './equality.js';
+import type { SubType } from './subtype.js';
+import { SubTypeEdge } from './subtype.js';
 
 export interface AssignabilityProblem extends TypirProblem {
-    $problem: "AssignabilityProblem";
-    $result: "AssignabilityResult";
+    $problem: 'AssignabilityProblem';
+    $result: 'AssignabilityResult';
     source: Type;
     target: Type;
     result: false;
     subProblems: TypirProblem[];
 }
-export const AssignabilityProblem = "AssignabilityProblem";
+export const AssignabilityProblem = 'AssignabilityProblem';
 export function isAssignabilityProblem(
     problem: unknown,
 ): problem is AssignabilityProblem {
@@ -32,7 +30,7 @@ export function isAssignabilityProblem(
 }
 
 export interface AssignabilitySuccess {
-    $result: "AssignabilityResult";
+    $result: 'AssignabilityResult';
     source: Type;
     target: Type;
     result: true;
@@ -45,12 +43,12 @@ export function isAssignabilitySuccess(
 }
 
 export type AssignabilityResult = AssignabilitySuccess | AssignabilityProblem;
-export const AssignabilityResult = "AssignabilityResult";
+export const AssignabilityResult = 'AssignabilityResult';
 export function isAssignabilityResult(
     result: unknown,
 ): result is AssignabilityResult {
     return (
-        typeof result === "object" &&
+        typeof result === 'object' &&
         result !== null &&
         (result as AssignabilityResult).$result === AssignabilityResult
     );
@@ -70,7 +68,7 @@ export interface TypeAssignability {
  * This implementation for assignability checks step-by-step (1) equality, (2) implicit conversion, and (3) sub-type relationships of the source and target type.
  */
 export class DefaultTypeAssignability<LanguageType>
-    implements TypeAssignability
+implements TypeAssignability
 {
     protected readonly conversion: TypeConversion;
     protected readonly subtype: SubType;
@@ -119,7 +117,7 @@ export class DefaultTypeAssignability<LanguageType>
             [ConversionEdge, SubTypeEdge],
             (edge) =>
                 isConversionEdge(edge)
-                    ? edge.mode === "IMPLICIT_EXPLICIT"
+                    ? edge.mode === 'IMPLICIT_EXPLICIT'
                     : true,
         ); // no explicit conversion
         if (path.length >= 1) {

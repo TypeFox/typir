@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypirServices } from "../typir.js";
-import { TypeEdge } from "./type-edge.js";
-import { TypeGraph } from "./type-graph.js";
-import { Type } from "./type-node.js";
+import type { TypirServices } from '../typir.js';
+import type { TypeEdge } from './type-edge.js';
+import type { TypeGraph } from './type-graph.js';
+import type { Type } from './type-node.js';
 
 /**
  * Graph algorithms to do calculations on the type graph.
@@ -16,19 +16,19 @@ import { Type } from "./type-node.js";
 export interface GraphAlgorithms {
     collectReachableTypes(
         from: Type,
-        $relations: Array<TypeEdge["$relation"]>,
+        $relations: Array<TypeEdge['$relation']>,
         filterEdges?: (edgr: TypeEdge) => boolean,
     ): Set<Type>;
     existsEdgePath(
         from: Type,
         to: Type,
-        $relations: Array<TypeEdge["$relation"]>,
+        $relations: Array<TypeEdge['$relation']>,
         filterEdges?: (edgr: TypeEdge) => boolean,
     ): boolean;
     getEdgePath(
         from: Type,
         to: Type,
-        $relations: Array<TypeEdge["$relation"]>,
+        $relations: Array<TypeEdge['$relation']>,
         filterEdges?: (edgr: TypeEdge) => boolean,
     ): TypeEdge[];
 }
@@ -42,7 +42,7 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
 
     collectReachableTypes(
         from: Type,
-        $relations: Array<TypeEdge["$relation"]>,
+        $relations: Array<TypeEdge['$relation']>,
         filterEdges?: (edgr: TypeEdge) => boolean,
     ): Set<Type> {
         const result: Set<Type> = new Set();
@@ -55,7 +55,7 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
             );
             for (const edge of outgoingEdges) {
                 if (
-                    edge.cachingInformation === "LINK_EXISTS" &&
+                    edge.cachingInformation === 'LINK_EXISTS' &&
                     (filterEdges === undefined || filterEdges(edge))
                 ) {
                     if (result.has(edge.to)) {
@@ -74,7 +74,7 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
     existsEdgePath(
         from: Type,
         to: Type,
-        $relations: Array<TypeEdge["$relation"]>,
+        $relations: Array<TypeEdge['$relation']>,
         filterEdges?: (edgr: TypeEdge) => boolean,
     ): boolean {
         const visited: Set<Type> = new Set();
@@ -89,7 +89,7 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
             );
             for (const edge of outgoingEdges) {
                 if (
-                    edge.cachingInformation === "LINK_EXISTS" &&
+                    edge.cachingInformation === 'LINK_EXISTS' &&
                     (filterEdges === undefined || filterEdges(edge))
                 ) {
                     if (edge.to === to) {
@@ -117,7 +117,7 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
     getEdgePath(
         from: Type,
         to: Type,
-        $relations: Array<TypeEdge["$relation"]>,
+        $relations: Array<TypeEdge['$relation']>,
         filterEdges?: (edgr: TypeEdge) => boolean,
     ): TypeEdge[] {
         const visited: Map<Type, TypeEdge | undefined> = new Map(); // the edge from the parent to the current node
@@ -132,7 +132,7 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
             );
             for (const edge of outgoingEdges) {
                 if (
-                    edge.cachingInformation === "LINK_EXISTS" &&
+                    edge.cachingInformation === 'LINK_EXISTS' &&
                     (filterEdges === undefined || filterEdges(edge))
                 ) {
                     if (edge.to === to) {

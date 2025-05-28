@@ -4,12 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, TypeDetails } from "../../graph/type-node.js";
-import { TypirServices } from "../../typir.js";
-import { TypeCheckStrategy } from "../../utils/utils-type-comparison.js";
-import { assertTrue, toArray } from "../../utils/utils.js";
-import { Kind, isKind } from "../kind.js";
-import { FixedParameterType } from "./fixed-parameters-type.js";
+import type { Type, TypeDetails } from '../../graph/type-node.js';
+import type { TypirServices } from '../../typir.js';
+import type { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import { assertTrue, toArray } from '../../utils/utils.js';
+import type { Kind } from '../kind.js';
+import { isKind } from '../kind.js';
+import { FixedParameterType } from './fixed-parameters-type.js';
 
 export class Parameter {
     readonly name: string;
@@ -30,7 +31,7 @@ export interface FixedParameterKindOptions {
     parameterSubtypeCheckingStrategy: TypeCheckStrategy;
 }
 
-export const FixedParameterKindName = "FixedParameterKind";
+export const FixedParameterKindName = 'FixedParameterKind';
 
 /**
  * Suitable for kinds like Collection<T>, List<T>, Array<T>, Map<K, V>, ..., i.e. types with a fixed number of arbitrary parameter types
@@ -66,7 +67,7 @@ export class FixedParameterKind<LanguageType> implements Kind {
     ): FixedParameterKindOptions {
         return {
             // the default values:
-            parameterSubtypeCheckingStrategy: "EQUAL_TYPE",
+            parameterSubtypeCheckingStrategy: 'EQUAL_TYPE',
             // the actually overriden values:
             ...options,
         };
@@ -113,7 +114,7 @@ export class FixedParameterKind<LanguageType> implements Kind {
         return this.printSignature(
             this.baseName,
             toArray(typeDetails.parameterTypes),
-            ",",
+            ',',
         ); // use the signature for a unique name
     }
 
@@ -129,5 +130,5 @@ export class FixedParameterKind<LanguageType> implements Kind {
 export function isFixedParametersKind<LanguageType>(
     kind: unknown,
 ): kind is FixedParameterKind<LanguageType> {
-    return isKind(kind) && kind.$name.startsWith("FixedParameterKind-");
+    return isKind(kind) && kind.$name.startsWith('FixedParameterKind-');
 }

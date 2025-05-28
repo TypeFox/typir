@@ -4,15 +4,15 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from "../../graph/type-node.js";
-import { isConversionEdge } from "../../services/conversion.js";
+import type { Type } from '../../graph/type-node.js';
+import { isConversionEdge } from '../../services/conversion.js';
 import {
     CompositeTypeInferenceRule,
     InferenceProblem,
-} from "../../services/inference.js";
-import { isSubTypeEdge } from "../../services/subtype.js";
-import { assertUnreachable } from "../../utils/utils.js";
-import { FunctionCallInferenceRule } from "./function-inference-call.js";
+} from '../../services/inference.js';
+import { isSubTypeEdge } from '../../services/subtype.js';
+import { assertUnreachable } from '../../utils/utils.js';
+import type { FunctionCallInferenceRule } from './function-inference-call.js';
 
 /**
  * Custom inference rule for functions, which consists of one inference rule for each overload/signature for a function with same name.
@@ -83,7 +83,7 @@ export class OverloadedFunctionsTypeInferenceRule<
                 collectedInferenceProblems.push({
                     $problem: InferenceProblem,
                     languageNode: languageNode,
-                    location: "found no applicable inference rules",
+                    location: 'found no applicable inference rules',
                     subProblems: [],
                 });
             }
@@ -131,7 +131,7 @@ export class OverloadedFunctionsTypeInferenceRule<
                         {
                             $problem: InferenceProblem,
                             languageNode: languageNode,
-                            location: `Found ${bestMatches.length} best matching overloads: ${bestMatches.map((m) => m.result.getIdentifier()).join(", ")}`,
+                            location: `Found ${bestMatches.length} best matching overloads: ${bestMatches.map((m) => m.result.getIdentifier()).join(', ')}`,
                             subProblems: [], // there are no real sub-problems, since the relevant overloads match ...
                         },
                     ];
@@ -166,8 +166,8 @@ export class OverloadedFunctionsTypeInferenceRule<
                         (isSubTypeEdge(edge)
                             ? 1
                             : isConversionEdge(edge)
-                              ? 2
-                              : assertUnreachable(edge)) as number,
+                                ? 2
+                                : assertUnreachable(edge)) as number,
                 )
                 .reduce((l, r) => l + r, 0)
         ); // sum of all costs

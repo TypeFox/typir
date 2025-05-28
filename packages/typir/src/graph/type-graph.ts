@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { EdgeCachingInformation } from "../services/caching.js";
-import { assertTrue, removeFromArray } from "../utils/utils.js";
-import { TypeEdge } from "./type-edge.js";
-import { Type } from "./type-node.js";
+import type { EdgeCachingInformation } from '../services/caching.js';
+import { assertTrue, removeFromArray } from '../utils/utils.js';
+import type { TypeEdge } from './type-edge.js';
+import type { Type } from './type-node.js';
 
 /**
  * Each Typir instance has one single type graph.
@@ -31,7 +31,7 @@ export class TypeGraph {
      */
     addNode(type: Type, key?: string): void {
         if (!key) {
-            assertTrue(type.isInStateOrLater("Identifiable")); // the key of the type must be available!
+            assertTrue(type.isInStateOrLater('Identifiable')); // the key of the type must be available!
         }
         const mapKey = key ?? type.getIdentifier();
         if (this.nodes.has(mapKey)) {
@@ -131,8 +131,8 @@ export class TypeGraph {
     getUnidirectionalEdge<T extends TypeEdge>(
         from: Type,
         to: Type,
-        $relation: T["$relation"],
-        cachingMode: EdgeCachingInformation = "LINK_EXISTS",
+        $relation: T['$relation'],
+        cachingMode: EdgeCachingInformation = 'LINK_EXISTS',
     ): T | undefined {
         return from
             .getOutgoingEdges<T>($relation)
@@ -145,8 +145,8 @@ export class TypeGraph {
     getBidirectionalEdge<T extends TypeEdge>(
         from: Type,
         to: Type,
-        $relation: T["$relation"],
-        cachingMode: EdgeCachingInformation = "LINK_EXISTS",
+        $relation: T['$relation'],
+        cachingMode: EdgeCachingInformation = 'LINK_EXISTS',
     ): T | undefined {
         // for bidirectional edges, check outgoing and incoming edges, since the graph contains only a single edge!
         return from

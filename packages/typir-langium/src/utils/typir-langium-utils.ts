@@ -4,14 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
+import type {
     AstNode,
-    AstUtils,
     LangiumDocument,
     LangiumSharedCoreServices,
     URI,
-} from "langium";
-import { assertTrue } from "typir";
+} from 'langium';
+import { AstUtils } from 'langium';
+import { assertTrue } from 'typir';
 
 export function getDocumentKeyForURI(document: URI): string {
     return document.toString();

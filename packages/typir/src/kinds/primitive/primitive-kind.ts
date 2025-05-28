@@ -4,15 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeDetails } from "../../graph/type-node.js";
-import { TypirServices } from "../../typir.js";
-import {
-    InferCurrentTypeRule,
-    registerInferCurrentTypeRules,
-} from "../../utils/utils-definitions.js";
-import { assertTrue } from "../../utils/utils.js";
-import { isKind, Kind } from "../kind.js";
-import { PrimitiveType } from "./primitive-type.js";
+import type { TypeDetails } from '../../graph/type-node.js';
+import type { TypirServices } from '../../typir.js';
+import type { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
+import { registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
+import { assertTrue } from '../../utils/utils.js';
+import type { Kind } from '../kind.js';
+import { isKind } from '../kind.js';
+import { PrimitiveType } from './primitive-type.js';
 
 export interface PrimitiveKindOptions {
     // empty for now
@@ -28,7 +27,7 @@ interface CreatePrimitiveTypeDetails<LanguageType>
     inferenceRules: Array<InferCurrentTypeRule<PrimitiveType, LanguageType>>;
 }
 
-export const PrimitiveKindName = "PrimitiveKind";
+export const PrimitiveKindName = 'PrimitiveKind';
 
 export interface PrimitiveFactoryService<LanguageType> {
     create(
@@ -47,9 +46,9 @@ export interface PrimitiveConfigurationChain<LanguageType> {
 }
 
 export class PrimitiveKind<LanguageType>
-    implements Kind, PrimitiveFactoryService<LanguageType>
+implements Kind, PrimitiveFactoryService<LanguageType>
 {
-    readonly $name: "PrimitiveKind";
+    readonly $name: 'PrimitiveKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: PrimitiveKindOptions;
 
@@ -103,7 +102,7 @@ export function isPrimitiveKind<LanguageType>(
 }
 
 class PrimitiveConfigurationChainImpl<LanguageType>
-    implements PrimitiveConfigurationChain<LanguageType>
+implements PrimitiveConfigurationChain<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: PrimitiveKind<LanguageType>;

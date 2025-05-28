@@ -4,23 +4,24 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, TypeDetails } from "../../graph/type-node.js";
-import { TypeInitializer } from "../../initialization/type-initializer.js";
-import { TypeReference } from "../../initialization/type-reference.js";
-import { TypeSelector } from "../../initialization/type-selector.js";
-import { ValidationRule } from "../../services/validation.js";
-import { TypirServices } from "../../typir.js";
-import {
+import type { Type, TypeDetails } from '../../graph/type-node.js';
+import type { TypeInitializer } from '../../initialization/type-initializer.js';
+import { TypeReference } from '../../initialization/type-reference.js';
+import type { TypeSelector } from '../../initialization/type-selector.js';
+import type { ValidationRule } from '../../services/validation.js';
+import type { TypirServices } from '../../typir.js';
+import type {
     InferCurrentTypeRule,
     NameTypePair,
     RegistrationOptions,
-} from "../../utils/utils-definitions.js";
-import { TypeCheckStrategy } from "../../utils/utils-type-comparison.js";
-import { isKind, Kind } from "../kind.js";
-import { FunctionTypeInitializer } from "./function-initializer.js";
-import { AvailableFunctionsManager } from "./function-overloading.js";
-import { FunctionType } from "./function-type.js";
-import { UniqueFunctionValidation } from "./function-validation-unique.js";
+} from '../../utils/utils-definitions.js';
+import type { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import type { Kind } from '../kind.js';
+import { isKind } from '../kind.js';
+import { FunctionTypeInitializer } from './function-initializer.js';
+import { AvailableFunctionsManager } from './function-overloading.js';
+import type { FunctionType } from './function-type.js';
+import { UniqueFunctionValidation } from './function-validation-unique.js';
 
 export interface FunctionKindOptions<LanguageType> {
     // these three options controls structural vs nominal typing somehow ...
@@ -32,12 +33,12 @@ export interface FunctionKindOptions<LanguageType> {
     /** If a function has no output type (e.g. "void" functions), this type is returned during the type inference of calls to these functions.
      * The default value "THROW_ERROR" indicates to throw an error, i.e. type inference for calls of such functions are not allowed. */
     typeToInferForCallsOfFunctionsWithoutOutput:
-        | "THROW_ERROR"
+        | 'THROW_ERROR'
         | TypeSelector<Type, LanguageType>;
     subtypeParameterChecking: TypeCheckStrategy;
 }
 
-export const FunctionKindName = "FunctionKind";
+export const FunctionKindName = 'FunctionKind';
 
 export interface CreateParameterDetails<LanguageType> {
     name: string;
@@ -169,9 +170,9 @@ export interface FunctionConfigurationChain<LanguageType> {
  * - parameters which are used for output AND input
  */
 export class FunctionKind<LanguageType>
-    implements Kind, FunctionFactoryService<LanguageType>
+implements Kind, FunctionFactoryService<LanguageType>
 {
-    readonly $name: "FunctionKind";
+    readonly $name: 'FunctionKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<FunctionKindOptions<LanguageType>>;
     readonly functions: AvailableFunctionsManager<LanguageType>;
@@ -195,9 +196,9 @@ export class FunctionKind<LanguageType>
             enforceFunctionName: false,
             enforceInputParameterNames: false,
             enforceOutputParameterName: false,
-            identifierPrefix: "function",
-            typeToInferForCallsOfFunctionsWithoutOutput: "THROW_ERROR",
-            subtypeParameterChecking: "SUB_TYPE",
+            identifierPrefix: 'function',
+            typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR',
+            subtypeParameterChecking: 'SUB_TYPE',
             // the actually overriden values:
             ...options,
         };
@@ -230,15 +231,15 @@ export class FunctionKind<LanguageType>
         functionType: FunctionType,
     ): Type | undefined {
         return (
-            functionType.getOutput("RETURN_UNDEFINED")?.type ?? // by default, use the return type of the function ...
+            functionType.getOutput('RETURN_UNDEFINED')?.type ?? // by default, use the return type of the function ...
             // ... if this type is missing, use the specified type for this case in the options:
             // 'THROW_ERROR': an error will be thrown later, when this case actually occurs!
             (this.options.typeToInferForCallsOfFunctionsWithoutOutput ===
-            "THROW_ERROR"
+            'THROW_ERROR'
                 ? undefined
                 : this.services.infrastructure.TypeResolver.resolve(
-                      this.options.typeToInferForCallsOfFunctionsWithoutOutput,
-                  ))
+                    this.options.typeToInferForCallsOfFunctionsWithoutOutput,
+                ))
         );
     }
 
@@ -246,12 +247,12 @@ export class FunctionKind<LanguageType>
         typeDetails: FunctionTypeDetails<LanguageType>,
     ): string {
         const prefix = this.options.identifierPrefix
-            ? this.options.identifierPrefix + "-"
-            : "";
+            ? this.options.identifierPrefix + '-'
+            : '';
         // function name, if wanted
         const functionName = this.hasFunctionName(typeDetails.functionName)
             ? typeDetails.functionName
-            : "";
+            : '';
         // inputs: type identifiers in defined order
         const inputsString = typeDetails.inputParameters
             .map((input) =>
@@ -259,13 +260,13 @@ export class FunctionKind<LanguageType>
                     input.type,
                 ).getIdentifier(),
             )
-            .join(",");
+            .join(',');
         // output: type identifier
         const outputString = typeDetails.outputParameter
             ? this.services.infrastructure.TypeResolver.resolve(
-                  typeDetails.outputParameter.type,
-              ).getIdentifier()
-            : "";
+                typeDetails.outputParameter.type,
+            ).getIdentifier()
+            : '';
         // complete signature
         return `${prefix}${functionName}(${inputsString}):${outputString}`;
     }
@@ -281,7 +282,7 @@ export class FunctionKind<LanguageType>
 
     enforceFunctionName(name: string | undefined, enforce: boolean): void {
         if (enforce && this.hasFunctionName(name) === false) {
-            throw new Error("A name for the function is required.");
+            throw new Error('A name for the function is required.');
         }
     }
     hasFunctionName(name: string | undefined): name is string {
@@ -290,7 +291,7 @@ export class FunctionKind<LanguageType>
 
     enforceParameterName(name: string | undefined, enforce: boolean): void {
         if (enforce && this.hasParameterName(name) === false) {
-            throw new Error("A name for the parameter is required.");
+            throw new Error('A name for the parameter is required.');
         }
     }
     hasParameterName(name: string | undefined): name is string {
@@ -301,7 +302,7 @@ export class FunctionKind<LanguageType>
         options: RegistrationOptions,
     ): ValidationRule<LanguageType> {
         const rule = new UniqueFunctionValidation(this.services);
-        if (options.registration === "MYSELF") {
+        if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
         } else {
             this.services.validation.Collector.addValidationRule(
@@ -320,7 +321,7 @@ export function isFunctionKind<LanguageType>(
 }
 
 class FunctionConfigurationChainImpl<LanguageType>
-    implements FunctionConfigurationChain<LanguageType>
+implements FunctionConfigurationChain<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: FunctionKind<LanguageType>;
@@ -368,5 +369,5 @@ class FunctionConfigurationChainImpl<LanguageType>
 }
 
 // when the name is missing (e.g. for functions or their input/output parameters), use these values instead
-export const NO_FUNCTION_NAME = "";
-export const NO_PARAMETER_NAME = "";
+export const NO_FUNCTION_NAME = '';
+export const NO_PARAMETER_NAME = '';

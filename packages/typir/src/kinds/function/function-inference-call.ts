@@ -4,22 +4,25 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from "../../graph/type-node.js";
-import {
-    AssignabilitySuccess,
-    isAssignabilityProblem,
-} from "../../services/assignability.js";
+import type { Type } from '../../graph/type-node.js';
+import type { AssignabilitySuccess } from '../../services/assignability.js';
+import { isAssignabilityProblem } from '../../services/assignability.js';
+import type {
+    TypeInferenceResultWithInferringChildren,
+    TypeInferenceRuleWithInferringChildren,
+} from '../../services/inference.js';
 import {
     InferenceProblem,
     InferenceRuleNotApplicable,
-    TypeInferenceResultWithInferringChildren,
-    TypeInferenceRuleWithInferringChildren,
-} from "../../services/inference.js";
-import { TypirServices } from "../../typir.js";
-import { checkTypeArrays } from "../../utils/utils-type-comparison.js";
-import { FunctionTypeDetails, InferFunctionCall } from "./function-kind.js";
-import { AvailableFunctionsManager } from "./function-overloading.js";
-import { FunctionType } from "./function-type.js";
+} from '../../services/inference.js';
+import type { TypirServices } from '../../typir.js';
+import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
+import type {
+    FunctionTypeDetails,
+    InferFunctionCall,
+} from './function-kind.js';
+import type { AvailableFunctionsManager } from './function-overloading.js';
+import type { FunctionType } from './function-type.js';
 
 /**
  * Dedicated inference rule for calls of a single function signature.
@@ -144,7 +147,7 @@ export class FunctionCallInferenceRule<
                 $problem: InferenceProblem,
                 languageNode: languageNode,
                 inferenceCandidate: this.functionType,
-                location: "input parameters",
+                location: 'input parameters',
                 rule: this,
                 subProblems: comparisonConflicts,
             };

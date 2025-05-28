@@ -4,9 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, TypeStateListener } from "../graph/type-node.js";
-import { removeFromArray, toArray } from "../utils/utils.js";
-import { TypeReferenceListener, TypeReference } from "./type-reference.js";
+import type { Type, TypeStateListener } from '../graph/type-node.js';
+import { removeFromArray, toArray } from '../utils/utils.js';
+import type { TypeReferenceListener, TypeReference } from './type-reference.js';
 
 export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<
     T extends Type,
@@ -25,7 +25,7 @@ export interface WaitingForIdentifiableAndCompletedTypeReferencesListener<
  * if at least one of the TypeReferences was unresolved/invalid, but later on all TypeReferences are again in the desired state, and so on.
  */
 export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type>
-    implements TypeReferenceListener<T>, TypeStateListener
+implements TypeReferenceListener<T>, TypeStateListener
 {
     /** Remembers whether all TypeReferences are in the desired states (true) or not (false). */
     protected fulfilled: boolean = false;
@@ -123,7 +123,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type>
             // ... which should be identifiable (or completed)
             for (const ref of this.waitForRefsIdentified ?? []) {
                 const refType = ref.getType();
-                if (refType?.isInStateOrLater("Identifiable")) {
+                if (refType?.isInStateOrLater('Identifiable')) {
                     // this reference is already ready
                 } else {
                     refType?.ignoreDependingTypesDuringInitialization(
@@ -134,7 +134,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type>
             // ... which should be completed
             for (const ref of this.waitForRefsCompleted ?? []) {
                 const refType = ref.getType();
-                if (refType?.isInStateOrLater("Completed")) {
+                if (refType?.isInStateOrLater('Completed')) {
                     // this reference is already ready
                 } else {
                     refType?.ignoreDependingTypesDuringInitialization(
@@ -198,7 +198,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type>
             const refType = ref.getType();
             if (
                 refType &&
-                (refType.isInStateOrLater("Identifiable") ||
+                (refType.isInStateOrLater('Identifiable') ||
                     this.typesToIgnoreForCycles.has(refType))
             ) {
                 // that is fine
@@ -210,7 +210,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type>
             const refType = ref.getType();
             if (
                 refType &&
-                (refType.isInStateOrLater("Completed") ||
+                (refType.isInStateOrLater('Completed') ||
                     this.typesToIgnoreForCycles.has(refType))
             ) {
                 // that is fine
@@ -249,7 +249,7 @@ export type WaitingForInvalidTypeReferencesListener<T extends Type> = (
 ) => void;
 
 export class WaitingForInvalidTypeReferences<T extends Type>
-    implements TypeReferenceListener<T>
+implements TypeReferenceListener<T>
 {
     protected counterInvalid: number; // just count the number of invalid TypeReferences
 
@@ -267,7 +267,7 @@ export class WaitingForInvalidTypeReferences<T extends Type>
         this.counterInvalid = this.waitForRefsInvalid.filter(
             (ref) =>
                 ref.getType() === undefined ||
-                ref.getType()!.isInState("Invalid"),
+                ref.getType()!.isInState('Invalid'),
         ).length;
 
         // register to get updates for the relevant TypeReferences

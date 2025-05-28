@@ -4,25 +4,23 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-/* eslint-disable @typescript-eslint/parameter-properties */
+import { describe, expect, test } from 'vitest';
+import { InferenceRuleNotApplicable } from '../src/services/inference.js';
+import type { InferOperatorWithMultipleOperands } from '../src/services/operator.js';
+import { createTypirServices } from '../src/typir.js';
 
-import { describe, expect, test } from "vitest";
-import { InferenceRuleNotApplicable } from "../src/services/inference.js";
-import { InferOperatorWithMultipleOperands } from "../src/services/operator.js";
-import { createTypirServices } from "../src/typir.js";
-
-describe("Tiny Typir", () => {
-    test("Set-up and test some expressions", async () => {
+describe('Tiny Typir', () => {
+    test('Set-up and test some expressions', async () => {
         const typir = createTypirServices<AstElement>(); // set-up the type system, <AstElement> specifies the root type of all language nodes
 
         // primitive types
         const numberType = typir.factory.Primitives.create({
-            primitiveName: "number",
+            primitiveName: 'number',
         })
             .inferenceRule({ filter: (node) => node instanceof NumberLiteral })
             .finish();
         const stringType = typir.factory.Primitives.create({
-            primitiveName: "string",
+            primitiveName: 'string',
         })
             .inferenceRule({ filter: (node) => node instanceof StringLiteral })
             .finish();
@@ -38,7 +36,7 @@ describe("Tiny Typir", () => {
             validateArgumentsOfCalls: true, // explicitly request to check, that the types of the arguments in operator calls fit to the parameters
         };
         typir.factory.Operators.createBinary({
-            name: "+",
+            name: '+',
             signatures: [
                 // operator overloading
                 { left: numberType, right: numberType, return: numberType }, // 2 + 3
@@ -48,7 +46,7 @@ describe("Tiny Typir", () => {
             .inferenceRule(inferenceRule)
             .finish();
         typir.factory.Operators.createBinary({
-            name: "-",
+            name: '-',
             signatures: [
                 { left: numberType, right: numberType, return: numberType },
             ],
@@ -60,7 +58,7 @@ describe("Tiny Typir", () => {
         typir.Conversion.markAsConvertible(
             numberType,
             stringType,
-            "IMPLICIT_EXPLICIT",
+            'IMPLICIT_EXPLICIT',
         );
 
         // specify, how Typir can detect the type of a variable
@@ -88,7 +86,7 @@ describe("Tiny Typir", () => {
         // 2 + 3 => OK
         const example1 = new BinaryExpression(
             new NumberLiteral(2),
-            "+",
+            '+',
             new NumberLiteral(3),
         );
         expect(typir.validation.Collector.validate(example1)).toHaveLength(0);
@@ -96,16 +94,16 @@ describe("Tiny Typir", () => {
         // 2 + "3" => OK
         const example2 = new BinaryExpression(
             new NumberLiteral(2),
-            "+",
-            new StringLiteral("3"),
+            '+',
+            new StringLiteral('3'),
         );
         expect(typir.validation.Collector.validate(example2)).toHaveLength(0);
 
         // 2 - "3" => wrong
         const example3 = new BinaryExpression(
             new NumberLiteral(2),
-            "-",
-            new StringLiteral("3"),
+            '-',
+            new StringLiteral('3'),
         );
         const errors1 = typir.validation.Collector.validate(example3);
         const errorStack = typir.Printer.printTypirProblem(errors1[0]); // the problem comes with "sub-problems" to describe the reasons in more detail
@@ -117,7 +115,7 @@ describe("Tiny Typir", () => {
         );
 
         // 123 is assignable to a string variable
-        const varString = new Variable("v1", new StringLiteral("Hello"));
+        const varString = new Variable('v1', new StringLiteral('Hello'));
         const assignNumberToString = new AssignmentStatement(
             varString,
             new NumberLiteral(123),
@@ -127,10 +125,10 @@ describe("Tiny Typir", () => {
         ).toHaveLength(0);
 
         // "123" is not assignable to a number variable
-        const varNumber = new Variable("v2", new NumberLiteral(456));
+        const varNumber = new Variable('v2', new NumberLiteral(456));
         const assignStringToNumber = new AssignmentStatement(
             varNumber,
-            new StringLiteral("123"),
+            new StringLiteral('123'),
         );
         const errors2 =
             typir.validation.Collector.validate(assignStringToNumber);

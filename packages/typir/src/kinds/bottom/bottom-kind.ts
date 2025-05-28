@@ -4,15 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeDetails } from "../../graph/type-node.js";
-import { TypirServices } from "../../typir.js";
-import {
-    InferCurrentTypeRule,
-    registerInferCurrentTypeRules,
-} from "../../utils/utils-definitions.js";
-import { assertTrue } from "../../utils/utils.js";
-import { isKind, Kind } from "../kind.js";
-import { BottomType } from "./bottom-type.js";
+import type { TypeDetails } from '../../graph/type-node.js';
+import type { TypirServices } from '../../typir.js';
+import type { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
+import { registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
+import { assertTrue } from '../../utils/utils.js';
+import type { Kind } from '../kind.js';
+import { isKind } from '../kind.js';
+import { BottomType } from './bottom-type.js';
 
 export interface BottomTypeDetails<LanguageType>
     extends TypeDetails<LanguageType> {
@@ -27,7 +26,7 @@ export interface BottomKindOptions {
     name: string;
 }
 
-export const BottomKindName = "BottomKind";
+export const BottomKindName = 'BottomKind';
 
 export interface BottomFactoryService<LanguageType> {
     create(
@@ -44,9 +43,9 @@ interface BottomConfigurationChain<LanguageType> {
 }
 
 export class BottomKind<LanguageType>
-    implements Kind, BottomFactoryService<LanguageType>
+implements Kind, BottomFactoryService<LanguageType>
 {
-    readonly $name: "BottomKind";
+    readonly $name: 'BottomKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<BottomKindOptions>;
 
@@ -65,7 +64,7 @@ export class BottomKind<LanguageType>
     ): BottomKindOptions {
         return {
             // the default values:
-            name: "never",
+            name: 'never',
             // the actually overriden values:
             ...options,
         };
@@ -99,7 +98,7 @@ export function isBottomKind<LanguageType>(
 }
 
 class BottomConfigurationChainImpl<LanguageType>
-    implements BottomConfigurationChain<LanguageType>
+implements BottomConfigurationChain<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: BottomKind<LanguageType>;

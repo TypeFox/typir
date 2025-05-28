@@ -4,8 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { beforeAll, describe, expect, test } from "vitest";
-import { PrimitiveType } from "../../../src/kinds/primitive/primitive-type.js";
+import { beforeAll, describe, expect, test } from 'vitest';
+import type { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
+import type {
+    TestExpressionNode,
+    TestLanguageNode,
+} from '../../../src/test/predefined-language-nodes.js';
 import {
     BinaryExpression,
     booleanFalse,
@@ -15,11 +19,9 @@ import {
     integer123,
     integer456,
     IntegerLiteral,
-    TestExpressionNode,
-    TestLanguageNode,
-} from "../../../src/test/predefined-language-nodes.js";
-import { TypirServices } from "../../../src/typir.js";
-import { createTypirServicesForTesting } from "../../../src/utils/test-utils.js";
+} from '../../../src/test/predefined-language-nodes.js';
+import type { TypirServices } from '../../../src/typir.js';
+import { createTypirServicesForTesting } from '../../../src/utils/test-utils.js';
 
 describe('Tests the "validateArgumentsOfCalls" option to check the given arguments in (overloaded) operator calls', () => {
     let typir: TypirServices<TestLanguageNode>;
@@ -31,19 +33,19 @@ describe('Tests the "validateArgumentsOfCalls" option to check the given argumen
 
         // primitive types
         integerType = typir.factory.Primitives.create({
-            primitiveName: "integer",
+            primitiveName: 'integer',
         })
             .inferenceRule({ filter: (node) => node instanceof IntegerLiteral })
             .finish();
         booleanType = typir.factory.Primitives.create({
-            primitiveName: "boolean",
+            primitiveName: 'boolean',
         })
             .inferenceRule({ filter: (node) => node instanceof BooleanLiteral })
             .finish();
 
         // + operator: only integers, validate it
         typir.factory.Operators.createBinary({
-            name: "+",
+            name: '+',
             signature: {
                 left: integerType,
                 right: integerType,
@@ -58,7 +60,7 @@ describe('Tests the "validateArgumentsOfCalls" option to check the given argumen
 
         // && operator: only booleans, don't validate it
         typir.factory.Operators.createBinary({
-            name: "&&",
+            name: '&&',
             signature: {
                 left: booleanType,
                 right: booleanType,
@@ -73,7 +75,7 @@ describe('Tests the "validateArgumentsOfCalls" option to check the given argumen
 
         // == operator: is overloaded, validate the integer signature, don't validate the boolean signature
         typir.factory.Operators.createBinary({
-            name: "==",
+            name: '==',
             signature: {
                 left: integerType,
                 right: integerType,
@@ -86,7 +88,7 @@ describe('Tests the "validateArgumentsOfCalls" option to check the given argumen
             })
             .finish();
         typir.factory.Operators.createBinary({
-            name: "==",
+            name: '==',
             signature: {
                 left: booleanType,
                 right: booleanType,
@@ -101,53 +103,53 @@ describe('Tests the "validateArgumentsOfCalls" option to check the given argumen
     });
 
     // +: only integers are supported
-    test("123 + 456: OK", () => {
-        expectOperatorCallValid(integer123, "+", integer456);
+    test('123 + 456: OK', () => {
+        expectOperatorCallValid(integer123, '+', integer456);
     });
-    test("true + false: wrong, since this signature does not exist", () => {
+    test('true + false: wrong, since this signature does not exist', () => {
         expectOperatorCallError(
             booleanTrue,
-            "+",
+            '+',
             booleanFalse,
             "The type 'boolean' is not assignable to the type 'integer'.",
         );
     });
 
     // &&: only booleans are supported
-    test("123 && 456: not OK, but no errors are shown, since the validation is switched off for &&", () => {
-        expectOperatorCallValid(integer123, "&&", integer456);
+    test('123 && 456: not OK, but no errors are shown, since the validation is switched off for &&', () => {
+        expectOperatorCallValid(integer123, '&&', integer456);
     });
-    test("true && false: OK", () => {
-        expectOperatorCallValid(booleanTrue, "&&", booleanFalse);
+    test('true && false: OK', () => {
+        expectOperatorCallValid(booleanTrue, '&&', booleanFalse);
     });
 
     // ==: both signatures are supported, but only one is validated
-    test("123 == 456: OK and validated", () => {
-        expectOperatorCallValid(integer123, "==", integer456);
+    test('123 == 456: OK and validated', () => {
+        expectOperatorCallValid(integer123, '==', integer456);
     });
-    test("true == false: OK, since the signature exists", () => {
-        expectOperatorCallValid(booleanTrue, "==", booleanFalse);
+    test('true == false: OK, since the signature exists', () => {
+        expectOperatorCallValid(booleanTrue, '==', booleanFalse);
     });
-    test("123 == false: wrong, since this signature is not defined", () => {
+    test('123 == false: wrong, since this signature is not defined', () => {
         expectOperatorCallError(
             integer123,
-            "==",
+            '==',
             booleanFalse,
-            "is not assignable to the type",
+            'is not assignable to the type',
         );
     });
-    test("true == 456: wrong, since this signature is not defined", () => {
+    test('true == 456: wrong, since this signature is not defined', () => {
         expectOperatorCallError(
             booleanTrue,
-            "==",
+            '==',
             integer456,
-            "is not assignable to the type",
+            'is not assignable to the type',
         );
     });
 
     function expectOperatorCallValid(
         left: TestExpressionNode,
-        operator: "==" | "+" | "&&",
+        operator: '==' | '+' | '&&',
         right: TestExpressionNode,
     ): void {
         const expr = new BinaryExpression(left, operator, right);
@@ -156,7 +158,7 @@ describe('Tests the "validateArgumentsOfCalls" option to check the given argumen
     }
     function expectOperatorCallError(
         left: TestExpressionNode,
-        operator: "==" | "+" | "&&",
+        operator: '==' | '+' | '&&',
         right: TestExpressionNode,
         includedProblem: string,
     ): void {

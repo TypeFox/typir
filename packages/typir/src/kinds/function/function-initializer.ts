@@ -4,25 +4,25 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, TypeStateListener } from "../../graph/type-node.js";
-import { TypeInitializer } from "../../initialization/type-initializer.js";
-import { TypeInferenceRule } from "../../services/inference.js";
-import { TypirServices } from "../../typir.js";
+import type { Type, TypeStateListener } from '../../graph/type-node.js';
+import { TypeInitializer } from '../../initialization/type-initializer.js';
+import type { TypeInferenceRule } from '../../services/inference.js';
+import type { TypirServices } from '../../typir.js';
+import type { InferenceRuleWithOptions } from '../../utils/utils-definitions.js';
 import {
     bindInferCurrentTypeRule,
-    InferenceRuleWithOptions,
     optionsBoundToType,
-} from "../../utils/utils-definitions.js";
-import { assertTypirType } from "../../utils/utils.js";
-import { FunctionCallInferenceRule } from "./function-inference-call.js";
-import {
+} from '../../utils/utils-definitions.js';
+import { assertTypirType } from '../../utils/utils.js';
+import { FunctionCallInferenceRule } from './function-inference-call.js';
+import type {
     CreateFunctionTypeDetails,
     FunctionKind,
     FunctionTypeDetails,
     InferFunctionCall,
-} from "./function-kind.js";
-import { AvailableFunctionsManager } from "./function-overloading.js";
-import { FunctionType, isFunctionType } from "./function-type.js";
+} from './function-kind.js';
+import type { AvailableFunctionsManager } from './function-overloading.js';
+import { FunctionType, isFunctionType } from './function-type.js';
 
 /**
  * For each call of FunctionKind.create()...finish(), one instance of this class will be created,

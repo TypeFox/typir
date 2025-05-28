@@ -4,15 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeDetails } from "../../graph/type-node.js";
-import { TypirServices } from "../../typir.js";
-import {
-    InferCurrentTypeRule,
-    registerInferCurrentTypeRules,
-} from "../../utils/utils-definitions.js";
-import { assertTrue } from "../../utils/utils.js";
-import { isKind, Kind } from "../kind.js";
-import { TopType } from "./top-type.js";
+import type { TypeDetails } from '../../graph/type-node.js';
+import type { TypirServices } from '../../typir.js';
+import type { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
+import { registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
+import { assertTrue } from '../../utils/utils.js';
+import type { Kind } from '../kind.js';
+import { isKind } from '../kind.js';
+import { TopType } from './top-type.js';
 
 export interface TopTypeDetails<LanguageType>
     extends TypeDetails<LanguageType> {
@@ -27,7 +26,7 @@ export interface TopKindOptions {
     name: string;
 }
 
-export const TopKindName = "TopKind";
+export const TopKindName = 'TopKind';
 
 export interface TopFactoryService<LanguageType> {
     create(
@@ -44,9 +43,9 @@ export interface TopConfigurationChain<LanguageType> {
 }
 
 export class TopKind<LanguageType>
-    implements Kind, TopFactoryService<LanguageType>
+implements Kind, TopFactoryService<LanguageType>
 {
-    readonly $name: "TopKind";
+    readonly $name: 'TopKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<TopKindOptions>;
 
@@ -65,7 +64,7 @@ export class TopKind<LanguageType>
     ): TopKindOptions {
         return {
             // the default values:
-            name: "any",
+            name: 'any',
             // the actually overriden values:
             ...options,
         };
@@ -95,7 +94,7 @@ export function isTopKind<LanguageType>(
 }
 
 class TopConfigurationChainImpl<LanguageType>
-    implements TopConfigurationChain<LanguageType>
+implements TopConfigurationChain<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: TopKind<LanguageType>;

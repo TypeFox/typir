@@ -4,17 +4,15 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from "../graph/type-node.js";
-import { TypeInitializer } from "../initialization/type-initializer.js";
-import {
-    FunctionFactoryService,
-    NO_PARAMETER_NAME,
-} from "../kinds/function/function-kind.js";
-import { FunctionType } from "../kinds/function/function-type.js";
-import { TypirServices } from "../typir.js";
-import { NameTypePair } from "../utils/utils-definitions.js";
-import { toArray } from "../utils/utils.js";
-import { ValidationProblemAcceptor } from "./validation.js";
+import type { Type } from '../graph/type-node.js';
+import type { TypeInitializer } from '../initialization/type-initializer.js';
+import type { FunctionFactoryService } from '../kinds/function/function-kind.js';
+import { NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
+import type { FunctionType } from '../kinds/function/function-type.js';
+import type { TypirServices } from '../typir.js';
+import type { NameTypePair } from '../utils/utils-definitions.js';
+import { toArray } from '../utils/utils.js';
+import type { ValidationProblemAcceptor } from './validation.js';
 
 export interface InferOperatorWithSingleOperand<
     LanguageType,
@@ -182,7 +180,7 @@ export interface OperatorConfigurationGenericChain<LanguageType> {
  * All operands are mandatory.
  */
 export class DefaultOperatorFactory<LanguageType>
-    implements OperatorFactoryService<LanguageType>
+implements OperatorFactoryService<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
 
@@ -228,7 +226,7 @@ export class DefaultOperatorFactory<LanguageType>
 }
 
 class OperatorConfigurationUnaryChainImpl<LanguageType>
-    implements OperatorConfigurationUnaryChain<LanguageType>
+implements OperatorConfigurationUnaryChain<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly typeDetails: CreateUnaryOperatorDetails<LanguageType>;
@@ -263,7 +261,7 @@ class OperatorConfigurationUnaryChainImpl<LanguageType>
                     name: this.typeDetails.name,
                     outputType: signature.return,
                     inputParameter: [
-                        { name: "operand", type: signature.operand },
+                        { name: 'operand', type: signature.operand },
                     ],
                 },
             );
@@ -278,7 +276,7 @@ class OperatorConfigurationUnaryChainImpl<LanguageType>
 }
 
 class OperatorConfigurationBinaryChainImpl<LanguageType>
-    implements OperatorConfigurationBinaryChain<LanguageType>
+implements OperatorConfigurationBinaryChain<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly typeDetails: CreateBinaryOperatorDetails<LanguageType>;
@@ -313,8 +311,8 @@ class OperatorConfigurationBinaryChainImpl<LanguageType>
                     name: this.typeDetails.name,
                     outputType: signature.return,
                     inputParameter: [
-                        { name: "left", type: signature.left },
-                        { name: "right", type: signature.right },
+                        { name: 'left', type: signature.left },
+                        { name: 'right', type: signature.right },
                     ],
                 },
             );
@@ -329,7 +327,7 @@ class OperatorConfigurationBinaryChainImpl<LanguageType>
 }
 
 class OperatorConfigurationTernaryChainImpl<LanguageType>
-    implements OperatorConfigurationTernaryChain<LanguageType>
+implements OperatorConfigurationTernaryChain<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly typeDetails: CreateTernaryOperatorDetails<LanguageType>;
@@ -364,9 +362,9 @@ class OperatorConfigurationTernaryChainImpl<LanguageType>
                     name: this.typeDetails.name,
                     outputType: signature.return,
                     inputParameter: [
-                        { name: "first", type: signature.first },
-                        { name: "second", type: signature.second },
-                        { name: "third", type: signature.third },
+                        { name: 'first', type: signature.first },
+                        { name: 'second', type: signature.second },
+                        { name: 'third', type: signature.third },
                     ],
                 },
             );
@@ -381,7 +379,7 @@ class OperatorConfigurationTernaryChainImpl<LanguageType>
 }
 
 class OperatorConfigurationGenericChainImpl<LanguageType>
-    implements OperatorConfigurationGenericChain<LanguageType>
+implements OperatorConfigurationGenericChain<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly typeDetails: CreateGenericOperatorDetails<LanguageType>;
@@ -430,12 +428,12 @@ class OperatorConfigurationGenericChainImpl<LanguageType>
                 languageKey: inferenceRule.languageKey,
                 filter: inferenceRule.filter
                     ? (
-                          languageNode: LanguageType,
-                      ): languageNode is LanguageType =>
-                          inferenceRule.filter!(
-                              languageNode,
-                              this.typeDetails.name,
-                          )
+                        languageNode: LanguageType,
+                    ): languageNode is LanguageType =>
+                        inferenceRule.filter!(
+                            languageNode,
+                            this.typeDetails.name,
+                        )
                     : undefined,
                 matching: (languageNode: LanguageType) =>
                     inferenceRule.matching(languageNode, this.typeDetails.name),
@@ -475,15 +473,15 @@ class OperatorConfigurationGenericChainImpl<LanguageType>
             | InferOperatorWithMultipleOperands<LanguageType>,
         languageNode: LanguageType,
     ): LanguageType[] {
-        return "operands" in inferenceRule
+        return 'operands' in inferenceRule
             ? (
-                  inferenceRule as InferOperatorWithMultipleOperands<LanguageType>
-              ).operands(languageNode, this.typeDetails.name)
+                inferenceRule as InferOperatorWithMultipleOperands<LanguageType>
+            ).operands(languageNode, this.typeDetails.name)
             : [
-                  (
-                      inferenceRule as InferOperatorWithSingleOperand<LanguageType>
-                  ).operand(languageNode, this.typeDetails.name),
-              ];
+                (
+                    inferenceRule as InferOperatorWithSingleOperand<LanguageType>
+                ).operand(languageNode, this.typeDetails.name),
+            ];
     }
 
     protected getFunctionFactory(): FunctionFactoryService<LanguageType> {
@@ -497,7 +495,7 @@ function toSignatureArray<T>(values: { signature?: T; signatures?: T[] }): T[] {
         result.push(values.signature);
     }
     if (result.length <= 0) {
-        throw new Error("At least one signature must be given!");
+        throw new Error('At least one signature must be given!');
     }
     return result;
 }

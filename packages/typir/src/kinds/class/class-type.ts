@@ -4,24 +4,25 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from "../../graph/type-node.js";
-import { TypeReference } from "../../initialization/type-reference.js";
-import { TypeEqualityProblem } from "../../services/equality.js";
-import { TypirProblem } from "../../utils/utils-definitions.js";
+import { isType, Type } from '../../graph/type-node.js';
+import { TypeReference } from '../../initialization/type-reference.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
 import {
     checkNameTypesMap,
     checkValueForConflict,
     createKindConflict,
     createTypeCheckStrategy,
     IndexedTypeConflict,
-} from "../../utils/utils-type-comparison.js";
+} from '../../utils/utils-type-comparison.js';
 import {
     assertUnreachable,
     removeFromArray,
     toArray,
-} from "../../utils/utils.js";
-import { FunctionType } from "../function/function-type.js";
-import { ClassKind, ClassTypeDetails, isClassKind } from "./class-kind.js";
+} from '../../utils/utils.js';
+import type { FunctionType } from '../function/function-type.js';
+import type { ClassKind, ClassTypeDetails } from './class-kind.js';
+import { isClassKind } from './class-kind.js';
 
 export interface FieldDetails {
     name: string;
@@ -53,7 +54,7 @@ export class ClassType extends Type {
         typeDetails: ClassTypeDetails<unknown>,
     ) {
         super(
-            kind.options.typing === "Nominal"
+            kind.options.typing === 'Nominal'
                 ? kind.calculateIdentifierWithClassNameOnly(typeDetails) // use the name of the class as identifier already now
                 : undefined, // the identifier for structurally typed classes will be set later after resolving all fields and methods
             typeDetails,
@@ -188,7 +189,7 @@ export class ClassType extends Type {
             fields.push(`${field[0]}: ${field[1].getName()}`);
         }
         if (fields.length >= 1) {
-            slots.push(fields.join(", "));
+            slots.push(fields.join(', '));
         }
         // methods
         const methods: string[] = [];
@@ -196,21 +197,21 @@ export class ClassType extends Type {
             methods.push(`${method.getUserRepresentation()}`);
         }
         if (methods.length >= 1) {
-            slots.push(methods.join(", "));
+            slots.push(methods.join(', '));
         }
         // super classes
         const superClasses = this.getDeclaredSuperClasses();
         const extendedClasses =
             superClasses.length <= 0
-                ? ""
-                : ` extends ${superClasses.map((c) => c.getName()).join(", ")}`;
+                ? ''
+                : ` extends ${superClasses.map((c) => c.getName()).join(', ')}`;
         // complete representation
-        return `${this.className}${extendedClasses} { ${slots.join(", ")} }`;
+        return `${this.className}${extendedClasses} { ${slots.join(', ')} }`;
     }
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isClassType(otherType)) {
-            if (this.kind.options.typing === "Structural") {
+            if (this.kind.options.typing === 'Structural') {
                 // for structural typing:
                 return checkNameTypesMap(
                     this.getFields(true),
@@ -221,12 +222,12 @@ export class ClassType extends Type {
                             t2,
                         ),
                 );
-            } else if (this.kind.options.typing === "Nominal") {
+            } else if (this.kind.options.typing === 'Nominal') {
                 // for nominal typing:
                 return checkValueForConflict(
                     this.getIdentifier(),
                     otherType.getIdentifier(),
-                    "name",
+                    'name',
                 );
             } else {
                 assertUnreachable(this.kind.options.typing);
@@ -247,7 +248,7 @@ export class ClassType extends Type {
         subType: ClassType,
         superType: ClassType,
     ): TypirProblem[] {
-        if (this.kind.options.typing === "Structural") {
+        if (this.kind.options.typing === 'Structural') {
             // for structural typing, the sub type needs to have all fields of the super type with assignable types (including fields of all super classes):
             const conflicts: IndexedTypeConflict[] = [];
             const subFields = subType.getFields(true);
@@ -289,7 +290,7 @@ export class ClassType extends Type {
             }
             // Note that it is not necessary to check, whether the sub class has additional fields than the super type!
             return conflicts;
-        } else if (this.kind.options.typing === "Nominal") {
+        } else if (this.kind.options.typing === 'Nominal') {
             // for nominal typing (takes super classes into account)
             const allSub = subType.getAllSuperClasses(true);
             const globalResult: TypirProblem[] = [];
@@ -316,7 +317,7 @@ export class ClassType extends Type {
             if (superType) {
                 return superType;
             } else {
-                throw new Error("Not all super class types are resolved.");
+                throw new Error('Not all super class types are resolved.');
             }
         });
     }
@@ -377,7 +378,7 @@ export class ClassType extends Type {
     ensureNoCycles(): void {
         if (this.hasSubSuperClassCycles()) {
             throw new Error(
-                "This is not possible, since this class has cycles in its super-classes!",
+                'This is not possible, since this class has cycles in its super-classes!',
             );
         }
     }
@@ -402,7 +403,7 @@ export class ClassType extends Type {
             if (field) {
                 result.set(fieldDetails.name, field);
             } else {
-                throw new Error("Not all fields are resolved.");
+                throw new Error('Not all fields are resolved.');
             }
         });
         return result;
@@ -415,7 +416,7 @@ export class ClassType extends Type {
             if (method) {
                 return method;
             } else {
-                throw new Error("Not all methods are resolved.");
+                throw new Error('Not all methods are resolved.');
             }
         });
         // methods of super classes

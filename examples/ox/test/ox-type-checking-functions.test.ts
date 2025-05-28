@@ -4,36 +4,36 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { describe, test } from "vitest";
-import { validateOx } from "./ox-type-checking-utils.js";
+import { describe, test } from 'vitest';
+import { validateOx } from './ox-type-checking-utils.js';
 
-describe("Test type checking for statements and variables in OX", () => {
-    test("function: return value and return type", async () => {
-        await validateOx("fun myFunction1() : boolean { return true; }", 0);
-        await validateOx("fun myFunction2() : boolean { return 2; }", 1);
-        await validateOx("fun myFunction3() : number { return 2; }", 0);
-        await validateOx("fun myFunction4() : number { return true; }", 1);
+describe('Test type checking for statements and variables in OX', () => {
+    test('function: return value and return type', async () => {
+        await validateOx('fun myFunction1() : boolean { return true; }', 0);
+        await validateOx('fun myFunction2() : boolean { return 2; }', 1);
+        await validateOx('fun myFunction3() : number { return 2; }', 0);
+        await validateOx('fun myFunction4() : number { return true; }', 1);
     });
 
-    test("function: the same function name twice (in the same file) is not allowed in Typir", async () => {
+    test('function: the same function name twice (in the same file) is not allowed in Typir', async () => {
         await validateOx(
             `
                 fun myFunction() : boolean { return true; }
                 fun myFunction() : boolean { return false; }
         `,
             [
-                "Functions need to have unique names",
-                "Functions need to have unique names",
+                'Functions need to have unique names',
+                'Functions need to have unique names',
             ],
         );
     });
 
     // TODO this test case needs to be investigated in more detail
     test.todo(
-        "function: the same function name twice (even in different files) is not allowed in Typir",
+        'function: the same function name twice (even in different files) is not allowed in Typir',
         async () => {
-            await validateOx("fun myFunction() : boolean { return true; }", 0);
-            await validateOx("fun myFunction() : boolean { return false; }", 2); // now, both functions should be marked as "duplicate"
+            await validateOx('fun myFunction() : boolean { return true; }', 0);
+            await validateOx('fun myFunction() : boolean { return false; }', 2); // now, both functions should be marked as "duplicate"
         },
     );
 });

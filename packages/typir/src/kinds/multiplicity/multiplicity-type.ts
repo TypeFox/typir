@@ -4,19 +4,19 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from "../../graph/type-node.js";
-import { TypeEqualityProblem } from "../../services/equality.js";
-import { isSubTypeProblem } from "../../services/subtype.js";
-import { TypirProblem } from "../../utils/utils-definitions.js";
+import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import { isSubTypeProblem } from '../../services/subtype.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
 import {
     checkValueForConflict,
     createKindConflict,
-} from "../../utils/utils-type-comparison.js";
-import {
-    isMultiplicityKind,
+} from '../../utils/utils-type-comparison.js';
+import type {
     MultiplicityKind,
     MultiplicityTypeDetails,
-} from "./multiplicity-kind.js";
+} from './multiplicity-kind.js';
+import { isMultiplicityKind } from './multiplicity-kind.js';
 
 export class MultiplicityType extends Type {
     override readonly kind: MultiplicityKind<unknown>;
@@ -53,14 +53,14 @@ export class MultiplicityType extends Type {
                 ...checkValueForConflict(
                     this.getLowerBound(),
                     this.getLowerBound(),
-                    "lower bound",
+                    'lower bound',
                 ),
             );
             conflicts.push(
                 ...checkValueForConflict(
                     this.getUpperBound(),
                     this.getUpperBound(),
-                    "upper bound",
+                    'upper bound',
                 ),
             );
             // check the constrained type
@@ -95,7 +95,7 @@ export class MultiplicityType extends Type {
             ...checkValueForConflict(
                 subType.getLowerBound(),
                 superType.getLowerBound(),
-                "lower bound",
+                'lower bound',
                 this.kind.isBoundGreaterEquals,
             ),
         );
@@ -103,7 +103,7 @@ export class MultiplicityType extends Type {
             ...checkValueForConflict(
                 subType.getUpperBound(),
                 superType.getUpperBound(),
-                "upper bound",
+                'upper bound',
                 this.kind.isBoundGreaterEquals,
             ),
         );

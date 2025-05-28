@@ -4,18 +4,15 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
-    AstNode,
-    DocumentCache,
-    DocumentState,
-    LangiumSharedCoreServices,
-} from "langium";
-import { CachePending, LanguageNodeInferenceCaching, Type } from "typir";
-import { getDocumentKey } from "../utils/typir-langium-utils.js";
+import type { AstNode, LangiumSharedCoreServices } from 'langium';
+import { DocumentCache, DocumentState } from 'langium';
+import type { LanguageNodeInferenceCaching, Type } from 'typir';
+import { CachePending } from 'typir';
+import { getDocumentKey } from '../utils/typir-langium-utils.js';
 
 // cache AstNodes
 export class LangiumLanguageNodeInferenceCaching
-    implements LanguageNodeInferenceCaching
+implements LanguageNodeInferenceCaching
 {
     protected readonly cache: DocumentCache<unknown, Type | CachePending>; // removes cached AstNodes, if their underlying LangiumDocuments are invalidated
 

@@ -20,8 +20,7 @@
         "build": "tsc -b tsconfig.build.json && npm run build --workspaces",
         "watch": "concurrently -n typir,typir-langium,ox,lox -c blue,blue,green,green \"tsc -b tsconfig.build.json -w\" \"npm run watch --workspace=typir\" \"npm run watch --workspace=typir-langium\" \"npm run watch --workspace=examples/ox\" \"npm run watch --workspace=examples/lox\"",
         "lint": "eslint .",
-        "pretty": "prettier -w \"**/*.ts\"",
-        "pretty:check": "prettier -c \"**/*.ts\"",
+        "lint:fix": "eslint . --fix",
         "test": "vitest",
         "test:run": "vitest --run",
         "test-ui": "vitest --ui",
@@ -32,6 +31,7 @@
         "version:dependencies": "node ./scripts/update-version.js && npm install"
     },
     "devDependencies": {
+        "@stylistic/eslint-plugin": "^4.4.0",
         "@types/node": "~18.19.55",
         "@typescript-eslint/eslint-plugin": "^8.33.0",
         "@vitest/ui": "~2.1.2",
@@ -40,8 +40,9 @@
         "esbuild": "^0.25.0",
         "eslint": "^9.27.0",
         "eslint-plugin-header": "~3.1.1",
+        "eslint-plugin-import": "^2.31.0",
+        "eslint-plugin-unused-imports": "^4.1.4",
         "fs-extra": "^11.2.0",
-        "prettier": "^3.5.3",
         "semver": "^7.7.1",
         "shx": "~0.3.4",
         "typescript": "~5.8.2",

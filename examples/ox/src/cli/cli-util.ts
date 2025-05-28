@@ -4,12 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import type { AstNode, LangiumCoreServices, LangiumDocument } from "langium";
-import chalk from "chalk";
-import * as path from "node:path";
-import * as fs from "node:fs";
-import { URI } from "langium";
-import { LangiumServices } from "langium/lsp";
+import type { AstNode, LangiumCoreServices, LangiumDocument } from 'langium';
+import chalk from 'chalk';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
+import { URI } from 'langium';
+import type { LangiumServices } from 'langium/lsp';
 
 export async function extractDocument(
     fileName: string,
@@ -42,7 +42,7 @@ export async function extractDocument(
         (e) => e.severity === 1,
     );
     if (validationErrors.length > 0) {
-        console.error(chalk.red("There are validation errors:"));
+        console.error(chalk.red('There are validation errors:'));
         for (const validationError of validationErrors) {
             console.error(
                 chalk.red(
@@ -74,10 +74,10 @@ export function extractDestinationAndName(
 ): FilePathData {
     filePath = path
         .basename(filePath, path.extname(filePath))
-        .replace(/[.-]/g, "");
+        .replace(/[.-]/g, '');
     return {
         destination:
-            destination ?? path.join(path.dirname(filePath), "generated"),
+            destination ?? path.join(path.dirname(filePath), 'generated'),
         name: path.basename(filePath),
     };
 }

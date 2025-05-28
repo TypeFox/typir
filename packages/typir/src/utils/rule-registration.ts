@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from "../graph/type-graph.js";
-import { Type } from "../graph/type-node.js";
-import { TypirServices } from "../typir.js";
-import { removeFromArray, toArray, toArrayWithValue } from "./utils.js";
+import type { TypeGraphListener } from '../graph/type-graph.js';
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
+import { removeFromArray, toArray, toArrayWithValue } from './utils.js';
 
 export interface RuleOptions {
     /**
@@ -365,7 +365,7 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
     }
 
     protected getBoundToTypeKey(boundToType?: Type): string {
-        return boundToType?.getIdentifier() ?? "";
+        return boundToType?.getIdentifier() ?? '';
     }
 
     /* Get informed about deleted types in order to remove rules which are bound to them. */
@@ -408,7 +408,7 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
                         );
                     }
                 } else {
-                    throw new Error("Removed type does not exist here");
+                    throw new Error('Removed type does not exist here');
                 }
             }
         }

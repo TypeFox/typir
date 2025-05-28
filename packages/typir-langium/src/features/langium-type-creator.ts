@@ -4,21 +4,19 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
+import type {
     AstNode,
-    AstUtils,
-    DocumentState,
-    interruptAndCheck,
     LangiumDocument,
     LangiumSharedCoreServices,
-} from "langium";
-import { Type, TypeGraph, TypeGraphListener } from "typir";
-import { TypirLangiumServices } from "../typir-langium.js";
+} from 'langium';
+import { AstUtils, DocumentState, interruptAndCheck } from 'langium';
+import type { Type, TypeGraph, TypeGraphListener } from 'typir';
+import type { TypirLangiumServices } from '../typir-langium.js';
+import type { LangiumAstTypes } from '../utils/typir-langium-utils.js';
 import {
     getDocumentKeyForDocument,
     getDocumentKeyForURI,
-    LangiumAstTypes,
-} from "../utils/typir-langium-utils.js";
+} from '../utils/typir-langium-utils.js';
 
 /**
  * This service provides the API to define the actual types, inference rules and validation rules
@@ -58,10 +56,10 @@ export interface LangiumTypeCreator {
 }
 
 export class DefaultLangiumTypeCreator<AstTypes extends LangiumAstTypes>
-    implements LangiumTypeCreator, TypeGraphListener
+implements LangiumTypeCreator, TypeGraphListener
 {
     protected initialized: boolean = false;
-    protected currentDocumentKey: string = "";
+    protected currentDocumentKey: string = '';
     protected readonly documentTypesMap: Map<string, Type[]> = new Map();
     protected readonly typir: TypirLangiumServices<AstTypes>;
     protected readonly typeGraph: TypeGraph;
@@ -129,7 +127,7 @@ export class DefaultLangiumTypeCreator<AstTypes extends LangiumAstTypes>
                 this.typeSystemDefinition.onNewAstNode(node, this.typir),
         );
 
-        this.currentDocumentKey = ""; // reset the key, newly created types will be associated with no document now
+        this.currentDocumentKey = ''; // reset the key, newly created types will be associated with no document now
     }
 
     protected invalidateTypesOfDocument(documentKey: string): void {

@@ -4,13 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
-    ValidationAcceptor,
-    ValidationChecks,
-    ValidationRegistry,
-} from "langium";
-import { LoxAstType, VariableDeclaration } from "./generated/ast.js";
-import type { LoxServices } from "./lox-module.js";
+import type { ValidationAcceptor, ValidationChecks } from 'langium';
+import { ValidationRegistry } from 'langium';
+import type { LoxAstType, VariableDeclaration } from './generated/ast.js';
+import type { LoxServices } from './lox-module.js';
 
 /**
  * Registry for validation checks.
@@ -37,11 +34,11 @@ export class LoxValidator {
     ): void {
         if (!decl.type && !decl.value) {
             accept(
-                "error",
-                "Variables require a type hint or an assignment at creation",
+                'error',
+                'Variables require a type hint or an assignment at creation',
                 {
                     node: decl,
-                    property: "name",
+                    property: 'name',
                 },
             );
         }

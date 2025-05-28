@@ -4,10 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from "../graph/type-node.js";
-import { TypirServices } from "../typir.js";
-import { TypeInitializer } from "./type-initializer.js";
-import { TypeReference } from "./type-reference.js";
+import type { Type } from '../graph/type-node.js';
+import { isType } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
+import { TypeInitializer } from './type-initializer.js';
+import { TypeReference } from './type-reference.js';
 
 // TODO find better names: TypeSpecification, TypeDesignation/Designator, ... ?
 export type BasicTypeSelector<T extends Type, LanguageType> =
@@ -47,7 +48,7 @@ export interface TypeResolvingService<LanguageType> {
 }
 
 export class DefaultTypeResolver<LanguageType>
-    implements TypeResolvingService<LanguageType>
+implements TypeResolvingService<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
 
@@ -61,13 +62,13 @@ export class DefaultTypeResolver<LanguageType>
         if (isType(selector)) {
             // TODO is there a way to explicitly enforce/ensure "as T"?
             return selector as T;
-        } else if (typeof selector === "string") {
+        } else if (typeof selector === 'string') {
             return this.services.infrastructure.Graph.getType(selector) as T;
         } else if (selector instanceof TypeInitializer) {
             return selector.getTypeInitial();
         } else if (selector instanceof TypeReference) {
             return selector.getType();
-        } else if (typeof selector === "function") {
+        } else if (typeof selector === 'function') {
             // execute the function and try to recursively resolve the returned result again
             return this.tryToResolve<T>(
                 (selector as () => BasicTypeSelector<T, LanguageType>).call(
@@ -89,7 +90,7 @@ export class DefaultTypeResolver<LanguageType>
     resolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T {
         if (isType(selector)) {
             return selector as T;
-        } else if (typeof selector === "string") {
+        } else if (typeof selector === 'string') {
             return this.handleError<T>(
                 this.services.infrastructure.Graph.getType(selector) as
                     | T
@@ -104,9 +105,9 @@ export class DefaultTypeResolver<LanguageType>
         } else if (selector instanceof TypeReference) {
             return this.handleError(
                 selector.getType(),
-                "This TypeReference has no resolved type.",
+                'This TypeReference has no resolved type.',
             );
-        } else if (typeof selector === "function") {
+        } else if (typeof selector === 'function') {
             // execute the function and try to recursively resolve the returned result again
             return this.resolve<T>(
                 (selector as () => BasicTypeSelector<T, LanguageType>).call(

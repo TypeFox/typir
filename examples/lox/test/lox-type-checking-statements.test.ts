@@ -4,51 +4,51 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { describe, test } from "vitest";
-import { validateLox } from "./lox-type-checking-utils.js";
+import { describe, test } from 'vitest';
+import { validateLox } from './lox-type-checking-utils.js';
 
-describe("Test type checking for statements and variables in LOX", () => {
-    test("multiple nested and", async () => {
-        await validateLox("var myResult: boolean = true and false;", 0);
+describe('Test type checking for statements and variables in LOX', () => {
+    test('multiple nested and', async () => {
+        await validateLox('var myResult: boolean = true and false;', 0);
         await validateLox(
-            "var myResult: boolean = true and false and true;",
+            'var myResult: boolean = true and false and true;',
             0,
         );
     });
 
-    test("number assignments", async () => {
-        await validateLox("var myResult: number = 2;", 0);
-        await validateLox("var myResult: number = 2 * 3;", 0);
-        await validateLox("var myResult: number = 2 < 3;", 1);
-        await validateLox("var myResult: number = true;", 1);
+    test('number assignments', async () => {
+        await validateLox('var myResult: number = 2;', 0);
+        await validateLox('var myResult: number = 2 * 3;', 0);
+        await validateLox('var myResult: number = 2 < 3;', 1);
+        await validateLox('var myResult: number = true;', 1);
     });
 
-    test("boolean assignments", async () => {
-        await validateLox("var myResult: boolean = true;", 0);
-        await validateLox("var myResult: boolean = 2;", 1);
-        await validateLox("var myResult: boolean = 2 * 3;", 1);
-        await validateLox("var myResult: boolean = 2 < 3;", 0);
+    test('boolean assignments', async () => {
+        await validateLox('var myResult: boolean = true;', 0);
+        await validateLox('var myResult: boolean = 2;', 1);
+        await validateLox('var myResult: boolean = 2 * 3;', 1);
+        await validateLox('var myResult: boolean = 2 < 3;', 0);
     });
 
-    test("statement assignments", async () => {
-        await validateLox("var myResult: boolean; myResult = true;", 0);
-        await validateLox("var myResult: boolean; myResult = 2;", 1);
-        await validateLox("var myResult: boolean; myResult = 2 * 3;", 1);
-        await validateLox("var myResult: boolean; myResult = 2 < 3;", 0);
+    test('statement assignments', async () => {
+        await validateLox('var myResult: boolean; myResult = true;', 0);
+        await validateLox('var myResult: boolean; myResult = 2;', 1);
+        await validateLox('var myResult: boolean; myResult = 2 * 3;', 1);
+        await validateLox('var myResult: boolean; myResult = 2 < 3;', 0);
     });
 
-    test("boolean in conditions", async () => {
-        await validateLox("if ( true ) {}", 0);
-        await validateLox("if ( 3 ) {}", 1);
+    test('boolean in conditions', async () => {
+        await validateLox('if ( true ) {}', 0);
+        await validateLox('if ( 3 ) {}', 1);
     });
 
-    test("variable declarations", async () => {
-        await validateLox("var myVar : boolean;", 0);
-        await validateLox("var myVar : number;", 0);
-        await validateLox("var myVar : void;", 1);
+    test('variable declarations', async () => {
+        await validateLox('var myVar : boolean;', 0);
+        await validateLox('var myVar : number;', 0);
+        await validateLox('var myVar : void;', 1);
     });
 
-    test("Variables without explicit type: assignment", async () => {
+    test('Variables without explicit type: assignment', async () => {
         await validateLox(
             `
             var min = 14;
@@ -59,7 +59,7 @@ describe("Test type checking for statements and variables in LOX", () => {
         );
     });
 
-    test("Variables without explicit type: assign expression to var without type", async () => {
+    test('Variables without explicit type: assign expression to var without type', async () => {
         await validateLox(
             `
             var min = 14;
@@ -70,7 +70,7 @@ describe("Test type checking for statements and variables in LOX", () => {
         );
     });
 
-    test("Variables without explicit type: assign expression to var with type", async () => {
+    test('Variables without explicit type: assign expression to var with type', async () => {
         await validateLox(
             `
             var min = 14;
@@ -81,7 +81,7 @@ describe("Test type checking for statements and variables in LOX", () => {
         );
     });
 
-    test("Variables without explicit type: assign var again with expression of overloaded operator +", async () => {
+    test('Variables without explicit type: assign var again with expression of overloaded operator +', async () => {
         await validateLox(
             `
             var min = 14;
@@ -92,7 +92,7 @@ describe("Test type checking for statements and variables in LOX", () => {
         );
     });
 
-    test("Variables without explicit type: assign var again with expression of overloaded operator -", async () => {
+    test('Variables without explicit type: assign var again with expression of overloaded operator -', async () => {
         await validateLox(
             `
             var min = 14;
@@ -103,7 +103,7 @@ describe("Test type checking for statements and variables in LOX", () => {
         );
     });
 
-    test("Variables without explicit type: assign var again with expression of not overloaded operator *", async () => {
+    test('Variables without explicit type: assign var again with expression of not overloaded operator *', async () => {
         await validateLox(
             `
             var min = 14;
@@ -114,7 +114,7 @@ describe("Test type checking for statements and variables in LOX", () => {
         );
     });
 
-    test("Variables without explicit type: used in function", async () => {
+    test('Variables without explicit type: used in function', async () => {
         await validateLox(
             `
             var min = 14;

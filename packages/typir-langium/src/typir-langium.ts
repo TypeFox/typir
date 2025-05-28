@@ -4,40 +4,39 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
+import type {
     AbstractAstReflection,
     AstNode,
     LangiumDefaultCoreServices,
     LangiumSharedCoreServices,
-} from "langium";
-import {
-    createDefaultTypirServicesModule,
+} from 'langium';
+import type {
     DeepPartial,
-    inject,
     Module,
     PartialTypirServices,
     TypirServices,
-} from "typir";
-import { LangiumLanguageNodeInferenceCaching } from "./features/langium-caching.js";
-import {
-    DefaultLangiumTypeInferenceCollector,
-    LangiumTypeInferenceCollector,
-} from "./features/langium-inference.js";
-import { LangiumLanguageService } from "./features/langium-language.js";
-import { LangiumProblemPrinter } from "./features/langium-printing.js";
-import {
-    DefaultLangiumTypeCreator,
+} from 'typir';
+import { createDefaultTypirServicesModule, inject } from 'typir';
+import { LangiumLanguageNodeInferenceCaching } from './features/langium-caching.js';
+import type { LangiumTypeInferenceCollector } from './features/langium-inference.js';
+import { DefaultLangiumTypeInferenceCollector } from './features/langium-inference.js';
+import { LangiumLanguageService } from './features/langium-language.js';
+import { LangiumProblemPrinter } from './features/langium-printing.js';
+import type {
     LangiumTypeCreator,
     LangiumTypeSystemDefinition,
-} from "./features/langium-type-creator.js";
+} from './features/langium-type-creator.js';
+import { DefaultLangiumTypeCreator } from './features/langium-type-creator.js';
+import type {
+    LangiumTypirValidator,
+    LangiumValidationCollector,
+} from './features/langium-validation.js';
 import {
     DefaultLangiumTypirValidator,
     DefaultLangiumValidationCollector,
-    LangiumTypirValidator,
-    LangiumValidationCollector,
     registerTypirValidationChecks,
-} from "./features/langium-validation.js";
-import { LangiumAstTypes } from "./utils/typir-langium-utils.js";
+} from './features/langium-validation.js';
+import type { LangiumAstTypes } from './utils/typir-langium-utils.js';
 
 /**
  * Additional Typir-Langium services to manage the Typir services
@@ -101,7 +100,7 @@ export function createDefaultTypirLangiumServicesModule<
             TypeCreator: (typirServices) =>
                 new DefaultLangiumTypeCreator(typirServices, langiumServices),
             TypeSystemDefinition: () => {
-                throw new Error("The type system needs to be specified!");
+                throw new Error('The type system needs to be specified!');
             }, // to be replaced later
         },
         validation: {

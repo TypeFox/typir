@@ -4,28 +4,29 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { GraphAlgorithms } from "../graph/graph-algorithms.js";
-import { isTypeEdge, TypeEdge } from "../graph/type-edge.js";
-import { TypeGraph } from "../graph/type-graph.js";
-import { Type } from "../graph/type-node.js";
-import { TypirServices } from "../typir.js";
-import { TypirProblem } from "../utils/utils-definitions.js";
+import type { GraphAlgorithms } from '../graph/graph-algorithms.js';
+import type { TypeEdge } from '../graph/type-edge.js';
+import { isTypeEdge } from '../graph/type-edge.js';
+import type { TypeGraph } from '../graph/type-graph.js';
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
+import type { TypirProblem } from '../utils/utils-definitions.js';
 
 export interface SubTypeProblem extends TypirProblem {
-    $problem: "SubTypeProblem";
-    $result: "SubTypeResult";
+    $problem: 'SubTypeProblem';
+    $result: 'SubTypeResult';
     superType: Type;
     subType: Type;
     result: false;
     subProblems: TypirProblem[]; // might be empty
 }
-export const SubTypeProblem = "SubTypeProblem";
+export const SubTypeProblem = 'SubTypeProblem';
 export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
     return isSubTypeResult(problem) && problem.result === false;
 }
 
 export interface SubTypeSuccess {
-    $result: "SubTypeResult";
+    $result: 'SubTypeResult';
     superType: Type;
     subType: Type;
     result: true;
@@ -36,10 +37,10 @@ export function isSubTypeSuccess(success: unknown): success is SubTypeSuccess {
 }
 
 export type SubTypeResult = SubTypeSuccess | SubTypeProblem;
-export const SubTypeResult = "SubTypeResult";
+export const SubTypeResult = 'SubTypeResult';
 export function isSubTypeResult(result: unknown): result is SubTypeResult {
     return (
-        typeof result === "object" &&
+        typeof result === 'object' &&
         result !== null &&
         (result as SubTypeResult).$result === SubTypeResult
     );
@@ -156,12 +157,12 @@ export class DefaultSubType<LanguageType> implements SubType {
                 $relation: SubTypeEdge,
                 from: subType,
                 to: superType,
-                cachingInformation: "LINK_EXISTS",
+                cachingInformation: 'LINK_EXISTS',
                 error: undefined,
             };
             this.graph.addEdge(edge);
         } else {
-            edge.cachingInformation = "LINK_EXISTS";
+            edge.cachingInformation = 'LINK_EXISTS';
         }
 
         // check for cycles
@@ -181,10 +182,10 @@ export class DefaultSubType<LanguageType> implements SubType {
 }
 
 export interface SubTypeEdge extends TypeEdge {
-    readonly $relation: "SubTypeEdge";
+    readonly $relation: 'SubTypeEdge';
     readonly error: SubTypeProblem | undefined;
 }
-export const SubTypeEdge = "SubTypeEdge";
+export const SubTypeEdge = 'SubTypeEdge';
 
 export function isSubTypeEdge(edge: unknown): edge is SubTypeEdge {
     return isTypeEdge(edge) && edge.$relation === SubTypeEdge;

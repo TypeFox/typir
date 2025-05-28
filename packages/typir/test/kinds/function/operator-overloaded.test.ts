@@ -4,19 +4,21 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { beforeAll, describe, expect, test } from "vitest";
-import { Type } from "../../../src/graph/type-node.js";
-import {
-    isPrimitiveType,
-    PrimitiveType,
-} from "../../../src/kinds/primitive/primitive-type.js";
+import { beforeAll, describe, expect, test } from 'vitest';
+import type { Type } from '../../../src/graph/type-node.js';
+import type { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
+import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import {
     isAssignabilityProblem,
     isAssignabilitySuccess,
-} from "../../../src/services/assignability.js";
-import { ConversionEdge } from "../../../src/services/conversion.js";
-import { InferenceRuleNotApplicable } from "../../../src/services/inference.js";
-import { SubTypeEdge } from "../../../src/services/subtype.js";
+} from '../../../src/services/assignability.js';
+import type { ConversionEdge } from '../../../src/services/conversion.js';
+import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
+import type { SubTypeEdge } from '../../../src/services/subtype.js';
+import type {
+    TestExpressionNode,
+    TestLanguageNode,
+} from '../../../src/test/predefined-language-nodes.js';
 import {
     AssignmentStatement,
     BinaryExpression,
@@ -33,18 +35,16 @@ import {
     string2,
     string3,
     StringLiteral,
-    TestExpressionNode,
-    TestLanguageNode,
     Variable,
-} from "../../../src/test/predefined-language-nodes.js";
-import { TypirServices } from "../../../src/typir.js";
+} from '../../../src/test/predefined-language-nodes.js';
+import type { TypirServices } from '../../../src/typir.js';
 import {
     createTypirServicesForTesting,
     expectToBeType,
-} from "../../../src/utils/test-utils.js";
-import { assertTrue } from "../../../src/utils/utils.js";
+} from '../../../src/utils/test-utils.js';
+import { assertTrue } from '../../../src/utils/utils.js';
 
-describe("Multiple best matches for overloaded operators", () => {
+describe('Multiple best matches for overloaded operators', () => {
     let typir: TypirServices<TestLanguageNode>;
     let integerType: PrimitiveType;
     let doubleType: PrimitiveType;
@@ -56,29 +56,29 @@ describe("Multiple best matches for overloaded operators", () => {
 
         // primitive types
         integerType = typir.factory.Primitives.create({
-            primitiveName: "integer",
+            primitiveName: 'integer',
         })
             .inferenceRule({ filter: (node) => node instanceof IntegerLiteral })
             .finish();
         doubleType = typir.factory.Primitives.create({
-            primitiveName: "double",
+            primitiveName: 'double',
         })
             .inferenceRule({ filter: (node) => node instanceof DoubleLiteral })
             .finish();
         stringType = typir.factory.Primitives.create({
-            primitiveName: "string",
+            primitiveName: 'string',
         })
             .inferenceRule({ filter: (node) => node instanceof StringLiteral })
             .finish();
         booleanType = typir.factory.Primitives.create({
-            primitiveName: "boolean",
+            primitiveName: 'boolean',
         })
             .inferenceRule({ filter: (node) => node instanceof BooleanLiteral })
             .finish();
 
         // operators
         typir.factory.Operators.createBinary({
-            name: "+",
+            name: '+',
             signatures: [
                 // operator overloading
                 { left: integerType, right: integerType, return: integerType }, // 2 + 3 => 5
@@ -94,13 +94,13 @@ describe("Multiple best matches for overloaded operators", () => {
         typir.Conversion.markAsConvertible(
             booleanType,
             integerType,
-            "IMPLICIT_EXPLICIT",
+            'IMPLICIT_EXPLICIT',
         ); // integerVariable := booleanValue;
         typir.Subtype.markAsSubType(integerType, doubleType); // double <|--- integer
         typir.Conversion.markAsConvertible(
             doubleType,
             stringType,
-            "IMPLICIT_EXPLICIT",
+            'IMPLICIT_EXPLICIT',
         ); // stringVariable := doubleValue;
 
         // specify, how Typir can detect the type of a variable
@@ -126,72 +126,72 @@ describe("Multiple best matches for overloaded operators", () => {
         });
     });
 
-    describe("tests all cases for assignability and the checks the found assignability paths", () => {
-        test("integer to integer", () => {
+    describe('tests all cases for assignability and the checks the found assignability paths', () => {
+        test('integer to integer', () => {
             expectAssignmentValid(integerType, integerType);
         });
-        test("double to integer", () => {
+        test('double to integer', () => {
             expectAssignmentError(doubleType, integerType);
         });
-        test("string to integer", () => {
+        test('string to integer', () => {
             expectAssignmentError(stringType, integerType);
         });
-        test("boolean to integer", () => {
-            expectAssignmentValid(booleanType, integerType, "ConversionEdge");
+        test('boolean to integer', () => {
+            expectAssignmentValid(booleanType, integerType, 'ConversionEdge');
         });
 
-        test("integer to double", () => {
-            expectAssignmentValid(integerType, doubleType, "SubTypeEdge");
+        test('integer to double', () => {
+            expectAssignmentValid(integerType, doubleType, 'SubTypeEdge');
         });
-        test("double to double", () => {
+        test('double to double', () => {
             expectAssignmentValid(doubleType, doubleType);
         });
-        test("string to double", () => {
+        test('string to double', () => {
             expectAssignmentError(stringType, doubleType);
         });
-        test("boolean to double", () => {
+        test('boolean to double', () => {
             expectAssignmentValid(
                 booleanType,
                 doubleType,
-                "ConversionEdge",
-                "SubTypeEdge",
+                'ConversionEdge',
+                'SubTypeEdge',
             );
         });
 
-        test("integer to string", () => {
+        test('integer to string', () => {
             expectAssignmentValid(
                 integerType,
                 stringType,
-                "SubTypeEdge",
-                "ConversionEdge",
+                'SubTypeEdge',
+                'ConversionEdge',
             );
         });
-        test("double to string", () => {
-            expectAssignmentValid(doubleType, stringType, "ConversionEdge");
+        test('double to string', () => {
+            expectAssignmentValid(doubleType, stringType, 'ConversionEdge');
         });
-        test("string to string", () => {
+        test('string to string', () => {
             expectAssignmentValid(stringType, stringType);
         });
-        test("boolean to string", () => {
+        test('boolean to string', () => {
             expectAssignmentValid(
                 booleanType,
                 stringType,
-                "ConversionEdge",
-                "SubTypeEdge",
-                "ConversionEdge",
+                'ConversionEdge',
+                'SubTypeEdge',
+                'ConversionEdge',
             );
         });
 
-        test("integer to boolean", () => {
+        test('integer to boolean', () => {
             expectAssignmentError(integerType, booleanType);
         });
-        test("double to boolean", () => {
+        test('double to boolean', () => {
             expectAssignmentError(doubleType, booleanType);
         });
-        test("string to boolean", () => {
+        test('string to boolean', () => {
             expectAssignmentError(stringType, booleanType);
         });
-        test("boolean to boolean", () => {
+        test('boolean to boolean', () => {
             expectAssignmentValid(booleanType, booleanType);
         });
 
@@ -199,7 +199,7 @@ describe("Multiple best matches for overloaded operators", () => {
             sourceType: Type,
             targetType: Type,
             ...expectedPath: Array<
-                SubTypeEdge["$relation"] | ConversionEdge["$relation"]
+                SubTypeEdge['$relation'] | ConversionEdge['$relation']
             >
         ): void {
             // check the resulting assignability path
@@ -210,7 +210,7 @@ describe("Multiple best matches for overloaded operators", () => {
                 );
             assertTrue(isAssignabilitySuccess(assignabilityResult));
             const actualPath = assignabilityResult.path;
-            const msg = `Actual assignability path is ${actualPath.map((e) => e.$relation).join(" --> ")}.`;
+            const msg = `Actual assignability path is ${actualPath.map((e) => e.$relation).join(' --> ')}.`;
             expect(actualPath.length, msg).toBe(expectedPath.length);
             for (let i = 0; i < actualPath.length; i++) {
                 expect(actualPath[i].$relation, msg).toBe(expectedPath[i]);
@@ -239,52 +239,52 @@ describe("Multiple best matches for overloaded operators", () => {
         }
     });
 
-    describe("Test multiple matches for overloaded operators and ensures that the best match is chosen", () => {
-        test("2 + 3 => both are integers", () => {
-            expectOverload(integer2, integer3, "integer");
+    describe('Test multiple matches for overloaded operators and ensures that the best match is chosen', () => {
+        test('2 + 3 => both are integers', () => {
+            expectOverload(integer2, integer3, 'integer');
         });
 
-        test("2.0 + 3.0 => both are doubles", () => {
-            expectOverload(double2_0, double3_0, "double");
+        test('2.0 + 3.0 => both are doubles', () => {
+            expectOverload(double2_0, double3_0, 'double');
         });
 
         test('"2" + "3" => both are strings', () => {
-            expectOverload(string2, string3, "string");
+            expectOverload(string2, string3, 'string');
         });
 
-        test("TRUE + FALSE => both are booleans", () => {
-            expectOverload(booleanTrue, booleanFalse, "boolean");
+        test('TRUE + FALSE => both are booleans', () => {
+            expectOverload(booleanTrue, booleanFalse, 'boolean');
         });
 
-        test("2 + TRUE => convert boolean to integer", () => {
-            expectOverload(integer2, booleanTrue, "integer");
+        test('2 + TRUE => convert boolean to integer', () => {
+            expectOverload(integer2, booleanTrue, 'integer');
         });
 
-        test("2.0 + 3 => integers are doubles", () => {
-            expectOverload(double2_0, integer3, "double");
+        test('2.0 + 3 => integers are doubles', () => {
+            expectOverload(double2_0, integer3, 'double');
         });
 
         test('2.0 + "3" => convert double to string', () => {
-            expectOverload(double2_0, string3, "string");
+            expectOverload(double2_0, string3, 'string');
         });
 
         test('2 + "3" => integer is sub-type of double, which is convertible to string', () => {
-            expectOverload(integer2, string3, "string");
+            expectOverload(integer2, string3, 'string');
         });
 
         function expectOverload(
             left: TestExpressionNode,
             right: TestExpressionNode,
-            typeName: "string" | "integer" | "double" | "boolean",
+            typeName: 'string' | 'integer' | 'double' | 'boolean',
         ): void {
-            const example = new BinaryExpression(left, "+", right);
+            const example = new BinaryExpression(left, '+', right);
             const validationProblems =
                 typir.validation.Collector.validate(example);
             expect(
                 validationProblems,
                 validationProblems
                     .map((p) => typir.Printer.printValidationProblem(p))
-                    .join("\n"),
+                    .join('\n'),
             ).toHaveLength(0);
             const inferredType = typir.Inference.inferType(example);
             expectToBeType(

@@ -4,16 +4,16 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from "../graph/type-graph.js";
-import { Type } from "../graph/type-node.js";
-import {
+import type { TypeGraphListener } from '../graph/type-graph.js';
+import type { Type } from '../graph/type-node.js';
+import type {
     TypeInferenceCollectorListener,
     TypeInferenceRule,
     TypeInferenceRuleOptions,
-} from "../services/inference.js";
-import { TypirServices } from "../typir.js";
-import { removeFromArray } from "../utils/utils.js";
-import { TypeSelector } from "./type-selector.js";
+} from '../services/inference.js';
+import type { TypirServices } from '../typir.js';
+import { removeFromArray } from '../utils/utils.js';
+import type { TypeSelector } from './type-selector.js';
 
 /**
  * A listener for TypeReferences, who will be informed about the resolved/found type of the current TypeReference.
@@ -54,7 +54,7 @@ export interface TypeReferenceListener<T extends Type, LanguageType = unknown> {
  * Once the type is resolved, listeners are notified about this and all following changes of its state.
  */
 export class TypeReference<T extends Type, LanguageType = unknown>
-    implements TypeGraphListener, TypeInferenceCollectorListener<LanguageType>
+implements TypeGraphListener, TypeInferenceCollectorListener<LanguageType>
 {
     protected readonly selector: TypeSelector<T, LanguageType>;
     protected readonly services: TypirServices<LanguageType>;
@@ -110,12 +110,12 @@ export class TypeReference<T extends Type, LanguageType = unknown>
      * @returns the result of the currently executed resolution
      */
     protected resolve():
-        | "ALREADY_RESOLVED"
-        | "SUCCESSFULLY_RESOLVED"
-        | "RESOLVING_FAILED" {
+        | 'ALREADY_RESOLVED'
+        | 'SUCCESSFULLY_RESOLVED'
+        | 'RESOLVING_FAILED' {
         if (this.resolvedType) {
             // the type is already resolved => nothing to do
-            return "ALREADY_RESOLVED";
+            return 'ALREADY_RESOLVED';
         }
 
         // try to resolve the type
@@ -134,10 +134,10 @@ export class TypeReference<T extends Type, LanguageType = unknown>
                 .forEach((listener) =>
                     listener.onTypeReferenceResolved(this, resolvedType),
                 );
-            return "SUCCESSFULLY_RESOLVED";
+            return 'SUCCESSFULLY_RESOLVED';
         } else {
             // the type is not resolved (yet)
-            return "RESOLVING_FAILED";
+            return 'RESOLVING_FAILED';
         }
     }
 

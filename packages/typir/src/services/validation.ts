@@ -4,26 +4,23 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, isType } from "../graph/type-node.js";
-import { TypirServices } from "../typir.js";
-import {
+import type { Type } from '../graph/type-node.js';
+import { isType } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
+import type {
     RuleCollectorListener,
     RuleOptions,
-    RuleRegistry,
-} from "../utils/rule-registration.js";
-import {
-    TypirProblem,
-    isSpecificTypirProblem,
-} from "../utils/utils-definitions.js";
-import {
-    TypeCheckStrategy,
-    createTypeCheckStrategy,
-} from "../utils/utils-type-comparison.js";
-import { removeFromArray, toArray } from "../utils/utils.js";
-import { TypeInferenceCollector } from "./inference.js";
-import { ProblemPrinter } from "./printing.js";
+} from '../utils/rule-registration.js';
+import { RuleRegistry } from '../utils/rule-registration.js';
+import type { TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem } from '../utils/utils-definitions.js';
+import type { TypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
+import { removeFromArray, toArray } from '../utils/utils.js';
+import type { TypeInferenceCollector } from './inference.js';
+import type { ProblemPrinter } from './printing.js';
 
-export type Severity = "error" | "warning" | "info" | "hint";
+export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
 export interface ValidationMessageDetails<
     LanguageType,
@@ -40,11 +37,11 @@ export interface ValidationProblem<
     LanguageType,
     T extends LanguageType = LanguageType,
 > extends ValidationMessageDetails<LanguageType, T>,
-        TypirProblem {
-    $problem: "ValidationProblem";
+    TypirProblem {
+    $problem: 'ValidationProblem';
     subProblems?: TypirProblem[];
 }
-export const ValidationProblem = "ValidationProblem";
+export const ValidationProblem = 'ValidationProblem';
 export function isValidationProblem<
     LanguageType,
     T extends LanguageType = LanguageType,
@@ -56,7 +53,7 @@ export function isValidationProblem<
 export type ReducedValidationProblem<
     LanguageType,
     T extends LanguageType = LanguageType,
-> = Omit<ValidationProblem<LanguageType, T>, "$problem">;
+> = Omit<ValidationProblem<LanguageType, T>, '$problem'>;
 
 export type ValidationProblemAcceptor<LanguageType> = <
     T extends LanguageType = LanguageType,
@@ -169,7 +166,7 @@ export interface ValidationConstraints<LanguageType> {
 }
 
 export class DefaultValidationConstraints<LanguageType>
-    implements ValidationConstraints<LanguageType>
+implements ValidationConstraints<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly inference: TypeInferenceCollector<LanguageType>;
@@ -194,7 +191,7 @@ export class DefaultValidationConstraints<LanguageType>
         this.ensureNodeRelatedWithType(
             sourceNode,
             expected,
-            "ASSIGNABLE_TYPE",
+            'ASSIGNABLE_TYPE',
             false,
             accept,
             message,
@@ -214,7 +211,7 @@ export class DefaultValidationConstraints<LanguageType>
         this.ensureNodeRelatedWithType(
             sourceNode,
             expected,
-            "EQUAL_TYPE",
+            'EQUAL_TYPE',
             false,
             accept,
             message,
@@ -234,7 +231,7 @@ export class DefaultValidationConstraints<LanguageType>
         this.ensureNodeRelatedWithType(
             sourceNode,
             notExpected,
-            "EQUAL_TYPE",
+            'EQUAL_TYPE',
             true,
             accept,
             message,
@@ -281,10 +278,10 @@ export class DefaultValidationConstraints<LanguageType>
                             languageNode: details.languageNode ?? languageNode,
                             languageProperty: details.languageProperty,
                             languageIndex: details.languageIndex,
-                            severity: details.severity ?? "error",
+                            severity: details.severity ?? 'error',
                             message:
                                 details.message ??
-                                `'${actualType.getIdentifier()}' is ${negated ? "" : "not "}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
+                                `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
                             subProblems: [comparisonResult],
                         });
                     }
@@ -298,10 +295,10 @@ export class DefaultValidationConstraints<LanguageType>
                             languageNode: details.languageNode ?? languageNode,
                             languageProperty: details.languageProperty,
                             languageIndex: details.languageIndex,
-                            severity: details.severity ?? "error",
+                            severity: details.severity ?? 'error',
                             message:
                                 details.message ??
-                                `'${actualType.getIdentifier()}' is ${negated ? "" : "not "}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
+                                `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
                             subProblems: [], // no sub-problems are available!
                         });
                     } else {
@@ -373,7 +370,7 @@ export interface ValidationCollector<LanguageType> {
 }
 
 export class DefaultValidationCollector<LanguageType>
-    implements
+implements
         ValidationCollector<LanguageType>,
         RuleCollectorListener<ValidationRule<LanguageType>>
 {
@@ -508,7 +505,7 @@ export class DefaultValidationCollector<LanguageType>
         rule: ValidationRule<LanguageType, InputType>,
         givenOptions?: Partial<ValidationRuleOptions>,
     ): void {
-        if (typeof rule === "function") {
+        if (typeof rule === 'function') {
             this.ruleRegistryFunctional.addRule(
                 rule as ValidationRuleFunctional<LanguageType>,
                 givenOptions,
@@ -525,7 +522,7 @@ export class DefaultValidationCollector<LanguageType>
         rule: ValidationRule<LanguageType, InputType>,
         givenOptions?: Partial<ValidationRuleOptions>,
     ): void {
-        if (typeof rule === "function") {
+        if (typeof rule === 'function') {
             this.ruleRegistryFunctional.removeRule(
                 rule as ValidationRuleFunctional<LanguageType>,
                 givenOptions,

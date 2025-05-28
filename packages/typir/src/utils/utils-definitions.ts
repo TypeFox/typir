@@ -4,20 +4,21 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from "../graph/type-node.js";
-import { TypeInitializer } from "../initialization/type-initializer.js";
-import {
-    InferenceRuleNotApplicable,
+import type { Type } from '../graph/type-node.js';
+import { isType } from '../graph/type-node.js';
+import type { TypeInitializer } from '../initialization/type-initializer.js';
+import type {
     TypeInferenceRule,
     TypeInferenceRuleOptions,
-} from "../services/inference.js";
-import {
+} from '../services/inference.js';
+import { InferenceRuleNotApplicable } from '../services/inference.js';
+import type {
     ValidationProblemAcceptor,
     ValidationRule,
     ValidationRuleOptions,
-} from "../services/validation.js";
-import { TypirServices } from "../typir.js";
-import { toArray } from "./utils.js";
+} from '../services/validation.js';
+import type { TypirServices } from '../typir.js';
+import { toArray } from './utils.js';
 
 /**
  * Common interface of all problems/errors/messages which should be shown to users of DSLs which are type-checked with Typir.
@@ -31,7 +32,7 @@ export function isSpecificTypirProblem(
     $problem: string,
 ): problem is TypirProblem {
     return (
-        typeof problem === "object" &&
+        typeof problem === 'object' &&
         problem !== null &&
         (problem as TypirProblem).$problem === $problem
     );
@@ -49,9 +50,9 @@ export type NameTypePair = {
 };
 export function isNameTypePair(type: unknown): type is NameTypePair {
     return (
-        typeof type === "object" &&
+        typeof type === 'object' &&
         type !== null &&
-        typeof (type as NameTypePair).name === "string" &&
+        typeof (type as NameTypePair).name === 'string' &&
         isType((type as NameTypePair).type)
     );
 }
@@ -121,7 +122,7 @@ export interface RegistrationOptions {
      * 'MYSELF' indicates, that the caller is responsible to register the validation rule,
      * otherwise the given options are used to register the return validation rule now.
      */
-    registration: "MYSELF" | Partial<ValidationRuleOptions>;
+    registration: 'MYSELF' | Partial<ValidationRuleOptions>;
 }
 
 //

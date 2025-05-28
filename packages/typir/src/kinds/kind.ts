@@ -30,8 +30,8 @@ export interface Kind {
 
 export function isKind(kind: unknown): kind is Kind {
     return (
-        typeof kind === "object" &&
+        typeof kind === 'object' &&
         kind !== null &&
-        typeof (kind as Kind).$name === "string"
+        typeof (kind as Kind).$name === 'string'
     );
 }

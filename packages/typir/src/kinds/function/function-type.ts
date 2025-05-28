@@ -4,23 +4,23 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, isType } from "../../graph/type-node.js";
-import { TypeReference } from "../../initialization/type-reference.js";
-import { TypeEqualityProblem } from "../../services/equality.js";
-import { NameTypePair, TypirProblem } from "../../utils/utils-definitions.js";
+import { Type, isType } from '../../graph/type-node.js';
+import { TypeReference } from '../../initialization/type-reference.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import type {
+    NameTypePair,
+    TypirProblem,
+} from '../../utils/utils-definitions.js';
 import {
     checkTypeArrays,
     checkTypes,
     checkValueForConflict,
     createKindConflict,
     createTypeCheckStrategy,
-} from "../../utils/utils-type-comparison.js";
-import { assertTrue, assertUnreachable } from "../../utils/utils.js";
-import {
-    FunctionKind,
-    FunctionTypeDetails,
-    isFunctionKind,
-} from "./function-kind.js";
+} from '../../utils/utils-type-comparison.js';
+import { assertTrue, assertUnreachable } from '../../utils/utils.js';
+import type { FunctionKind, FunctionTypeDetails } from './function-kind.js';
+import { isFunctionKind } from './function-kind.js';
 
 export interface ParameterDetails {
     name: string;
@@ -45,9 +45,9 @@ export class FunctionType extends Type {
         // output parameter
         const outputType = typeDetails.outputParameter
             ? new TypeReference(
-                  typeDetails.outputParameter.type,
-                  this.kind.services,
-              )
+                typeDetails.outputParameter.type,
+                this.kind.services,
+            )
             : undefined;
         if (typeDetails.outputParameter) {
             assertTrue(outputType !== undefined);
@@ -111,7 +111,7 @@ export class FunctionType extends Type {
         const inputs = this.getInputs();
         const inputsString = inputs
             .map((input) => this.kind.getParameterRepresentation(input))
-            .join(", ");
+            .join(', ');
         // output
         const output = this.getOutput();
         const outputString = output
@@ -121,10 +121,10 @@ export class FunctionType extends Type {
             : undefined;
         // complete signature
         if (this.kind.hasFunctionName(simpleFunctionName)) {
-            const outputValue = outputString ? `: ${outputString}` : "";
+            const outputValue = outputString ? `: ${outputString}` : '';
             return `${simpleFunctionName}(${inputsString})${outputValue}`;
         } else {
-            return `(${inputsString}) => ${outputString ?? "()"}`;
+            return `(${inputsString}) => ${outputString ?? '()'}`;
         }
     }
 
@@ -137,7 +137,7 @@ export class FunctionType extends Type {
                     ...checkValueForConflict(
                         this.getSimpleFunctionName(),
                         otherType.getSimpleFunctionName(),
-                        "simple name",
+                        'simple name',
                     ),
                 );
             }
@@ -215,7 +215,7 @@ export class FunctionType extends Type {
     }
 
     getOutput(
-        notResolvedBehavior: "EXCEPTION" | "RETURN_UNDEFINED" = "EXCEPTION",
+        notResolvedBehavior: 'EXCEPTION' | 'RETURN_UNDEFINED' = 'EXCEPTION',
     ): NameTypePair | undefined {
         if (this.outputParameter) {
             const type = this.outputParameter.type.getType();
@@ -226,11 +226,11 @@ export class FunctionType extends Type {
                 };
             } else {
                 switch (notResolvedBehavior) {
-                    case "EXCEPTION":
+                    case 'EXCEPTION':
                         throw new Error(
                             `Output parameter ${this.outputParameter.name} is not resolved.`,
                         );
-                    case "RETURN_UNDEFINED":
+                    case 'RETURN_UNDEFINED':
                         return undefined;
                     default:
                         assertUnreachable(notResolvedBehavior);

@@ -4,19 +4,20 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeReference } from "../initialization/type-reference.js";
+import type { TypeReference } from '../initialization/type-reference.js';
 import {
     WaitingForIdentifiableAndCompletedTypeReferences,
     WaitingForInvalidTypeReferences,
-} from "../initialization/type-waiting.js";
-import { Kind, isKind } from "../kinds/kind.js";
-import { TypirProblem } from "../utils/utils-definitions.js";
+} from '../initialization/type-waiting.js';
+import type { Kind } from '../kinds/kind.js';
+import { isKind } from '../kinds/kind.js';
+import type { TypirProblem } from '../utils/utils-definitions.js';
 import {
     assertTrue,
     assertUnreachable,
     removeFromArray,
-} from "../utils/utils.js";
-import { TypeEdge } from "./type-edge.js";
+} from '../utils/utils.js';
+import type { TypeEdge } from './type-edge.js';
 
 /**
  * The transitions between the states of a type are depicted as state machine:
@@ -33,7 +34,7 @@ stateDiagram-v2
  * A state is 'Invalid' otherwise.
  * 'Invalid' is made explicit, since it might require less dependencies than 'Completed' and therefore speed-ups the resolution of dependencies.
  */
-export type TypeInitializationState = "Invalid" | "Identifiable" | "Completed";
+export type TypeInitializationState = 'Invalid' | 'Identifiable' | 'Completed';
 
 export interface PreconditionsForInitializationState {
     referencesToBeIdentifiable?: Array<TypeReference<Type>>; // or later/more
@@ -117,7 +118,7 @@ export abstract class Type {
 
     // store the state of the initialization process of this type
 
-    protected initializationState: TypeInitializationState = "Invalid";
+    protected initializationState: TypeInitializationState = 'Invalid';
 
     getInitializationState(): TypeInitializationState {
         return this.initializationState;
@@ -153,12 +154,12 @@ export abstract class Type {
     }
     isInStateOrLater(state: TypeInitializationState): boolean {
         switch (state) {
-            case "Invalid":
+            case 'Invalid':
                 return true;
-            case "Identifiable":
-                return this.initializationState !== "Invalid";
-            case "Completed":
-                return this.initializationState === "Completed";
+            case 'Identifiable':
+                return this.initializationState !== 'Invalid';
+            case 'Completed':
+                return this.initializationState === 'Completed';
             default:
                 assertUnreachable(state);
         }
@@ -176,13 +177,13 @@ export abstract class Type {
         if (informIfNotInvalidAnymore) {
             const currentState = this.getInitializationState();
             switch (currentState) {
-                case "Invalid":
+                case 'Invalid':
                     // don't inform about the Invalid state!
                     break;
-                case "Identifiable":
+                case 'Identifiable':
                     newListeners.onSwitchedToIdentifiable(this);
                     break;
-                case "Completed":
+                case 'Completed':
                     newListeners.onSwitchedToIdentifiable(this); // inform about both Identifiable and Completed!
                     newListeners.onSwitchedToCompleted(this);
                     break;
@@ -323,27 +324,27 @@ export abstract class Type {
     }
 
     protected switchFromInvalidToIdentifiable(): void {
-        this.assertState("Invalid");
+        this.assertState('Invalid');
         this.onIdentification();
-        this.initializationState = "Identifiable";
+        this.initializationState = 'Identifiable';
         this.stateListeners
             .slice()
             .forEach((listener) => listener.onSwitchedToIdentifiable(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromIdentifiableToCompleted(): void {
-        this.assertState("Identifiable");
+        this.assertState('Identifiable');
         this.onCompletion();
-        this.initializationState = "Completed";
+        this.initializationState = 'Completed';
         this.stateListeners
             .slice()
             .forEach((listener) => listener.onSwitchedToCompleted(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromCompleteOrIdentifiableToInvalid(): void {
-        if (this.isNotInState("Invalid")) {
+        if (this.isNotInState('Invalid')) {
             this.onInvalidation();
-            this.initializationState = "Invalid";
+            this.initializationState = 'Invalid';
             this.stateListeners
                 .slice()
                 .forEach((listener) => listener.onSwitchedToInvalid(this)); // slice() prevents issues with removal of listeners during notifications
@@ -411,13 +412,13 @@ export abstract class Type {
         return false;
     }
 
-    getIncomingEdges<T extends TypeEdge>($relation: T["$relation"]): T[] {
+    getIncomingEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
         return (this.edgesIncoming.get($relation) as T[]) ?? [];
     }
-    getOutgoingEdges<T extends TypeEdge>($relation: T["$relation"]): T[] {
+    getOutgoingEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
         return (this.edgesOutgoing.get($relation) as T[]) ?? [];
     }
-    getEdges<T extends TypeEdge>($relation: T["$relation"]): T[] {
+    getEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
         return [
             ...this.getIncomingEdges($relation),
             ...this.getOutgoingEdges($relation),
@@ -437,9 +438,9 @@ export abstract class Type {
 
 export function isType(type: unknown): type is Type {
     return (
-        typeof type === "object" &&
+        typeof type === 'object' &&
         type !== null &&
-        typeof (type as Type).getIdentifier === "function" &&
+        typeof (type as Type).getIdentifier === 'function' &&
         isKind((type as Type).kind)
     );
 }

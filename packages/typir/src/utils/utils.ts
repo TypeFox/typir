@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from "../graph/type-node.js";
-import { Kind } from "../kinds/kind.js";
+import type { Type } from '../graph/type-node.js';
+import type { Kind } from '../kinds/kind.js';
 
 export function assertTrue(
     condition: boolean,
@@ -63,7 +63,7 @@ export function removeFromArray<T>(
 }
 
 export function assertUnreachable(_: never): never {
-    throw new Error("Error! The input value was not handled.");
+    throw new Error('Error! The input value was not handled.');
 }
 
 export function assertKind<T extends Kind>(

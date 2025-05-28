@@ -4,30 +4,29 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from "langium";
-import { isType, Type } from "../graph/type-node.js";
-import { TypirServices } from "../typir.js";
-import {
+import { assertUnreachable } from 'langium';
+import type { Type } from '../graph/type-node.js';
+import { isType } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
+import type {
     RuleCollectorListener,
     RuleOptions,
-    RuleRegistry,
-} from "../utils/rule-registration.js";
-import {
-    isSpecificTypirProblem,
-    TypirProblem,
-} from "../utils/utils-definitions.js";
-import { removeFromArray, toArray } from "../utils/utils.js";
-import { LanguageNodeInferenceCaching } from "./caching.js";
+} from '../utils/rule-registration.js';
+import { RuleRegistry } from '../utils/rule-registration.js';
+import type { TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem } from '../utils/utils-definitions.js';
+import { removeFromArray, toArray } from '../utils/utils.js';
+import type { LanguageNodeInferenceCaching } from './caching.js';
 
 export interface InferenceProblem<LanguageType> extends TypirProblem {
-    $problem: "InferenceProblem";
+    $problem: 'InferenceProblem';
     languageNode: LanguageType;
     inferenceCandidate?: Type;
     location: string;
     rule?: TypeInferenceRule<LanguageType>; // for debugging only, since rules have no names (so far); TODO this does not really work with TypeInferenceRuleWithoutInferringChildren
     subProblems: TypirProblem[]; // might be missing or empty
 }
-export const InferenceProblem = "InferenceProblem";
+export const InferenceProblem = 'InferenceProblem';
 export function isInferenceProblem<LanguageType>(
     problem: unknown,
 ): problem is InferenceProblem<LanguageType> {
@@ -35,8 +34,8 @@ export function isInferenceProblem<LanguageType>(
 }
 
 // Type and Value to indicate, that an inference rule is intended for another case, and therefore is unable to infer a type for the current case.
-export type InferenceRuleNotApplicable = "N/A"; // or 'undefined' instead?
-export const InferenceRuleNotApplicable = "N/A"; // or 'undefined' instead?
+export type InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
+export const InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 
 export type TypeInferenceResultWithoutInferringChildren<LanguageType> =
     /** the identified type */
@@ -177,7 +176,7 @@ export interface TypeInferenceCollector<LanguageType> {
 }
 
 export class DefaultTypeInferenceCollector<LanguageType>
-    implements
+implements
         TypeInferenceCollector<LanguageType>,
         RuleCollectorListener<TypeInferenceRule<LanguageType>>
 {
@@ -273,7 +272,7 @@ export class DefaultTypeInferenceCollector<LanguageType>
 
     protected checkForError(languageNode: LanguageType): void {
         if (languageNode === undefined || languageNode === null) {
-            throw new Error("Language node must be not undefined/null!");
+            throw new Error('Language node must be not undefined/null!');
         }
     }
 
@@ -326,7 +325,7 @@ export class DefaultTypeInferenceCollector<LanguageType>
             collectedInferenceProblems.push({
                 $problem: InferenceProblem,
                 languageNode: languageNode,
-                location: "found no applicable inference rules",
+                location: 'found no applicable inference rules',
                 subProblems: [],
             });
         }
@@ -338,7 +337,7 @@ export class DefaultTypeInferenceCollector<LanguageType>
         languageNode: LanguageType,
         collectedInferenceProblems: Array<InferenceProblem<LanguageType>>,
     ): Type | undefined {
-        if (typeof rule === "function") {
+        if (typeof rule === 'function') {
             // simple case without type inference for children
             const ruleResult: TypeInferenceResultWithoutInferringChildren<LanguageType> =
                 rule(languageNode, this.services);
@@ -346,7 +345,7 @@ export class DefaultTypeInferenceCollector<LanguageType>
                 ruleResult,
                 collectedInferenceProblems,
             );
-        } else if (typeof rule === "object") {
+        } else if (typeof rule === 'object') {
             // more complex case with inferring the type for children
             const ruleResult: TypeInferenceResultWithInferringChildren<LanguageType> =
                 rule.inferTypeWithoutChildren(languageNode, this.services);
@@ -378,7 +377,7 @@ export class DefaultTypeInferenceCollector<LanguageType>
                     collectedInferenceProblems.push({
                         $problem: InferenceProblem,
                         languageNode: languageNode,
-                        location: "inferring depending children",
+                        location: 'inferring depending children',
                         rule,
                         subProblems: childTypeProblems,
                     });
@@ -546,7 +545,7 @@ export class CompositeTypeInferenceRule<LanguageType>
                 return <InferenceProblem<LanguageType>>{
                     $problem: InferenceProblem,
                     languageNode: languageNode,
-                    location: "sub-rules for inference",
+                    location: 'sub-rules for inference',
                     rule: this,
                     subProblems: result,
                 };
@@ -559,7 +558,7 @@ export class CompositeTypeInferenceRule<LanguageType>
         _childrenTypes: Array<Type | undefined>,
         _typir: TypirServices<LanguageType>,
     ): Type | InferenceProblem<LanguageType> {
-        throw new Error("This function will not be called.");
+        throw new Error('This function will not be called.');
     }
 
     override onAddedRule(

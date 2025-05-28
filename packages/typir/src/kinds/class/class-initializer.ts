@@ -4,33 +4,36 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type, TypeStateListener } from "../../graph/type-node.js";
-import { TypeInitializer } from "../../initialization/type-initializer.js";
+import type { Type, TypeStateListener } from '../../graph/type-node.js';
+import { isType } from '../../graph/type-node.js';
+import { TypeInitializer } from '../../initialization/type-initializer.js';
+import type { TypeInferenceRule } from '../../services/inference.js';
 import {
     InferenceProblem,
     InferenceRuleNotApplicable,
-    TypeInferenceRule,
-} from "../../services/inference.js";
-import { TypirServices } from "../../typir.js";
+} from '../../services/inference.js';
+import type { TypirServices } from '../../typir.js';
+import type {
+    InferenceRuleWithOptions,
+    ValidationRuleWithOptions,
+} from '../../utils/utils-definitions.js';
 import {
     bindInferCurrentTypeRule,
     bindValidateCurrentTypeRule,
-    InferenceRuleWithOptions,
     optionsBoundToType,
-    ValidationRuleWithOptions,
-} from "../../utils/utils-definitions.js";
+} from '../../utils/utils-definitions.js';
 import {
     checkNameTypesMap,
     createTypeCheckStrategy,
     MapListConverter,
-} from "../../utils/utils-type-comparison.js";
-import { assertTypirType, toArray } from "../../utils/utils.js";
-import {
+} from '../../utils/utils-type-comparison.js';
+import { assertTypirType, toArray } from '../../utils/utils.js';
+import type {
     ClassKind,
     CreateClassTypeDetails,
     InferClassLiteral,
-} from "./class-kind.js";
-import { ClassType, isClassType } from "./class-type.js";
+} from './class-kind.js';
+import { ClassType, isClassType } from './class-type.js';
 
 export class ClassTypeInitializer<LanguageType>
     extends TypeInitializer<ClassType, LanguageType>
@@ -58,7 +61,7 @@ export class ClassTypeInitializer<LanguageType>
             kind as ClassKind<unknown>,
             typeDetails as CreateClassTypeDetails<unknown>,
         );
-        if (kind.options.typing === "Structural") {
+        if (kind.options.typing === 'Structural') {
             // register structural classes also by their names, since these names are usually used for reference in the DSL/AST!
             this.services.infrastructure.Graph.addNode(
                 this.initialClassType,
@@ -101,7 +104,7 @@ export class ClassTypeInitializer<LanguageType>
             // the class type changed, since the same type was already created earlier and is reused here (this is a special case) => skip the classType!
             classType.removeListener(this); // since this ClassTypeInitializer initialized the invalid type, there is nothing to do anymore here!
 
-            if (this.kind.options.typing === "Structural") {
+            if (this.kind.options.typing === 'Structural') {
                 // replace the type in the type graph
                 const nameBasedIdentifier =
                     this.kind.calculateIdentifierWithClassNameOnly(
@@ -268,7 +271,7 @@ export class ClassTypeInitializer<LanguageType>
                         inferenceRulesForFieldAccess.field(languageNode);
                     if (result === InferenceRuleNotApplicable) {
                         return InferenceRuleNotApplicable;
-                    } else if (typeof result === "string") {
+                    } else if (typeof result === 'string') {
                         // get the type of the given field name
                         const fieldType = classType.getFields(true).get(result);
                         if (fieldType) {
@@ -321,7 +324,7 @@ export class ClassTypeInitializer<LanguageType>
                             return;
                         }
                         const fieldType =
-                            typeof field === "string"
+                            typeof field === 'string'
                                 ? classType.getFields(true).get(field)
                                 : typir.Inference.inferType(field);
                         if (isType(fieldType) === false) {
@@ -396,7 +399,7 @@ export class ClassTypeInitializer<LanguageType>
                             $problem: InferenceProblem,
                             languageNode: languageNode,
                             inferenceCandidate: classType,
-                            location: "values for fields",
+                            location: 'values for fields',
                             rule: this as unknown as TypeInferenceRule<LanguageType>,
                             subProblems: checkedFieldsProblems,
                         };

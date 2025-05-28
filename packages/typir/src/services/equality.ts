@@ -4,23 +4,25 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from "langium";
-import { Type } from "../graph/type-node.js";
-import { TypirServices } from "../typir.js";
-import {
-    isSpecificTypirProblem,
-    TypirProblem,
-} from "../utils/utils-definitions.js";
-import { EdgeCachingInformation, TypeRelationshipCaching } from "./caching.js";
-import { TypeEdge, isTypeEdge } from "../graph/type-edge.js";
+import { assertUnreachable } from 'langium';
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
+import type { TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem } from '../utils/utils-definitions.js';
+import type {
+    EdgeCachingInformation,
+    TypeRelationshipCaching,
+} from './caching.js';
+import type { TypeEdge } from '../graph/type-edge.js';
+import { isTypeEdge } from '../graph/type-edge.js';
 
 export interface TypeEqualityProblem extends TypirProblem {
-    $problem: "TypeEqualityProblem";
+    $problem: 'TypeEqualityProblem';
     type1: Type;
     type2: Type;
     subProblems: TypirProblem[]; // might be empty
 }
-export const TypeEqualityProblem = "TypeEqualityProblem";
+export const TypeEqualityProblem = 'TypeEqualityProblem';
 export function isTypeEqualityProblem(
     problem: unknown,
 ): problem is TypeEqualityProblem {
@@ -62,7 +64,7 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
             type2,
             EqualityEdge,
         );
-        const equalityCaching = linkData?.cachingInformation ?? "UNKNOWN";
+        const equalityCaching = linkData?.cachingInformation ?? 'UNKNOWN';
 
         function save(
             equalityCaching: EdgeCachingInformation,
@@ -72,7 +74,7 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
                 $relation: EqualityEdge,
                 from: type1,
                 to: type2,
-                cachingInformation: "LINK_EXISTS",
+                cachingInformation: 'LINK_EXISTS',
                 error,
             };
             cache.setOrUpdateBidirectionalRelationship(
@@ -82,7 +84,7 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
         }
 
         // skip recursive checking
-        if (equalityCaching === "PENDING") {
+        if (equalityCaching === 'PENDING') {
             /** 'undefined' should be correct here ...
              * - since this relationship will be checked earlier/higher/upper in the call stack again
              * - since this values is not cached and therefore NOT reused in the earlier call! */
@@ -90,10 +92,10 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
         }
 
         // the result is already known
-        if (equalityCaching === "LINK_EXISTS") {
+        if (equalityCaching === 'LINK_EXISTS') {
             return undefined;
         }
-        if (equalityCaching === "NO_LINK") {
+        if (equalityCaching === 'NO_LINK') {
             return {
                 $problem: TypeEqualityProblem,
                 type1,
@@ -103,18 +105,18 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
         }
 
         // do the expensive calculation now
-        if (equalityCaching === "UNKNOWN") {
+        if (equalityCaching === 'UNKNOWN') {
             // mark the current relationship as PENDING to detect and resolve cycling checks
-            save("PENDING", undefined);
+            save('PENDING', undefined);
 
             // do the actual calculation
             const result = this.calculateEquality(type1, type2);
 
             // this allows to cache results (and to re-set the PENDING state)
             if (result === undefined) {
-                save("LINK_EXISTS", undefined);
+                save('LINK_EXISTS', undefined);
             } else {
-                save("NO_LINK", result);
+                save('NO_LINK', result);
             }
             return result;
         }
@@ -155,10 +157,10 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
 }
 
 export interface EqualityEdge extends TypeEdge {
-    readonly $relation: "EqualityEdge";
+    readonly $relation: 'EqualityEdge';
     readonly error: TypeEqualityProblem | undefined;
 }
-export const EqualityEdge = "EqualityEdge";
+export const EqualityEdge = 'EqualityEdge';
 
 export function isEqualityEdge(edge: unknown): edge is EqualityEdge {
     return isTypeEdge(edge) && edge.$relation === EqualityEdge;

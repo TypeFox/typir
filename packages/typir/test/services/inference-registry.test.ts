@@ -4,31 +4,34 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { beforeEach, describe, expect, test } from "vitest";
-import { isType, Type } from "../../src/graph/type-node.js";
-import { PrimitiveType } from "../../src/kinds/primitive/primitive-type.js";
+import { beforeEach, describe, expect, test } from 'vitest';
+import type { Type } from '../../src/graph/type-node.js';
+import { isType } from '../../src/graph/type-node.js';
+import type { PrimitiveType } from '../../src/kinds/primitive/primitive-type.js';
+import type {
+    TypeInferenceRule,
+    TypeInferenceRuleWithoutInferringChildren,
+} from '../../src/services/inference.js';
 import {
     CompositeTypeInferenceRule,
     DefaultTypeInferenceCollector,
     InferenceProblem,
     InferenceRuleNotApplicable,
-    TypeInferenceRule,
-    TypeInferenceRuleWithoutInferringChildren,
-} from "../../src/services/inference.js";
-import { ValidationRuleOptions } from "../../src/services/validation.js";
+} from '../../src/services/inference.js';
+import type { ValidationRuleOptions } from '../../src/services/validation.js';
+import type { TestLanguageNode } from '../../src/test/predefined-language-nodes.js';
 import {
     booleanFalse,
     integer123,
     IntegerLiteral,
     stringHello,
     StringLiteral,
-    TestLanguageNode,
-} from "../../src/test/predefined-language-nodes.js";
-import { TypirServices } from "../../src/typir.js";
-import { RuleRegistry } from "../../src/utils/rule-registration.js";
-import { createTypirServicesForTesting } from "../../src/utils/test-utils.js";
+} from '../../src/test/predefined-language-nodes.js';
+import type { TypirServices } from '../../src/typir.js';
+import type { RuleRegistry } from '../../src/utils/rule-registration.js';
+import { createTypirServicesForTesting } from '../../src/utils/test-utils.js';
 
-describe("Tests the logic for registering rules (applied to inference rules)", () => {
+describe('Tests the logic for registering rules (applied to inference rules)', () => {
     let typir: TypirServices<TestLanguageNode>;
     let integerType: PrimitiveType;
     let stringType: PrimitiveType;
@@ -36,7 +39,7 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
     let ruleString: TypeInferenceRuleWithoutInferringChildren<TestLanguageNode>;
     let ruleInteger: TypeInferenceRuleWithoutInferringChildren<TestLanguageNode>;
     let ruleStringInteger: TypeInferenceRuleWithoutInferringChildren<TestLanguageNode>;
-    const NOT_FOUND = "found no applicable inference rules";
+    const NOT_FOUND = 'found no applicable inference rules';
 
     beforeEach(() => {
         // Typir services
@@ -46,10 +49,10 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
 
         // primitive types
         integerType = typir.factory.Primitives.create({
-            primitiveName: "integer",
+            primitiveName: 'integer',
         }).finish();
         stringType = typir.factory.Primitives.create({
-            primitiveName: "string",
+            primitiveName: 'string',
         }).finish();
 
         // composite inference rules
@@ -79,22 +82,22 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
                 return {
                     $problem: InferenceProblem,
                     languageNode: node,
-                    location: "failure3-" + node.print(),
+                    location: 'failure3-' + node.print(),
                     subProblems: [],
                 };
             }
         };
     });
 
-    describe("Simple inference rules", () => {
-        test("add String rule without any options", () => {
+    describe('Simple inference rules', () => {
+        test('add String rule without any options', () => {
             assertNumberRules(0);
             addInferenceRule(ruleString);
             assertNumberRules(1);
             infer(stringHello, stringType);
         });
 
-        test("remove String rule without any options", () => {
+        test('remove String rule without any options', () => {
             addInferenceRule(ruleString);
             infer(stringHello, stringType);
             removeInferenceRule(ruleString);
@@ -102,7 +105,7 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
             infer(stringHello, NOT_FOUND);
         });
 
-        test("add rule for Strings only", () => {
+        test('add rule for Strings only', () => {
             addInferenceRule(ruleStringInteger, {
                 languageKey: StringLiteral.name,
             });
@@ -111,7 +114,7 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
             infer(booleanFalse, NOT_FOUND);
         });
 
-        test("add rule for String and Integer", () => {
+        test('add rule for String and Integer', () => {
             addInferenceRule(ruleStringInteger, {
                 languageKey: StringLiteral.name,
             });
@@ -126,7 +129,7 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
             infer(booleanFalse, NOT_FOUND);
         });
 
-        test("remove rule", () => {
+        test('remove rule', () => {
             addInferenceRule(ruleStringInteger, {
                 languageKey: [StringLiteral.name, IntegerLiteral.name],
             });
@@ -148,15 +151,15 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
         });
     });
 
-    describe("Composite inference rule", () => {
-        test("add String rule to composite", () => {
+    describe('Composite inference rule', () => {
+        test('add String rule to composite', () => {
             assertNumberRules(0);
             composite.addInferenceRule(ruleString);
             assertNumberRules(1);
             infer(stringHello, stringType);
         });
 
-        test("remove String rule from composite", () => {
+        test('remove String rule from composite', () => {
             composite.addInferenceRule(ruleString);
             infer(stringHello, stringType);
             composite.removeInferenceRule(ruleString);
@@ -180,7 +183,7 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
             infer(integer123, NOT_FOUND);
         });
 
-        test("remove rule with multiple keys from composite", () => {
+        test('remove rule with multiple keys from composite', () => {
             composite.addInferenceRule(ruleStringInteger, {
                 languageKey: [StringLiteral.name, IntegerLiteral.name],
             });
@@ -201,7 +204,7 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
             infer(integer123, NOT_FOUND);
         });
 
-        test("remove rules which are bound to types from composite", () => {
+        test('remove rules which are bound to types from composite', () => {
             assertNumberRules(0);
             composite.addInferenceRule(ruleString, { boundToType: stringType });
             assertNumberRules(1);
@@ -223,7 +226,7 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
             infer(integer123, NOT_FOUND);
         });
 
-        test("remove rule which is bound to types from composite", () => {
+        test('remove rule which is bound to types from composite', () => {
             assertNumberRules(0);
             composite.addInferenceRule(ruleStringInteger, {
                 boundToType: [stringType, integerType],
@@ -284,7 +287,7 @@ describe("Tests the logic for registering rules (applied to inference rules)", (
         } else {
             const actualProblems = actual
                 .map((a) => typir.Printer.printTypirProblem(a))
-                .join("\n");
+                .join('\n');
             if (isType(expected)) {
                 expect.fail(
                     `Got error "${actualProblems}", but expected type '${expected.getName()}'.`,

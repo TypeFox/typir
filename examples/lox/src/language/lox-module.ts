@@ -4,33 +4,33 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
+import type {
     LangiumSharedCoreServices,
     Module,
     PartialLangiumCoreServices,
-    createDefaultCoreModule,
-    inject,
-} from "langium";
-import {
+} from 'langium';
+import { createDefaultCoreModule, inject } from 'langium';
+import type {
     DefaultSharedModuleContext,
     LangiumServices,
     LangiumSharedServices,
-    createDefaultSharedModule,
-} from "langium/lsp";
+} from 'langium/lsp';
+import { createDefaultSharedModule } from 'langium/lsp';
+import type { TypirLangiumServices } from 'typir-langium';
 import {
-    TypirLangiumServices,
     createTypirLangiumServices,
     initializeLangiumTypirServices,
-} from "typir-langium";
-import { LoxAstType, reflection } from "./generated/ast.js";
+} from 'typir-langium';
+import type { LoxAstType } from './generated/ast.js';
+import { reflection } from './generated/ast.js';
 import {
     LoxGeneratedModule,
     LoxGeneratedSharedModule,
-} from "./generated/module.js";
-import { LoxLinker } from "./lox-linker.js";
-import { LoxScopeProvider } from "./lox-scope.js";
-import { LoxTypeSystem } from "./lox-type-checking.js";
-import { LoxValidationRegistry, LoxValidator } from "./lox-validator.js";
+} from './generated/module.js';
+import { LoxLinker } from './lox-linker.js';
+import { LoxScopeProvider } from './lox-scope.js';
+import { LoxTypeSystem } from './lox-type-checking.js';
+import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
 
 /**
  * Declaration of custom services - add your own service classes here.

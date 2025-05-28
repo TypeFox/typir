@@ -4,39 +4,43 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from "langium";
-import { Type, TypeDetails } from "../../graph/type-node.js";
-import { TypeInitializer } from "../../initialization/type-initializer.js";
-import { TypeReference } from "../../initialization/type-reference.js";
-import { TypeSelector } from "../../initialization/type-selector.js";
-import { InferenceRuleNotApplicable } from "../../services/inference.js";
-import { ValidationRule } from "../../services/validation.js";
-import { TypirServices } from "../../typir.js";
-import {
+import { assertUnreachable } from 'langium';
+import type { Type, TypeDetails } from '../../graph/type-node.js';
+import type { TypeInitializer } from '../../initialization/type-initializer.js';
+import { TypeReference } from '../../initialization/type-reference.js';
+import type { TypeSelector } from '../../initialization/type-selector.js';
+import type { InferenceRuleNotApplicable } from '../../services/inference.js';
+import type { ValidationRule } from '../../services/validation.js';
+import type { TypirServices } from '../../typir.js';
+import type {
     InferCurrentTypeRule,
     RegistrationOptions,
-} from "../../utils/utils-definitions.js";
-import { TypeCheckStrategy } from "../../utils/utils-type-comparison.js";
-import { assertTrue, assertTypirType, toArray } from "../../utils/utils.js";
-import { FunctionType } from "../function/function-type.js";
-import { Kind, isKind } from "../kind.js";
-import { ClassTypeInitializer } from "./class-initializer.js";
-import { ClassType, isClassType } from "./class-type.js";
-import {
+} from '../../utils/utils-definitions.js';
+import type { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import { assertTrue, assertTypirType, toArray } from '../../utils/utils.js';
+import type { FunctionType } from '../function/function-type.js';
+import type { Kind } from '../kind.js';
+import { isKind } from '../kind.js';
+import { ClassTypeInitializer } from './class-initializer.js';
+import type { ClassType } from './class-type.js';
+import { isClassType } from './class-type.js';
+import type {
     NoSuperClassCyclesValidationOptions,
+    UniqueMethodValidationOptions,
+} from './class-validation.js';
+import {
     UniqueClassValidation,
     UniqueMethodValidation,
-    UniqueMethodValidationOptions,
     createNoSuperClassCyclesValidation,
-} from "./class-validation.js";
+} from './class-validation.js';
 import {
     TopClassKind,
     TopClassKindName,
     isTopClassKind,
-} from "./top-class-kind.js";
+} from './top-class-kind.js';
 
 export interface ClassKindOptions {
-    typing: "Structural" | "Nominal"; // JS classes are nominal, TS structures are structural
+    typing: 'Structural' | 'Nominal'; // JS classes are nominal, TS structures are structural
     /** Values < 0 indicate an arbitrary number of super classes. */
     maximumNumberOfSuperClasses: number;
     subtypeFieldChecking: TypeCheckStrategy;
@@ -44,7 +48,7 @@ export interface ClassKindOptions {
     identifierPrefix: string;
 }
 
-export const ClassKindName = "ClassKind";
+export const ClassKindName = 'ClassKind';
 
 export interface CreateFieldDetails<LanguageType> {
     name: string;
@@ -145,9 +149,9 @@ export interface ClassConfigurationChain<LanguageType> {
  * The order of fields is not defined, i.e. there is no order of fields.
  */
 export class ClassKind<LanguageType>
-    implements Kind, ClassFactoryService<LanguageType>
+implements Kind, ClassFactoryService<LanguageType>
 {
-    readonly $name: "ClassKind";
+    readonly $name: 'ClassKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<ClassKindOptions>;
 
@@ -167,10 +171,10 @@ export class ClassKind<LanguageType>
     ): ClassKindOptions {
         return {
             // the default values:
-            typing: "Nominal",
+            typing: 'Nominal',
             maximumNumberOfSuperClasses: 1,
-            subtypeFieldChecking: "EQUAL_TYPE",
-            identifierPrefix: "class",
+            subtypeFieldChecking: 'EQUAL_TYPE',
+            identifierPrefix: 'class',
             // the actually overriden values:
             ...options,
         };
@@ -185,7 +189,7 @@ export class ClassKind<LanguageType>
         typeDetails: ClassTypeDetails<LanguageType> | string,
     ): TypeReference<ClassType, LanguageType> {
         // string for nominal typing
-        if (typeof typeDetails === "string") {
+        if (typeof typeDetails === 'string') {
             // nominal typing
             return new TypeReference<ClassType, LanguageType>(
                 typeDetails,
@@ -219,8 +223,8 @@ export class ClassKind<LanguageType>
 
     protected getIdentifierPrefix(): string {
         return this.options.identifierPrefix
-            ? this.options.identifierPrefix + "-"
-            : "";
+            ? this.options.identifierPrefix + '-'
+            : '';
     }
 
     /**
@@ -238,7 +242,7 @@ export class ClassKind<LanguageType>
      */
     calculateIdentifier(typeDetails: ClassTypeDetails<LanguageType>): string {
         // purpose of identifier: distinguish different types; NOT: not uniquely overloaded types
-        if (this.options.typing === "Structural") {
+        if (this.options.typing === 'Structural') {
             // fields
             const fields: string = typeDetails.fields
                 .map(
@@ -246,7 +250,7 @@ export class ClassKind<LanguageType>
                         `${f.name}:${this.services.infrastructure.TypeResolver.resolve(f.type).getIdentifier()}`,
                 ) // the names and the types of the fields are relevant, since different field types lead to different class types!
                 .sort() // the order of fields does not matter, therefore we need a stable order to make the identifiers comparable
-                .join(",");
+                .join(',');
             // methods
             const methods: string = typeDetails.methods
                 .map((m) =>
@@ -255,7 +259,7 @@ export class ClassKind<LanguageType>
                     ).getIdentifier(),
                 )
                 .sort() // the order of methods does not matter, therefore we need a stable order to make the identifiers comparable
-                .join(",");
+                .join(',');
             // super classes (TODO oder strukturell per getAllSuperClassX lösen?!)
             const superClasses: string = toArray(typeDetails.superClasses)
                 .map((selector) => {
@@ -267,10 +271,10 @@ export class ClassKind<LanguageType>
                     return type.getIdentifier();
                 })
                 .sort()
-                .join(",");
+                .join(',');
             // complete identifier (the name of the class does not matter for structural typing!)
             return `${this.getIdentifierPrefix()}fields{${fields}}-methods{${methods}}-extends{${superClasses}}`;
-        } else if (this.options.typing === "Nominal") {
+        } else if (this.options.typing === 'Nominal') {
             // only the name of the class matters for nominal typing!
             return this.calculateIdentifierWithClassNameOnly(typeDetails);
         } else {
@@ -303,7 +307,7 @@ export class ClassKind<LanguageType>
         options: RegistrationOptions,
     ): UniqueClassValidation<LanguageType> {
         const rule = new UniqueClassValidation<LanguageType>(this.services);
-        if (options.registration === "MYSELF") {
+        if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
         } else {
             this.services.validation.Collector.addValidationRule(
@@ -322,7 +326,7 @@ export class ClassKind<LanguageType>
             this.services,
             options,
         );
-        if (options.registration === "MYSELF") {
+        if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
         } else {
             this.services.validation.Collector.addValidationRule(
@@ -338,7 +342,7 @@ export class ClassKind<LanguageType>
             RegistrationOptions,
     ): ValidationRule<LanguageType> {
         const rule = createNoSuperClassCyclesValidation<LanguageType>(options);
-        if (options.registration === "MYSELF") {
+        if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
         } else {
             this.services.validation.Collector.addValidationRule(
@@ -357,7 +361,7 @@ export function isClassKind<LanguageType>(
 }
 
 class ClassConfigurationChainImpl<LanguageType>
-    implements ClassConfigurationChain<LanguageType>
+implements ClassConfigurationChain<LanguageType>
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: ClassKind<LanguageType>;

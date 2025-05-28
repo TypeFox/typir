@@ -4,22 +4,18 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
-    AstNodeDescription,
-    DefaultLinker,
-    LinkingError,
-    ReferenceInfo,
-} from "langium";
-import { isType } from "typir";
-import { TypirLangiumServices } from "typir-langium";
+import type { AstNodeDescription, LinkingError, ReferenceInfo } from 'langium';
+import { DefaultLinker } from 'langium';
+import { isType } from 'typir';
+import type { TypirLangiumServices } from 'typir-langium';
+import type { LoxAstType } from './generated/ast.js';
 import {
     isClass,
     isFunctionDeclaration,
     isMemberCall,
     isMethodMember,
-    LoxAstType,
-} from "./generated/ast.js";
-import { LoxServices } from "./lox-module.js";
+} from './generated/ast.js';
+import type { LoxServices } from './lox-module.js';
 
 export class LoxLinker extends DefaultLinker {
     protected readonly typir: TypirLangiumServices<LoxAstType>;

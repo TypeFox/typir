@@ -4,18 +4,15 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from "../../graph/type-node.js";
-import { TypeEqualityProblem } from "../../services/equality.js";
-import { TypirProblem } from "../../utils/utils-definitions.js";
+import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
 import {
     checkValueForConflict,
     createKindConflict,
-} from "../../utils/utils-type-comparison.js";
-import {
-    isPrimitiveKind,
-    PrimitiveKind,
-    PrimitiveTypeDetails,
-} from "./primitive-kind.js";
+} from '../../utils/utils-type-comparison.js';
+import type { PrimitiveKind, PrimitiveTypeDetails } from './primitive-kind.js';
+import { isPrimitiveKind } from './primitive-kind.js';
 
 export class PrimitiveType extends Type {
     override readonly kind: PrimitiveKind<unknown>;
@@ -43,7 +40,7 @@ export class PrimitiveType extends Type {
             return checkValueForConflict(
                 this.getIdentifier(),
                 otherType.getIdentifier(),
-                "name",
+                'name',
             );
         } else {
             return [

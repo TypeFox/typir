@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from "../graph/type-node.js";
-import { TypirServices } from "../typir.js";
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
 
 export type TypeInitializerListener<T extends Type> = (type: T) => void;
 
@@ -38,7 +38,7 @@ export abstract class TypeInitializer<T extends Type, LanguageType> {
     protected producedType(newType: T): T {
         const key = newType.getIdentifier();
         if (!key) {
-            throw new Error("missing identifier!");
+            throw new Error('missing identifier!');
         }
         const existingType = this.services.infrastructure.Graph.getType(key);
         if (existingType) {

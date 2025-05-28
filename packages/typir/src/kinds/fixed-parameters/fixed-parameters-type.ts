@@ -4,22 +4,22 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from "../../graph/type-node.js";
-import { TypeEqualityProblem } from "../../services/equality.js";
-import { TypirProblem } from "../../utils/utils-definitions.js";
+import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
 import {
     checkTypeArrays,
     checkValueForConflict,
     createKindConflict,
     createTypeCheckStrategy,
-} from "../../utils/utils-type-comparison.js";
-import { assertTrue, toArray } from "../../utils/utils.js";
-import {
+} from '../../utils/utils-type-comparison.js';
+import { assertTrue, toArray } from '../../utils/utils.js';
+import type {
     FixedParameterKind,
     FixedParameterTypeDetails,
-    isFixedParametersKind,
     Parameter,
-} from "./fixed-parameters-kind.js";
+} from './fixed-parameters-kind.js';
+import { isFixedParametersKind } from './fixed-parameters-kind.js';
 
 export class ParameterValue {
     readonly parameter: Parameter;
@@ -60,7 +60,7 @@ export class FixedParameterType extends Type {
     }
 
     override getName(): string {
-        return `${this.kind.printSignature(this.kind.baseName, this.getParameterTypes(), ", ")}`;
+        return `${this.kind.printSignature(this.kind.baseName, this.getParameterTypes(), ', ')}`;
     }
 
     override getUserRepresentation(): string {
@@ -73,7 +73,7 @@ export class FixedParameterType extends Type {
             const baseTypeCheck = checkValueForConflict(
                 this.kind.baseName,
                 otherType.kind.baseName,
-                "base type",
+                'base type',
             );
             if (baseTypeCheck.length >= 1) {
                 // e.g. List<String> !== Set<String>
@@ -115,7 +115,7 @@ export class FixedParameterType extends Type {
         const baseTypeCheck = checkValueForConflict(
             subType.kind.baseName,
             superType.kind.baseName,
-            "base type",
+            'base type',
         );
         if (baseTypeCheck.length >= 1) {
             // e.g. List<String> !== Set<String>

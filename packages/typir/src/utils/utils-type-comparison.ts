@@ -4,36 +4,33 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from "langium";
-import { isType, Type } from "../graph/type-node.js";
-import { Kind } from "../kinds/kind.js";
-import { InferenceProblem } from "../services/inference.js";
-import { TypirServices } from "../typir.js";
-import { assertTrue } from "../utils/utils.js";
-import {
-    isNameTypePair,
-    isSpecificTypirProblem,
-    NameTypePair,
-    TypirProblem,
-} from "./utils-definitions.js";
+import { assertUnreachable } from 'langium';
+import type { Type } from '../graph/type-node.js';
+import { isType } from '../graph/type-node.js';
+import type { Kind } from '../kinds/kind.js';
+import type { InferenceProblem } from '../services/inference.js';
+import type { TypirServices } from '../typir.js';
+import { assertTrue } from '../utils/utils.js';
+import type { NameTypePair, TypirProblem } from './utils-definitions.js';
+import { isNameTypePair, isSpecificTypirProblem } from './utils-definitions.js';
 
 export type TypeCheckStrategy =
-    | "EQUAL_TYPE" // the most strict checking
-    | "ASSIGNABLE_TYPE" // SUB_TYPE or implicit conversion
-    | "SUB_TYPE"; // more relaxed checking
+    | 'EQUAL_TYPE' // the most strict checking
+    | 'ASSIGNABLE_TYPE' // SUB_TYPE or implicit conversion
+    | 'SUB_TYPE'; // more relaxed checking
 
 export function createTypeCheckStrategy<LanguageType>(
     strategy: TypeCheckStrategy,
     typir: TypirServices<LanguageType>,
 ): (t1: Type, t2: Type) => TypirProblem | undefined {
     switch (strategy) {
-        case "ASSIGNABLE_TYPE":
+        case 'ASSIGNABLE_TYPE':
             return typir.Assignability.getAssignabilityProblem // t1 === source, t2 === target
                 .bind(typir.Assignability);
-        case "EQUAL_TYPE":
+        case 'EQUAL_TYPE':
             return typir.Equality.getTypeEqualityProblem // (unordered, order does not matter)
                 .bind(typir.Equality);
-        case "SUB_TYPE":
+        case 'SUB_TYPE':
             return typir.Subtype.getSubTypeProblem // t1 === sub, t2 === super
                 .bind(typir.Subtype);
         // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
@@ -44,13 +41,13 @@ export function createTypeCheckStrategy<LanguageType>(
 }
 
 export interface ValueConflict extends TypirProblem {
-    readonly $problem: "ValueConflict";
+    readonly $problem: 'ValueConflict';
     // 'undefined' means value is missing, 'string' is the string representation of the value
     firstValue: string | undefined;
     secondValue: string | undefined;
     location: string;
 }
-export const ValueConflict = "ValueConflict";
+export const ValueConflict = 'ValueConflict';
 export function isValueConflict(problem: unknown): problem is ValueConflict {
     return isSpecificTypirProblem(problem, ValueConflict);
 }
@@ -87,12 +84,12 @@ export function createKindConflict(
         $problem: ValueConflict,
         firstValue: first.$name,
         secondValue: second.$name,
-        location: "kind",
+        location: 'kind',
     };
 }
 
 export interface IndexedTypeConflict extends TypirProblem {
-    $problem: "IndexedTypeConflict";
+    $problem: 'IndexedTypeConflict';
     // 'undefined' means type or information is missing, 'string' is for data which are no Types
     expected: Type | undefined; // first, left
     actual: Type | undefined; // second, right
@@ -101,7 +98,7 @@ export interface IndexedTypeConflict extends TypirProblem {
     propertyName?: string;
     subProblems: TypirProblem[];
 }
-export const IndexedTypeConflict = "IndexedTypeConflict";
+export const IndexedTypeConflict = 'IndexedTypeConflict';
 export function isIndexedTypeConflict(
     problem: unknown,
 ): problem is IndexedTypeConflict {
@@ -165,7 +162,7 @@ export function checkTypes<LanguageType>(
         const subProblems: TypirProblem[] = [];
         if (isLeftPair && isRightPair && checkNamesOfNameTypePairs) {
             subProblems.push(
-                ...checkValueForConflict(left.name, right.name, "name"),
+                ...checkValueForConflict(left.name, right.name, 'name'),
             );
         }
         const relationCheckResult = relationToCheck(leftType, rightType);
@@ -181,8 +178,8 @@ export function checkTypes<LanguageType>(
                 propertyName: isLeftPair
                     ? left.name
                     : isRightPair
-                      ? right.name
-                      : undefined,
+                        ? right.name
+                        : undefined,
                 subProblems: subProblems,
             });
         } else {
@@ -351,7 +348,7 @@ export function checkNameTypesMap(
                     // same type
                 }
             } else {
-                throw new Error("impossible case");
+                throw new Error('impossible case');
             }
         } else {
             // field is missing in target

@@ -4,27 +4,27 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
-    ValidationProblem,
+import type {
     ValidationProblemAcceptor,
     ValidationRuleLifecycle,
-} from "../../services/validation.js";
-import { TypirServices } from "../../typir.js";
-import {
+} from '../../services/validation.js';
+import { ValidationProblem } from '../../services/validation.js';
+import type { TypirServices } from '../../typir.js';
+import type {
     RuleCollectorListener,
     RuleOptions,
-} from "../../utils/rule-registration.js";
+} from '../../utils/rule-registration.js';
 import {
     checkTypes,
     checkValueForConflict,
     createTypeCheckStrategy,
-} from "../../utils/utils-type-comparison.js";
-import { assertUnreachable, toArray } from "../../utils/utils.js";
-import { InferFunctionCall } from "./function-kind.js";
-import {
+} from '../../utils/utils-type-comparison.js';
+import { assertUnreachable, toArray } from '../../utils/utils.js';
+import type { InferFunctionCall } from './function-kind.js';
+import type {
     AvailableFunctionsManager,
     SingleFunctionDetails,
-} from "./function-overloading.js";
+} from './function-overloading.js';
 
 /**
  * This validation uses the inference rules for all available function calls to check, whether ...
@@ -33,7 +33,7 @@ import {
  * There is only one instance of this class for each function kind/manager.
  */
 export class FunctionCallArgumentsValidation<LanguageType>
-    implements
+implements
         ValidationRuleLifecycle<LanguageType>,
         RuleCollectorListener<SingleFunctionDetails<LanguageType>>
 {
@@ -167,8 +167,8 @@ export class FunctionCallArgumentsValidation<LanguageType>
             if (resultOverloaded.length >= 1) {
                 accept({
                     languageNode: languageNode,
-                    severity: "error",
-                    message: `The given operands for the call of ${overloadedFunctions.overloadedFunctions.length >= 2 ? "the overload " : ""}'${overloadedName}' don't match.`,
+                    severity: 'error',
+                    message: `The given operands for the call of ${overloadedFunctions.overloadedFunctions.length >= 2 ? 'the overload ' : ''}'${overloadedName}' don't match.`,
                     subProblems: resultOverloaded,
                 });
             }
@@ -211,15 +211,15 @@ export class FunctionCallArgumentsValidation<LanguageType>
         const parameterLength = checkValueForConflict(
             expectedParameterTypes.length,
             inputArguments.length,
-            "number of input parameter values",
+            'number of input parameter values',
         );
         if (parameterLength.length >= 1) {
             currentProblems.push({
                 $problem: ValidationProblem,
                 languageNode: languageNode,
-                severity: "error",
+                severity: 'error',
                 message:
-                    "The number of given parameter values does not match the expected number of input parameters.",
+                    'The number of given parameter values does not match the expected number of input parameters.',
                 subProblems: parameterLength,
             });
         } else {
@@ -233,7 +233,7 @@ export class FunctionCallArgumentsValidation<LanguageType>
                 const parameterProblems = checkTypes(
                     inferredType,
                     expectedType,
-                    createTypeCheckStrategy("ASSIGNABLE_TYPE", this.services),
+                    createTypeCheckStrategy('ASSIGNABLE_TYPE', this.services),
                     true,
                 );
                 if (parameterProblems.length >= 1) {
@@ -242,7 +242,7 @@ export class FunctionCallArgumentsValidation<LanguageType>
                     currentProblems.push({
                         $problem: ValidationProblem,
                         languageNode: inputArguments[i],
-                        severity: "error",
+                        severity: 'error',
                         message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
                         subProblems: parameterProblems,
                     });
@@ -264,7 +264,7 @@ export class FunctionCallArgumentsValidation<LanguageType>
                 resultOverloaded.push({
                     $problem: ValidationProblem,
                     languageNode: languageNode,
-                    severity: "error",
+                    severity: 'error',
                     message: `The given arguments don't match the parameters of '${this.services.Printer.printTypeUserRepresentation(functionType)}'.`,
                     subProblems: currentProblems,
                 });
@@ -283,10 +283,10 @@ export class FunctionCallArgumentsValidation<LanguageType>
     ): boolean {
         if (rule.validateArgumentsOfFunctionCalls === undefined) {
             return false; // the default value
-        } else if (typeof rule.validateArgumentsOfFunctionCalls === "boolean") {
+        } else if (typeof rule.validateArgumentsOfFunctionCalls === 'boolean') {
             return rule.validateArgumentsOfFunctionCalls;
         } else if (
-            typeof rule.validateArgumentsOfFunctionCalls === "function"
+            typeof rule.validateArgumentsOfFunctionCalls === 'function'
         ) {
             return rule.validateArgumentsOfFunctionCalls(languageNode);
         } else {

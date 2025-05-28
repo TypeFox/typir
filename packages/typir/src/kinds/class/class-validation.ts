@@ -4,21 +4,23 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
+import type {
     ValidationProblemAcceptor,
     ValidationRule,
     ValidationRuleLifecycle,
-} from "../../services/validation.js";
-import { TypirServices } from "../../typir.js";
-import { FunctionType, isFunctionType } from "../function/function-type.js";
-import { ClassType, isClassType } from "./class-type.js";
+} from '../../services/validation.js';
+import type { TypirServices } from '../../typir.js';
+import type { FunctionType } from '../function/function-type.js';
+import { isFunctionType } from '../function/function-type.js';
+import type { ClassType } from './class-type.js';
+import { isClassType } from './class-type.js';
 
 /**
  * Predefined validation to produce errors, if the same class is declared more than once.
  * This is often relevant for nominally typed classes.
  */
 export class UniqueClassValidation<LanguageType>
-    implements ValidationRuleLifecycle<LanguageType>
+implements ValidationRuleLifecycle<LanguageType>
 {
     protected readonly foundDeclarations: Map<string, LanguageType[]> =
         new Map();
@@ -87,7 +89,7 @@ export class UniqueClassValidation<LanguageType>
                 for (const clas of classes) {
                     accept({
                         languageNode: clas,
-                        severity: "error",
+                        severity: 'error',
                         message: `Declared classes need to be unique (${key}).`,
                     });
                 }
@@ -227,7 +229,7 @@ export class UniqueMethodValidation<
                     } else {
                         accept({
                             languageNode: method.languageNode,
-                            severity: "error",
+                            severity: 'error',
                             message: `Declared methods need to be unique (${key}).`,
                         });
                     }
@@ -263,13 +265,13 @@ export function createNoSuperClassCyclesValidation<LanguageType>(
             const classType = typir.Inference.inferType(languageNode);
             if (
                 isClassType(classType) &&
-                classType.isInStateOrLater("Completed")
+                classType.isInStateOrLater('Completed')
             ) {
                 // check for cycles in sub-type-relationships
                 if (classType.hasSubSuperClassCycles()) {
                     accept({
                         languageNode: languageNode,
-                        severity: "error",
+                        severity: 'error',
                         message: `Cycles in super-sub-class-relationships are not allowed: ${classType.getName()}`,
                     });
                 }

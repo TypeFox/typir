@@ -4,21 +4,21 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import {
+import type {
     AstNode,
     LangiumDefaultCoreServices,
     ValidationAcceptor,
     ValidationChecks,
-} from "langium";
-import {
-    DefaultValidationCollector,
+} from 'langium';
+import type {
     TypirServices,
     ValidationCollector,
     ValidationProblem,
     ValidationRule,
-} from "typir";
-import { TypirLangiumServices } from "../typir-langium.js";
-import { LangiumAstTypes } from "../utils/typir-langium-utils.js";
+} from 'typir';
+import { DefaultValidationCollector } from 'typir';
+import type { TypirLangiumServices } from '../typir-langium.js';
+import type { LangiumAstTypes } from '../utils/typir-langium-utils.js';
 
 export function registerTypirValidationChecks<AstTypes extends LangiumAstTypes>(
     langiumServices: LangiumDefaultCoreServices,
@@ -95,7 +95,7 @@ export interface LangiumTypirValidator {
 }
 
 export class DefaultLangiumTypirValidator<AstTypes extends LangiumAstTypes>
-    implements LangiumTypirValidator
+implements LangiumTypirValidator
 {
     protected readonly services: TypirServices<AstNode>;
 
@@ -188,7 +188,7 @@ export class DefaultLangiumValidationCollector<AstTypes extends LangiumAstTypes>
     ): void {
         // map this approach for registering validation rules to the key-value approach from core Typir
         for (const [type, ruleCallbacks] of Object.entries(rules)) {
-            const languageKey = type === "AstNode" ? undefined : type; // using 'AstNode' as key is equivalent to specifying no key
+            const languageKey = type === 'AstNode' ? undefined : type; // using 'AstNode' as key is equivalent to specifying no key
             const callbacks = ruleCallbacks as
                 | ValidationRule<AstNode>
                 | Array<ValidationRule<AstNode>>;

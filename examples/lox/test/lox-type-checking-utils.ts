@@ -4,36 +4,37 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { EmptyFileSystem, LangiumDocument } from "langium";
-import { parseDocument } from "langium/test";
-import { isClassType, isFunctionType } from "typir";
-import { deleteAllDocuments } from "typir-langium";
-import { compareValidationIssuesStrict, expectTypirTypes } from "typir/test";
-import { afterEach, expect } from "vitest";
-import type { Diagnostic } from "vscode-languageserver-types";
-import { DiagnosticSeverity } from "vscode-languageserver-types";
-import { createLoxServices } from "../src/language/lox-module.js";
+import type { LangiumDocument } from 'langium';
+import { EmptyFileSystem } from 'langium';
+import { parseDocument } from 'langium/test';
+import { isClassType, isFunctionType } from 'typir';
+import { deleteAllDocuments } from 'typir-langium';
+import { compareValidationIssuesStrict, expectTypirTypes } from 'typir/test';
+import { afterEach, expect } from 'vitest';
+import type { Diagnostic } from 'vscode-languageserver-types';
+import { DiagnosticSeverity } from 'vscode-languageserver-types';
+import { createLoxServices } from '../src/language/lox-module.js';
 
 export const loxServices = createLoxServices(EmptyFileSystem).Lox;
 export const operatorNames = [
-    "-",
-    "*",
-    "/",
-    "+",
-    "+",
-    "+",
-    "+",
-    "<",
-    "<=",
-    ">",
-    ">=",
-    "and",
-    "or",
-    "==",
-    "!=",
-    "=",
-    "!",
-    "-",
+    '-',
+    '*',
+    '/',
+    '+',
+    '+',
+    '+',
+    '+',
+    '<',
+    '<=',
+    '>',
+    '>=',
+    'and',
+    'or',
+    '==',
+    '!=',
+    '=',
+    '!',
+    '-',
 ];
 
 afterEach(async () => {
@@ -73,10 +74,10 @@ function checkIssues(
     diagnosticsErrors: string[],
     errors: number | string | string[],
 ): void {
-    const msgError = diagnosticsErrors.join("\n");
-    if (typeof errors === "number") {
+    const msgError = diagnosticsErrors.join('\n');
+    if (typeof errors === 'number') {
         expect(diagnosticsErrors, msgError).toHaveLength(errors);
-    } else if (typeof errors === "string") {
+    } else if (typeof errors === 'string') {
         expect(diagnosticsErrors, msgError).toHaveLength(1);
         expect(diagnosticsErrors[0], msgError).includes(errors);
     } else {

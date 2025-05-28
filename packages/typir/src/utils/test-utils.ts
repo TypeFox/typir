@@ -4,21 +4,20 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { expect } from "vitest";
-import { Type } from "../graph/type-node.js";
+import { expect } from 'vitest';
+import type { Type } from '../graph/type-node.js';
+import type { TestLanguageNode } from '../test/predefined-language-nodes.js';
 import {
-    TestLanguageNode,
     TestLanguageService,
     TestProblemPrinter,
-} from "../test/predefined-language-nodes.js";
+} from '../test/predefined-language-nodes.js';
+import type { PartialTypirServices, TypirServices } from '../typir.js';
 import {
     createDefaultTypirServicesModule,
     createTypirServices,
-    PartialTypirServices,
-    TypirServices,
-} from "../typir.js";
-import { Module } from "./dependency-injection.js";
-import { Severity } from "../services/validation.js";
+} from '../typir.js';
+import type { Module } from './dependency-injection.js';
+import type { Severity } from '../services/validation.js';
 
 /**
  * Testing utility to check, that exactly the expected types are in the type system.
@@ -39,10 +38,10 @@ export function expectTypirTypes<LanguageType>(
             filterTypes,
         );
     types.forEach((type) =>
-        expect(type.getInitializationState()).toBe("Completed"),
+        expect(type.getInitializationState()).toBe('Completed'),
     ); // check that all types are 'Completed'
     const typeNames = types.map((t) => t.getName());
-    expect(typeNames, typeNames.join(", ")).toHaveLength(
+    expect(typeNames, typeNames.join(', ')).toHaveLength(
         namesOfExpectedTypes.length,
     );
     for (const name of namesOfExpectedTypes) {
@@ -52,7 +51,7 @@ export function expectTypirTypes<LanguageType>(
     }
     expect(
         typeNames,
-        `There are more types than expected: ${typeNames.join(", ")}`,
+        `There are more types than expected: ${typeNames.join(', ')}`,
     ).toHaveLength(0);
     return types;
 }
@@ -288,8 +287,8 @@ function compareValidationIssuesLogic(
         }
     }
     // report the result
-    const msgExpected = expectedErrors.join("\n").trim();
-    const msgActual = actualIssues.join("\n").trim();
+    const msgExpected = expectedErrors.join('\n').trim();
+    const msgActual = actualIssues.join('\n').trim();
     if (msgExpected.length >= 1 && msgActual.length >= 1) {
         if (options?.strict) {
             expect.fail(
@@ -343,8 +342,8 @@ function compareValidationIssuesLogicAbsent(
         }
     }
     // report the result
-    const msgForbidden = forbiddenErrors.join("\n").trim();
-    const msgActual = actualIssues.join("\n").trim();
+    const msgForbidden = forbiddenErrors.join('\n').trim();
+    const msgActual = actualIssues.join('\n').trim();
     if (msgForbidden.length >= 1 && msgActual.length >= 1) {
         expect.fail(
             `Found these forbidden issues:\n${msgForbidden}\nThese other issues are ignored:\n${msgActual}`,

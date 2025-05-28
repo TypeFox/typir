@@ -4,27 +4,28 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { LangiumSharedCoreServices, Module, inject } from "langium";
-import {
+import type { LangiumSharedCoreServices, Module } from 'langium';
+import { inject } from 'langium';
+import type {
     DefaultSharedModuleContext,
     LangiumServices,
     LangiumSharedServices,
     PartialLangiumServices,
-    createDefaultModule,
-    createDefaultSharedModule,
-} from "langium/lsp";
+} from 'langium/lsp';
+import { createDefaultModule, createDefaultSharedModule } from 'langium/lsp';
+import type { TypirLangiumServices } from 'typir-langium';
 import {
-    TypirLangiumServices,
     createTypirLangiumServices,
     initializeLangiumTypirServices,
-} from "typir-langium";
-import { OxAstType, reflection } from "./generated/ast.js";
+} from 'typir-langium';
+import type { OxAstType } from './generated/ast.js';
+import { reflection } from './generated/ast.js';
 import {
     OxGeneratedModule,
     OxGeneratedSharedModule,
-} from "./generated/module.js";
-import { OxTypeSystem } from "./ox-type-checking.js";
-import { OxValidator, registerValidationChecks } from "./ox-validator.js";
+} from './generated/module.js';
+import { OxTypeSystem } from './ox-type-checking.js';
+import { OxValidator, registerValidationChecks } from './ox-validator.js';
 
 /**
  * Declaration of custom services - add your own service classes here.

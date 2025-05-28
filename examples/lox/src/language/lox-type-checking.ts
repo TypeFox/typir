@@ -4,32 +4,36 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, AstUtils, assertUnreachable } from "langium";
-import {
+import type { AstNode } from 'langium';
+import { AstUtils, assertUnreachable } from 'langium';
+import type {
     CreateFieldDetails,
     CreateMethodDetails,
     CreateParameterDetails,
     FunctionType,
     InferOperatorWithMultipleOperands,
     InferOperatorWithSingleOperand,
-    InferenceRuleNotApplicable,
-    NO_PARAMETER_NAME,
     TypeInitializer,
     TypirServices,
     ValidationProblemAcceptor,
-} from "typir";
-import {
+} from 'typir';
+import { InferenceRuleNotApplicable, NO_PARAMETER_NAME } from 'typir';
+import type {
     TypirLangiumServices,
     LangiumTypeSystemDefinition,
-} from "typir-langium";
+} from 'typir-langium';
+import type {
+    ForStatement,
+    IfStatement,
+    LoxAstType,
+    VariableDeclaration,
+    WhileStatement,
+} from './generated/ast.js';
 import {
     BinaryExpression,
     BooleanLiteral,
     Class,
-    ForStatement,
     FunctionDeclaration,
-    IfStatement,
-    LoxAstType,
     MemberCall,
     MethodMember,
     NilLiteral,
@@ -39,15 +43,13 @@ import {
     StringLiteral,
     TypeReference,
     UnaryExpression,
-    VariableDeclaration,
-    WhileStatement,
     isClass,
     isFieldMember,
     isFunctionDeclaration,
     isMethodMember,
     isParameter,
     isVariableDeclaration,
-} from "./generated/ast.js";
+} from './generated/ast.js';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
@@ -55,41 +57,41 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         // primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
         const typeBool = typir.factory.Primitives.create({
-            primitiveName: "boolean",
+            primitiveName: 'boolean',
         })
             .inferenceRule({ languageKey: BooleanLiteral }) // this is the more performant notation compared to ...
             // .inferenceRule({ filter: isBooleanLiteral }) // ... this alternative solution, but they provide the same functionality
             .inferenceRule({
                 languageKey: TypeReference,
-                matching: (node: TypeReference) => node.primitive === "boolean",
+                matching: (node: TypeReference) => node.primitive === 'boolean',
             }) // this is the more performant notation compared to ...
             // .inferenceRule({ filter: isTypeReference, matching: node => node.primitive === 'boolean' }) // ... this "easier" notation, but they provide the same functionality
             .finish();
         // ... but their primitive kind is provided/preset by Typir
         const typeNumber = typir.factory.Primitives.create({
-            primitiveName: "number",
+            primitiveName: 'number',
         })
             .inferenceRule({ languageKey: NumberLiteral })
             .inferenceRule({
                 languageKey: TypeReference,
-                matching: (node: TypeReference) => node.primitive === "number",
+                matching: (node: TypeReference) => node.primitive === 'number',
             })
             .finish();
         const typeString = typir.factory.Primitives.create({
-            primitiveName: "string",
+            primitiveName: 'string',
         })
             .inferenceRule({ languageKey: StringLiteral })
             .inferenceRule({
                 languageKey: TypeReference,
-                matching: (node: TypeReference) => node.primitive === "string",
+                matching: (node: TypeReference) => node.primitive === 'string',
             })
             .finish();
         const typeVoid = typir.factory.Primitives.create({
-            primitiveName: "void",
+            primitiveName: 'void',
         })
             .inferenceRule({
                 languageKey: TypeReference,
-                matching: (node: TypeReference) => node.primitive === "void",
+                matching: (node: TypeReference) => node.primitive === 'void',
             })
             .inferenceRule({ languageKey: PrintStatement })
             .inferenceRule({
@@ -98,7 +100,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             })
             .finish();
         const typeNil = typir.factory.Primitives.create({
-            primitiveName: "nil",
+            primitiveName: 'nil',
         })
             .inferenceRule({ languageKey: NilLiteral })
             .finish(); // 'nil' is only assignable to variables with a class as type in the LOX implementation here
@@ -130,7 +132,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         };
 
         // binary operators: numbers => number
-        for (const operator of ["-", "*", "/"]) {
+        for (const operator of ['-', '*', '/']) {
             typir.factory.Operators.createBinary({
                 name: operator,
                 signature: {
@@ -143,7 +145,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
                 .finish();
         }
         typir.factory.Operators.createBinary({
-            name: "+",
+            name: '+',
             signatures: [
                 { left: typeNumber, right: typeNumber, return: typeNumber },
                 { left: typeString, right: typeString, return: typeString },
@@ -155,7 +157,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             .finish();
 
         // binary operators: numbers => boolean
-        for (const operator of ["<", "<=", ">", ">="]) {
+        for (const operator of ['<', '<=', '>', '>=']) {
             typir.factory.Operators.createBinary({
                 name: operator,
                 signature: {
@@ -169,7 +171,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         }
 
         // binary operators: booleans => boolean
-        for (const operator of ["and", "or"]) {
+        for (const operator of ['and', 'or']) {
             typir.factory.Operators.createBinary({
                 name: operator,
                 signature: {
@@ -183,7 +185,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         }
 
         // ==, != for all data types (the warning for different types is realized below)
-        for (const operator of ["==", "!="]) {
+        for (const operator of ['==', '!=']) {
             typir.factory.Operators.createBinary({
                 name: operator,
                 signature: { left: typeAny, right: typeAny, return: typeBool },
@@ -203,10 +205,10 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
                             node.right,
                             accept,
                             (actual, expected) => ({
-                                message: `This comparison will always return '${node.operator === "==" ? "false" : "true"}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
+                                message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
                                 languageNode: node, // inside the BinaryExpression ...
-                                languageProperty: "operator", // ... mark the '==' or '!=' token, i.e. the 'operator' property
-                                severity: "warning",
+                                languageProperty: 'operator', // ... mark the '==' or '!=' token, i.e. the 'operator' property
+                                severity: 'warning',
                                 // (The use of "node.right" and "node.left" without casting is possible, since the type checks of the given properties for the actual inference rule are reused for the validation.)
                             }),
                         ),
@@ -215,7 +217,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         }
         // = for SuperType = SubType (Note that this implementation of LOX realized assignments as operators!)
         typir.factory.Operators.createBinary({
-            name: "=",
+            name: '=',
             signature: { left: typeAny, right: typeAny, return: typeAny },
         })
             .inferenceRule({
@@ -228,7 +230,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
                         accept,
                         (actual, expected) => ({
                             message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left.$cstNode?.text}' with type '${expected.name}'`,
-                            languageProperty: "value",
+                            languageProperty: 'value',
                         }),
                     ),
             })
@@ -236,13 +238,13 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
 
         // unary operators
         typir.factory.Operators.createUnary({
-            name: "!",
+            name: '!',
             signature: { operand: typeBool, return: typeBool },
         })
             .inferenceRule(unaryInferenceRule)
             .finish();
         typir.factory.Operators.createUnary({
-            name: "-",
+            name: '-',
             signature: { operand: typeNumber, return: typeNumber },
         })
             .inferenceRule(unaryInferenceRule)
@@ -302,7 +304,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         // check for unique class declarations
         const uniqueClassValidator =
             typir.factory.Classes.createUniqueClassValidation({
-                registration: "MYSELF",
+                registration: 'MYSELF',
             });
         // check for unique method declarations
         typir.factory.Classes.createUniqueMethodValidation({
@@ -395,9 +397,9 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             // explicitly declare, that 'nil' can be assigned to any Class variable
             classType.addListener((type) => {
                 typir.Conversion.markAsConvertible(
-                    typir.factory.Primitives.get({ primitiveName: "nil" })!,
+                    typir.factory.Primitives.get({ primitiveName: 'nil' })!,
                     type,
-                    "IMPLICIT_EXPLICIT",
+                    'IMPLICIT_EXPLICIT',
                 );
             });
             // The following idea does not work, since variables in LOX have a concrete class type and not an "any class" type:
@@ -470,13 +472,13 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             | FunctionDeclaration
             | MethodMember
             | undefined = AstUtils.getContainerOfType(
-            node,
-            (node) => isFunctionDeclaration(node) || isMethodMember(node),
-        );
+                node,
+                (node) => isFunctionDeclaration(node) || isMethodMember(node),
+            );
         if (
             callableDeclaration &&
             callableDeclaration.returnType.primitive &&
-            callableDeclaration.returnType.primitive !== "void" &&
+            callableDeclaration.returnType.primitive !== 'void' &&
             node.value
         ) {
             // the return value must fit to the return type of the function / method
@@ -486,7 +488,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
                 accept,
                 (actual, expected) => ({
                     message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
-                    languageProperty: "value",
+                    languageProperty: 'value',
                 }),
             );
         }
@@ -498,7 +500,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         typir: TypirServices<AstNode>,
     ): void {
         const typeVoid = typir.factory.Primitives.get({
-            primitiveName: "void",
+            primitiveName: 'void',
         })!;
         typir.validation.Constraints.ensureNodeHasNotType(
             node,
@@ -506,7 +508,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             accept,
             () => ({
                 message: "Variable can't be declared with a type 'void'.",
-                languageProperty: "type",
+                languageProperty: 'type',
             }),
         );
         typir.validation.Constraints.ensureNodeIsAssignable(
@@ -515,7 +517,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             accept,
             (actual, expected) => ({
                 message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
-                languageProperty: "value",
+                languageProperty: 'value',
             }),
         );
     }
@@ -526,7 +528,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         typir: TypirServices<AstNode>,
     ): void {
         const typeBool = typir.factory.Primitives.get({
-            primitiveName: "boolean",
+            primitiveName: 'boolean',
         })!;
         typir.validation.Constraints.ensureNodeIsAssignable(
             node.condition,
@@ -534,7 +536,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             accept,
             () => ({
                 message: "Conditions need to be evaluated to 'boolean'.",
-                languageProperty: "condition",
+                languageProperty: 'condition',
             }),
         );
     }

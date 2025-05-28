@@ -4,31 +4,33 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, AstUtils, assertUnreachable } from "langium";
-import {
+import type { AstNode } from 'langium';
+import { AstUtils, assertUnreachable } from 'langium';
+import type {
     CreateParameterDetails,
     InferOperatorWithMultipleOperands,
     InferOperatorWithSingleOperand,
-    InferenceRuleNotApplicable,
-    NO_PARAMETER_NAME,
     TypirServices,
     ValidationProblemAcceptor,
-} from "typir";
-import {
+} from 'typir';
+import { InferenceRuleNotApplicable, NO_PARAMETER_NAME } from 'typir';
+import type {
     LangiumTypeSystemDefinition,
     TypirLangiumServices,
-} from "typir-langium";
-import {
+} from 'typir-langium';
+import type {
     BinaryExpression,
     ForStatement,
-    FunctionDeclaration,
     IfStatement,
-    MemberCall,
-    NumberLiteral,
     OxAstType,
-    TypeReference,
     UnaryExpression,
     WhileStatement,
+} from './generated/ast.js';
+import {
+    FunctionDeclaration,
+    MemberCall,
+    NumberLiteral,
+    TypeReference,
     isBinaryExpression,
     isBooleanLiteral,
     isFunctionDeclaration,
@@ -36,37 +38,37 @@ import {
     isTypeReference,
     isUnaryExpression,
     isVariableDeclaration,
-} from "./generated/ast.js";
+} from './generated/ast.js';
 
 export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
     onInitialize(typir: TypirLangiumServices<OxAstType>): void {
         // define primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
         const typeBool = typir.factory.Primitives.create({
-            primitiveName: "boolean",
+            primitiveName: 'boolean',
         })
             .inferenceRule({ filter: isBooleanLiteral })
             .inferenceRule({
                 filter: isTypeReference,
-                matching: (node) => node.primitive === "boolean",
+                matching: (node) => node.primitive === 'boolean',
             })
             .finish();
         // ... but their primitive kind is provided/preset by Typir
         const typeNumber = typir.factory.Primitives.create({
-            primitiveName: "number",
+            primitiveName: 'number',
         })
             .inferenceRule({ languageKey: NumberLiteral })
             .inferenceRule({
                 languageKey: TypeReference,
-                matching: (node: TypeReference) => node.primitive === "number",
+                matching: (node: TypeReference) => node.primitive === 'number',
             })
             .finish();
         const typeVoid = typir.factory.Primitives.create({
-            primitiveName: "void",
+            primitiveName: 'void',
         })
             .inferenceRule({
                 languageKey: TypeReference,
-                matching: (node: TypeReference) => node.primitive === "void",
+                matching: (node: TypeReference) => node.primitive === 'void',
             })
             .finish();
 
@@ -97,7 +99,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
 
         // define operators
         // binary operators: numbers => number
-        for (const operator of ["+", "-", "*", "/"]) {
+        for (const operator of ['+', '-', '*', '/']) {
             typir.factory.Operators.createBinary({
                 name: operator,
                 signature: {
@@ -110,7 +112,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                 .finish();
         }
         // binary operators: numbers => boolean
-        for (const operator of ["<", "<=", ">", ">="]) {
+        for (const operator of ['<', '<=', '>', '>=']) {
             typir.factory.Operators.createBinary({
                 name: operator,
                 signature: {
@@ -123,7 +125,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                 .finish();
         }
         // binary operators: booleans => boolean
-        for (const operator of ["and", "or"]) {
+        for (const operator of ['and', 'or']) {
             typir.factory.Operators.createBinary({
                 name: operator,
                 signature: {
@@ -136,7 +138,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                 .finish();
         }
         // ==, != for booleans and numbers
-        for (const operator of ["==", "!="]) {
+        for (const operator of ['==', '!=']) {
             typir.factory.Operators.createBinary({
                 name: operator,
                 signatures: [
@@ -150,13 +152,13 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
 
         // unary operators
         typir.factory.Operators.createUnary({
-            name: "!",
+            name: '!',
             signature: { operand: typeBool, return: typeBool },
         })
             .inferenceRule(unaryInferenceRule)
             .finish();
         typir.factory.Operators.createUnary({
-            name: "-",
+            name: '-',
             signature: { operand: typeNumber, return: typeNumber },
         })
             .inferenceRule(unaryInferenceRule)
@@ -217,7 +219,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                         accept,
                         (actual, expected) => ({
                             message: `The expression '${node.value.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.varRef.ref!.name}' with type '${expected.name}'.`,
-                            languageProperty: "value",
+                            languageProperty: 'value',
                         }),
                     );
                 }
@@ -231,7 +233,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                 );
                 if (
                     functionDeclaration &&
-                    functionDeclaration.returnType.primitive !== "void" &&
+                    functionDeclaration.returnType.primitive !== 'void' &&
                     node.value
                 ) {
                     // the return value must fit to the return type of the function
@@ -241,7 +243,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                         accept,
                         () => ({
                             message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`,
-                            languageProperty: "value",
+                            languageProperty: 'value',
                         }),
                     );
                 }
@@ -254,7 +256,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                     () => ({
                         message:
                             "Variables can't be declared with the type 'void'.",
-                        languageProperty: "type",
+                        languageProperty: 'type',
                     }),
                 );
                 typir.validation.Constraints.ensureNodeIsAssignable(
@@ -263,7 +265,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                     accept,
                     (actual, expected) => ({
                         message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`,
-                        languageProperty: "value",
+                        languageProperty: 'value',
                     }),
                 );
             },
@@ -280,7 +282,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                 accept,
                 () => ({
                     message: "Conditions need to be evaluated to 'boolean'.",
-                    languageProperty: "condition",
+                    languageProperty: 'condition',
                 }),
             );
         }

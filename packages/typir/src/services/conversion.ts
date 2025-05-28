@@ -4,12 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { GraphAlgorithms } from "../graph/graph-algorithms.js";
-import { isTypeEdge, TypeEdge } from "../graph/type-edge.js";
-import { TypeGraph } from "../graph/type-graph.js";
-import { Type } from "../graph/type-node.js";
-import { TypirServices } from "../typir.js";
-import { TypeEquality } from "./equality.js";
+import type { GraphAlgorithms } from '../graph/graph-algorithms.js';
+import type { TypeEdge } from '../graph/type-edge.js';
+import { isTypeEdge } from '../graph/type-edge.js';
+import type { TypeGraph } from '../graph/type-graph.js';
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
+import type { TypeEquality } from './equality.js';
 
 /**
  * Describes the possible conversion modes.
@@ -26,15 +27,15 @@ import { TypeEquality } from "./equality.js";
  */
 export type ConversionModeForSpecification =
     /** The conversion is implicitly possible. In this case, the explicit conversion is possible as well (IMPLICIT => EXPLICIT). */
-    | "IMPLICIT_EXPLICIT"
+    | 'IMPLICIT_EXPLICIT'
     /** The conversion is only explicitly possible */
-    | "EXPLICIT";
+    | 'EXPLICIT';
 export type ConversionMode =
     | ConversionModeForSpecification
     /** no conversion possible at all (this is the default mode) */
-    | "NONE"
+    | 'NONE'
     /** a type is always self-convertible to itself (implicitly or explicitly), in this case no conversion is necessary */
-    | "SELF";
+    | 'SELF';
 
 /**
  * Manages conversions between different types.
@@ -139,7 +140,7 @@ export class DefaultTypeConversion<LanguageType> implements TypeConversion {
                 $relation: ConversionEdge,
                 from,
                 to,
-                cachingInformation: "LINK_EXISTS",
+                cachingInformation: 'LINK_EXISTS',
                 mode,
             };
             this.graph.addEdge(edge);
@@ -148,7 +149,7 @@ export class DefaultTypeConversion<LanguageType> implements TypeConversion {
             edge.mode = mode;
         }
 
-        if (mode === "IMPLICIT_EXPLICIT") {
+        if (mode === 'IMPLICIT_EXPLICIT') {
             /* check that the new edges did not introduce cycles
              * if it did, the from node will be reachable via a cycle path
              */
@@ -163,7 +164,7 @@ export class DefaultTypeConversion<LanguageType> implements TypeConversion {
 
     protected isTransitive(mode: ConversionModeForSpecification): boolean {
         // by default, only IMPLICIT is transitive!
-        return mode === "IMPLICIT_EXPLICIT";
+        return mode === 'IMPLICIT_EXPLICIT';
     }
 
     getConversion(from: Type, to: Type): ConversionMode {
@@ -175,25 +176,25 @@ export class DefaultTypeConversion<LanguageType> implements TypeConversion {
 
         // special case: if both types are equal, no conversion is needed (often this check is quite fast)
         if (this.equality.areTypesEqual(from, to)) {
-            return "SELF";
+            return 'SELF';
         }
 
         // check whether there is a transitive relationship (in general, these checks are expensive)
         if (
-            this.isTransitive("EXPLICIT") &&
-            this.isTransitivelyConvertable(from, to, "EXPLICIT")
+            this.isTransitive('EXPLICIT') &&
+            this.isTransitivelyConvertable(from, to, 'EXPLICIT')
         ) {
-            return "EXPLICIT";
+            return 'EXPLICIT';
         }
         if (
-            this.isTransitive("IMPLICIT_EXPLICIT") &&
-            this.isTransitivelyConvertable(from, to, "IMPLICIT_EXPLICIT")
+            this.isTransitive('IMPLICIT_EXPLICIT') &&
+            this.isTransitivelyConvertable(from, to, 'IMPLICIT_EXPLICIT')
         ) {
-            return "IMPLICIT_EXPLICIT";
+            return 'IMPLICIT_EXPLICIT';
         }
 
         // the default case
-        return "NONE";
+        return 'NONE';
     }
 
     protected collectReachableTypes(
@@ -233,24 +234,24 @@ export class DefaultTypeConversion<LanguageType> implements TypeConversion {
     }
 
     isImplicitExplicitConvertible(from: Type, to: Type): boolean {
-        return this.getConversion(from, to) === "IMPLICIT_EXPLICIT";
+        return this.getConversion(from, to) === 'IMPLICIT_EXPLICIT';
     }
     isExplicitConvertible(from: Type, to: Type): boolean {
-        return this.getConversion(from, to) === "EXPLICIT";
+        return this.getConversion(from, to) === 'EXPLICIT';
     }
     isNoneConvertible(from: Type, to: Type): boolean {
-        return this.getConversion(from, to) === "NONE";
+        return this.getConversion(from, to) === 'NONE';
     }
     isSelfConvertible(from: Type, to: Type): boolean {
-        return this.getConversion(from, to) === "SELF";
+        return this.getConversion(from, to) === 'SELF';
     }
 
     isConvertible(from: Type, to: Type): boolean {
         const currentMode = this.getConversion(from, to);
         return (
-            currentMode === "IMPLICIT_EXPLICIT" ||
-            currentMode === "EXPLICIT" ||
-            currentMode === "SELF"
+            currentMode === 'IMPLICIT_EXPLICIT' ||
+            currentMode === 'EXPLICIT' ||
+            currentMode === 'SELF'
         );
     }
 
@@ -272,10 +273,10 @@ export class DefaultTypeConversion<LanguageType> implements TypeConversion {
 }
 
 export interface ConversionEdge extends TypeEdge {
-    readonly $relation: "ConversionEdge";
+    readonly $relation: 'ConversionEdge';
     mode: ConversionMode;
 }
-export const ConversionEdge = "ConversionEdge";
+export const ConversionEdge = 'ConversionEdge';
 
 export function isConversionEdge(edge: unknown): edge is ConversionEdge {
     return isTypeEdge(edge) && edge.$relation === ConversionEdge;

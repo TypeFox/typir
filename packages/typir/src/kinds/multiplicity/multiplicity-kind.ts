@@ -4,11 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, TypeDetails } from "../../graph/type-node.js";
-import { TypirServices } from "../../typir.js";
-import { assertTrue } from "../../utils/utils.js";
-import { Kind, isKind } from "../kind.js";
-import { MultiplicityType } from "./multiplicity-type.js";
+import type { Type, TypeDetails } from '../../graph/type-node.js';
+import type { TypirServices } from '../../typir.js';
+import { assertTrue } from '../../utils/utils.js';
+import type { Kind } from '../kind.js';
+import { isKind } from '../kind.js';
+import { MultiplicityType } from './multiplicity-type.js';
 
 export interface MultiplicityTypeDetails<LanguageType>
     extends TypeDetails<LanguageType> {
@@ -22,14 +23,14 @@ export interface MultiplicityKindOptions {
 }
 
 export const MULTIPLICITY_UNLIMITED = -1;
-export const MultiplicityKindName = "MultiplicityTypeKind";
+export const MultiplicityKindName = 'MultiplicityTypeKind';
 
 /**
  * Types of this kind constrain a type with lower bound and upper bound,
  * e.g. ConstrainedType[1..*] or ConstrainedType[2..4].
  */
 export class MultiplicityKind<LanguageType> implements Kind {
-    readonly $name: "MultiplicityTypeKind";
+    readonly $name: 'MultiplicityTypeKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<MultiplicityKindOptions>;
 
@@ -48,7 +49,7 @@ export class MultiplicityKind<LanguageType> implements Kind {
     ): MultiplicityKindOptions {
         return {
             // the default values:
-            symbolForUnlimited: "*",
+            symbolForUnlimited: '*',
             // the actually overriden values:
             ...options,
         };

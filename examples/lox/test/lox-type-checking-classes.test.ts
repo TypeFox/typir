@@ -4,18 +4,16 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstUtils } from "langium";
-import { isClassType, isPrimitiveType } from "typir";
-import { expectToBeType, expectTypirTypes } from "typir/test";
-import { describe, expect, test } from "vitest";
-import {
-    isVariableDeclaration,
-    LoxProgram,
-} from "../src/language/generated/ast.js";
-import { loxServices, validateLox } from "./lox-type-checking-utils.js";
+import { AstUtils } from 'langium';
+import { isClassType, isPrimitiveType } from 'typir';
+import { expectToBeType, expectTypirTypes } from 'typir/test';
+import { describe, expect, test } from 'vitest';
+import type { LoxProgram } from '../src/language/generated/ast.js';
+import { isVariableDeclaration } from '../src/language/generated/ast.js';
+import { loxServices, validateLox } from './lox-type-checking-utils.js';
 
-describe("Test type checking for classes", () => {
-    test("Class inheritance for assignments: correct", async () => {
+describe('Test type checking for classes', () => {
+    test('Class inheritance for assignments: correct', async () => {
         await validateLox(
             `
             class MyClass1 { name: string age: number }
@@ -27,12 +25,12 @@ describe("Test type checking for classes", () => {
         expectTypirTypes(
             loxServices.typir,
             isClassType,
-            "MyClass1",
-            "MyClass2",
+            'MyClass1',
+            'MyClass2',
         );
     });
 
-    test("Class inheritance for assignments: wrong", async () => {
+    test('Class inheritance for assignments: wrong', async () => {
         await validateLox(
             `
             class MyClass1 { name: string age: number }
@@ -44,12 +42,12 @@ describe("Test type checking for classes", () => {
         expectTypirTypes(
             loxServices.typir,
             isClassType,
-            "MyClass1",
-            "MyClass2",
+            'MyClass1',
+            'MyClass2',
         );
     });
 
-    test("Class fields: correct values", async () => {
+    test('Class fields: correct values', async () => {
         await validateLox(
             `
             class MyClass1 { name: string age: number }
@@ -59,10 +57,10 @@ describe("Test type checking for classes", () => {
         `,
             0,
         );
-        expectTypirTypes(loxServices.typir, isClassType, "MyClass1");
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
-    test("Class fields: wrong values", async () => {
+    test('Class fields: wrong values', async () => {
         await validateLox(
             `
             class MyClass1 { name: string age: number }
@@ -72,24 +70,24 @@ describe("Test type checking for classes", () => {
         `,
             2,
         );
-        expectTypirTypes(loxServices.typir, isClassType, "MyClass1");
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
-    test("Classes must be unique by name 2", async () => {
+    test('Classes must be unique by name 2', async () => {
         await validateLox(
             `
             class MyClass1 { }
             class MyClass1 { }
         `,
             [
-                "Declared classes need to be unique (MyClass1).",
-                "Declared classes need to be unique (MyClass1).",
+                'Declared classes need to be unique (MyClass1).',
+                'Declared classes need to be unique (MyClass1).',
             ],
         );
-        expectTypirTypes(loxServices.typir, isClassType, "MyClass1");
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
-    test("Classes must be unique by name 3", async () => {
+    test('Classes must be unique by name 3', async () => {
         await validateLox(
             `
             class MyClass2 { }
@@ -97,17 +95,17 @@ describe("Test type checking for classes", () => {
             class MyClass2 { }
         `,
             [
-                "Declared classes need to be unique (MyClass2).",
-                "Declared classes need to be unique (MyClass2).",
-                "Declared classes need to be unique (MyClass2).",
+                'Declared classes need to be unique (MyClass2).',
+                'Declared classes need to be unique (MyClass2).',
+                'Declared classes need to be unique (MyClass2).',
             ],
         );
-        expectTypirTypes(loxServices.typir, isClassType, "MyClass2");
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass2');
     });
 });
 
-describe("Class literals", () => {
-    test("Class literals 1", async () => {
+describe('Class literals', () => {
+    test('Class literals 1', async () => {
         await validateLox(
             `
             class MyClass { name: string age: number }
@@ -115,10 +113,10 @@ describe("Class literals", () => {
         `,
             [],
         );
-        expectTypirTypes(loxServices.typir, isClassType, "MyClass");
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass');
     });
 
-    test("Class literals 2", async () => {
+    test('Class literals 2', async () => {
         await validateLox(
             `
             class MyClass { name: string age: number }
@@ -126,10 +124,10 @@ describe("Class literals", () => {
         `,
             [],
         );
-        expectTypirTypes(loxServices.typir, isClassType, "MyClass");
+        expectTypirTypes(loxServices.typir, isClassType, 'MyClass');
     });
 
-    test("Class literals 3", async () => {
+    test('Class literals 3', async () => {
         await validateLox(
             `
             class MyClass1 {}
@@ -142,12 +140,12 @@ describe("Class literals", () => {
         expectTypirTypes(
             loxServices.typir,
             isClassType,
-            "MyClass1",
-            "MyClass2",
+            'MyClass1',
+            'MyClass2',
         );
     });
 
-    test("nil is assignable to any Class", async () => {
+    test('nil is assignable to any Class', async () => {
         await validateLox(
             `
             class MyClass1 {}
@@ -162,14 +160,14 @@ describe("Class literals", () => {
         expectTypirTypes(
             loxServices.typir,
             isClassType,
-            "MyClass1",
-            "MyClass2",
+            'MyClass1',
+            'MyClass2',
         );
     });
 });
 
-describe("Class field access", () => {
-    test("simple class", async () => {
+describe('Class field access', () => {
+    test('simple class', async () => {
         const program = (
             await validateLox(
                 `
@@ -181,11 +179,11 @@ describe("Class field access", () => {
                 [],
             )
         ).parseResult.value as LoxProgram;
-        checkVariableDeclaration(program, "v2", "string");
-        checkVariableDeclaration(program, "v3", "number");
+        checkVariableDeclaration(program, 'v2', 'string');
+        checkVariableDeclaration(program, 'v3', 'number');
     });
 
-    test("different classes with switched properties", async () => {
+    test('different classes with switched properties', async () => {
         const program = (
             await validateLox(
                 `
@@ -201,16 +199,16 @@ describe("Class field access", () => {
                 [],
             )
         ).parseResult.value as LoxProgram;
-        checkVariableDeclaration(program, "v1name", "string");
-        checkVariableDeclaration(program, "v1age", "number");
-        checkVariableDeclaration(program, "v2name", "number");
-        checkVariableDeclaration(program, "v2age", "string");
+        checkVariableDeclaration(program, 'v1name', 'string');
+        checkVariableDeclaration(program, 'v1age', 'number');
+        checkVariableDeclaration(program, 'v2name', 'number');
+        checkVariableDeclaration(program, 'v2age', 'string');
     });
 
     function checkVariableDeclaration(
         program: LoxProgram,
         name: string,
-        expectedType: "string" | "number",
+        expectedType: 'string' | 'number',
     ): void {
         const variables = AstUtils.streamAllContents(program)
             .filter(isVariableDeclaration)

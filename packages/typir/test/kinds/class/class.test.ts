@@ -4,70 +4,70 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { describe, test } from "vitest";
-import { isClassType } from "../../../src/kinds/class/class-type.js";
-import { isPrimitiveType } from "../../../src/kinds/primitive/primitive-type.js";
+import { describe, test } from 'vitest';
+import { isClassType } from '../../../src/kinds/class/class-type.js';
+import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import {
     BooleanLiteral,
     ClassConstructorCall,
     ClassFieldAccess,
     IntegerLiteral,
     Variable,
-} from "../../../src/test/predefined-language-nodes.js";
+} from '../../../src/test/predefined-language-nodes.js';
 import {
     createTypirServicesForTesting,
     expectToBeType,
     expectTypirTypes,
     expectValidationIssuesStrict,
-} from "../../../src/utils/test-utils.js";
-import { assertTypirType } from "../../../src/utils/utils.js";
+} from '../../../src/utils/test-utils.js';
+import { assertTypirType } from '../../../src/utils/utils.js';
 
-describe("Tests some details for class types", () => {
-    test("create primitive and get it by name", () => {
+describe('Tests some details for class types', () => {
+    test('create primitive and get it by name', () => {
         const typir = createTypirServicesForTesting();
         const classType1 = typir.factory.Classes.create({
-            className: "MyClass1",
+            className: 'MyClass1',
             fields: [],
             methods: [],
         })
             .finish()
             .getTypeFinal(); // since this class has no delayed dependencies, the new class type is directly available!
-        assertTypirType(classType1, isClassType, "MyClass1");
-        expectTypirTypes(typir, isClassType, "MyClass1");
+        assertTypirType(classType1, isClassType, 'MyClass1');
+        expectTypirTypes(typir, isClassType, 'MyClass1');
     });
 
-    test("infer types of accessed fields of a class (and validate them)", () => {
+    test('infer types of accessed fields of a class (and validate them)', () => {
         const typir = createTypirServicesForTesting();
         const integerType = typir.factory.Primitives.create({
-            primitiveName: "integer",
+            primitiveName: 'integer',
         })
             .inferenceRule({ filter: (node) => node instanceof IntegerLiteral })
             .finish();
         const booleanType = typir.factory.Primitives.create({
-            primitiveName: "boolean",
+            primitiveName: 'boolean',
         })
             .inferenceRule({ filter: (node) => node instanceof BooleanLiteral })
             .finish();
         const classType1 = typir.factory.Classes
             // a class with two fields with different primitive types
             .create({
-                className: "MyClass1",
+                className: 'MyClass1',
                 fields: [
-                    { name: "fieldInteger", type: integerType },
-                    { name: "fieldBoolean", type: booleanType },
+                    { name: 'fieldInteger', type: integerType },
+                    { name: 'fieldBoolean', type: booleanType },
                 ],
                 methods: [],
             })
             // infer the type for constructor calls
             .inferenceRuleForClassLiterals({
                 filter: (node) => node instanceof ClassConstructorCall,
-                matching: (node) => node.className === "MyClass1",
+                matching: (node) => node.className === 'MyClass1',
                 inputValuesForFields: (_node) => new Map(),
                 // a useless validation just for testing
                 validation: (node, classType, accept, _typir) =>
                     accept({
                         languageNode: node,
-                        severity: "error",
+                        severity: 'error',
                         message: `Called constructor for '${classType.getName()}'.`,
                     }),
             })
@@ -83,10 +83,10 @@ describe("Tests some details for class types", () => {
                 field: (node) => node.fieldName,
                 // a useless validation just for testing
                 validation: (node, classType, accept) => {
-                    if (node.fieldName === "fieldBoolean") {
+                    if (node.fieldName === 'fieldBoolean') {
                         accept({
                             languageNode: node,
-                            severity: "error",
+                            severity: 'error',
                             message: `Validated access of 'fieldBoolean' of the variable '${node.classVariable.name}'.`,
                         });
                     }
@@ -94,7 +94,7 @@ describe("Tests some details for class types", () => {
             })
             .finish()
             .getTypeFinal();
-        assertTypirType(classType1, isClassType, "MyClass1");
+        assertTypirType(classType1, isClassType, 'MyClass1');
         typir.Inference.addInferenceRule(
             (node: Variable) => node.initialValue,
             { languageKey: Variable.name },
@@ -102,8 +102,8 @@ describe("Tests some details for class types", () => {
 
         // var1 := new MyClass1();
         const varClass = new Variable(
-            "var1",
-            new ClassConstructorCall("MyClass1"),
+            'var1',
+            new ClassConstructorCall('MyClass1'),
         );
         expectValidationIssuesStrict(typir, varClass.initialValue, [
             "Called constructor for 'MyClass1'.",
@@ -111,13 +111,13 @@ describe("Tests some details for class types", () => {
 
         // var2 := var1.fieldInteger;
         const varFieldIntegerValue = new Variable(
-            "var2",
-            new ClassFieldAccess(varClass, "fieldInteger"),
+            'var2',
+            new ClassFieldAccess(varClass, 'fieldInteger'),
         );
         expectToBeType(
             typir.Inference.inferType(varFieldIntegerValue),
             isPrimitiveType,
-            (type) => type.getName() === "integer",
+            (type) => type.getName() === 'integer',
         );
         expectValidationIssuesStrict(
             typir,
@@ -127,13 +127,13 @@ describe("Tests some details for class types", () => {
 
         // var3 := var1.fieldBoolean;
         const varFieldBooleanValue = new Variable(
-            "var3",
-            new ClassFieldAccess(varClass, "fieldBoolean"),
+            'var3',
+            new ClassFieldAccess(varClass, 'fieldBoolean'),
         );
         expectToBeType(
             typir.Inference.inferType(varFieldBooleanValue),
             isPrimitiveType,
-            (type) => type.getName() === "boolean",
+            (type) => type.getName() === 'boolean',
         );
         expectValidationIssuesStrict(typir, varFieldBooleanValue.initialValue, [
             "Validated access of 'fieldBoolean' of the variable 'var1'.",

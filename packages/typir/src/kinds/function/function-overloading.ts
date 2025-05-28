@@ -4,16 +4,17 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from "../../graph/type-graph.js";
-import { Type } from "../../graph/type-node.js";
-import { CompositeTypeInferenceRule } from "../../services/inference.js";
-import { TypirServices } from "../../typir.js";
-import { RuleRegistry } from "../../utils/rule-registration.js";
-import { removeFromArray } from "../../utils/utils.js";
-import { OverloadedFunctionsTypeInferenceRule } from "./function-inference-overloaded.js";
-import { FunctionKind, InferFunctionCall } from "./function-kind.js";
-import { FunctionType, isFunctionType } from "./function-type.js";
-import { FunctionCallArgumentsValidation } from "./function-validation-calls.js";
+import type { TypeGraphListener } from '../../graph/type-graph.js';
+import type { Type } from '../../graph/type-node.js';
+import type { CompositeTypeInferenceRule } from '../../services/inference.js';
+import type { TypirServices } from '../../typir.js';
+import { RuleRegistry } from '../../utils/rule-registration.js';
+import { removeFromArray } from '../../utils/utils.js';
+import { OverloadedFunctionsTypeInferenceRule } from './function-inference-overloaded.js';
+import type { FunctionKind, InferFunctionCall } from './function-kind.js';
+import type { FunctionType } from './function-type.js';
+import { isFunctionType } from './function-type.js';
+import { FunctionCallArgumentsValidation } from './function-validation-calls.js';
 
 /**
  * Collects information about all functions with the same name.
@@ -44,7 +45,7 @@ export interface SingleFunctionDetails<
  * In each type system, exactly one instance of this class is stored by the FunctionKind.
  */
 export class AvailableFunctionsManager<LanguageType>
-    implements TypeGraphListener
+implements TypeGraphListener
 {
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: FunctionKind<LanguageType>;

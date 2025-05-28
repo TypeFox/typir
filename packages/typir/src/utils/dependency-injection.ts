@@ -84,7 +84,7 @@ export function inject<
     return _inject(module);
 }
 
-const isProxy = Symbol("isProxy");
+const isProxy = Symbol('isProxy');
 
 /**
  * Eagerly load all services in the given dependency injection container. This is sometimes
@@ -108,7 +108,7 @@ function _inject<I, T>(module: Module<I, T>, injector?: any): T {
         deleteProperty: () => false,
         set: () => {
             throw new Error(
-                "Cannot set property on injected service container",
+                'Cannot set property on injected service container',
             );
         },
         get: (obj, prop) => {
@@ -155,7 +155,7 @@ function _resolve<I, T>(
     if (prop in obj) {
         if (obj[prop] instanceof Error) {
             throw new Error(
-                "Construction failure. Please make sure that your dependencies are constructable.",
+                'Construction failure. Please make sure that your dependencies are constructable.',
                 { cause: obj[prop] },
             );
         }
@@ -173,7 +173,7 @@ function _resolve<I, T>(
         obj[prop] = __requested__;
         try {
             obj[prop] =
-                typeof value === "function"
+                typeof value === 'function'
                     ? value(injector)
                     : _inject(value, injector);
         } catch (error) {
@@ -201,8 +201,8 @@ function _merge(target: Module<any>, source?: Module<any>): Module<unknown> {
                 if (
                     value1 !== null &&
                     value2 !== null &&
-                    typeof value1 === "object" &&
-                    typeof value2 === "object"
+                    typeof value1 === 'object' &&
+                    typeof value2 === 'object'
                 ) {
                     target[key] = _merge(value1, value2);
                 } else {

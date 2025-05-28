@@ -4,12 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from "../../graph/type-graph.js";
-import { isType, Type } from "../../graph/type-node.js";
-import { TypeEqualityProblem } from "../../services/equality.js";
-import { TypirProblem } from "../../utils/utils-definitions.js";
-import { createKindConflict } from "../../utils/utils-type-comparison.js";
-import { isTopKind, TopKind, TopTypeDetails } from "./top-kind.js";
+import type { TypeGraphListener } from '../../graph/type-graph.js';
+import { isType, Type } from '../../graph/type-node.js';
+import { TypeEqualityProblem } from '../../services/equality.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
+import { createKindConflict } from '../../utils/utils-type-comparison.js';
+import type { TopKind, TopTypeDetails } from './top-kind.js';
+import { isTopKind } from './top-kind.js';
 
 export class TopType extends Type implements TypeGraphListener {
     override readonly kind: TopKind<unknown>;

@@ -4,13 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode } from "langium";
-import {
-    DefaultTypeInferenceCollector,
-    TypeInferenceCollector,
-    TypeInferenceRule,
-} from "typir";
-import { LangiumAstTypes } from "../utils/typir-langium-utils.js";
+import type { AstNode } from 'langium';
+import type { TypeInferenceCollector, TypeInferenceRule } from 'typir';
+import { DefaultTypeInferenceCollector } from 'typir';
+import type { LangiumAstTypes } from '../utils/typir-langium-utils.js';
 
 export type LangiumTypeInferenceRules<T extends LangiumAstTypes> = {
     [K in keyof T]?: T[K] extends AstNode
@@ -32,8 +29,8 @@ export interface LangiumTypeInferenceCollector<AstTypes extends LangiumAstTypes>
 }
 
 export class DefaultLangiumTypeInferenceCollector<
-        AstTypes extends LangiumAstTypes,
-    >
+    AstTypes extends LangiumAstTypes,
+>
     extends DefaultTypeInferenceCollector<AstNode>
     implements LangiumTypeInferenceCollector<AstTypes>
 {
@@ -42,7 +39,7 @@ export class DefaultLangiumTypeInferenceCollector<
     ): void {
         // map this approach for registering inference rules to the key-value approach from core Typir
         for (const [type, ruleCallbacks] of Object.entries(rules)) {
-            const languageKey = type === "AstNode" ? undefined : type; // using 'AstNode' as key is equivalent to specifying no key
+            const languageKey = type === 'AstNode' ? undefined : type; // using 'AstNode' as key is equivalent to specifying no key
             const callbacks = ruleCallbacks as
                 | TypeInferenceRule<AstNode>
                 | Array<TypeInferenceRule<AstNode>>;

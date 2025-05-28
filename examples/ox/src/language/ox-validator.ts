@@ -9,18 +9,20 @@ import {
     MultiMap,
     type ValidationAcceptor,
     type ValidationChecks,
-} from "langium";
-import {
+} from 'langium';
+import type {
     FunctionDeclaration,
-    isFunctionDeclaration,
-    isVariableDeclaration,
     OxElement,
     OxProgram,
     VariableDeclaration,
+} from './generated/ast.js';
+import {
+    isFunctionDeclaration,
+    isVariableDeclaration,
     type OxAstType,
     type ReturnStatement,
-} from "./generated/ast.js";
-import type { OxServices } from "./ox-module.js";
+} from './generated/ast.js';
+import type { OxServices } from './ox-module.js';
 
 /**
  * Register custom validation checks.
@@ -53,13 +55,13 @@ export class OxValidator {
             isFunctionDeclaration,
         );
         if (functionDeclaration) {
-            if (functionDeclaration.returnType.primitive === "void") {
+            if (functionDeclaration.returnType.primitive === 'void') {
                 // no return type
                 if (node.value) {
                     accept(
-                        "error",
+                        'error',
                         `The function '${functionDeclaration.name}' has 'void' as return type. Therefore, this return statement must return no value.`,
-                        { node, property: "value" },
+                        { node, property: 'value' },
                     );
                 } else {
                     // no value => everything is fine
@@ -71,7 +73,7 @@ export class OxValidator {
                 } else {
                     // missing return value
                     accept(
-                        "error",
+                        'error',
                         `The function '${functionDeclaration.name}' has '${functionDeclaration.returnType.primitive}' as return type. Therefore, this return statement must return value.`,
                         { node },
                     );
@@ -100,11 +102,11 @@ export class OxValidator {
             if (vars.length >= 2) {
                 for (const v of vars) {
                     accept(
-                        "error",
-                        "Variables need to have unique names: " + name,
+                        'error',
+                        'Variables need to have unique names: ' + name,
                         {
                             node: v,
-                            property: "name",
+                            property: 'name',
                         },
                     );
                 }
@@ -128,11 +130,11 @@ export class OxValidator {
             if (declarations.length >= 2) {
                 for (const f of declarations) {
                     accept(
-                        "error",
-                        "Functions need to have unique names: " + name,
+                        'error',
+                        'Functions need to have unique names: ' + name,
                         {
                             node: f,
-                            property: "name",
+                            property: 'name',
                         },
                     );
                 }
