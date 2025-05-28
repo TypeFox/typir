@@ -12,7 +12,6 @@ on:
 
 jobs:
   format:
-    name: typir-format
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,7 +29,6 @@ jobs:
           npm run pretty:check
 
   lint:
-    name: typir-lint
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -48,7 +46,6 @@ jobs:
           npm run lint
 
   build:
-    name: typir-build
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
