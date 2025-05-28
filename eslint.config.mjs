@@ -75,15 +75,6 @@ export default defineConfig([
             "no-unsafe-finally": "error",
             "no-var": "error",
 
-            "space-before-function-paren": [
-                "error",
-                {
-                    anonymous: "never",
-                    asyncArrow: "always",
-                    named: "never",
-                },
-            ],
-
             semi: [2, "always"],
 
             quotes: [

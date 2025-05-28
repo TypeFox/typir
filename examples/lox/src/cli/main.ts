@@ -34,7 +34,7 @@ export type GenerateOptions = {
     destination?: string;
 };
 
-export default function(): void {
+export default function (): void {
     const program = new Command();
 
     program.version(JSON.parse(packageContent).version);
