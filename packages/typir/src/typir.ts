@@ -4,26 +4,63 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { DefaultGraphAlgorithms, GraphAlgorithms } from './graph/graph-algorithms.js';
+import type { GraphAlgorithms } from './graph/graph-algorithms.js';
+import { DefaultGraphAlgorithms } from './graph/graph-algorithms.js';
 import { TypeGraph } from './graph/type-graph.js';
-import { DefaultTypeResolver, TypeResolvingService } from './initialization/type-selector.js';
-import { BottomFactoryService, BottomKind, BottomKindName } from './kinds/bottom/bottom-kind.js';
-import { ClassFactoryService, ClassKind, ClassKindName } from './kinds/class/class-kind.js';
-import { FunctionFactoryService, FunctionKind, FunctionKindName } from './kinds/function/function-kind.js';
-import { PrimitiveFactoryService, PrimitiveKind, PrimitiveKindName } from './kinds/primitive/primitive-kind.js';
-import { TopFactoryService, TopKind, TopKindName } from './kinds/top/top-kind.js';
-import { DefaultTypeAssignability, TypeAssignability } from './services/assignability.js';
-import { DefaultLanguageNodeInferenceCaching, DefaultTypeRelationshipCaching, LanguageNodeInferenceCaching, TypeRelationshipCaching } from './services/caching.js';
-import { DefaultTypeConversion, TypeConversion } from './services/conversion.js';
-import { DefaultTypeEquality, TypeEquality } from './services/equality.js';
-import { DefaultTypeInferenceCollector, TypeInferenceCollector } from './services/inference.js';
-import { DefaultKindRegistry, KindRegistry } from './services/kind-registry.js';
-import { DefaultLanguageService, LanguageService } from './services/language.js';
-import { DefaultOperatorFactory, OperatorFactoryService } from './services/operator.js';
-import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.js';
-import { DefaultSubType, SubType } from './services/subtype.js';
-import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './services/validation.js';
-import { inject, Module } from './utils/dependency-injection.js';
+import type { TypeResolvingService } from './initialization/type-selector.js';
+import { DefaultTypeResolver } from './initialization/type-selector.js';
+import type { BottomFactoryService } from './kinds/bottom/bottom-kind.js';
+import { BottomKind, BottomKindName } from './kinds/bottom/bottom-kind.js';
+import type { ClassFactoryService } from './kinds/class/class-kind.js';
+import { ClassKind, ClassKindName } from './kinds/class/class-kind.js';
+import type { FunctionFactoryService } from './kinds/function/function-kind.js';
+import {
+    FunctionKind,
+    FunctionKindName,
+} from './kinds/function/function-kind.js';
+import type { PrimitiveFactoryService } from './kinds/primitive/primitive-kind.js';
+import {
+    PrimitiveKind,
+    PrimitiveKindName,
+} from './kinds/primitive/primitive-kind.js';
+import type { TopFactoryService } from './kinds/top/top-kind.js';
+import { TopKind, TopKindName } from './kinds/top/top-kind.js';
+import type { TypeAssignability } from './services/assignability.js';
+import { DefaultTypeAssignability } from './services/assignability.js';
+import type {
+    LanguageNodeInferenceCaching,
+    TypeRelationshipCaching,
+} from './services/caching.js';
+import {
+    DefaultLanguageNodeInferenceCaching,
+    DefaultTypeRelationshipCaching,
+} from './services/caching.js';
+import type { TypeConversion } from './services/conversion.js';
+import { DefaultTypeConversion } from './services/conversion.js';
+import type { TypeEquality } from './services/equality.js';
+import { DefaultTypeEquality } from './services/equality.js';
+import type { TypeInferenceCollector } from './services/inference.js';
+import { DefaultTypeInferenceCollector } from './services/inference.js';
+import type { KindRegistry } from './services/kind-registry.js';
+import { DefaultKindRegistry } from './services/kind-registry.js';
+import type { LanguageService } from './services/language.js';
+import { DefaultLanguageService } from './services/language.js';
+import type { OperatorFactoryService } from './services/operator.js';
+import { DefaultOperatorFactory } from './services/operator.js';
+import type { ProblemPrinter } from './services/printing.js';
+import { DefaultTypeConflictPrinter } from './services/printing.js';
+import type { SubType } from './services/subtype.js';
+import { DefaultSubType } from './services/subtype.js';
+import type {
+    ValidationCollector,
+    ValidationConstraints,
+} from './services/validation.js';
+import {
+    DefaultValidationCollector,
+    DefaultValidationConstraints,
+} from './services/validation.js';
+import type { Module } from './utils/dependency-injection.js';
+import { inject } from './utils/dependency-injection.js';
 
 /**
  * Some design decisions for Typir:
@@ -73,7 +110,9 @@ export type TypirServices<LanguageType> = {
     };
 };
 
-export function createDefaultTypirServicesModule<LanguageType>(): Module<TypirServices<LanguageType>> {
+export function createDefaultTypirServicesModule<LanguageType>(): Module<
+    TypirServices<LanguageType>
+> {
     return {
         Assignability: (services) => new DefaultTypeAssignability(services),
         Equality: (services) => new DefaultTypeEquality(services),
@@ -81,21 +120,45 @@ export function createDefaultTypirServicesModule<LanguageType>(): Module<TypirSe
         Subtype: (services) => new DefaultSubType(services),
         Inference: (services) => new DefaultTypeInferenceCollector(services),
         caching: {
-            TypeRelationships: (services) => new DefaultTypeRelationshipCaching(services),
-            LanguageNodeInference: () => new DefaultLanguageNodeInferenceCaching(),
+            TypeRelationships: (services) =>
+                new DefaultTypeRelationshipCaching(services),
+            LanguageNodeInference: () =>
+                new DefaultLanguageNodeInferenceCaching(),
         },
         Printer: () => new DefaultTypeConflictPrinter(),
         Language: () => new DefaultLanguageService(),
         validation: {
             Collector: (services) => new DefaultValidationCollector(services),
-            Constraints: (services) => new DefaultValidationConstraints(services),
+            Constraints: (services) =>
+                new DefaultValidationConstraints(services),
         },
         factory: {
-            Primitives: (services) => services.infrastructure.Kinds.getOrCreateKind(PrimitiveKindName, services => new PrimitiveKind(services)),
-            Functions: (services) => services.infrastructure.Kinds.getOrCreateKind(FunctionKindName, services => new FunctionKind(services)),
-            Classes: (services) => services.infrastructure.Kinds.getOrCreateKind(ClassKindName, services => new ClassKind(services, { typing: 'Nominal' })),
-            Top: (services) => services.infrastructure.Kinds.getOrCreateKind(TopKindName, services => new TopKind(services)),
-            Bottom: (services) => services.infrastructure.Kinds.getOrCreateKind(BottomKindName, services => new BottomKind(services)),
+            Primitives: (services) =>
+                services.infrastructure.Kinds.getOrCreateKind(
+                    PrimitiveKindName,
+                    (services) => new PrimitiveKind(services),
+                ),
+            Functions: (services) =>
+                services.infrastructure.Kinds.getOrCreateKind(
+                    FunctionKindName,
+                    (services) => new FunctionKind(services),
+                ),
+            Classes: (services) =>
+                services.infrastructure.Kinds.getOrCreateKind(
+                    ClassKindName,
+                    (services) =>
+                        new ClassKind(services, { typing: 'Nominal' }),
+                ),
+            Top: (services) =>
+                services.infrastructure.Kinds.getOrCreateKind(
+                    TopKindName,
+                    (services) => new TopKind(services),
+                ),
+            Bottom: (services) =>
+                services.infrastructure.Kinds.getOrCreateKind(
+                    BottomKindName,
+                    (services) => new BottomKind(services),
+                ),
             Operators: (services) => new DefaultOperatorFactory(services),
         },
         infrastructure: {
@@ -115,11 +178,25 @@ export function createDefaultTypirServicesModule<LanguageType>(): Module<TypirSe
  * @returns a Typir instance, i.e. the TypirServices with implementations
  */
 export function createTypirServices<LanguageType>(
-    customization1: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
-    customization2: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
-    customization3: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
+    customization1: Module<
+        TypirServices<LanguageType>,
+        PartialTypirServices<LanguageType>
+    > = {},
+    customization2: Module<
+        TypirServices<LanguageType>,
+        PartialTypirServices<LanguageType>
+    > = {},
+    customization3: Module<
+        TypirServices<LanguageType>,
+        PartialTypirServices<LanguageType>
+    > = {},
 ): TypirServices<LanguageType> {
-    return inject(createDefaultTypirServicesModule<LanguageType>(), customization1, customization2, customization3);
+    return inject(
+        createDefaultTypirServicesModule<LanguageType>(),
+        customization1,
+        customization2,
+        customization3,
+    );
 }
 
 /**
@@ -127,12 +204,16 @@ export function createTypirServices<LanguageType>(
  * any methods. If it does, it's one of our services and therefore should not be partialized.
  * Copied from Langium.
  */
-//eslint-disable-next-line @typescript-eslint/ban-types
-export type DeepPartial<T> = T[keyof T] extends Function ? T : {
-    [P in keyof T]?: DeepPartial<T[P]>;
-}
+//eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+export type DeepPartial<T> = T[keyof T] extends Function
+    ? T
+    : {
+        [P in keyof T]?: DeepPartial<T[P]>;
+    };
 
 /**
  * Language-specific services to be partially overridden via dependency injection.
  */
-export type PartialTypirServices<LanguageType> = DeepPartial<TypirServices<LanguageType>>
+export type PartialTypirServices<LanguageType> = DeepPartial<
+    TypirServices<LanguageType>
+>;

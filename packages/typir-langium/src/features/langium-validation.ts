@@ -4,39 +4,58 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, LangiumDefaultCoreServices, ValidationAcceptor, ValidationChecks } from 'langium';
-import { DefaultValidationCollector, TypirServices, ValidationCollector, ValidationProblem, ValidationRule } from 'typir';
-import { TypirLangiumServices } from '../typir-langium.js';
-import { LangiumAstTypes } from '../utils/typir-langium-utils.js';
+import type {
+    AstNode,
+    LangiumDefaultCoreServices,
+    ValidationAcceptor,
+    ValidationChecks,
+} from 'langium';
+import type {
+    TypirServices,
+    ValidationCollector,
+    ValidationProblem,
+    ValidationRule,
+} from 'typir';
+import { DefaultValidationCollector } from 'typir';
+import type { TypirLangiumServices } from '../typir-langium.js';
+import type { LangiumAstTypes } from '../utils/typir-langium-utils.js';
 
-export function registerTypirValidationChecks<AstTypes extends LangiumAstTypes>(langiumServices: LangiumDefaultCoreServices, typirServices: TypirLangiumServices<AstTypes>) {
+export function registerTypirValidationChecks<AstTypes extends LangiumAstTypes>(
+    langiumServices: LangiumDefaultCoreServices,
+    typirServices: TypirLangiumServices<AstTypes>,
+) {
     const registry = langiumServices.validation.ValidationRegistry;
     const validator = typirServices.validation.TypeValidation;
-    registry.registerBeforeDocument(validator.checkTypingProblemsWithTypirBeforeDocument, validator);
+    registry.registerBeforeDocument(
+        validator.checkTypingProblemsWithTypirBeforeDocument,
+        validator,
+    );
     const checks: ValidationChecks<object> = {
         AstNode: validator.checkTypingProblemsWithTypir, // checking each node is not performant, improve the API, see below!
     };
     registry.register(checks, validator);
-    registry.registerAfterDocument(validator.checkTypingProblemsWithTypirAfterDocument, validator);
+    registry.registerAfterDocument(
+        validator.checkTypingProblemsWithTypirAfterDocument,
+        validator,
+    );
 }
 
 /*
-* TODO Ideas and features for the validation with Typir for Langium
-*
-* What to validate:
-* - Is it possible to infer a type at all? Type vs undefined
-* - Does the inferred type fit to the environment? => "type checking" (expected: unknown|Type, actual: unknown|Type)
-* - possible Quick-fixes ...
-*     - for wrong type of variable declaration
-*     - to add missing explicit type conversion
-* - no validation of parents, when their children already have some problems/warnings
-*
-* Improved Validation API for Langium:
-* - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // use this signature for Langium?
-* - [<VariableDeclaration>{ selector: isVariableDeclaration, result: languageNode => languageNode.type }, <BinaryExpression>{}]      Array<InferenceRule<T>>
-* Apply the same ideas for InferenceRules as well!
-*/
-
+ * TODO Ideas and features for the validation with Typir for Langium
+ *
+ * What to validate:
+ * - Is it possible to infer a type at all? Type vs undefined
+ * - Does the inferred type fit to the environment? => "type checking" (expected: unknown|Type, actual: unknown|Type)
+ * - possible Quick-fixes ...
+ *     - for wrong type of variable declaration
+ *     - to add missing explicit type conversion
+ * - no validation of parents, when their children already have some problems/warnings
+ *
+ * Improved Validation API for Langium:
+ * - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // use this signature for Langium?
+ * - [<VariableDeclaration>{ selector: isVariableDeclaration, result: languageNode => languageNode.type }, <BinaryExpression>{}]      Array<InferenceRule<T>>
+ * Apply the same ideas for InferenceRules as well!
+ */
 
 /**
  * This service is a technical adapter service,
@@ -48,7 +67,10 @@ export interface LangiumTypirValidator {
      * @param rootNode the root node of the current document
      * @param accept receives the found validation issues
      */
-    checkTypingProblemsWithTypirBeforeDocument(rootNode: AstNode, accept: ValidationAcceptor): void;
+    checkTypingProblemsWithTypirBeforeDocument(
+        rootNode: AstNode,
+        accept: ValidationAcceptor,
+    ): void;
 
     /**
      * Executes all checks, which are directly derived from the current Typir configuration,
@@ -56,44 +78,78 @@ export interface LangiumTypirValidator {
      * @param node the current AST node to check regarding typing issues
      * @param accept receives the found validation issues
      */
-    checkTypingProblemsWithTypir(node: AstNode, accept: ValidationAcceptor): void;
+    checkTypingProblemsWithTypir(
+        node: AstNode,
+        accept: ValidationAcceptor,
+    ): void;
 
     /**
      * Will be called once after finishing the validation of a LangiumDocument.
      * @param rootNode the root node of the current document
      * @param accept receives the found validation issues
      */
-    checkTypingProblemsWithTypirAfterDocument(rootNode: AstNode, accept: ValidationAcceptor): void;
+    checkTypingProblemsWithTypirAfterDocument(
+        rootNode: AstNode,
+        accept: ValidationAcceptor,
+    ): void;
 }
 
-export class DefaultLangiumTypirValidator<AstTypes extends LangiumAstTypes> implements LangiumTypirValidator {
+export class DefaultLangiumTypirValidator<AstTypes extends LangiumAstTypes>
+implements LangiumTypirValidator
+{
     protected readonly services: TypirServices<AstNode>;
 
     constructor(services: TypirLangiumServices<AstTypes>) {
         this.services = services;
     }
 
-    checkTypingProblemsWithTypirBeforeDocument(rootNode: AstNode, accept: ValidationAcceptor): void {
-        this.report(this.services.validation.Collector.validateBefore(rootNode), rootNode, accept);
+    checkTypingProblemsWithTypirBeforeDocument(
+        rootNode: AstNode,
+        accept: ValidationAcceptor,
+    ): void {
+        this.report(
+            this.services.validation.Collector.validateBefore(rootNode),
+            rootNode,
+            accept,
+        );
     }
 
     checkTypingProblemsWithTypir(node: AstNode, accept: ValidationAcceptor) {
-        this.report(this.services.validation.Collector.validate(node), node, accept);
+        this.report(
+            this.services.validation.Collector.validate(node),
+            node,
+            accept,
+        );
     }
 
-    checkTypingProblemsWithTypirAfterDocument(rootNode: AstNode, accept: ValidationAcceptor): void {
-        this.report(this.services.validation.Collector.validateAfter(rootNode), rootNode, accept);
+    checkTypingProblemsWithTypirAfterDocument(
+        rootNode: AstNode,
+        accept: ValidationAcceptor,
+    ): void {
+        this.report(
+            this.services.validation.Collector.validateAfter(rootNode),
+            rootNode,
+            accept,
+        );
     }
 
-    protected report(problems: Array<ValidationProblem<AstNode>>, node: AstNode, accept: ValidationAcceptor): void {
+    protected report(
+        problems: Array<ValidationProblem<AstNode>>,
+        node: AstNode,
+        accept: ValidationAcceptor,
+    ): void {
         // print all found problems for the given AST node
         for (const problem of problems) {
-            const message = this.services.Printer.printValidationProblem(problem);
-            accept(problem.severity, message, { node, property: problem.languageProperty, index: problem.languageIndex });
+            const message =
+                this.services.Printer.printValidationProblem(problem);
+            accept(problem.severity, message, {
+                node,
+                property: problem.languageProperty,
+                index: problem.languageIndex,
+            });
         }
     }
 }
-
 
 /**
  * Taken and adapted from 'ValidationChecks' from 'langium'.
@@ -109,23 +165,33 @@ export class DefaultLangiumTypirValidator<AstTypes extends LangiumAstTypes> impl
  * @param T a type definition mapping language specific type names (keys) to the corresponding types (values)
  */
 export type LangiumValidationRules<T extends LangiumAstTypes> = {
-    [K in keyof T]?: T[K] extends AstNode ? ValidationRule<AstNode, T[K]> | Array<ValidationRule<AstNode, T[K]>> : never
+    [K in keyof T]?: T[K] extends AstNode
+        ? ValidationRule<AstNode, T[K]> | Array<ValidationRule<AstNode, T[K]>>
+        : never;
 } & {
     AstNode?: ValidationRule<AstNode> | Array<ValidationRule<AstNode>>;
+};
+
+export interface LangiumValidationCollector<AstTypes extends LangiumAstTypes>
+    extends ValidationCollector<AstNode> {
+    addValidationRulesForAstNodes(
+        rules: LangiumValidationRules<AstTypes>,
+    ): void;
 }
 
-
-export interface LangiumValidationCollector<AstTypes extends LangiumAstTypes> extends ValidationCollector<AstNode> {
-    addValidationRulesForAstNodes(rules: LangiumValidationRules<AstTypes>): void;
-}
-
-export class DefaultLangiumValidationCollector<AstTypes extends LangiumAstTypes> extends DefaultValidationCollector<AstNode> implements LangiumValidationCollector<AstTypes> {
-
-    addValidationRulesForAstNodes(rules: LangiumValidationRules<AstTypes>): void {
+export class DefaultLangiumValidationCollector<AstTypes extends LangiumAstTypes>
+    extends DefaultValidationCollector<AstNode>
+    implements LangiumValidationCollector<AstTypes>
+{
+    addValidationRulesForAstNodes(
+        rules: LangiumValidationRules<AstTypes>,
+    ): void {
         // map this approach for registering validation rules to the key-value approach from core Typir
         for (const [type, ruleCallbacks] of Object.entries(rules)) {
             const languageKey = type === 'AstNode' ? undefined : type; // using 'AstNode' as key is equivalent to specifying no key
-            const callbacks = ruleCallbacks as ValidationRule<AstNode> | Array<ValidationRule<AstNode>>;
+            const callbacks = ruleCallbacks as
+                | ValidationRule<AstNode>
+                | Array<ValidationRule<AstNode>>;
             if (Array.isArray(callbacks)) {
                 for (const callback of callbacks) {
                     this.addValidationRule(callback, { languageKey });
@@ -135,5 +201,4 @@ export class DefaultLangiumValidationCollector<AstTypes extends LangiumAstTypes>
             }
         }
     }
-
 }

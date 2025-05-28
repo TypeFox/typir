@@ -13,7 +13,24 @@ import { afterEach, expect } from 'vitest';
 import { createOxServices } from '../src/language/ox-module.js';
 
 export const oxServices = createOxServices(EmptyFileSystem).Ox;
-export const operatorNames = ['-', '*', '/', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '==', '!=', '!=', '!', '-'];
+export const operatorNames = [
+    '-',
+    '*',
+    '/',
+    '+',
+    '<',
+    '<=',
+    '>',
+    '>=',
+    'and',
+    'or',
+    '==',
+    '==',
+    '!=',
+    '!=',
+    '!',
+    '-',
+];
 
 afterEach(async () => {
     await deleteAllDocuments(oxServices.shared);
@@ -21,9 +38,14 @@ afterEach(async () => {
     expectTypirTypes(oxServices.typir, isFunctionType, ...operatorNames);
 });
 
-export async function validateOx(ox: string, errors: number | string | string[]) {
+export async function validateOx(
+    ox: string,
+    errors: number | string | string[],
+) {
     const document = await parseDocument(oxServices, ox.trim());
-    const diagnostics: string[] = (await oxServices.validation.DocumentValidator.validateDocument(document)).map(d => d.message);
+    const diagnostics: string[] = (
+        await oxServices.validation.DocumentValidator.validateDocument(document)
+    ).map((d) => d.message);
     const msgError = diagnostics.join('\n');
     if (typeof errors === 'number') {
         expect(diagnostics, msgError).toHaveLength(errors);

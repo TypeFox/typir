@@ -4,7 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, AstUtils, LangiumDocument, LangiumSharedCoreServices, URI } from 'langium';
+import type {
+    AstNode,
+    LangiumDocument,
+    LangiumSharedCoreServices,
+    URI,
+} from 'langium';
+import { AstUtils } from 'langium';
 import { assertTrue } from 'typir';
 
 export function getDocumentKeyForURI(document: URI): string {
@@ -26,10 +32,9 @@ export async function deleteAllDocuments(services: LangiumSharedCoreServices) {
         .toArray();
     await services.workspace.DocumentBuilder.update(
         [], // update no documents
-        docsToDelete // delete all documents
+        docsToDelete, // delete all documents
     );
 }
-
 
 /** Generic super type for the Langium-generated XXXAstType. */
 export type LangiumAstTypes = Record<string, AstNode>;

@@ -4,16 +4,23 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, DocumentCache, DocumentState, LangiumSharedCoreServices } from 'langium';
-import { CachePending, LanguageNodeInferenceCaching, Type } from 'typir';
+import type { AstNode, LangiumSharedCoreServices } from 'langium';
+import { DocumentCache, DocumentState } from 'langium';
+import type { LanguageNodeInferenceCaching, Type } from 'typir';
+import { CachePending } from 'typir';
 import { getDocumentKey } from '../utils/typir-langium-utils.js';
 
 // cache AstNodes
-export class LangiumLanguageNodeInferenceCaching implements LanguageNodeInferenceCaching {
+export class LangiumLanguageNodeInferenceCaching
+implements LanguageNodeInferenceCaching
+{
     protected readonly cache: DocumentCache<unknown, Type | CachePending>; // removes cached AstNodes, if their underlying LangiumDocuments are invalidated
 
     constructor(langiumServices: LangiumSharedCoreServices) {
-        this.cache = new DocumentCache(langiumServices, DocumentState.IndexedReferences);
+        this.cache = new DocumentCache(
+            langiumServices,
+            DocumentState.IndexedReferences,
+        );
     }
 
     cacheSet(languageNode: AstNode, type: Type): void {
@@ -25,7 +32,10 @@ export class LangiumLanguageNodeInferenceCaching implements LanguageNodeInferenc
         if (this.pendingGet(languageNode)) {
             return undefined;
         } else {
-            return this.cache.get(getDocumentKey(languageNode), languageNode) as (Type | undefined);
+            return this.cache.get(
+                getDocumentKey(languageNode),
+                languageNode,
+            ) as Type | undefined;
         }
     }
 
@@ -34,7 +44,11 @@ export class LangiumLanguageNodeInferenceCaching implements LanguageNodeInferenc
     }
 
     pendingSet(languageNode: AstNode): void {
-        this.cache.set(getDocumentKey(languageNode), languageNode, CachePending);
+        this.cache.set(
+            getDocumentKey(languageNode),
+            languageNode,
+            CachePending,
+        );
     }
 
     pendingClear(languageNode: AstNode): void {
@@ -48,6 +62,9 @@ export class LangiumLanguageNodeInferenceCaching implements LanguageNodeInferenc
 
     pendingGet(languageNode: AstNode): boolean {
         const key = getDocumentKey(languageNode);
-        return this.cache.has(key, languageNode) && this.cache.get(key, languageNode) === CachePending;
+        return (
+            this.cache.has(key, languageNode) &&
+            this.cache.get(key, languageNode) === CachePending
+        );
     }
 }

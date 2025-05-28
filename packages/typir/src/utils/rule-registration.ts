@@ -2,11 +2,11 @@
  * Copyright 2025 TypeFox GmbH
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
-******************************************************************************/
+ ******************************************************************************/
 
-import { TypeGraphListener } from '../graph/type-graph.js';
-import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import type { TypeGraphListener } from '../graph/type-graph.js';
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
 import { removeFromArray, toArray, toArrayWithValue } from './utils.js';
 
 export interface RuleOptions {
@@ -44,7 +44,10 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
      * language node type --> rules
      * Improves the look-up of related rules, when doing type for a concrete language node.
      * All rules are registered at least once in this map, since rules without dedicated language key are registered to 'undefined'. */
-    protected readonly languageTypeToRules: Map<string|undefined, RuleType[]> = new Map();
+    protected readonly languageTypeToRules: Map<
+        string | undefined,
+        RuleType[]
+    > = new Map();
     /**
      * type identifier --> -> rules
      * Improves the look-up for rules which are bound to types, when these types are removed.
@@ -53,13 +56,13 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
     /**
      * rule --> its collected options
      * Contains the current set of all options for an rule. */
-    protected readonly ruleToOptions: Map<RuleType, InternalRuleOptions> = new Map();
+    protected readonly ruleToOptions: Map<RuleType, InternalRuleOptions> =
+        new Map();
 
     /** Collects all unique rules, lazily managed. */
     protected readonly uniqueRules: Set<RuleType> = new Set();
 
     protected readonly listeners: Array<RuleCollectorListener<RuleType>> = [];
-
 
     constructor(services: TypirServices<LanguageType>) {
         services.infrastructure.Graph.addListener(this);
@@ -77,7 +80,9 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
     getUniqueRules(): Set<RuleType> {
         if (this.uniqueRules.size <= 0) {
             // lazily fill the set of unique rules
-            Array.from(this.languageTypeToRules.values()).flatMap(v => v).forEach(v => this.uniqueRules.add(v));
+            Array.from(this.languageTypeToRules.values())
+                .flatMap((v) => v)
+                .forEach((v) => this.uniqueRules.add(v));
         }
         return this.uniqueRules;
     }
@@ -102,7 +107,8 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
 
     addRule(rule: RuleType, givenOptions?: Partial<RuleOptions>): void {
         const newOptions = this.getRuleOptions(givenOptions);
-        const languageKeyUndefined: boolean = newOptions.languageKey === undefined;
+        const languageKeyUndefined: boolean =
+            newOptions.languageKey === undefined;
         const languageKeys: string[] = toArray(newOptions.languageKey);
 
         const existingOptions = this.ruleToOptions.get(rule);
@@ -120,7 +126,9 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
                 // nothing to do, since this rule is already registered for 'undefined'
             } else {
                 // since the rule shall be registered for 'undefined', remove all existing specific language keys
-                this.removeRule(rule, { languageKey: existingOptions?.languageKeys ?? [] });
+                this.removeRule(rule, {
+                    languageKey: existingOptions?.languageKeys ?? [],
+                });
 
                 // register this rule for 'undefined'
                 let rules = this.languageTypeToRules.get(undefined);
@@ -151,7 +159,10 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
                         // this rule is unknown until now
                         rules.push(rule);
                         added = true;
-                        diffOptions.languageKey = toArrayWithValue(key, diffOptions.languageKey);
+                        diffOptions.languageKey = toArrayWithValue(
+                            key,
+                            diffOptions.languageKey,
+                        );
                     } else {
                         if (existingOptions.languageKeys.includes(key)) {
                             // this rule is already registered with this language key => do nothing
@@ -160,7 +171,10 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
                             rules.push(rule);
                             existingOptions.languageKeys.push(key);
                             added = true;
-                            diffOptions.languageKey = toArrayWithValue(key, diffOptions.languageKey);
+                            diffOptions.languageKey = toArrayWithValue(
+                                key,
+                                diffOptions.languageKey,
+                            );
                         }
                     }
                 }
@@ -178,7 +192,10 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
             if (existingOptions === undefined) {
                 // this rule is unknown until now
                 rules.push(rule);
-                diffOptions.boundToType = toArrayWithValue(boundToType, diffOptions.boundToType);
+                diffOptions.boundToType = toArrayWithValue(
+                    boundToType,
+                    diffOptions.boundToType,
+                );
                 added = true;
             } else {
                 if (existingOptions.boundToTypes.includes(boundToType)) {
@@ -187,7 +204,10 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
                     // this rule is known, but not bound to the current type yet
                     existingOptions.boundToTypes.push(boundToType);
                     rules.push(rule);
-                    diffOptions.boundToType = toArrayWithValue(boundToType, diffOptions.boundToType);
+                    diffOptions.boundToType = toArrayWithValue(
+                        boundToType,
+                        diffOptions.boundToType,
+                    );
                     added = true;
                 }
             }
@@ -198,7 +218,9 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
             this.ruleToOptions.set(rule, {
                 languageKeyUndefined: languageKeyUndefined,
                 languageKeys: languageKeys,
-                boundToTypes: toArray(newOptions.boundToType, { newArray: true }),
+                boundToTypes: toArray(newOptions.boundToType, {
+                    newArray: true,
+                }),
             });
         } else {
             // the existing options are already updated above
@@ -213,18 +235,25 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
 
         // inform all listeners about the new rule
         if (added) {
-            this.listeners.forEach(listener => listener.onAddedRule(rule, diffOptions));
+            this.listeners.forEach((listener) =>
+                listener.onAddedRule(rule, diffOptions),
+            );
         }
     }
 
     removeRule(rule: RuleType, optionsToRemove?: Partial<RuleOptions>): void {
         const existingOptions = this.ruleToOptions.get(rule);
-        if (existingOptions === undefined) { // these options need to be updated (or completely removed at the end)
+        if (existingOptions === undefined) {
+            // these options need to be updated (or completely removed at the end)
             return; // the rule is unknown here => nothing to do
         }
 
-        const languageKeyUndefined: boolean = optionsToRemove ? (optionsToRemove.languageKey === undefined) : true;
-        const languageKeys: string[] = toArray(optionsToRemove?.languageKey, { newArray: true });
+        const languageKeyUndefined: boolean = optionsToRemove
+            ? optionsToRemove.languageKey === undefined
+            : true;
+        const languageKeys: string[] = toArray(optionsToRemove?.languageKey, {
+            newArray: true,
+        });
 
         const diffOptions: RuleOptions = {
             // ... maybe more options in the future ...
@@ -237,7 +266,10 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
         if (languageKeyUndefined) {
             // deregister the rule for 'undefined'
             if (existingOptions.languageKeyUndefined) {
-                const result = this.deregisterRuleForLanguageKey(rule, undefined);
+                const result = this.deregisterRuleForLanguageKey(
+                    rule,
+                    undefined,
+                );
                 if (result) {
                     removed = true;
                     diffOptions.languageKey = undefined;
@@ -254,14 +286,23 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
                 // since the rule is registered for 'undefined', i.e. all language keys, don't remove some language keys here
             } else {
                 for (const key of languageKeys) {
-                    const result1 = this.deregisterRuleForLanguageKey(rule, key);
-                    const result2 = removeFromArray(key, existingOptions.languageKeys); // update existing options
+                    const result1 = this.deregisterRuleForLanguageKey(
+                        rule,
+                        key,
+                    );
+                    const result2 = removeFromArray(
+                        key,
+                        existingOptions.languageKeys,
+                    ); // update existing options
                     if (result1 !== result2) {
                         throw new Error();
                     }
                     if (result1) {
                         removed = true;
-                        diffOptions.languageKey = toArrayWithValue(key, diffOptions.languageKey);
+                        diffOptions.languageKey = toArrayWithValue(
+                            key,
+                            diffOptions.languageKey,
+                        );
                     }
                 }
             }
@@ -275,9 +316,13 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
                 const result = removeFromArray(rule, rules);
                 if (result) {
                     removed = true;
-                    diffOptions.boundToType = toArrayWithValue(boundToType, diffOptions.boundToType);
-                    removeFromArray(boundToType , existingOptions.boundToTypes); // update existing options
-                    if (rules.length <= 0) { // remove empty entries
+                    diffOptions.boundToType = toArrayWithValue(
+                        boundToType,
+                        diffOptions.boundToType,
+                    );
+                    removeFromArray(boundToType, existingOptions.boundToTypes); // update existing options
+                    if (rules.length <= 0) {
+                        // remove empty entries
                         this.typirTypeToRules.delete(typeKey);
                     }
                 }
@@ -285,7 +330,10 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
         }
 
         // if the rule is not relevant anymore, clear the options map
-        if (existingOptions.languageKeyUndefined === false && existingOptions.languageKeys.length <= 0) {
+        if (
+            existingOptions.languageKeyUndefined === false &&
+            existingOptions.languageKeys.length <= 0
+        ) {
             this.ruleToOptions.delete(rule);
         }
 
@@ -294,15 +342,21 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
 
         // inform listeners
         if (removed) {
-            this.listeners.forEach(listener => listener.onRemovedRule(rule, diffOptions));
+            this.listeners.forEach((listener) =>
+                listener.onRemovedRule(rule, diffOptions),
+            );
         }
     }
 
-    protected deregisterRuleForLanguageKey(rule: RuleType, languageKey: string | undefined): boolean {
+    protected deregisterRuleForLanguageKey(
+        rule: RuleType,
+        languageKey: string | undefined,
+    ): boolean {
         const rules = this.languageTypeToRules.get(languageKey);
         if (rules) {
             const result = removeFromArray(rule, rules);
-            if (rules.length <= 0) { // remove empty entries
+            if (rules.length <= 0) {
+                // remove empty entries
                 this.languageTypeToRules.delete(languageKey);
             }
             return result;
@@ -325,23 +379,33 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
             // for each rule which was bound to the removed type:
             for (const ruleToRemove of entriesToRemove) {
                 const existingOptions = this.ruleToOptions.get(ruleToRemove)!;
-                const removed = removeFromArray(type, existingOptions.boundToTypes);
+                const removed = removeFromArray(
+                    type,
+                    existingOptions.boundToTypes,
+                );
                 if (removed) {
                     if (existingOptions.boundToTypes.length <= 0) {
                         // this rule is not bound to any existing type anymore => remove this rule completely
                         this.removeRule(ruleToRemove, {
                             // ... maybe additional properties in the future?
                             // boundToType: there are no bounded types anymore!
-                            languageKey: existingOptions.languageKeyUndefined ? undefined : existingOptions.languageKeys,
+                            languageKey: existingOptions.languageKeyUndefined
+                                ? undefined
+                                : existingOptions.languageKeys,
                         });
                     } else {
                         // inform listeners about removed rules
-                        this.listeners.forEach(listener => listener.onRemovedRule(ruleToRemove, {
-                            ...existingOptions,
-                            languageKey: existingOptions.languageKeyUndefined ? undefined : existingOptions.languageKeys,
-                            boundToType: type,
-                            // Note that more future options might be unknown here ... (let's hope, they are not relevant here)
-                        }));
+                        this.listeners.forEach((listener) =>
+                            listener.onRemovedRule(ruleToRemove, {
+                                ...existingOptions,
+                                languageKey:
+                                    existingOptions.languageKeyUndefined
+                                        ? undefined
+                                        : existingOptions.languageKeys,
+                                boundToType: type,
+                                // Note that more future options might be unknown here ... (let's hope, they are not relevant here)
+                            }),
+                        );
                     }
                 } else {
                     throw new Error('Removed type does not exist here');

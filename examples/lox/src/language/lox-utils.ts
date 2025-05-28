@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Class } from './generated/ast.js';
+import type { Class } from './generated/ast.js';
 
 export function getClassChain(classItem: Class): Class[] {
     const set = new Set<Class>();

@@ -8,7 +8,6 @@ import { describe, test } from 'vitest';
 import { validateOx } from './ox-type-checking-utils.js';
 
 describe('Test type checking for statements and variables in OX', () => {
-
     test('binary operators', async () => {
         await validateOx('var myResult: number = 2 + 3;', 0);
         await validateOx('var myResult: number = 2 - 3;', 0);
@@ -65,5 +64,4 @@ describe('Test type checking for statements and variables in OX', () => {
             "While validating the AstNode '2 * (2 and false)', this error is found: The given operands for the call of '*' don't match.",
         ]);
     });
-
 });

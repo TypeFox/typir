@@ -4,16 +4,22 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from '../graph/type-node.js';
-import { Kind } from '../kinds/kind.js';
+import type { Type } from '../graph/type-node.js';
+import type { Kind } from '../kinds/kind.js';
 
-export function assertTrue(condition: boolean, msg?: string): asserts condition {
+export function assertTrue(
+    condition: boolean,
+    msg?: string,
+): asserts condition {
     if (!condition) {
         throw new Error(msg);
     }
 }
 
-export function toArray<T>(value: undefined | T | T[], options?: { newArray: boolean }): T[] {
+export function toArray<T>(
+    value: undefined | T | T[],
+    options?: { newArray: boolean },
+): T[] {
     if (value === undefined) {
         return [];
     }
@@ -26,7 +32,10 @@ export function toArray<T>(value: undefined | T | T[], options?: { newArray: boo
     }
     return [value];
 }
-export function toArrayWithValue<T>(value: T, array?: undefined | T | T[]): T[] {
+export function toArrayWithValue<T>(
+    value: T,
+    array?: undefined | T | T[],
+): T[] {
     if (array === undefined) {
         return [value];
     }
@@ -37,7 +46,10 @@ export function toArrayWithValue<T>(value: T, array?: undefined | T | T[]): T[] 
     return [array, value];
 }
 
-export function removeFromArray<T>(value: T | undefined, array: T[] | undefined): boolean {
+export function removeFromArray<T>(
+    value: T | undefined,
+    array: T[] | undefined,
+): boolean {
     if (value === undefined || array === undefined) {
         return false;
     }
@@ -54,7 +66,11 @@ export function assertUnreachable(_: never): never {
     throw new Error('Error! The input value was not handled.');
 }
 
-export function assertKind<T extends Kind>(kind: unknown, check: (kind: unknown) => kind is T, msg?: string): asserts kind is T {
+export function assertKind<T extends Kind>(
+    kind: unknown,
+    check: (kind: unknown) => kind is T,
+    msg?: string,
+): asserts kind is T {
     if (check(kind)) {
         // this is the expected case
     } else {
@@ -62,7 +78,11 @@ export function assertKind<T extends Kind>(kind: unknown, check: (kind: unknown)
     }
 }
 
-export function assertTypirType<T extends Type>(type: unknown, check: (type: unknown) => type is T, msg?: string): asserts type is T {
+export function assertTypirType<T extends Type>(
+    type: unknown,
+    check: (type: unknown) => type is T,
+    msg?: string,
+): asserts type is T {
     if (check(type)) {
         // this is the expected case
     } else {

@@ -4,16 +4,21 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Kind } from '../kinds/kind.js';
-import { TypirServices } from '../typir.js';
+import type { Kind } from '../kinds/kind.js';
+import type { TypirServices } from '../typir.js';
 
 export interface KindRegistry<LanguageType> {
     register(kind: Kind): void;
     get<T extends Kind>(type: T['$name']): T | undefined;
-    getOrCreateKind<T extends Kind>(type: T['$name'], factory: (services: TypirServices<LanguageType>) => T): T;
+    getOrCreateKind<T extends Kind>(
+        type: T['$name'],
+        factory: (services: TypirServices<LanguageType>) => T,
+    ): T;
 }
 
-export class DefaultKindRegistry<LanguageType> implements KindRegistry<LanguageType> {
+export class DefaultKindRegistry<LanguageType>
+implements KindRegistry<LanguageType>
+{
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kinds: Map<string, Kind> = new Map(); // name of kind => kind (for an easier look-up)
 
@@ -35,10 +40,13 @@ export class DefaultKindRegistry<LanguageType> implements KindRegistry<LanguageT
     }
 
     get<T extends Kind>(type: T['$name']): T | undefined {
-        return this.kinds.get(type) as (T | undefined);
+        return this.kinds.get(type) as T | undefined;
     }
 
-    getOrCreateKind<T extends Kind>(type: T['$name'], factory: (services: TypirServices<LanguageType>) => T): T {
+    getOrCreateKind<T extends Kind>(
+        type: T['$name'],
+        factory: (services: TypirServices<LanguageType>) => T,
+    ): T {
         const existing = this.get(type);
         if (existing) {
             return existing;

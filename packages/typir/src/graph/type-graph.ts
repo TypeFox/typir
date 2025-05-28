@@ -4,10 +4,10 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { EdgeCachingInformation } from '../services/caching.js';
+import type { EdgeCachingInformation } from '../services/caching.js';
 import { assertTrue, removeFromArray } from '../utils/utils.js';
-import { TypeEdge } from './type-edge.js';
-import { Type } from './type-node.js';
+import type { TypeEdge } from './type-edge.js';
+import type { Type } from './type-node.js';
 
 /**
  * Each Typir instance has one single type graph.
@@ -18,7 +18,6 @@ import { Type } from './type-node.js';
  * Graph algorithms will need to filter the required edges regarding $relation.
  */
 export class TypeGraph {
-
     protected readonly nodes: Map<string, Type> = new Map(); // type name => Type
     protected readonly edges: TypeEdge[] = [];
 
@@ -43,7 +42,9 @@ export class TypeGraph {
             }
         } else {
             this.nodes.set(mapKey, type);
-            this.listeners.forEach(listener => listener.onAddedType?.call(listener, type, mapKey));
+            this.listeners.forEach((listener) =>
+                listener.onAddedType?.call(listener, type, mapKey),
+            );
         }
     }
 
@@ -58,12 +59,20 @@ export class TypeGraph {
     removeNode(typeToRemove: Type, key?: string): void {
         const mapKey = key ?? typeToRemove.getIdentifier();
         // remove all edges which are connected to the type to remove
-        typeToRemove.getAllIncomingEdges().forEach(e => this.removeEdge(e));
-        typeToRemove.getAllOutgoingEdges().forEach(e => this.removeEdge(e));
+        typeToRemove.getAllIncomingEdges().forEach((e) => this.removeEdge(e));
+        typeToRemove.getAllOutgoingEdges().forEach((e) => this.removeEdge(e));
         // remove the type itself
         const contained = this.nodes.delete(mapKey);
         if (contained) {
-            this.listeners.slice().forEach(listener => listener.onRemovedType?.call(listener, typeToRemove, mapKey));
+            this.listeners
+                .slice()
+                .forEach((listener) =>
+                    listener.onRemovedType?.call(
+                        listener,
+                        typeToRemove,
+                        mapKey,
+                    ),
+                );
             typeToRemove.dispose();
         } else {
             throw new Error(`Type does not exist: ${mapKey}`);
@@ -83,8 +92,14 @@ export class TypeGraph {
 
     addEdge(edge: TypeEdge): void {
         // check constraints: no duplicated edges (same values for: from, to, $relation)
-        if (edge.from.getOutgoingEdges(edge.$relation).some(e => e.to === edge.to)) {
-            throw new Error(`There is already a '${edge.$relation}' edge from '${edge.from.getName()}' to '${edge.to.getName()}'.`);
+        if (
+            edge.from
+                .getOutgoingEdges(edge.$relation)
+                .some((e) => e.to === edge.to)
+        ) {
+            throw new Error(
+                `There is already a '${edge.$relation}' edge from '${edge.from.getName()}' to '${edge.to.getName()}'.`,
+            );
         }
         // TODO what about the other direction for bidirectional edges? for now, the user has to ensure no duplicates here!
 
@@ -94,7 +109,9 @@ export class TypeGraph {
         edge.to.addIncomingEdge(edge);
         edge.from.addOutgoingEdge(edge);
 
-        this.listeners.forEach(listener => listener.onAddedEdge?.call(listener, edge));
+        this.listeners.forEach((listener) =>
+            listener.onAddedEdge?.call(listener, edge),
+        );
     }
 
     removeEdge(edge: TypeEdge): void {
@@ -103,21 +120,42 @@ export class TypeGraph {
         edge.from.removeOutgoingEdge(edge);
 
         if (removeFromArray(edge, this.edges)) {
-            this.listeners.forEach(listener => listener.onRemovedEdge?.call(listener, edge));
+            this.listeners.forEach((listener) =>
+                listener.onRemovedEdge?.call(listener, edge),
+            );
         } else {
             throw new Error(`Edge does not exist: ${edge.$relation}`);
         }
     }
 
-    getUnidirectionalEdge<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation'], cachingMode: EdgeCachingInformation = 'LINK_EXISTS'): T | undefined {
-        return from.getOutgoingEdges<T>($relation).find(edge => edge.to === to && edge.cachingInformation === cachingMode);
+    getUnidirectionalEdge<T extends TypeEdge>(
+        from: Type,
+        to: Type,
+        $relation: T['$relation'],
+        cachingMode: EdgeCachingInformation = 'LINK_EXISTS',
+    ): T | undefined {
+        return from
+            .getOutgoingEdges<T>($relation)
+            .find(
+                (edge) =>
+                    edge.to === to && edge.cachingInformation === cachingMode,
+            );
     }
 
-    getBidirectionalEdge<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation'], cachingMode: EdgeCachingInformation = 'LINK_EXISTS'): T | undefined {
+    getBidirectionalEdge<T extends TypeEdge>(
+        from: Type,
+        to: Type,
+        $relation: T['$relation'],
+        cachingMode: EdgeCachingInformation = 'LINK_EXISTS',
+    ): T | undefined {
         // for bidirectional edges, check outgoing and incoming edges, since the graph contains only a single edge!
-        return from.getEdges<T>($relation).find(edge => edge.to === to && edge.cachingInformation === cachingMode);
+        return from
+            .getEdges<T>($relation)
+            .find(
+                (edge) =>
+                    edge.to === to && edge.cachingInformation === cachingMode,
+            );
     }
-
 
     // register listeners for changed types/edges in the type graph
 
@@ -128,9 +166,7 @@ export class TypeGraph {
         removeFromArray(listener, this.listeners);
     }
 
-
     // add reusable graph algorithms here (or introduce a new service for graph algorithms which might be easier to customize/exchange)
-
 }
 
 export type TypeGraphListener = Partial<{
@@ -138,4 +174,4 @@ export type TypeGraphListener = Partial<{
     onRemovedType(type: Type, key: string): void;
     onAddedEdge(edge: TypeEdge): void;
     onRemovedEdge(edge: TypeEdge): void;
-}>
+}>;

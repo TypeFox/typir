@@ -4,12 +4,20 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeReference } from '../initialization/type-reference.js';
-import { WaitingForIdentifiableAndCompletedTypeReferences, WaitingForInvalidTypeReferences } from '../initialization/type-waiting.js';
-import { Kind, isKind } from '../kinds/kind.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
-import { assertTrue, assertUnreachable, removeFromArray } from '../utils/utils.js';
-import { TypeEdge } from './type-edge.js';
+import type { TypeReference } from '../initialization/type-reference.js';
+import {
+    WaitingForIdentifiableAndCompletedTypeReferences,
+    WaitingForInvalidTypeReferences,
+} from '../initialization/type-waiting.js';
+import type { Kind } from '../kinds/kind.js';
+import { isKind } from '../kinds/kind.js';
+import type { TypirProblem } from '../utils/utils-definitions.js';
+import {
+    assertTrue,
+    assertUnreachable,
+    removeFromArray,
+} from '../utils/utils.js';
+import type { TypeEdge } from './type-edge.js';
 
 /**
  * The transitions between the states of a type are depicted as state machine:
@@ -72,11 +80,13 @@ export abstract class Type {
      */
     readonly associatedLanguageNode: unknown | undefined;
 
-    constructor(identifier: string | undefined, typeDetails: TypeDetails<unknown>) {
+    constructor(
+        identifier: string | undefined,
+        typeDetails: TypeDetails<unknown>,
+    ) {
         this.identifier = identifier;
         this.associatedLanguageNode = typeDetails.associatedLanguageNode;
     }
-
 
     /**
      * Identifiers must be unique and stable for all types known in a single Typir instance, since they are used as key to store types in maps.
@@ -106,8 +116,6 @@ export abstract class Type {
      */
     abstract getUserRepresentation(): string;
 
-
-
     // store the state of the initialization process of this type
 
     protected initializationState: TypeInitializationState = 'Invalid';
@@ -118,17 +126,23 @@ export abstract class Type {
 
     protected assertState(expectedState: TypeInitializationState): void {
         if (this.isInState(expectedState) === false) {
-            throw new Error(`The current state of type '${this.identifier}' is ${this.initializationState}, but ${expectedState} is expected.`);
+            throw new Error(
+                `The current state of type '${this.identifier}' is ${this.initializationState}, but ${expectedState} is expected.`,
+            );
         }
     }
     protected assertNotState(expectedState: TypeInitializationState): void {
         if (this.isNotInState(expectedState) === false) {
-            throw new Error(`The current state of type '${this.identifier}' is ${this.initializationState}, but this state is not expected.`);
+            throw new Error(
+                `The current state of type '${this.identifier}' is ${this.initializationState}, but this state is not expected.`,
+            );
         }
     }
     protected assertStateOrLater(expectedState: TypeInitializationState): void {
         if (this.isInStateOrLater(expectedState) === false) {
-            throw new Error(`The current state of type '${this.identifier}' is ${this.initializationState}, but this state is not expected.`);
+            throw new Error(
+                `The current state of type '${this.identifier}' is ${this.initializationState}, but this state is not expected.`,
+            );
         }
     }
 
@@ -151,12 +165,14 @@ export abstract class Type {
         }
     }
 
-
     // manage listeners for updates of the initialization state
 
     protected stateListeners: TypeStateListener[] = [];
 
-    addListener(newListeners: TypeStateListener, informIfNotInvalidAnymore: boolean): void {
+    addListener(
+        newListeners: TypeStateListener,
+        informIfNotInvalidAnymore: boolean,
+    ): void {
         this.stateListeners.push(newListeners);
         if (informIfNotInvalidAnymore) {
             const currentState = this.getInitializationState();
@@ -202,18 +218,18 @@ export abstract class Type {
      */
     protected defineTheInitializationProcessOfThisType(preconditions: {
         /** Contains only those TypeReferences which are required to do the initialization. */
-        preconditionsForIdentifiable?: PreconditionsForInitializationState,
+        preconditionsForIdentifiable?: PreconditionsForInitializationState;
         /** Contains only those TypeReferences which are required to do the completion.
          * TypeReferences which are required only for the initialization, but not for the completion,
          * don't need to be repeated here, since the completion is done only after the initialization. */
-        preconditionsForCompleted?: PreconditionsForInitializationState,
+        preconditionsForCompleted?: PreconditionsForInitializationState;
         /** Must contain all(!) TypeReferences of a type. */
-        referencesRelevantForInvalidation?: Array<TypeReference<Type>>,
+        referencesRelevantForInvalidation?: Array<TypeReference<Type>>;
         /** typical use cases: calculate the identifier, register inference rules for the type object already now! */
-        onIdentifiable?: () => void,
+        onIdentifiable?: () => void;
         /** typical use cases: do some internal checks for the completed properties */
-        onCompleted?: () => void,
-        onInvalidated?: () => void,
+        onCompleted?: () => void;
+        onInvalidated?: () => void;
     }): void {
         // store the reactions
         this.onIdentification = preconditions.onIdentifiable ?? (() => {});
@@ -221,16 +237,18 @@ export abstract class Type {
         this.onInvalidation = preconditions.onInvalidated ?? (() => {});
 
         // preconditions for Identifiable
-        this.waitForIdentifiable = new WaitingForIdentifiableAndCompletedTypeReferences(
-            preconditions.preconditionsForIdentifiable?.referencesToBeIdentifiable,
-            preconditions.preconditionsForIdentifiable?.referencesToBeCompleted,
-        );
+        this.waitForIdentifiable =
+            new WaitingForIdentifiableAndCompletedTypeReferences(
+                preconditions.preconditionsForIdentifiable?.referencesToBeIdentifiable,
+                preconditions.preconditionsForIdentifiable?.referencesToBeCompleted,
+            );
         this.waitForIdentifiable.addTypesToIgnoreForCycles(new Set([this])); // start of the principle: children don't need to wait for their parents
         // preconditions for Completed
-        this.waitForCompleted = new WaitingForIdentifiableAndCompletedTypeReferences(
-            preconditions.preconditionsForCompleted?.referencesToBeIdentifiable,
-            preconditions.preconditionsForCompleted?.referencesToBeCompleted,
-        );
+        this.waitForCompleted =
+            new WaitingForIdentifiableAndCompletedTypeReferences(
+                preconditions.preconditionsForCompleted?.referencesToBeIdentifiable,
+                preconditions.preconditionsForCompleted?.referencesToBeCompleted,
+            );
         this.waitForCompleted.addTypesToIgnoreForCycles(new Set([this])); // start of the principle: children don't need to wait for their parents
         // preconditions for Invalid
         this.waitForInvalid = new WaitingForInvalidTypeReferences(
@@ -241,31 +259,37 @@ export abstract class Type {
         const thisType = this;
 
         // invalid --> identifiable
-        this.waitForIdentifiable.addListener({
-            onFulfilled(_waiter) {
-                thisType.switchFromInvalidToIdentifiable();
-                if (thisType.waitForCompleted.isFulfilled()) {
-                    // this is required to ensure the stric order Identifiable --> Completed, since 'waitForCompleted' might already be triggered
-                    thisType.switchFromIdentifiableToCompleted();
-                }
+        this.waitForIdentifiable.addListener(
+            {
+                onFulfilled(_waiter) {
+                    thisType.switchFromInvalidToIdentifiable();
+                    if (thisType.waitForCompleted.isFulfilled()) {
+                        // this is required to ensure the stric order Identifiable --> Completed, since 'waitForCompleted' might already be triggered
+                        thisType.switchFromIdentifiableToCompleted();
+                    }
+                },
+                onInvalidated(_waiter) {
+                    thisType.switchFromCompleteOrIdentifiableToInvalid();
+                },
             },
-            onInvalidated(_waiter) {
-                thisType.switchFromCompleteOrIdentifiableToInvalid();
-            },
-        }, true); // 'true' triggers the initialization process!
+            true,
+        ); // 'true' triggers the initialization process!
         // identifiable --> completed
-        this.waitForCompleted.addListener({
-            onFulfilled(_waiter) {
-                if (thisType.waitForIdentifiable.isFulfilled()) {
-                    thisType.switchFromIdentifiableToCompleted();
-                } else {
-                    // switching will be done later by 'waitForIdentifiable' in order to conform to the stric order Identifiable --> Completed
-                }
+        this.waitForCompleted.addListener(
+            {
+                onFulfilled(_waiter) {
+                    if (thisType.waitForIdentifiable.isFulfilled()) {
+                        thisType.switchFromIdentifiableToCompleted();
+                    } else {
+                        // switching will be done later by 'waitForIdentifiable' in order to conform to the stric order Identifiable --> Completed
+                    }
+                },
+                onInvalidated(_waiter) {
+                    thisType.switchFromCompleteOrIdentifiableToInvalid();
+                },
             },
-            onInvalidated(_waiter) {
-                thisType.switchFromCompleteOrIdentifiableToInvalid();
-            },
-        }, false); // not required, since 'waitForIdentifiable' will switch to Completed as well!
+            false,
+        ); // not required, since 'waitForIdentifiable' will switch to Completed as well!
         // identifiable/completed --> invalid
         this.waitForInvalid.addListener(() => {
             this.switchFromCompleteOrIdentifiableToInvalid();
@@ -277,15 +301,23 @@ export abstract class Type {
      * Usually there is no need to call this method on your own.
      * @param additionalTypesToIgnore the new types to ignore during
      */
-    ignoreDependingTypesDuringInitialization(additionalTypesToIgnore: Set<Type>): void {
-        this.waitForIdentifiable.addTypesToIgnoreForCycles(additionalTypesToIgnore);
-        this.waitForCompleted.addTypesToIgnoreForCycles(additionalTypesToIgnore);
+    ignoreDependingTypesDuringInitialization(
+        additionalTypesToIgnore: Set<Type>,
+    ): void {
+        this.waitForIdentifiable.addTypesToIgnoreForCycles(
+            additionalTypesToIgnore,
+        );
+        this.waitForCompleted.addTypesToIgnoreForCycles(
+            additionalTypesToIgnore,
+        );
     }
 
     dispose(): void {
         // clear everything
         this.stateListeners.splice(0, this.stateListeners.length);
-        this.waitForInvalid.getWaitForRefsInvalid().forEach(ref => ref.dispose());
+        this.waitForInvalid
+            .getWaitForRefsInvalid()
+            .forEach((ref) => ref.dispose());
         this.waitForIdentifiable.deconstruct();
         this.waitForCompleted.deconstruct();
         this.waitForInvalid.deconstruct();
@@ -295,21 +327,27 @@ export abstract class Type {
         this.assertState('Invalid');
         this.onIdentification();
         this.initializationState = 'Identifiable';
-        this.stateListeners.slice().forEach(listener => listener.onSwitchedToIdentifiable(this)); // slice() prevents issues with removal of listeners during notifications
+        this.stateListeners
+            .slice()
+            .forEach((listener) => listener.onSwitchedToIdentifiable(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromIdentifiableToCompleted(): void {
         this.assertState('Identifiable');
         this.onCompletion();
         this.initializationState = 'Completed';
-        this.stateListeners.slice().forEach(listener => listener.onSwitchedToCompleted(this)); // slice() prevents issues with removal of listeners during notifications
+        this.stateListeners
+            .slice()
+            .forEach((listener) => listener.onSwitchedToCompleted(this)); // slice() prevents issues with removal of listeners during notifications
     }
 
     protected switchFromCompleteOrIdentifiableToInvalid(): void {
         if (this.isNotInState('Invalid')) {
             this.onInvalidation();
             this.initializationState = 'Invalid';
-            this.stateListeners.slice().forEach(listener => listener.onSwitchedToInvalid(this)); // slice() prevents issues with removal of listeners during notifications
+            this.stateListeners
+                .slice()
+                .forEach((listener) => listener.onSwitchedToInvalid(this)); // slice() prevents issues with removal of listeners during notifications
             // add the types again, since the initialization process started again
             this.waitForIdentifiable.addTypesToIgnoreForCycles(new Set([this]));
             this.waitForCompleted.addTypesToIgnoreForCycles(new Set([this]));
@@ -318,8 +356,6 @@ export abstract class Type {
         }
     }
 
-
-
     /**
      * Analyzes, whether two types are equal.
      * @param otherType to be compared with the current type
@@ -327,7 +363,6 @@ export abstract class Type {
      * These problems are presented to users in order to support them with useful information about the result of this analysis.
      */
     abstract analyzeTypeEqualityProblems(otherType: Type): TypirProblem[];
-
 
     addIncomingEdge(edge: TypeEdge): void {
         const key = edge.$relation;
@@ -378,10 +413,10 @@ export abstract class Type {
     }
 
     getIncomingEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
-        return this.edgesIncoming.get($relation) as T[] ?? [];
+        return (this.edgesIncoming.get($relation) as T[]) ?? [];
     }
     getOutgoingEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
-        return this.edgesOutgoing.get($relation) as T[] ?? [];
+        return (this.edgesOutgoing.get($relation) as T[]) ?? [];
     }
     getEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
         return [
@@ -397,17 +432,18 @@ export abstract class Type {
         return Array.from(this.edgesOutgoing.values()).flat();
     }
     getAllEdges(): TypeEdge[] {
-        return [
-            ...this.getAllIncomingEdges(),
-            ...this.getAllOutgoingEdges(),
-        ];
+        return [...this.getAllIncomingEdges(), ...this.getAllOutgoingEdges()];
     }
 }
 
 export function isType(type: unknown): type is Type {
-    return typeof type === 'object' && type !== null && typeof (type as Type).getIdentifier === 'function' && isKind((type as Type).kind);
+    return (
+        typeof type === 'object' &&
+        type !== null &&
+        typeof (type as Type).getIdentifier === 'function' &&
+        isKind((type as Type).kind)
+    );
 }
-
 
 export interface TypeStateListener {
     onSwitchedToInvalid(type: Type): void;

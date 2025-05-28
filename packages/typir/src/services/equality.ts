@@ -5,11 +5,16 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
-import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
-import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
-import { TypeEdge, isTypeEdge } from '../graph/type-edge.js';
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
+import type { TypirProblem } from '../utils/utils-definitions.js';
+import { isSpecificTypirProblem } from '../utils/utils-definitions.js';
+import type {
+    EdgeCachingInformation,
+    TypeRelationshipCaching,
+} from './caching.js';
+import type { TypeEdge } from '../graph/type-edge.js';
+import { isTypeEdge } from '../graph/type-edge.js';
 
 export interface TypeEqualityProblem extends TypirProblem {
     $problem: 'TypeEqualityProblem';
@@ -18,7 +23,9 @@ export interface TypeEqualityProblem extends TypirProblem {
     subProblems: TypirProblem[]; // might be empty
 }
 export const TypeEqualityProblem = 'TypeEqualityProblem';
-export function isTypeEqualityProblem(problem: unknown): problem is TypeEqualityProblem {
+export function isTypeEqualityProblem(
+    problem: unknown,
+): problem is TypeEqualityProblem {
     return isSpecificTypirProblem(problem, TypeEqualityProblem);
 }
 
@@ -30,7 +37,10 @@ export function isTypeEqualityProblem(problem: unknown): problem is TypeEquality
  */
 export interface TypeEquality {
     areTypesEqual(type1: Type, type2: Type): boolean;
-    getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined;
+    getTypeEqualityProblem(
+        type1: Type,
+        type2: Type,
+    ): TypeEqualityProblem | undefined;
 }
 
 export class DefaultTypeEquality<LanguageType> implements TypeEquality {
@@ -44,12 +54,22 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
         return this.getTypeEqualityProblem(type1, type2) === undefined;
     }
 
-    getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined {
+    getTypeEqualityProblem(
+        type1: Type,
+        type2: Type,
+    ): TypeEqualityProblem | undefined {
         const cache: TypeRelationshipCaching = this.typeRelationships;
-        const linkData = cache.getRelationshipBidirectional<EqualityEdge>(type1, type2, EqualityEdge);
+        const linkData = cache.getRelationshipBidirectional<EqualityEdge>(
+            type1,
+            type2,
+            EqualityEdge,
+        );
         const equalityCaching = linkData?.cachingInformation ?? 'UNKNOWN';
 
-        function save(equalityCaching: EdgeCachingInformation, error: TypeEqualityProblem | undefined): void {
+        function save(
+            equalityCaching: EdgeCachingInformation,
+            error: TypeEqualityProblem | undefined,
+        ): void {
             const newEdge: EqualityEdge = {
                 $relation: EqualityEdge,
                 from: type1,
@@ -57,7 +77,10 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
                 cachingInformation: 'LINK_EXISTS',
                 error,
             };
-            cache.setOrUpdateBidirectionalRelationship(newEdge, equalityCaching);
+            cache.setOrUpdateBidirectionalRelationship(
+                newEdge,
+                equalityCaching,
+            );
         }
 
         // skip recursive checking
@@ -100,11 +123,15 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
         assertUnreachable(equalityCaching);
     }
 
-    protected calculateEquality(type1: Type, type2: Type): TypeEqualityProblem | undefined {
+    protected calculateEquality(
+        type1: Type,
+        type2: Type,
+    ): TypeEqualityProblem | undefined {
         if (type1 === type2) {
             return undefined;
         }
-        if (type1.getIdentifier() === type2.getIdentifier()) { // this works, since identifiers are unique!
+        if (type1.getIdentifier() === type2.getIdentifier()) {
+            // this works, since identifiers are unique!
             return undefined;
         }
 
@@ -124,10 +151,9 @@ export class DefaultTypeEquality<LanguageType> implements TypeEquality {
             $problem: TypeEqualityProblem,
             type1,
             type2,
-            subProblems: [...result1, ...result2] // return the equality problems of both types
+            subProblems: [...result1, ...result2], // return the equality problems of both types
         };
     }
-
 }
 
 export interface EqualityEdge extends TypeEdge {

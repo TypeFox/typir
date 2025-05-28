@@ -4,62 +4,124 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertTrue, assertTypirType, isFunctionType, isPrimitiveType, isType } from 'typir';
-import { expectTypirTypes, } from 'typir/test';
+import {
+    assertTrue,
+    assertTypirType,
+    isFunctionType,
+    isPrimitiveType,
+    isType,
+} from 'typir';
+import { expectTypirTypes } from 'typir/test';
 import { describe, expect, test } from 'vitest';
-import { isFunctionDeclaration, isMemberCall, LoxProgram } from '../src/language/generated/ast.js';
-import { loxServices, operatorNames, validateLox } from './lox-type-checking-utils.js';
+import type { LoxProgram } from '../src/language/generated/ast.js';
+import {
+    isFunctionDeclaration,
+    isMemberCall,
+} from '../src/language/generated/ast.js';
+import {
+    loxServices,
+    operatorNames,
+    validateLox,
+} from './lox-type-checking-utils.js';
 
 describe('Test type checking for user-defined functions', () => {
-
     test('function: return value and return type must match', async () => {
         await validateLox('fun myFunction1() : boolean { return true; }', 0);
-        await validateLox('fun myFunction2() : boolean { return 2; }',
-            "The expression '2' of type 'number' is not usable as return value for the function 'myFunction2' with return type 'boolean'.");
+        await validateLox(
+            'fun myFunction2() : boolean { return 2; }',
+            "The expression '2' of type 'number' is not usable as return value for the function 'myFunction2' with return type 'boolean'.",
+        );
         await validateLox('fun myFunction3() : number { return 2; }', 0);
-        await validateLox('fun myFunction4() : number { return true; }',
-            "The expression 'true' of type 'boolean' is not usable as return value for the function 'myFunction4' with return type 'number'.");
-        expectTypirTypes(loxServices.typir, isFunctionType, 'myFunction1', 'myFunction2', 'myFunction3', 'myFunction4', ...operatorNames);
+        await validateLox(
+            'fun myFunction4() : number { return true; }',
+            "The expression 'true' of type 'boolean' is not usable as return value for the function 'myFunction4' with return type 'number'.",
+        );
+        expectTypirTypes(
+            loxServices.typir,
+            isFunctionType,
+            'myFunction1',
+            'myFunction2',
+            'myFunction3',
+            'myFunction4',
+            ...operatorNames,
+        );
     });
 
     test('overloaded function: different return types are not enough', async () => {
-        await validateLox(`
+        await validateLox(
+            `
             fun myFunction() : boolean { return true; }
             fun myFunction() : number { return 2; }
-        `, [
-            'Declared functions need to be unique (myFunction()).',
-            'Declared functions need to be unique (myFunction()).',
-        ]);
-        expectTypirTypes(loxServices.typir, isFunctionType, 'myFunction', 'myFunction', ...operatorNames); // the types are different nevertheless!
+        `,
+            [
+                'Declared functions need to be unique (myFunction()).',
+                'Declared functions need to be unique (myFunction()).',
+            ],
+        );
+        expectTypirTypes(
+            loxServices.typir,
+            isFunctionType,
+            'myFunction',
+            'myFunction',
+            ...operatorNames,
+        ); // the types are different nevertheless!
     });
 
     test('overloaded function: different parameter names are not enough', async () => {
-        await validateLox(`
+        await validateLox(
+            `
             fun myFunction(input: boolean) : boolean { return true; }
             fun myFunction(other: boolean) : boolean { return true; }
-        `, [
-            'Declared functions need to be unique (myFunction(boolean)).',
-            'Declared functions need to be unique (myFunction(boolean)).',
-        ]);
-        expectTypirTypes(loxServices.typir, isFunctionType, 'myFunction', ...operatorNames); // but both functions have the same type!
+        `,
+            [
+                'Declared functions need to be unique (myFunction(boolean)).',
+                'Declared functions need to be unique (myFunction(boolean)).',
+            ],
+        );
+        expectTypirTypes(
+            loxServices.typir,
+            isFunctionType,
+            'myFunction',
+            ...operatorNames,
+        ); // but both functions have the same type!
     });
 
     test('overloaded function: but different parameter types are fine', async () => {
-        await validateLox(`
+        await validateLox(
+            `
             fun myFunction(input: boolean) : boolean { return true; }
             fun myFunction(input: number) : boolean { return true; }
-        `, []);
-        expectTypirTypes(loxServices.typir, isFunctionType, 'myFunction', 'myFunction', ...operatorNames);
+        `,
+            [],
+        );
+        expectTypirTypes(
+            loxServices.typir,
+            isFunctionType,
+            'myFunction',
+            'myFunction',
+            ...operatorNames,
+        );
     });
 
     test('overloaded function: check correct type inference and cross-references', async () => {
-        const rootNode = (await validateLox(`
+        const rootNode = (
+            await validateLox(
+                `
             fun myFunction(input: number) : number { return 987; }
             fun myFunction(input: boolean) : boolean { return true; }
             myFunction(123);
             myFunction(false);
-        `, [])).parseResult.value as LoxProgram;
-        expectTypirTypes(loxServices.typir, isFunctionType, 'myFunction', 'myFunction', ...operatorNames);
+        `,
+                [],
+            )
+        ).parseResult.value as LoxProgram;
+        expectTypirTypes(
+            loxServices.typir,
+            isFunctionType,
+            'myFunction',
+            'myFunction',
+            ...operatorNames,
+        );
 
         // check type inference + cross-reference of the two method calls
         expect(rootNode.elements).toHaveLength(4);
@@ -90,5 +152,4 @@ describe('Test type checking for user-defined functions', () => {
         assertTypirType(call2Type, isPrimitiveType);
         expect(call2Type.getName()).toBe('boolean');
     });
-
 });

@@ -4,60 +4,104 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeEdge } from '../graph/type-edge.js';
-import { TypeGraph } from '../graph/type-graph.js';
-import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import type { TypeEdge } from '../graph/type-edge.js';
+import type { TypeGraph } from '../graph/type-graph.js';
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
 
 /**
  * Caches relationships between types.
  */
 export interface TypeRelationshipCaching {
-    getRelationshipUnidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined;
-    getRelationshipBidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined;
+    getRelationshipUnidirectional<T extends TypeEdge>(
+        from: Type,
+        to: Type,
+        $relation: T['$relation'],
+    ): T | undefined;
+    getRelationshipBidirectional<T extends TypeEdge>(
+        from: Type,
+        to: Type,
+        $relation: T['$relation'],
+    ): T | undefined;
 
-    setOrUpdateUnidirectionalRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation): T | undefined;
-    setOrUpdateBidirectionalRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation): T | undefined;
+    setOrUpdateUnidirectionalRelationship<T extends TypeEdge>(
+        edgeToCache: T,
+        edgeCaching: EdgeCachingInformation,
+    ): T | undefined;
+    setOrUpdateBidirectionalRelationship<T extends TypeEdge>(
+        edgeToCache: T,
+        edgeCaching: EdgeCachingInformation,
+    ): T | undefined;
 }
 
 export type EdgeCachingInformation =
     /** The analysis, whether the current relationship holds, is still ongoing. */
-    'PENDING' |
+    | 'PENDING'
     /** It is unknown, whether the current relationship holds */
-    'UNKNOWN' |
+    | 'UNKNOWN'
     /** The current relationship exists. */
-    'LINK_EXISTS' |
+    | 'LINK_EXISTS'
     /** The current relationship does not exist. */
-    'NO_LINK';
+    | 'NO_LINK';
 
-export class DefaultTypeRelationshipCaching<LanguageType> implements TypeRelationshipCaching {
+export class DefaultTypeRelationshipCaching<LanguageType>
+implements TypeRelationshipCaching
+{
     protected readonly graph: TypeGraph;
 
     constructor(services: TypirServices<LanguageType>) {
         this.graph = services.infrastructure.Graph;
     }
 
-    getRelationshipUnidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined {
-        return from.getOutgoingEdges<T>($relation).find(edge => edge.to === to);
+    getRelationshipUnidirectional<T extends TypeEdge>(
+        from: Type,
+        to: Type,
+        $relation: T['$relation'],
+    ): T | undefined {
+        return from
+            .getOutgoingEdges<T>($relation)
+            .find((edge) => edge.to === to);
     }
-    getRelationshipBidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined {
+    getRelationshipBidirectional<T extends TypeEdge>(
+        from: Type,
+        to: Type,
+        $relation: T['$relation'],
+    ): T | undefined {
         // for bidirectional edges, check outgoing and incoming edges, since the graph contains only a single edge!
-        return from.getEdges<T>($relation).find(edge => edge.to === to);
+        return from.getEdges<T>($relation).find((edge) => edge.to === to);
     }
 
-    setOrUpdateUnidirectionalRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation): T | undefined {
+    setOrUpdateUnidirectionalRelationship<T extends TypeEdge>(
+        edgeToCache: T,
+        edgeCaching: EdgeCachingInformation,
+    ): T | undefined {
         return this.setOrUpdateRelationship(edgeToCache, edgeCaching, false);
     }
-    setOrUpdateBidirectionalRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation): T | undefined {
+    setOrUpdateBidirectionalRelationship<T extends TypeEdge>(
+        edgeToCache: T,
+        edgeCaching: EdgeCachingInformation,
+    ): T | undefined {
         return this.setOrUpdateRelationship(edgeToCache, edgeCaching, true);
     }
 
-    protected setOrUpdateRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation, bidirectional: boolean): T | undefined {
+    protected setOrUpdateRelationship<T extends TypeEdge>(
+        edgeToCache: T,
+        edgeCaching: EdgeCachingInformation,
+        bidirectional: boolean,
+    ): T | undefined {
         // identify the edge to store the value
         const edge: T | undefined = bidirectional
-            ? this.getRelationshipBidirectional(edgeToCache.from, edgeToCache.to, edgeToCache.$relation)
-            : this.getRelationshipUnidirectional(edgeToCache.from, edgeToCache.to, edgeToCache.$relation);
+            ? this.getRelationshipBidirectional(
+                edgeToCache.from,
+                edgeToCache.to,
+                edgeToCache.$relation,
+            )
+            : this.getRelationshipUnidirectional(
+                edgeToCache.from,
+                edgeToCache.to,
+                edgeToCache.$relation,
+            );
 
         // don't cache some values (but ensure, that PENDING is overridden/updated!) =>  un-set the relationship
         if (this.storeCachingInformation(edgeCaching) === false) {
@@ -82,7 +126,12 @@ export class DefaultTypeRelationshipCaching<LanguageType> implements TypeRelatio
         assertTrue(edge.$relation === edgeToCache.$relation);
         // update data of specific edges!
         // Object.assign throws an error for readonly properties => it cannot be used here!
-        const propertiesToIgnore: Array<keyof TypeEdge> = ['from', 'to', '$relation', 'cachingInformation'];
+        const propertiesToIgnore: Array<keyof TypeEdge> = [
+            'from',
+            'to',
+            '$relation',
+            'cachingInformation',
+        ];
         const keys = Object.keys(edgeToCache) as Array<keyof T>;
         for (const v of keys) {
             if (propertiesToIgnore.includes(v as keyof TypeEdge)) {
@@ -95,11 +144,12 @@ export class DefaultTypeRelationshipCaching<LanguageType> implements TypeRelatio
     }
 
     /** Override this function to store more or less relationships in the type graph. */
-    protected storeCachingInformation(value: EdgeCachingInformation | undefined): boolean {
+    protected storeCachingInformation(
+        value: EdgeCachingInformation | undefined,
+    ): boolean {
         return value === 'PENDING' || value === 'LINK_EXISTS';
     }
 }
-
 
 /**
  * Language node-to-Type caching for type inference.
@@ -107,7 +157,7 @@ export class DefaultTypeRelationshipCaching<LanguageType> implements TypeRelatio
 export interface LanguageNodeInferenceCaching {
     cacheSet(languageNode: unknown, type: Type): void;
     cacheGet(languageNode: unknown): Type | undefined;
-    cacheClear(): void
+    cacheClear(): void;
     pendingSet(languageNode: unknown): void;
     pendingClear(languageNode: unknown): void;
     pendingGet(languageNode: unknown): boolean;
@@ -116,7 +166,9 @@ export interface LanguageNodeInferenceCaching {
 export type CachePending = 'CACHE_PENDING';
 export const CachePending = 'CACHE_PENDING';
 
-export class DefaultLanguageNodeInferenceCaching implements LanguageNodeInferenceCaching {
+export class DefaultLanguageNodeInferenceCaching
+implements LanguageNodeInferenceCaching
+{
     protected cache: Map<unknown, Type | CachePending>;
 
     constructor() {
@@ -136,7 +188,7 @@ export class DefaultLanguageNodeInferenceCaching implements LanguageNodeInferenc
         if (this.pendingGet(languageNode)) {
             return undefined;
         } else {
-            return this.cache.get(languageNode) as (Type | undefined);
+            return this.cache.get(languageNode) as Type | undefined;
         }
     }
 
@@ -157,6 +209,9 @@ export class DefaultLanguageNodeInferenceCaching implements LanguageNodeInferenc
     }
 
     pendingGet(languageNode: unknown): boolean {
-        return this.cache.has(languageNode) && this.cache.get(languageNode) === CachePending;
+        return (
+            this.cache.has(languageNode) &&
+            this.cache.get(languageNode) === CachePending
+        );
     }
 }

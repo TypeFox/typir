@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import type { Type } from '../graph/type-node.js';
+import type { TypirServices } from '../typir.js';
 
 export type TypeInitializerListener<T extends Type> = (type: T) => void;
 
@@ -51,7 +51,9 @@ export abstract class TypeInitializer<T extends Type, LanguageType> {
         }
 
         // inform and clear all listeners
-        this.listeners.slice().forEach(listener => listener(this.typeToReturn!));
+        this.listeners
+            .slice()
+            .forEach((listener) => listener(this.typeToReturn!));
         this.listeners = []; // clear the list of listeners, since they will not be informed again
 
         // return the created/identified type
@@ -59,7 +61,7 @@ export abstract class TypeInitializer<T extends Type, LanguageType> {
     }
 
     // TODO using this type feels wrong, but without this approach, it seems not to work ...
-    abstract getTypeInitial(): T
+    abstract getTypeInitial(): T;
 
     getTypeFinal(): T | undefined {
         return this.typeToReturn;

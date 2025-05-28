@@ -8,7 +8,6 @@ import { describe, test } from 'vitest';
 import { validateOx } from './ox-type-checking-utils.js';
 
 describe('Test type checking for statements and variables in OX', () => {
-
     test('function: return value and return type', async () => {
         await validateOx('fun myFunction1() : boolean { return true; }', 0);
         await validateOx('fun myFunction2() : boolean { return 2; }', 1);
@@ -17,19 +16,24 @@ describe('Test type checking for statements and variables in OX', () => {
     });
 
     test('function: the same function name twice (in the same file) is not allowed in Typir', async () => {
-        await validateOx(`
+        await validateOx(
+            `
                 fun myFunction() : boolean { return true; }
                 fun myFunction() : boolean { return false; }
-        `, [
-            'Functions need to have unique names',
-            'Functions need to have unique names',
-        ]);
+        `,
+            [
+                'Functions need to have unique names',
+                'Functions need to have unique names',
+            ],
+        );
     });
 
     // TODO this test case needs to be investigated in more detail
-    test.todo('function: the same function name twice (even in different files) is not allowed in Typir', async () => {
-        await validateOx('fun myFunction() : boolean { return true; }', 0);
-        await validateOx('fun myFunction() : boolean { return false; }', 2); // now, both functions should be marked as "duplicate"
-    });
-
+    test.todo(
+        'function: the same function name twice (even in different files) is not allowed in Typir',
+        async () => {
+            await validateOx('fun myFunction() : boolean { return true; }', 0);
+            await validateOx('fun myFunction() : boolean { return false; }', 2); // now, both functions should be marked as "duplicate"
+        },
+    );
 });

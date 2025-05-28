@@ -7,11 +7,22 @@
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
-import { TypirProblem } from '../../utils/utils-definitions.js';
-import { checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy, IndexedTypeConflict } from '../../utils/utils-type-comparison.js';
-import { assertUnreachable, removeFromArray, toArray } from '../../utils/utils.js';
-import { FunctionType } from '../function/function-type.js';
-import { ClassKind, ClassTypeDetails, isClassKind } from './class-kind.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
+import {
+    checkNameTypesMap,
+    checkValueForConflict,
+    createKindConflict,
+    createTypeCheckStrategy,
+    IndexedTypeConflict,
+} from '../../utils/utils-type-comparison.js';
+import {
+    assertUnreachable,
+    removeFromArray,
+    toArray,
+} from '../../utils/utils.js';
+import type { FunctionType } from '../function/function-type.js';
+import type { ClassKind, ClassTypeDetails } from './class-kind.js';
+import { isClassKind } from './class-kind.js';
 
 export interface FieldDetails {
     name: string;
@@ -38,11 +49,16 @@ export class ClassType extends Type {
     protected readonly fields: Map<string, FieldDetails> = new Map(); // unordered
     protected methods: MethodDetails[]; // unordered
 
-    constructor(kind: ClassKind<unknown>, typeDetails: ClassTypeDetails<unknown>) {
-        super(kind.options.typing === 'Nominal'
-            ? kind.calculateIdentifierWithClassNameOnly(typeDetails) // use the name of the class as identifier already now
-            : undefined, // the identifier for structurally typed classes will be set later after resolving all fields and methods
-        typeDetails);
+    constructor(
+        kind: ClassKind<unknown>,
+        typeDetails: ClassTypeDetails<unknown>,
+    ) {
+        super(
+            kind.options.typing === 'Nominal'
+                ? kind.calculateIdentifierWithClassNameOnly(typeDetails) // use the name of the class as identifier already now
+                : undefined, // the identifier for structurally typed classes will be set later after resolving all fields and methods
+            typeDetails,
+        );
         this.kind = kind;
         this.className = typeDetails.className;
 
@@ -50,65 +66,92 @@ export class ClassType extends Type {
         const thisType = this;
 
         // resolve the super classes
-        this.superClasses = toArray(typeDetails.superClasses).map(superr => {
-            const superRef = new TypeReference<ClassType>(superr, kind.services);
-            superRef.addListener({
-                onTypeReferenceResolved(_reference, superType) {
-                    // after the super-class is complete ...
-                    superType.subClasses.push(thisType); // register this class as sub-class for that super-class
-                    kind.services.Subtype.markAsSubType(thisType, superType, // register the sub-type relationship in the type graph
-                        { checkForCycles: false }); // ignore cycles in sub-super-class relationships for now, since they are reported with a dedicated validation for the user
+        this.superClasses = toArray(typeDetails.superClasses).map((superr) => {
+            const superRef = new TypeReference<ClassType>(
+                superr,
+                kind.services,
+            );
+            superRef.addListener(
+                {
+                    onTypeReferenceResolved(_reference, superType) {
+                        // after the super-class is complete ...
+                        superType.subClasses.push(thisType); // register this class as sub-class for that super-class
+                        kind.services.Subtype.markAsSubType(
+                            thisType,
+                            superType, // register the sub-type relationship in the type graph
+                            { checkForCycles: false },
+                        ); // ignore cycles in sub-super-class relationships for now, since they are reported with a dedicated validation for the user
+                    },
+                    onTypeReferenceInvalidated(_reference, superType) {
+                        if (superType) {
+                            // if the superType gets invalid ...
+                            removeFromArray(thisType, superType.subClasses); // de-register this class as sub-class of the super-class
+                            // TODO unmark sub-type relationship (or already done automatically, since the type is removed from the graph?? gibt es noch andere Möglichkeiten eine Reference zu invalidieren außer dass der Type entfernt wurde??)
+                        } else {
+                            // initially do nothing
+                        }
+                    },
                 },
-                onTypeReferenceInvalidated(_reference, superType) {
-                    if (superType) {
-                        // if the superType gets invalid ...
-                        removeFromArray(thisType, superType.subClasses); // de-register this class as sub-class of the super-class
-                        // TODO unmark sub-type relationship (or already done automatically, since the type is removed from the graph?? gibt es noch andere Möglichkeiten eine Reference zu invalidieren außer dass der Type entfernt wurde??)
-                    } else {
-                        // initially do nothing
-                    }
-                },
-            }, true);
+                true,
+            );
             return superRef;
         });
 
         // resolve fields
         typeDetails.fields
-            .map(field => <FieldDetails>{
-                name: field.name,
-                type: new TypeReference(field.type, kind.services),
-            })
-            .forEach(field => {
+            .map(
+                (field) =>
+                    <FieldDetails>{
+                        name: field.name,
+                        type: new TypeReference(field.type, kind.services),
+                    },
+            )
+            .forEach((field) => {
                 if (this.fields.has(field.name)) {
                     // check collisions of field names
-                    throw new Error(`The field name '${field.name}' is not unique for class '${this.className}'.`);
+                    throw new Error(
+                        `The field name '${field.name}' is not unique for class '${this.className}'.`,
+                    );
                 } else {
                     this.fields.set(field.name, field);
                 }
             });
         const refFields: Array<TypeReference<Type>> = [];
-        [...this.fields.values()].forEach(f => refFields.push(f.type));
+        [...this.fields.values()].forEach((f) => refFields.push(f.type));
 
         // resolve methods
-        this.methods = typeDetails.methods.map(method => <MethodDetails>{
-            type: new TypeReference<FunctionType>(method.type, kind.services),
-        });
-        const refMethods = this.methods.map(m => m.type);
+        this.methods = typeDetails.methods.map(
+            (method) =>
+                <MethodDetails>{
+                    type: new TypeReference<FunctionType>(
+                        method.type,
+                        kind.services,
+                    ),
+                },
+        );
+        const refMethods = this.methods.map((m) => m.type);
         // the uniqueness of methods can be checked with the predefined UniqueMethodValidation below
 
         // const all: Array<TypeReference<Type | FunctionType>> = [];
         const fieldsAndMethods: Array<TypeReference<Type>> = [];
         fieldsAndMethods.push(...refFields);
-        fieldsAndMethods.push(...(refMethods as unknown as Array<TypeReference<Type>>));
+        fieldsAndMethods.push(
+            ...(refMethods as unknown as Array<TypeReference<Type>>),
+        );
 
         this.defineTheInitializationProcessOfThisType({
             preconditionsForIdentifiable: {
                 referencesToBeIdentifiable: fieldsAndMethods,
             },
             preconditionsForCompleted: {
-                referencesToBeCompleted: this.superClasses as unknown as Array<TypeReference<Type>>,
+                referencesToBeCompleted: this.superClasses as unknown as Array<
+                    TypeReference<Type>
+                >,
             },
-            referencesRelevantForInvalidation: [...fieldsAndMethods, ...(this.superClasses as unknown as Array<TypeReference<Type>>)],
+            referencesRelevantForInvalidation: [
+                ...fieldsAndMethods,
+                ...(this.superClasses as unknown as Array<TypeReference<Type>>),
+            ],
             onIdentifiable: () => {
                 // the identifier is calculated now
                 this.identifier = this.kind.calculateIdentifier(typeDetails); // TODO it is still not nice, that the type resolving is done again, since the TypeReferences here are not reused
@@ -118,8 +161,13 @@ export class ClassType extends Type {
                 // when all super classes are completely available, do the following checks:
                 // check number of allowed super classes
                 if (this.kind.options.maximumNumberOfSuperClasses >= 0) {
-                    if (this.kind.options.maximumNumberOfSuperClasses < this.getDeclaredSuperClasses().length) {
-                        throw new Error(`Only ${this.kind.options.maximumNumberOfSuperClasses} super-classes are allowed.`);
+                    if (
+                        this.kind.options.maximumNumberOfSuperClasses <
+                        this.getDeclaredSuperClasses().length
+                    ) {
+                        throw new Error(
+                            `Only ${this.kind.options.maximumNumberOfSuperClasses} super-classes are allowed.`,
+                        );
                     }
                 }
             },
@@ -153,7 +201,10 @@ export class ClassType extends Type {
         }
         // super classes
         const superClasses = this.getDeclaredSuperClasses();
-        const extendedClasses = superClasses.length <= 0 ? '' : ` extends ${superClasses.map(c => c.getName()).join(', ')}`;
+        const extendedClasses =
+            superClasses.length <= 0
+                ? ''
+                : ` extends ${superClasses.map((c) => c.getName()).join(', ')}`;
         // complete representation
         return `${this.className}${extendedClasses} { ${slots.join(', ')} }`;
     }
@@ -162,35 +213,59 @@ export class ClassType extends Type {
         if (isClassType(otherType)) {
             if (this.kind.options.typing === 'Structural') {
                 // for structural typing:
-                return checkNameTypesMap(this.getFields(true), otherType.getFields(true), // including fields of super-classes
-                    (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2));
+                return checkNameTypesMap(
+                    this.getFields(true),
+                    otherType.getFields(true), // including fields of super-classes
+                    (t1, t2) =>
+                        this.kind.services.Equality.getTypeEqualityProblem(
+                            t1,
+                            t2,
+                        ),
+                );
             } else if (this.kind.options.typing === 'Nominal') {
                 // for nominal typing:
-                return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
+                return checkValueForConflict(
+                    this.getIdentifier(),
+                    otherType.getIdentifier(),
+                    'name',
+                );
             } else {
                 assertUnreachable(this.kind.options.typing);
             }
         } else {
-            return [<TypeEqualityProblem>{
-                $problem: TypeEqualityProblem,
-                type1: this,
-                type2: otherType,
-                subProblems: [createKindConflict(otherType, this)],
-            }];
+            return [
+                <TypeEqualityProblem>{
+                    $problem: TypeEqualityProblem,
+                    type1: this,
+                    type2: otherType,
+                    subProblems: [createKindConflict(otherType, this)],
+                },
+            ];
         }
     }
 
-    protected analyzeSubTypeProblems(subType: ClassType, superType: ClassType): TypirProblem[] {
+    protected analyzeSubTypeProblems(
+        subType: ClassType,
+        superType: ClassType,
+    ): TypirProblem[] {
         if (this.kind.options.typing === 'Structural') {
             // for structural typing, the sub type needs to have all fields of the super type with assignable types (including fields of all super classes):
             const conflicts: IndexedTypeConflict[] = [];
             const subFields = subType.getFields(true);
-            for (const [superFieldName, superFieldType] of superType.getFields(true)) {
+            for (const [superFieldName, superFieldType] of superType.getFields(
+                true,
+            )) {
                 if (subFields.has(superFieldName)) {
                     // field is both in super and sub
                     const subFieldType = subFields.get(superFieldName)!;
-                    const checkStrategy = createTypeCheckStrategy(this.kind.options.subtypeFieldChecking, this.kind.services);
-                    const subTypeComparison = checkStrategy(subFieldType, superFieldType);
+                    const checkStrategy = createTypeCheckStrategy(
+                        this.kind.options.subtypeFieldChecking,
+                        this.kind.services,
+                    );
+                    const subTypeComparison = checkStrategy(
+                        subFieldType,
+                        superFieldType,
+                    );
                     if (subTypeComparison !== undefined) {
                         conflicts.push({
                             $problem: IndexedTypeConflict,
@@ -209,7 +284,7 @@ export class ClassType extends Type {
                         expected: superFieldType,
                         actual: undefined,
                         propertyName: superFieldName,
-                        subProblems: []
+                        subProblems: [],
                     });
                 }
             }
@@ -220,7 +295,11 @@ export class ClassType extends Type {
             const allSub = subType.getAllSuperClasses(true);
             const globalResult: TypirProblem[] = [];
             for (const oneSub of allSub) {
-                const localResult = this.kind.services.Equality.getTypeEqualityProblem(superType, oneSub);
+                const localResult =
+                    this.kind.services.Equality.getTypeEqualityProblem(
+                        superType,
+                        oneSub,
+                    );
                 if (localResult === undefined) {
                     return []; // class is found in the class hierarchy
                 }
@@ -233,7 +312,7 @@ export class ClassType extends Type {
     }
 
     getDeclaredSuperClasses(): ClassType[] {
-        return this.superClasses.map(superr => {
+        return this.superClasses.map((superr) => {
             const superType = superr.getType();
             if (superType) {
                 return superType;
@@ -298,7 +377,9 @@ export class ClassType extends Type {
     }
     ensureNoCycles(): void {
         if (this.hasSubSuperClassCycles()) {
-            throw new Error('This is not possible, since this class has cycles in its super-classes!');
+            throw new Error(
+                'This is not possible, since this class has cycles in its super-classes!',
+            );
         }
     }
 
@@ -309,13 +390,15 @@ export class ClassType extends Type {
         if (withSuperClassesFields) {
             this.ensureNoCycles();
             for (const superClass of this.getDeclaredSuperClasses()) {
-                for (const [superName, superType] of superClass.getFields(true)) {
+                for (const [superName, superType] of superClass.getFields(
+                    true,
+                )) {
                     result.set(superName, superType);
                 }
             }
         }
         // own fields
-        this.fields.forEach(fieldDetails => {
+        this.fields.forEach((fieldDetails) => {
             const field = fieldDetails.type.getType();
             if (field) {
                 result.set(fieldDetails.name, field);
@@ -328,7 +411,7 @@ export class ClassType extends Type {
 
     getMethods(withSuperClassMethods: boolean): FunctionType[] {
         // own methods
-        const result = this.methods.map(m => {
+        const result = this.methods.map((m) => {
             const method = m.type.getType();
             if (method) {
                 return method;
@@ -347,7 +430,6 @@ export class ClassType extends Type {
         }
         return result;
     }
-
 }
 
 export function isClassType(type: unknown): type is ClassType {

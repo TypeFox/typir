@@ -4,16 +4,28 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertTrue, assertTypirType, isClassType, isFunctionType, isPrimitiveType, isType } from 'typir';
+import {
+    assertTrue,
+    assertTypirType,
+    isClassType,
+    isFunctionType,
+    isPrimitiveType,
+    isType,
+} from 'typir';
 import { expectTypirTypes } from 'typir/test';
 import { describe, expect, test } from 'vitest';
-import { isMemberCall, isMethodMember, LoxProgram } from '../src/language/generated/ast.js';
-import { loxServices, operatorNames, validateLox } from './lox-type-checking-utils.js';
+import type { LoxProgram } from '../src/language/generated/ast.js';
+import { isMemberCall, isMethodMember } from '../src/language/generated/ast.js';
+import {
+    loxServices,
+    operatorNames,
+    validateLox,
+} from './lox-type-checking-utils.js';
 
 describe('Test type checking for methods of classes', () => {
-
     test('Class methods: OK', async () => {
-        await validateLox(`
+        await validateLox(
+            `
             class MyClass1 {
                 method1(input: number): number {
                     return 123;
@@ -21,12 +33,15 @@ describe('Test type checking for methods of classes', () => {
             }
             var v1: MyClass1 = MyClass1();
             var v2: number = v1.method1(456);
-        `, []);
+        `,
+            [],
+        );
         expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Class methods: wrong return value', async () => {
-        await validateLox(`
+        await validateLox(
+            `
             class MyClass1 {
                 method1(input: number): number {
                     return true;
@@ -34,12 +49,15 @@ describe('Test type checking for methods of classes', () => {
             }
             var v1: MyClass1 = MyClass1();
             var v2: number = v1.method1(456);
-        `, 1);
+        `,
+            1,
+        );
         expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Class methods: method return type does not fit to variable type', async () => {
-        await validateLox(`
+        await validateLox(
+            `
             class MyClass1 {
                 method1(input: number): number {
                     return 123;
@@ -47,12 +65,15 @@ describe('Test type checking for methods of classes', () => {
             }
             var v1: MyClass1 = MyClass1();
             var v2: boolean = v1.method1(456);
-        `, 1);
+        `,
+            1,
+        );
         expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Class methods: value for input parameter does not fit to the type of the input parameter', async () => {
-        await validateLox(`
+        await validateLox(
+            `
             class MyClass1 {
                 method1(input: number): number {
                     return 123;
@@ -60,12 +81,15 @@ describe('Test type checking for methods of classes', () => {
             }
             var v1: MyClass1 = MyClass1();
             var v2: number = v1.method1(true);
-        `, 1);
+        `,
+            1,
+        );
         expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
 
     test('Class methods: methods are not distinguishable', async () => {
-        await validateLox(`
+        await validateLox(
+            `
             class MyClass1 {
                 method1(input: number): number {
                     return 123;
@@ -74,13 +98,15 @@ describe('Test type checking for methods of classes', () => {
                     return true;
                 }
             }
-        `, [ // both methods need to be marked:
-            'Declared methods need to be unique (class-MyClass1.method1(number)).',
-            'Declared methods need to be unique (class-MyClass1.method1(number)).',
-        ]);
+        `,
+            [
+                // both methods need to be marked:
+                'Declared methods need to be unique (class-MyClass1.method1(number)).',
+                'Declared methods need to be unique (class-MyClass1.method1(number)).',
+            ],
+        );
         expectTypirTypes(loxServices.typir, isClassType, 'MyClass1');
     });
-
 });
 
 describe('Test overloaded methods', () => {
@@ -96,13 +122,24 @@ describe('Test overloaded methods', () => {
     `;
 
     test('Calls with correct arguments', async () => {
-        const rootNode = (await validateLox(`${methodDeclaration}
+        const rootNode = (
+            await validateLox(
+                `${methodDeclaration}
             var v = MyClass();
             v.method1(123);
             v.method1(false);
-        `, [])).parseResult.value as LoxProgram;
+        `,
+                [],
+            )
+        ).parseResult.value as LoxProgram;
         expectTypirTypes(loxServices.typir, isClassType, 'MyClass');
-        expectTypirTypes(loxServices.typir, isFunctionType, 'method1', 'method1', ...operatorNames);
+        expectTypirTypes(
+            loxServices.typir,
+            isFunctionType,
+            'method1',
+            'method1',
+            ...operatorNames,
+        );
 
         // check type inference + cross-reference of the two method calls
         expect(rootNode.elements).toHaveLength(4);
@@ -135,12 +172,14 @@ describe('Test overloaded methods', () => {
     });
 
     test('Call with wrong argument', async () => {
-        await validateLox(`${methodDeclaration}
+        await validateLox(
+            `${methodDeclaration}
             var v = MyClass();
             v.method1("wrong"); // the linker provides an Method here, but the arguments don't match
-        `, [
-            "The given operands for the call of the overload 'method1' don't match",
-        ]);
+        `,
+            [
+                "The given operands for the call of the overload 'method1' don't match",
+            ],
+        );
     });
-
 });

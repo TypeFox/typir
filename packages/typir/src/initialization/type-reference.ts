@@ -4,12 +4,16 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from '../graph/type-graph.js';
-import { Type } from '../graph/type-node.js';
-import { TypeInferenceCollectorListener, TypeInferenceRule, TypeInferenceRuleOptions } from '../services/inference.js';
-import { TypirServices } from '../typir.js';
+import type { TypeGraphListener } from '../graph/type-graph.js';
+import type { Type } from '../graph/type-node.js';
+import type {
+    TypeInferenceCollectorListener,
+    TypeInferenceRule,
+    TypeInferenceRuleOptions,
+} from '../services/inference.js';
+import type { TypirServices } from '../typir.js';
 import { removeFromArray } from '../utils/utils.js';
-import { TypeSelector } from './type-selector.js';
+import type { TypeSelector } from './type-selector.js';
 
 /**
  * A listener for TypeReferences, who will be informed about the resolved/found type of the current TypeReference.
@@ -21,7 +25,10 @@ export interface TypeReferenceListener<T extends Type, LanguageType = unknown> {
      * @param resolvedType Usually the resolved type is either 'Identifiable' or 'Completed',
      * in rare cases this type might be 'Invalid', e.g. if there are corresponding inference rules or TypeInitializers.
      */
-    onTypeReferenceResolved(reference: TypeReference<T, LanguageType>, resolvedType: T): void;
+    onTypeReferenceResolved(
+        reference: TypeReference<T, LanguageType>,
+        resolvedType: T,
+    ): void;
 
     /**
      * Informs when the type of the reference is invalidated/removed.
@@ -29,7 +36,10 @@ export interface TypeReferenceListener<T extends Type, LanguageType = unknown> {
      * @param previousType undefined occurs in the special case, that the TypeReference never resolved a type so far,
      * but new listeners already want to be informed about the (current) type.
      */
-    onTypeReferenceInvalidated(reference: TypeReference<T, LanguageType>, previousType: T | undefined): void;
+    onTypeReferenceInvalidated(
+        reference: TypeReference<T, LanguageType>,
+        previousType: T | undefined,
+    ): void;
 }
 
 /**
@@ -43,15 +53,22 @@ export interface TypeReferenceListener<T extends Type, LanguageType = unknown> {
  *
  * Once the type is resolved, listeners are notified about this and all following changes of its state.
  */
-export class TypeReference<T extends Type, LanguageType = unknown> implements TypeGraphListener, TypeInferenceCollectorListener<LanguageType> {
+export class TypeReference<T extends Type, LanguageType = unknown>
+implements TypeGraphListener, TypeInferenceCollectorListener<LanguageType>
+{
     protected readonly selector: TypeSelector<T, LanguageType>;
     protected readonly services: TypirServices<LanguageType>;
     protected resolvedType: T | undefined = undefined;
 
     /** These listeners will be informed, whenever the resolved state of this TypeReference switched from undefined to an actual type or from an actual type to undefined. */
-    protected readonly listeners: Array<TypeReferenceListener<T, LanguageType>> = [];
+    protected readonly listeners: Array<
+        TypeReferenceListener<T, LanguageType>
+    > = [];
 
-    constructor(selector: TypeSelector<T, LanguageType>, services: TypirServices<LanguageType>) {
+    constructor(
+        selector: TypeSelector<T, LanguageType>,
+        services: TypirServices<LanguageType>,
+    ) {
         this.selector = selector;
         this.services = services;
 
@@ -92,21 +109,31 @@ export class TypeReference<T extends Type, LanguageType = unknown> implements Ty
      * Note that the resolved type might not be completed yet.
      * @returns the result of the currently executed resolution
      */
-    protected resolve(): 'ALREADY_RESOLVED' | 'SUCCESSFULLY_RESOLVED' | 'RESOLVING_FAILED' {
+    protected resolve():
+        | 'ALREADY_RESOLVED'
+        | 'SUCCESSFULLY_RESOLVED'
+        | 'RESOLVING_FAILED' {
         if (this.resolvedType) {
             // the type is already resolved => nothing to do
             return 'ALREADY_RESOLVED';
         }
 
         // try to resolve the type
-        const resolvedType = this.services.infrastructure.TypeResolver.tryToResolve<T>(this.selector);
+        const resolvedType =
+            this.services.infrastructure.TypeResolver.tryToResolve<T>(
+                this.selector,
+            );
 
         if (resolvedType) {
             // the type is successfully resolved!
             this.resolvedType = resolvedType;
             this.stopResolving();
             // notify observers
-            this.listeners.slice().forEach(listener => listener.onTypeReferenceResolved(this, resolvedType));
+            this.listeners
+                .slice()
+                .forEach((listener) =>
+                    listener.onTypeReferenceResolved(this, resolvedType),
+                );
             return 'SUCCESSFULLY_RESOLVED';
         } else {
             // the type is not resolved (yet)
@@ -114,7 +141,10 @@ export class TypeReference<T extends Type, LanguageType = unknown> implements Ty
         }
     }
 
-    addListener(listener: TypeReferenceListener<T, LanguageType>, informAboutCurrentState: boolean): void {
+    addListener(
+        listener: TypeReferenceListener<T, LanguageType>,
+        informAboutCurrentState: boolean,
+    ): void {
         this.listeners.push(listener);
         if (informAboutCurrentState) {
             if (this.resolvedType) {
@@ -129,7 +159,6 @@ export class TypeReference<T extends Type, LanguageType = unknown> implements Ty
         removeFromArray(listener, this.listeners);
     }
 
-
     onAddedType(_addedType: Type, _key: string): void {
         // after adding a new type, try to resolve the type
         this.resolve(); // possible performance optimization: is it possible to do this more performant by looking at the "addedType"?
@@ -139,17 +168,30 @@ export class TypeReference<T extends Type, LanguageType = unknown> implements Ty
         // the resolved type of this TypeReference is removed!
         if (removedType === this.resolvedType) {
             // notify observers, that the type reference is broken
-            this.listeners.slice().forEach(listener => listener.onTypeReferenceInvalidated(this, this.resolvedType!));
+            this.listeners
+                .slice()
+                .forEach((listener) =>
+                    listener.onTypeReferenceInvalidated(
+                        this,
+                        this.resolvedType!,
+                    ),
+                );
             // start resolving the type again
             this.startResolving();
         }
     }
 
-    onAddedInferenceRule(_rule: TypeInferenceRule<LanguageType>, _options: TypeInferenceRuleOptions): void {
+    onAddedInferenceRule(
+        _rule: TypeInferenceRule<LanguageType>,
+        _options: TypeInferenceRuleOptions,
+    ): void {
         // after adding a new inference rule, try to resolve the type
         this.resolve(); // possible performance optimization: use only the new inference rule to resolve the type
     }
-    onRemovedInferenceRule(_rule: TypeInferenceRule<LanguageType>, _options: TypeInferenceRuleOptions): void {
+    onRemovedInferenceRule(
+        _rule: TypeInferenceRule<LanguageType>,
+        _options: TypeInferenceRuleOptions,
+    ): void {
         // empty, since removed inference rules don't help to resolve a type
     }
 }

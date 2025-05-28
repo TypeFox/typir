@@ -4,24 +4,29 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from '../../graph/type-graph.js';
+import type { TypeGraphListener } from '../../graph/type-graph.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
-import { TypirProblem } from '../../utils/utils-definitions.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
-import { BottomKind, BottomTypeDetails, isBottomKind } from './bottom-kind.js';
+import type { BottomKind, BottomTypeDetails } from './bottom-kind.js';
+import { isBottomKind } from './bottom-kind.js';
 
 export class BottomType extends Type implements TypeGraphListener {
     override readonly kind: BottomKind<unknown>;
 
-    constructor(kind: BottomKind<unknown>, identifier: string, typeDetails: BottomTypeDetails<unknown>) {
+    constructor(
+        kind: BottomKind<unknown>,
+        identifier: string,
+        typeDetails: BottomTypeDetails<unknown>,
+    ) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions
 
         // ensure, that this Bottom type is a sub-type of all (other) types:
         const graph = kind.services.infrastructure.Graph;
-        graph.getAllRegisteredTypes().forEach(t => this.markAsSubType(t)); // the already existing types
+        graph.getAllRegisteredTypes().forEach((t) => this.markAsSubType(t)); // the already existing types
         graph.addListener(this); // all upcomping types
     }
 
@@ -31,7 +36,9 @@ export class BottomType extends Type implements TypeGraphListener {
 
     protected markAsSubType(type: Type): void {
         if (type !== this) {
-            this.kind.services.Subtype.markAsSubType(this, type, { checkForCycles: false });
+            this.kind.services.Subtype.markAsSubType(this, type, {
+                checkForCycles: false,
+            });
         }
     }
 
@@ -51,15 +58,16 @@ export class BottomType extends Type implements TypeGraphListener {
         if (isBottomType(otherType)) {
             return [];
         } else {
-            return [<TypeEqualityProblem>{
-                $problem: TypeEqualityProblem,
-                type1: this,
-                type2: otherType,
-                subProblems: [createKindConflict(this, otherType)],
-            }];
+            return [
+                <TypeEqualityProblem>{
+                    $problem: TypeEqualityProblem,
+                    type1: this,
+                    type2: otherType,
+                    subProblems: [createKindConflict(this, otherType)],
+                },
+            ];
         }
     }
-
 }
 
 export function isBottomType(type: unknown): type is BottomType {

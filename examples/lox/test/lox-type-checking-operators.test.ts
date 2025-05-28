@@ -8,7 +8,6 @@ import { describe, test } from 'vitest';
 import { validateLox } from './lox-type-checking-utils.js';
 
 describe('Test type checking for operators', () => {
-
     test('binary operators', async () => {
         await validateLox('var myResult: number = 2 + 3;', 0);
         await validateLox('var myResult: number = 2 - 3;', 0);
@@ -28,10 +27,16 @@ describe('Test type checking for operators', () => {
         await validateLox('var myResult: boolean = true == false;', 0);
         await validateLox('var myResult: boolean = true != false;', 0);
 
-        await validateLox('var myResult: boolean = true == 3;', 0,
-            "This comparison will always return 'false' as 'true' and '3' have the different types 'boolean' and 'number'.");
-        await validateLox('var myResult: boolean = 2 != false;', 0,
-            "This comparison will always return 'true' as '2' and 'false' have the different types 'number' and 'boolean'.");
+        await validateLox(
+            'var myResult: boolean = true == 3;',
+            0,
+            "This comparison will always return 'false' as 'true' and '3' have the different types 'boolean' and 'number'.",
+        );
+        await validateLox(
+            'var myResult: boolean = 2 != false;',
+            0,
+            "This comparison will always return 'true' as '2' and 'false' have the different types 'number' and 'boolean'.",
+        );
     });
 
     test('unary operator: !', async () => {
@@ -83,5 +88,4 @@ describe('Test type checking for operators', () => {
             "While validating the AstNode '2 * (2 and false)', this error is found: The given operands for the call of '*' don't match.",
         ]);
     });
-
 });

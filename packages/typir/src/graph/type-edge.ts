@@ -4,8 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { EdgeCachingInformation } from '../services/caching.js';
-import { Type } from './type-node.js';
+import type { EdgeCachingInformation } from '../services/caching.js';
+import type { Type } from './type-node.js';
 
 /**
  * An edge has a direction (from --> to) and can be querried from both types (incomingEdge, outgoingEdge).
@@ -29,5 +29,9 @@ export interface TypeEdge {
 }
 
 export function isTypeEdge(edge: unknown): edge is TypeEdge {
-    return typeof edge === 'object' && edge !== null && typeof (edge as TypeEdge).$relation === 'string';
+    return (
+        typeof edge === 'object' &&
+        edge !== null &&
+        typeof (edge as TypeEdge).$relation === 'string'
+    );
 }

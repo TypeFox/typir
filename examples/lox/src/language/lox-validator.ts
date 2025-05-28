@@ -4,8 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationAcceptor, ValidationChecks, ValidationRegistry } from 'langium';
-import { LoxAstType, VariableDeclaration } from './generated/ast.js';
+import type { ValidationAcceptor, ValidationChecks } from 'langium';
+import { ValidationRegistry } from 'langium';
+import type { LoxAstType, VariableDeclaration } from './generated/ast.js';
 import type { LoxServices } from './lox-module.js';
 
 /**
@@ -27,14 +28,19 @@ export class LoxValidationRegistry extends ValidationRegistry {
  * Validations on type level are done by Typir.
  */
 export class LoxValidator {
-
-    checkVariableDeclaration(decl: VariableDeclaration, accept: ValidationAcceptor): void {
+    checkVariableDeclaration(
+        decl: VariableDeclaration,
+        accept: ValidationAcceptor,
+    ): void {
         if (!decl.type && !decl.value) {
-            accept('error', 'Variables require a type hint or an assignment at creation', {
-                node: decl,
-                property: 'name'
-            });
+            accept(
+                'error',
+                'Variables require a type hint or an assignment at creation',
+                {
+                    node: decl,
+                    property: 'name',
+                },
+            );
         }
     }
-
 }

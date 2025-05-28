@@ -5,30 +5,47 @@
  ******************************************************************************/
 
 import { assertUnreachable } from 'langium';
-import { Type, TypeDetails } from '../../graph/type-node.js';
-import { TypeInitializer } from '../../initialization/type-initializer.js';
+import type { Type, TypeDetails } from '../../graph/type-node.js';
+import type { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
-import { TypeSelector } from '../../initialization/type-selector.js';
-import { InferenceRuleNotApplicable } from '../../services/inference.js';
-import { ValidationRule } from '../../services/validation.js';
-import { TypirServices } from '../../typir.js';
-import { InferCurrentTypeRule, RegistrationOptions } from '../../utils/utils-definitions.js';
-import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import type { TypeSelector } from '../../initialization/type-selector.js';
+import type { InferenceRuleNotApplicable } from '../../services/inference.js';
+import type { ValidationRule } from '../../services/validation.js';
+import type { TypirServices } from '../../typir.js';
+import type {
+    InferCurrentTypeRule,
+    RegistrationOptions,
+} from '../../utils/utils-definitions.js';
+import type { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertTypirType, toArray } from '../../utils/utils.js';
-import { FunctionType } from '../function/function-type.js';
-import { Kind, isKind } from '../kind.js';
+import type { FunctionType } from '../function/function-type.js';
+import type { Kind } from '../kind.js';
+import { isKind } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
-import { ClassType, isClassType } from './class-type.js';
-import { NoSuperClassCyclesValidationOptions, UniqueClassValidation, UniqueMethodValidation, UniqueMethodValidationOptions, createNoSuperClassCyclesValidation } from './class-validation.js';
-import { TopClassKind, TopClassKindName, isTopClassKind } from './top-class-kind.js';
+import type { ClassType } from './class-type.js';
+import { isClassType } from './class-type.js';
+import type {
+    NoSuperClassCyclesValidationOptions,
+    UniqueMethodValidationOptions,
+} from './class-validation.js';
+import {
+    UniqueClassValidation,
+    UniqueMethodValidation,
+    createNoSuperClassCyclesValidation,
+} from './class-validation.js';
+import {
+    TopClassKind,
+    TopClassKindName,
+    isTopClassKind,
+} from './top-class-kind.js';
 
 export interface ClassKindOptions {
-    typing: 'Structural' | 'Nominal', // JS classes are nominal, TS structures are structural
+    typing: 'Structural' | 'Nominal'; // JS classes are nominal, TS structures are structural
     /** Values < 0 indicate an arbitrary number of super classes. */
-    maximumNumberOfSuperClasses: number,
-    subtypeFieldChecking: TypeCheckStrategy,
+    maximumNumberOfSuperClasses: number;
+    subtypeFieldChecking: TypeCheckStrategy;
     /** Will be used only internally as prefix for the unique identifiers for class type names. */
-    identifierPrefix: string,
+    identifierPrefix: string;
 }
 
 export const ClassKindName = 'ClassKind';
@@ -42,15 +59,21 @@ export interface CreateMethodDetails<LanguageType> {
     type: TypeSelector<FunctionType, LanguageType>;
 }
 
-export interface ClassTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
+export interface ClassTypeDetails<LanguageType>
+    extends TypeDetails<LanguageType> {
     className: string;
-    superClasses?: TypeSelector<ClassType, LanguageType> | Array<TypeSelector<ClassType, LanguageType>>;
+    superClasses?:
+        | TypeSelector<ClassType, LanguageType>
+        | Array<TypeSelector<ClassType, LanguageType>>;
     fields: Array<CreateFieldDetails<LanguageType>>;
     methods: Array<CreateMethodDetails<LanguageType>>;
 }
-export interface CreateClassTypeDetails<LanguageType> extends ClassTypeDetails<LanguageType> {
+export interface CreateClassTypeDetails<LanguageType>
+    extends ClassTypeDetails<LanguageType> {
     // inference rules for the Class
-    inferenceRulesForClassDeclaration: Array<InferCurrentTypeRule<ClassType, LanguageType>>;
+    inferenceRulesForClassDeclaration: Array<
+        InferCurrentTypeRule<ClassType, LanguageType>
+    >;
     inferenceRulesForClassLiterals: Array<InferClassLiteral<LanguageType>>; // e.g. Constructor calls, References
     // inference rules for its Fields
     inferenceRulesForFieldAccess: Array<InferClassFieldAccess<LanguageType>>;
@@ -60,38 +83,63 @@ export interface CreateClassTypeDetails<LanguageType> extends ClassTypeDetails<L
  * Depending on whether the class is structurally or nominally typed,
  * different values might be specified, e.g. 'inputValuesForFields' could be empty for nominal classes.
  */
-export interface InferClassLiteral<LanguageType, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
+export interface InferClassLiteral<
+    LanguageType,
+    T extends LanguageType = LanguageType,
+> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
     inputValuesForFields: (languageNode: T) => Map<string, LanguageType>; // simple field name (including inherited fields) => value for this field!
 }
 
-export interface InferClassFieldAccess<LanguageType, T extends LanguageType = LanguageType> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
-    field: (languageNode: T) => string | LanguageType | InferenceRuleNotApplicable; // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
+export interface InferClassFieldAccess<
+    LanguageType,
+    T extends LanguageType = LanguageType,
+> extends InferCurrentTypeRule<ClassType, LanguageType, T> {
+    field: (
+        languageNode: T,
+    ) => string | LanguageType | InferenceRuleNotApplicable; // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
 }
 
 export interface ClassFactoryService<LanguageType> {
-    create(typeDetails: ClassTypeDetails<LanguageType>): ClassConfigurationChain<LanguageType>;
-    get(typeDetails: ClassTypeDetails<LanguageType> | string): TypeReference<ClassType, LanguageType>;
+    create(
+        typeDetails: ClassTypeDetails<LanguageType>,
+    ): ClassConfigurationChain<LanguageType>;
+    get(
+        typeDetails: ClassTypeDetails<LanguageType> | string,
+    ): TypeReference<ClassType, LanguageType>;
 
     // some predefined valitions:
 
-    createUniqueClassValidation(options: RegistrationOptions): UniqueClassValidation<LanguageType>;
+    createUniqueClassValidation(
+        options: RegistrationOptions,
+    ): UniqueClassValidation<LanguageType>;
 
-    createUniqueMethodValidation<T extends LanguageType>(options: UniqueMethodValidationOptions<LanguageType, T> & RegistrationOptions): ValidationRule<LanguageType>;
+    createUniqueMethodValidation<T extends LanguageType>(
+        options: UniqueMethodValidationOptions<LanguageType, T> &
+            RegistrationOptions,
+    ): ValidationRule<LanguageType>;
 
-    createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<LanguageType> & RegistrationOptions): ValidationRule<LanguageType>;
+    createNoSuperClassCyclesValidation(
+        options: NoSuperClassCyclesValidationOptions<LanguageType> &
+            RegistrationOptions,
+    ): ValidationRule<LanguageType>;
 
     // benefits of this design decision: the returned rule is easier to exchange, users can use the known factory API with auto-completion (no need to remember the names of the validations)
 }
 
 export interface ClassConfigurationChain<LanguageType> {
-    inferenceRuleForClassDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<ClassType, LanguageType, T>): ClassConfigurationChain<LanguageType>;
-    inferenceRuleForClassLiterals<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>): ClassConfigurationChain<LanguageType>;
+    inferenceRuleForClassDeclaration<T extends LanguageType>(
+        rule: InferCurrentTypeRule<ClassType, LanguageType, T>,
+    ): ClassConfigurationChain<LanguageType>;
+    inferenceRuleForClassLiterals<T extends LanguageType>(
+        rule: InferClassLiteral<LanguageType, T>,
+    ): ClassConfigurationChain<LanguageType>;
 
-    inferenceRuleForFieldAccess<T extends LanguageType>(rule: InferClassFieldAccess<LanguageType, T>): ClassConfigurationChain<LanguageType>;
+    inferenceRuleForFieldAccess<T extends LanguageType>(
+        rule: InferClassFieldAccess<LanguageType, T>,
+    ): ClassConfigurationChain<LanguageType>;
 
     finish(): TypeInitializer<ClassType, LanguageType>;
 }
-
 
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
@@ -100,12 +148,17 @@ export interface ClassConfigurationChain<LanguageType> {
  * The field name is used to identify fields of classes.
  * The order of fields is not defined, i.e. there is no order of fields.
  */
-export class ClassKind<LanguageType> implements Kind, ClassFactoryService<LanguageType> {
+export class ClassKind<LanguageType>
+implements Kind, ClassFactoryService<LanguageType>
+{
     readonly $name: 'ClassKind';
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<ClassKindOptions>;
 
-    constructor(services: TypirServices<LanguageType>, options?: Partial<ClassKindOptions>) {
+    constructor(
+        services: TypirServices<LanguageType>,
+        options?: Partial<ClassKindOptions>,
+    ) {
         this.$name = ClassKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
@@ -113,7 +166,9 @@ export class ClassKind<LanguageType> implements Kind, ClassFactoryService<Langua
         assertTrue(this.options.maximumNumberOfSuperClasses >= 0); // no negative values
     }
 
-    protected collectOptions(options?: Partial<ClassKindOptions>): ClassKindOptions {
+    protected collectOptions(
+        options?: Partial<ClassKindOptions>,
+    ): ClassKindOptions {
         return {
             // the default values:
             typing: 'Nominal',
@@ -121,7 +176,7 @@ export class ClassKind<LanguageType> implements Kind, ClassFactoryService<Langua
             subtypeFieldChecking: 'EQUAL_TYPE',
             identifierPrefix: 'class',
             // the actually overriden values:
-            ...options
+            ...options,
         };
     }
 
@@ -130,13 +185,22 @@ export class ClassKind<LanguageType> implements Kind, ClassFactoryService<Langua
      * @param typeDetails all information needed to identify the class
      * @returns a reference to the class type, which might be resolved in the future, if the class type does not yet exist
      */
-    get(typeDetails: ClassTypeDetails<LanguageType> | string): TypeReference<ClassType, LanguageType> { // string for nominal typing
+    get(
+        typeDetails: ClassTypeDetails<LanguageType> | string,
+    ): TypeReference<ClassType, LanguageType> {
+        // string for nominal typing
         if (typeof typeDetails === 'string') {
             // nominal typing
-            return new TypeReference<ClassType, LanguageType>(typeDetails, this.services);
+            return new TypeReference<ClassType, LanguageType>(
+                typeDetails,
+                this.services,
+            );
         } else {
             // structural typing (does this case occur in practise?)
-            return new TypeReference<ClassType, LanguageType>(() => this.calculateIdentifier(typeDetails), this.services);
+            return new TypeReference<ClassType, LanguageType>(
+                () => this.calculateIdentifier(typeDetails),
+                this.services,
+            );
         }
     }
 
@@ -147,12 +211,20 @@ export class ClassKind<LanguageType> implements Kind, ClassFactoryService<Langua
      * @param typeDetails all information needed to create a new class
      * @returns an initializer which creates and returns the new class type, when all depending types are resolved
      */
-    create(typeDetails: ClassTypeDetails<LanguageType>): ClassConfigurationChain<LanguageType> {
-        return new ClassConfigurationChainImpl(this.services, this, typeDetails);
+    create(
+        typeDetails: ClassTypeDetails<LanguageType>,
+    ): ClassConfigurationChain<LanguageType> {
+        return new ClassConfigurationChainImpl(
+            this.services,
+            this,
+            typeDetails,
+        );
     }
 
     protected getIdentifierPrefix(): string {
-        return this.options.identifierPrefix ? (this.options.identifierPrefix + '-') : '';
+        return this.options.identifierPrefix
+            ? this.options.identifierPrefix + '-'
+            : '';
     }
 
     /**
@@ -173,18 +245,28 @@ export class ClassKind<LanguageType> implements Kind, ClassFactoryService<Langua
         if (this.options.typing === 'Structural') {
             // fields
             const fields: string = typeDetails.fields
-                .map(f => `${f.name}:${this.services.infrastructure.TypeResolver.resolve(f.type).getIdentifier()}`) // the names and the types of the fields are relevant, since different field types lead to different class types!
+                .map(
+                    (f) =>
+                        `${f.name}:${this.services.infrastructure.TypeResolver.resolve(f.type).getIdentifier()}`,
+                ) // the names and the types of the fields are relevant, since different field types lead to different class types!
                 .sort() // the order of fields does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
             // methods
             const methods: string = typeDetails.methods
-                .map(m => this.services.infrastructure.TypeResolver.resolve(m.type).getIdentifier())
+                .map((m) =>
+                    this.services.infrastructure.TypeResolver.resolve(
+                        m.type,
+                    ).getIdentifier(),
+                )
                 .sort() // the order of methods does not matter, therefore we need a stable order to make the identifiers comparable
                 .join(',');
             // super classes (TODO oder strukturell per getAllSuperClassX lösen?!)
             const superClasses: string = toArray(typeDetails.superClasses)
-                .map(selector => {
-                    const type = this.services.infrastructure.TypeResolver.resolve(selector);
+                .map((selector) => {
+                    const type =
+                        this.services.infrastructure.TypeResolver.resolve(
+                            selector,
+                        );
                     assertTypirType(type, isClassType);
                     return type.getIdentifier();
                 })
@@ -207,59 +289,89 @@ export class ClassKind<LanguageType> implements Kind, ClassFactoryService<Langua
      * @param typeDetails the details of the class
      * @returns the identifier based on the class name
      */
-    calculateIdentifierWithClassNameOnly(typeDetails: ClassTypeDetails<LanguageType>): string {
+    calculateIdentifierWithClassNameOnly(
+        typeDetails: ClassTypeDetails<LanguageType>,
+    ): string {
         return `${this.getIdentifierPrefix()}${typeDetails.className}`;
     }
-
 
     getTopClassKind(): TopClassKind<LanguageType> {
         // ensure, that Typir uses the predefined 'TopClass' kind
         const kind = this.services.infrastructure.Kinds.get(TopClassKindName);
-        return isTopClassKind<LanguageType>(kind) ? kind : new TopClassKind<LanguageType>(this.services);
+        return isTopClassKind<LanguageType>(kind)
+            ? kind
+            : new TopClassKind<LanguageType>(this.services);
     }
 
-    createUniqueClassValidation(options: RegistrationOptions): UniqueClassValidation<LanguageType> {
+    createUniqueClassValidation(
+        options: RegistrationOptions,
+    ): UniqueClassValidation<LanguageType> {
         const rule = new UniqueClassValidation<LanguageType>(this.services);
         if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
         } else {
-            this.services.validation.Collector.addValidationRule(rule, options.registration);
+            this.services.validation.Collector.addValidationRule(
+                rule,
+                options.registration,
+            );
         }
         return rule;
     }
 
-    createUniqueMethodValidation<T extends LanguageType>(options: UniqueMethodValidationOptions<LanguageType, T> & RegistrationOptions): ValidationRule<LanguageType> {
-        const rule = new UniqueMethodValidation<LanguageType, T>(this.services, options);
+    createUniqueMethodValidation<T extends LanguageType>(
+        options: UniqueMethodValidationOptions<LanguageType, T> &
+            RegistrationOptions,
+    ): ValidationRule<LanguageType> {
+        const rule = new UniqueMethodValidation<LanguageType, T>(
+            this.services,
+            options,
+        );
         if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
         } else {
-            this.services.validation.Collector.addValidationRule(rule, options.registration);
+            this.services.validation.Collector.addValidationRule(
+                rule,
+                options.registration,
+            );
         }
         return rule;
     }
 
-    createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<LanguageType> & RegistrationOptions): ValidationRule<LanguageType> {
+    createNoSuperClassCyclesValidation(
+        options: NoSuperClassCyclesValidationOptions<LanguageType> &
+            RegistrationOptions,
+    ): ValidationRule<LanguageType> {
         const rule = createNoSuperClassCyclesValidation<LanguageType>(options);
         if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
         } else {
-            this.services.validation.Collector.addValidationRule(rule, options.registration);
+            this.services.validation.Collector.addValidationRule(
+                rule,
+                options.registration,
+            );
         }
         return rule;
     }
 }
 
-export function isClassKind<LanguageType>(kind: unknown): kind is ClassKind<LanguageType> {
+export function isClassKind<LanguageType>(
+    kind: unknown,
+): kind is ClassKind<LanguageType> {
     return isKind(kind) && kind.$name === ClassKindName;
 }
 
-
-class ClassConfigurationChainImpl<LanguageType> implements ClassConfigurationChain<LanguageType> {
+class ClassConfigurationChainImpl<LanguageType>
+implements ClassConfigurationChain<LanguageType>
+{
     protected readonly services: TypirServices<LanguageType>;
     protected readonly kind: ClassKind<LanguageType>;
     protected readonly typeDetails: CreateClassTypeDetails<LanguageType>;
 
-    constructor(services: TypirServices<LanguageType>, kind: ClassKind<LanguageType>, typeDetails: ClassTypeDetails<LanguageType>) {
+    constructor(
+        services: TypirServices<LanguageType>,
+        kind: ClassKind<LanguageType>,
+        typeDetails: ClassTypeDetails<LanguageType>,
+    ) {
         this.services = services;
         this.kind = kind;
         this.typeDetails = {
@@ -270,22 +382,38 @@ class ClassConfigurationChainImpl<LanguageType> implements ClassConfigurationCha
         };
     }
 
-    inferenceRuleForClassDeclaration<T extends LanguageType>(rule: InferCurrentTypeRule<ClassType, LanguageType, T>): ClassConfigurationChain<LanguageType> {
-        this.typeDetails.inferenceRulesForClassDeclaration.push(rule as unknown as InferCurrentTypeRule<ClassType, LanguageType>);
+    inferenceRuleForClassDeclaration<T extends LanguageType>(
+        rule: InferCurrentTypeRule<ClassType, LanguageType, T>,
+    ): ClassConfigurationChain<LanguageType> {
+        this.typeDetails.inferenceRulesForClassDeclaration.push(
+            rule as unknown as InferCurrentTypeRule<ClassType, LanguageType>,
+        );
         return this;
     }
 
-    inferenceRuleForClassLiterals<T extends LanguageType>(rule: InferClassLiteral<LanguageType, T>): ClassConfigurationChain<LanguageType> {
-        this.typeDetails.inferenceRulesForClassLiterals.push(rule as unknown as InferClassLiteral<LanguageType>);
+    inferenceRuleForClassLiterals<T extends LanguageType>(
+        rule: InferClassLiteral<LanguageType, T>,
+    ): ClassConfigurationChain<LanguageType> {
+        this.typeDetails.inferenceRulesForClassLiterals.push(
+            rule as unknown as InferClassLiteral<LanguageType>,
+        );
         return this;
     }
 
-    inferenceRuleForFieldAccess<T extends LanguageType>(rule: InferClassFieldAccess<LanguageType, T>): ClassConfigurationChain<LanguageType> {
-        this.typeDetails.inferenceRulesForFieldAccess.push(rule as unknown as InferClassFieldAccess<LanguageType>);
+    inferenceRuleForFieldAccess<T extends LanguageType>(
+        rule: InferClassFieldAccess<LanguageType, T>,
+    ): ClassConfigurationChain<LanguageType> {
+        this.typeDetails.inferenceRulesForFieldAccess.push(
+            rule as unknown as InferClassFieldAccess<LanguageType>,
+        );
         return this;
     }
 
     finish(): TypeInitializer<ClassType, LanguageType> {
-        return new ClassTypeInitializer<LanguageType>(this.services, this.kind, this.typeDetails);
+        return new ClassTypeInitializer<LanguageType>(
+            this.services,
+            this.kind,
+            this.typeDetails,
+        );
     }
 }

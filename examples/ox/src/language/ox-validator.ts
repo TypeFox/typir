@@ -4,8 +4,24 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstUtils, MultiMap, type ValidationAcceptor, type ValidationChecks } from 'langium';
-import { FunctionDeclaration, isFunctionDeclaration, isVariableDeclaration, OxElement, OxProgram, VariableDeclaration, type OxAstType, type ReturnStatement } from './generated/ast.js';
+import {
+    AstUtils,
+    MultiMap,
+    type ValidationAcceptor,
+    type ValidationChecks,
+} from 'langium';
+import type {
+    FunctionDeclaration,
+    OxElement,
+    OxProgram,
+    VariableDeclaration,
+} from './generated/ast.js';
+import {
+    isFunctionDeclaration,
+    isVariableDeclaration,
+    type OxAstType,
+    type ReturnStatement,
+} from './generated/ast.js';
 import type { OxServices } from './ox-module.js';
 
 /**
@@ -30,14 +46,23 @@ export function registerValidationChecks(services: OxServices) {
  * Validations on type level are done by Typir.
  */
 export class OxValidator {
-
-    checkReturnTypeIsCorrect(node: ReturnStatement, accept: ValidationAcceptor) {
-        const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
+    checkReturnTypeIsCorrect(
+        node: ReturnStatement,
+        accept: ValidationAcceptor,
+    ) {
+        const functionDeclaration = AstUtils.getContainerOfType(
+            node,
+            isFunctionDeclaration,
+        );
         if (functionDeclaration) {
             if (functionDeclaration.returnType.primitive === 'void') {
                 // no return type
                 if (node.value) {
-                    accept('error', `The function '${functionDeclaration.name}' has 'void' as return type. Therefore, this return statement must return no value.`, { node, property: 'value' });
+                    accept(
+                        'error',
+                        `The function '${functionDeclaration.name}' has 'void' as return type. Therefore, this return statement must return no value.`,
+                        { node, property: 'value' },
+                    );
                 } else {
                     // no value => everything is fine
                 }
@@ -47,13 +72,20 @@ export class OxValidator {
                     // the validation that return value fits to return type is done by Typir, not here
                 } else {
                     // missing return value
-                    accept('error', `The function '${functionDeclaration.name}' has '${functionDeclaration.returnType.primitive}' as return type. Therefore, this return statement must return value.`, { node });
+                    accept(
+                        'error',
+                        `The function '${functionDeclaration.name}' has '${functionDeclaration.returnType.primitive}' as return type. Therefore, this return statement must return value.`,
+                        { node },
+                    );
                 }
             }
         }
     }
 
-    checkUniqueVariableNames(block: { elements: OxElement[]}, accept: ValidationAcceptor): void {
+    checkUniqueVariableNames(
+        block: { elements: OxElement[] },
+        accept: ValidationAcceptor,
+    ): void {
         const variables: Map<string, VariableDeclaration[]> = new Map();
         for (const v of block.elements) {
             if (isVariableDeclaration(v)) {
@@ -69,28 +101,44 @@ export class OxValidator {
         for (const [name, vars] of variables.entries()) {
             if (vars.length >= 2) {
                 for (const v of vars) {
-                    accept('error', 'Variables need to have unique names: ' + name, {
-                        node: v,
-                        property: 'name'
-                    });
+                    accept(
+                        'error',
+                        'Variables need to have unique names: ' + name,
+                        {
+                            node: v,
+                            property: 'name',
+                        },
+                    );
                 }
             }
         }
     }
 
-    checkUniqueFunctionNames(root: OxProgram, accept: ValidationAcceptor): void {
-        const mappedFunctions: MultiMap<string, FunctionDeclaration> = new MultiMap();
-        root.elements.filter(isFunctionDeclaration).forEach(decl => mappedFunctions.add(decl.name, decl));
-        for (const [name, declarations] of mappedFunctions.entriesGroupedByKey()) {
+    checkUniqueFunctionNames(
+        root: OxProgram,
+        accept: ValidationAcceptor,
+    ): void {
+        const mappedFunctions: MultiMap<string, FunctionDeclaration> =
+            new MultiMap();
+        root.elements
+            .filter(isFunctionDeclaration)
+            .forEach((decl) => mappedFunctions.add(decl.name, decl));
+        for (const [
+            name,
+            declarations,
+        ] of mappedFunctions.entriesGroupedByKey()) {
             if (declarations.length >= 2) {
                 for (const f of declarations) {
-                    accept('error', 'Functions need to have unique names: ' + name, {
-                        node: f,
-                        property: 'name'
-                    });
+                    accept(
+                        'error',
+                        'Functions need to have unique names: ' + name,
+                        {
+                            node: f,
+                            property: 'name',
+                        },
+                    );
                 }
             }
         }
     }
-
 }

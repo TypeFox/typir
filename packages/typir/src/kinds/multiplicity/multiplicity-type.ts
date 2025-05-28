@@ -2,14 +2,21 @@
  * Copyright 2024 TypeFox GmbH
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
-******************************************************************************/
+ ******************************************************************************/
 
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { isSubTypeProblem } from '../../services/subtype.js';
-import { TypirProblem } from '../../utils/utils-definitions.js';
-import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
-import { isMultiplicityKind, MultiplicityKind, MultiplicityTypeDetails } from './multiplicity-kind.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
+import {
+    checkValueForConflict,
+    createKindConflict,
+} from '../../utils/utils-type-comparison.js';
+import type {
+    MultiplicityKind,
+    MultiplicityTypeDetails,
+} from './multiplicity-kind.js';
+import { isMultiplicityKind } from './multiplicity-kind.js';
 
 export class MultiplicityType extends Type {
     override readonly kind: MultiplicityKind<unknown>;
@@ -17,7 +24,11 @@ export class MultiplicityType extends Type {
     readonly lowerBound: number;
     readonly upperBound: number;
 
-    constructor(kind: MultiplicityKind<unknown>, identifier: string, typeDetails: MultiplicityTypeDetails<unknown>) {
+    constructor(
+        kind: MultiplicityKind<unknown>,
+        identifier: string,
+        typeDetails: MultiplicityTypeDetails<unknown>,
+    ) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.constrainedType = typeDetails.constrainedType;
@@ -38,31 +49,70 @@ export class MultiplicityType extends Type {
         if (isMultiplicityKind(otherType)) {
             const conflicts: TypirProblem[] = [];
             // check the multiplicities
-            conflicts.push(...checkValueForConflict(this.getLowerBound(), this.getLowerBound(), 'lower bound'));
-            conflicts.push(...checkValueForConflict(this.getUpperBound(), this.getUpperBound(), 'upper bound'));
+            conflicts.push(
+                ...checkValueForConflict(
+                    this.getLowerBound(),
+                    this.getLowerBound(),
+                    'lower bound',
+                ),
+            );
+            conflicts.push(
+                ...checkValueForConflict(
+                    this.getUpperBound(),
+                    this.getUpperBound(),
+                    'upper bound',
+                ),
+            );
             // check the constrained type
-            const constrainedTypeConflict = this.kind.services.Equality.getTypeEqualityProblem(this.getConstrainedType(), this.getConstrainedType());
+            const constrainedTypeConflict =
+                this.kind.services.Equality.getTypeEqualityProblem(
+                    this.getConstrainedType(),
+                    this.getConstrainedType(),
+                );
             if (constrainedTypeConflict !== undefined) {
                 conflicts.push(constrainedTypeConflict);
             }
             return conflicts;
         } else {
-            return [<TypeEqualityProblem>{
-                $problem: TypeEqualityProblem,
-                type1: this,
-                type2: otherType,
-                subProblems: [createKindConflict(otherType, this)],
-            }];
+            return [
+                <TypeEqualityProblem>{
+                    $problem: TypeEqualityProblem,
+                    type1: this,
+                    type2: otherType,
+                    subProblems: [createKindConflict(otherType, this)],
+                },
+            ];
         }
     }
 
-    protected analyzeSubTypeProblems(subType: MultiplicityType, superType: MultiplicityType): TypirProblem[] {
+    protected analyzeSubTypeProblems(
+        subType: MultiplicityType,
+        superType: MultiplicityType,
+    ): TypirProblem[] {
         const conflicts: TypirProblem[] = [];
         // check the multiplicities
-        conflicts.push(...checkValueForConflict(subType.getLowerBound(), superType.getLowerBound(), 'lower bound', this.kind.isBoundGreaterEquals));
-        conflicts.push(...checkValueForConflict(subType.getUpperBound(), superType.getUpperBound(), 'upper bound', this.kind.isBoundGreaterEquals));
+        conflicts.push(
+            ...checkValueForConflict(
+                subType.getLowerBound(),
+                superType.getLowerBound(),
+                'lower bound',
+                this.kind.isBoundGreaterEquals,
+            ),
+        );
+        conflicts.push(
+            ...checkValueForConflict(
+                subType.getUpperBound(),
+                superType.getUpperBound(),
+                'upper bound',
+                this.kind.isBoundGreaterEquals,
+            ),
+        );
         // check the constrained type
-        const constrainedTypeConflict = this.kind.services.Subtype.getSubTypeResult(subType.getConstrainedType(), superType.getConstrainedType());
+        const constrainedTypeConflict =
+            this.kind.services.Subtype.getSubTypeResult(
+                subType.getConstrainedType(),
+                superType.getConstrainedType(),
+            );
         if (isSubTypeProblem(constrainedTypeConflict)) {
             conflicts.push(constrainedTypeConflict);
         }

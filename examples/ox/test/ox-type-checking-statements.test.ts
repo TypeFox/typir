@@ -8,7 +8,6 @@ import { describe, test } from 'vitest';
 import { validateOx } from './ox-type-checking-utils.js';
 
 describe('Test type checking for statements and variables in OX', () => {
-
     test('multiple nested and', async () => {
         await validateOx('var myResult: boolean = true and false;', 0);
         await validateOx('var myResult: boolean = true and false and true;', 0);
@@ -45,5 +44,4 @@ describe('Test type checking for statements and variables in OX', () => {
         await validateOx('var myVar : number;', 0);
         await validateOx('var myVar : void;', 1);
     });
-
 });

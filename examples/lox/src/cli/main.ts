@@ -17,7 +17,10 @@ const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 const packagePath = path.resolve(__dirname, '..', '..', 'package.json');
 const packageContent = await fsp.readFile(packagePath, 'utf-8');
 
-export const generateAction = async (fileName: string, opts: GenerateOptions): Promise<void> => {
+export const generateAction = async (
+    fileName: string,
+    opts: GenerateOptions,
+): Promise<void> => {
     // const services = createOxServices(NodeFileSystem).Ox;
     // const program = await extractAstNode<OxProgram>(fileName, services);
 
@@ -29,7 +32,7 @@ export const generateAction = async (fileName: string, opts: GenerateOptions): P
 
 export type GenerateOptions = {
     destination?: string;
-}
+};
 
 export default function(): void {
     const program = new Command();
@@ -39,8 +42,14 @@ export default function(): void {
     const fileExtensions = LoxLanguageMetaData.fileExtensions.join(', ');
     program
         .command('generate')
-        .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
-        .option('-d, --destination <dir>', 'destination directory of generating')
+        .argument(
+            '<file>',
+            `source file (possible file extensions: ${fileExtensions})`,
+        )
+        .option(
+            '-d, --destination <dir>',
+            'destination directory of generating',
+        )
         .description('generates <SMTH> from the source file')
         .action(generateAction);
 

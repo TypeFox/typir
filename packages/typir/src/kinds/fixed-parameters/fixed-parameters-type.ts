@@ -6,10 +6,20 @@
 
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
-import { TypirProblem } from '../../utils/utils-definitions.js';
-import { checkTypeArrays, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import type { TypirProblem } from '../../utils/utils-definitions.js';
+import {
+    checkTypeArrays,
+    checkValueForConflict,
+    createKindConflict,
+    createTypeCheckStrategy,
+} from '../../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
-import { FixedParameterKind, FixedParameterTypeDetails, isFixedParametersKind, Parameter } from './fixed-parameters-kind.js';
+import type {
+    FixedParameterKind,
+    FixedParameterTypeDetails,
+    Parameter,
+} from './fixed-parameters-kind.js';
+import { isFixedParametersKind } from './fixed-parameters-kind.js';
 
 export class ParameterValue {
     readonly parameter: Parameter;
@@ -25,7 +35,11 @@ export class FixedParameterType extends Type {
     override readonly kind: FixedParameterKind<unknown>;
     readonly parameterValues: ParameterValue[] = [];
 
-    constructor(kind: FixedParameterKind<unknown>, identifier: string, typeDetails: FixedParameterTypeDetails<unknown>) {
+    constructor(
+        kind: FixedParameterKind<unknown>,
+        identifier: string,
+        typeDetails: FixedParameterTypeDetails<unknown>,
+    ) {
         super(identifier, typeDetails);
         this.kind = kind;
 
@@ -42,7 +56,7 @@ export class FixedParameterType extends Type {
     }
 
     getParameterTypes(): Type[] {
-        return this.parameterValues.map(p => p.type);
+        return this.parameterValues.map((p) => p.type);
     }
 
     override getName(): string {
@@ -56,40 +70,74 @@ export class FixedParameterType extends Type {
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isFixedParameterType(otherType)) {
             // same name, e.g. both need to be Map, Set, Array, ...
-            const baseTypeCheck = checkValueForConflict(this.kind.baseName, otherType.kind.baseName, 'base type');
+            const baseTypeCheck = checkValueForConflict(
+                this.kind.baseName,
+                otherType.kind.baseName,
+                'base type',
+            );
             if (baseTypeCheck.length >= 1) {
                 // e.g. List<String> !== Set<String>
                 return baseTypeCheck;
             } else {
                 // all parameter types must match, e.g. Set<String> !== Set<Boolean>
                 const conflicts: TypirProblem[] = [];
-                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), false));
+                conflicts.push(
+                    ...checkTypeArrays(
+                        this.getParameterTypes(),
+                        otherType.getParameterTypes(),
+                        (t1, t2) =>
+                            this.kind.services.Equality.getTypeEqualityProblem(
+                                t1,
+                                t2,
+                            ),
+                        false,
+                    ),
+                );
                 return conflicts;
             }
         } else {
-            return [<TypeEqualityProblem>{
-                $problem: TypeEqualityProblem,
-                type1: this,
-                type2: otherType,
-                subProblems: [createKindConflict(this, otherType)],
-            }];
+            return [
+                <TypeEqualityProblem>{
+                    $problem: TypeEqualityProblem,
+                    type1: this,
+                    type2: otherType,
+                    subProblems: [createKindConflict(this, otherType)],
+                },
+            ];
         }
     }
 
-    protected analyzeSubTypeProblems(subType: FixedParameterType, superType: FixedParameterType): TypirProblem[] {
+    protected analyzeSubTypeProblems(
+        subType: FixedParameterType,
+        superType: FixedParameterType,
+    ): TypirProblem[] {
         // same name, e.g. both need to be Map, Set, Array, ...
-        const baseTypeCheck = checkValueForConflict(subType.kind.baseName, superType.kind.baseName, 'base type');
+        const baseTypeCheck = checkValueForConflict(
+            subType.kind.baseName,
+            superType.kind.baseName,
+            'base type',
+        );
         if (baseTypeCheck.length >= 1) {
             // e.g. List<String> !== Set<String>
             return baseTypeCheck;
         } else {
             // all parameter types must match, e.g. Set<String> !== Set<Boolean>
-            const checkStrategy = createTypeCheckStrategy(this.kind.options.parameterSubtypeCheckingStrategy, this.kind.services);
-            return checkTypeArrays(subType.getParameterTypes(), superType.getParameterTypes(), checkStrategy, false);
+            const checkStrategy = createTypeCheckStrategy(
+                this.kind.options.parameterSubtypeCheckingStrategy,
+                this.kind.services,
+            );
+            return checkTypeArrays(
+                subType.getParameterTypes(),
+                superType.getParameterTypes(),
+                checkStrategy,
+                false,
+            );
         }
     }
 }
 
-export function isFixedParameterType(type: unknown): type is FixedParameterType {
+export function isFixedParameterType(
+    type: unknown,
+): type is FixedParameterType {
     return isType(type) && isFixedParametersKind(type.kind);
 }

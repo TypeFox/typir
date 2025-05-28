@@ -4,14 +4,25 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type } from '../../graph/type-node.js';
-import { AssignabilitySuccess, isAssignabilityProblem } from '../../services/assignability.js';
-import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceResultWithInferringChildren, TypeInferenceRuleWithInferringChildren } from '../../services/inference.js';
-import { TypirServices } from '../../typir.js';
+import type { Type } from '../../graph/type-node.js';
+import type { AssignabilitySuccess } from '../../services/assignability.js';
+import { isAssignabilityProblem } from '../../services/assignability.js';
+import type {
+    TypeInferenceResultWithInferringChildren,
+    TypeInferenceRuleWithInferringChildren,
+} from '../../services/inference.js';
+import {
+    InferenceProblem,
+    InferenceRuleNotApplicable,
+} from '../../services/inference.js';
+import type { TypirServices } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
-import { FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
-import { AvailableFunctionsManager } from './function-overloading.js';
-import { FunctionType } from './function-type.js';
+import type {
+    FunctionTypeDetails,
+    InferFunctionCall,
+} from './function-kind.js';
+import type { AvailableFunctionsManager } from './function-overloading.js';
+import type { FunctionType } from './function-type.js';
 
 /**
  * Dedicated inference rule for calls of a single function signature.
@@ -25,40 +36,69 @@ import { FunctionType } from './function-type.js';
  * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
  *   (exception: the options contain a type to return in this special case)
  */
-export class FunctionCallInferenceRule<LanguageType, T extends LanguageType = LanguageType> implements TypeInferenceRuleWithInferringChildren<LanguageType> {
+export class FunctionCallInferenceRule<
+    LanguageType,
+    T extends LanguageType = LanguageType,
+> implements TypeInferenceRuleWithInferringChildren<LanguageType>
+{
     protected readonly typeDetails: FunctionTypeDetails<LanguageType>;
-    protected readonly inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
+    protected readonly inferenceRuleForCalls: InferFunctionCall<
+        LanguageType,
+        T
+    >;
     protected readonly functionType: FunctionType;
     protected readonly functions: AvailableFunctionsManager<LanguageType>;
     assignabilitySuccess: Array<AssignabilitySuccess | undefined>; // public, since this information is exploited to determine the best overloaded match in case of multiple matches
 
-    constructor(typeDetails: FunctionTypeDetails<LanguageType>, inferenceRuleForCalls: InferFunctionCall<LanguageType, T>, functionType: FunctionType, functions: AvailableFunctionsManager<LanguageType>) {
+    constructor(
+        typeDetails: FunctionTypeDetails<LanguageType>,
+        inferenceRuleForCalls: InferFunctionCall<LanguageType, T>,
+        functionType: FunctionType,
+        functions: AvailableFunctionsManager<LanguageType>,
+    ) {
         this.typeDetails = typeDetails;
         this.inferenceRuleForCalls = inferenceRuleForCalls;
         this.functionType = functionType;
         this.functions = functions;
-        this.assignabilitySuccess = new Array(typeDetails.inputParameters.length);
+        this.assignabilitySuccess = new Array(
+            typeDetails.inputParameters.length,
+        );
     }
 
-    inferTypeWithoutChildren(languageNode: LanguageType, _typir: TypirServices<LanguageType>): TypeInferenceResultWithInferringChildren<LanguageType> {
+    inferTypeWithoutChildren(
+        languageNode: LanguageType,
+        _typir: TypirServices<LanguageType>,
+    ): TypeInferenceResultWithInferringChildren<LanguageType> {
         this.assignabilitySuccess.fill(undefined); // reset the entries
         // 0. The LanguageKeys are already checked by OverloadedFunctionsTypeInferenceRule, nothing to do here
         // 1. Does the filter of the inference rule accept the current language node?
-        const result = this.inferenceRuleForCalls.filter === undefined || this.inferenceRuleForCalls.filter(languageNode);
+        const result =
+            this.inferenceRuleForCalls.filter === undefined ||
+            this.inferenceRuleForCalls.filter(languageNode);
         if (!result) {
             // the language node has a completely different purpose
             return InferenceRuleNotApplicable;
         }
         // 2. Does the inference rule match this language node?
-        const matching = this.inferenceRuleForCalls.matching === undefined || this.inferenceRuleForCalls.matching(languageNode as T, this.functionType);
+        const matching =
+            this.inferenceRuleForCalls.matching === undefined ||
+            this.inferenceRuleForCalls.matching(
+                languageNode as T,
+                this.functionType,
+            );
         if (!matching) {
             // the language node is slightly different
             return InferenceRuleNotApplicable;
         }
         // 3. Check whether the current arguments fit to the expected parameter types
         // 3a. Check some special cases, in order to save the effort to do type inference for the given arguments
-        const overloadInfos = this.functions.getOverloads(this.typeDetails.functionName);
-        if (overloadInfos === undefined || overloadInfos.overloadedFunctions.length <= 1) {
+        const overloadInfos = this.functions.getOverloads(
+            this.typeDetails.functionName,
+        );
+        if (
+            overloadInfos === undefined ||
+            overloadInfos.overloadedFunctions.length <= 1
+        ) {
             // the current function is not overloaded, therefore, the types of their parameters are not required => save time, ignore inference errors
             return this.check(this.getOutputTypeForFunctionCalls());
         }
@@ -68,18 +108,29 @@ export class FunctionCallInferenceRule<LanguageType, T extends LanguageType = La
             return overloadInfos.sameOutputType;
         }
         // 3b. The given arguments need to be checked in detail => infer the types of the parameters now
-        const inputArguments = this.inferenceRuleForCalls.inputArguments(languageNode as T);
+        const inputArguments = this.inferenceRuleForCalls.inputArguments(
+            languageNode as T,
+        );
         return inputArguments;
     }
 
-    inferTypeWithChildrensTypes(languageNode: LanguageType, actualInputTypes: Array<Type | undefined>, typir: TypirServices<LanguageType>): Type | InferenceProblem<LanguageType> {
-        const expectedInputTypes = this.typeDetails.inputParameters.map(p => typir.infrastructure.TypeResolver.resolve(p.type));
+    inferTypeWithChildrensTypes(
+        languageNode: LanguageType,
+        actualInputTypes: Array<Type | undefined>,
+        typir: TypirServices<LanguageType>,
+    ): Type | InferenceProblem<LanguageType> {
+        const expectedInputTypes = this.typeDetails.inputParameters.map((p) =>
+            typir.infrastructure.TypeResolver.resolve(p.type),
+        );
         // all operands need to be assignable(! not equal) to the required types
         const comparisonConflicts = checkTypeArrays(
             actualInputTypes,
             expectedInputTypes,
             (t1, t2, index) => {
-                const result = typir.Assignability.getAssignabilityResult(t1, t2);
+                const result = typir.Assignability.getAssignabilityResult(
+                    t1,
+                    t2,
+                );
                 if (isAssignabilityProblem(result)) {
                     return result;
                 } else {
@@ -108,14 +159,19 @@ export class FunctionCallInferenceRule<LanguageType, T extends LanguageType = La
     }
 
     protected getOutputTypeForFunctionCalls(): Type | undefined {
-        return this.functionType.kind.getOutputTypeForFunctionCalls(this.functionType);
+        return this.functionType.kind.getOutputTypeForFunctionCalls(
+            this.functionType,
+        );
     }
 
     protected check(returnType: Type | undefined): Type {
-        if (returnType) { // this condition is checked here, since 'undefined' is OK, as long as it is not used; extracting this function is difficult due to TypeScripts strict rules for using 'this'
+        if (returnType) {
+            // this condition is checked here, since 'undefined' is OK, as long as it is not used; extracting this function is difficult due to TypeScripts strict rules for using 'this'
             return returnType;
         } else {
-            throw new Error(`The function ${this.typeDetails.functionName} is called, but has no output type to infer.`);
+            throw new Error(
+                `The function ${this.typeDetails.functionName} is called, but has no output type to infer.`,
+            );
         }
     }
 }
