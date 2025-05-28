@@ -4,28 +4,28 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { GraphAlgorithms } from '../graph/graph-algorithms.js';
-import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
-import { TypeGraph } from '../graph/type-graph.js';
-import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
-import { TypirProblem } from '../utils/utils-definitions.js';
+import { GraphAlgorithms } from "../graph/graph-algorithms.js";
+import { isTypeEdge, TypeEdge } from "../graph/type-edge.js";
+import { TypeGraph } from "../graph/type-graph.js";
+import { Type } from "../graph/type-node.js";
+import { TypirServices } from "../typir.js";
+import { TypirProblem } from "../utils/utils-definitions.js";
 
 export interface SubTypeProblem extends TypirProblem {
-    $problem: 'SubTypeProblem';
-    $result: 'SubTypeResult';
+    $problem: "SubTypeProblem";
+    $result: "SubTypeResult";
     superType: Type;
     subType: Type;
     result: false;
     subProblems: TypirProblem[]; // might be empty
 }
-export const SubTypeProblem = 'SubTypeProblem';
+export const SubTypeProblem = "SubTypeProblem";
 export function isSubTypeProblem(problem: unknown): problem is SubTypeProblem {
     return isSubTypeResult(problem) && problem.result === false;
 }
 
 export interface SubTypeSuccess {
-    $result: 'SubTypeResult';
+    $result: "SubTypeResult";
     superType: Type;
     subType: Type;
     result: true;
@@ -36,11 +36,14 @@ export function isSubTypeSuccess(success: unknown): success is SubTypeSuccess {
 }
 
 export type SubTypeResult = SubTypeSuccess | SubTypeProblem;
-export const SubTypeResult = 'SubTypeResult';
+export const SubTypeResult = "SubTypeResult";
 export function isSubTypeResult(result: unknown): result is SubTypeResult {
-    return typeof result === 'object' && result !== null && ((result as SubTypeResult).$result === SubTypeResult);
+    return (
+        typeof result === "object" &&
+        result !== null &&
+        (result as SubTypeResult).$result === SubTypeResult
+    );
 }
-
 
 export interface MarkSubTypeOptions {
     /** If selected, it will be checked, whether cycles in sub-type relationships exists now at the involved types.
@@ -58,12 +61,18 @@ export interface MarkSubTypeOptions {
  */
 export interface SubType {
     isSubType(subType: Type, superType: Type): boolean;
-    getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined;
+    getSubTypeProblem(
+        subType: Type,
+        superType: Type,
+    ): SubTypeProblem | undefined;
     getSubTypeResult(subType: Type, superType: Type): SubTypeResult;
 
-    markAsSubType(subType: Type, superType: Type, options?: Partial<MarkSubTypeOptions>): void;
+    markAsSubType(
+        subType: Type,
+        superType: Type,
+        options?: Partial<MarkSubTypeOptions>,
+    ): void;
 }
-
 
 /**
  * The default implementation for the SubType service.
@@ -85,14 +94,19 @@ export class DefaultSubType<LanguageType> implements SubType {
         return isSubTypeSuccess(this.getSubTypeResult(subType, superType));
     }
 
-    getSubTypeProblem(subType: Type, superType: Type): SubTypeProblem | undefined {
+    getSubTypeProblem(
+        subType: Type,
+        superType: Type,
+    ): SubTypeProblem | undefined {
         const result = this.getSubTypeResult(subType, superType);
         return isSubTypeProblem(result) ? result : undefined;
     }
 
     getSubTypeResult(subType: Type, superType: Type): SubTypeResult {
         // search for a transitive sub-type relationship
-        const path = this.algorithms.getEdgePath(subType, superType, [SubTypeEdge]);
+        const path = this.algorithms.getEdgePath(subType, superType, [
+            SubTypeEdge,
+        ]);
         if (path.length >= 1) {
             return <SubTypeSuccess>{
                 $result: SubTypeResult,
@@ -114,19 +128,27 @@ export class DefaultSubType<LanguageType> implements SubType {
     }
 
     protected getSubTypeEdge(from: Type, to: Type): SubTypeEdge | undefined {
-        return from.getOutgoingEdges<SubTypeEdge>(SubTypeEdge).find(edge => edge.to === to);
+        return from
+            .getOutgoingEdges<SubTypeEdge>(SubTypeEdge)
+            .find((edge) => edge.to === to);
     }
 
-    protected collectMarkSubTypeOptions(options?: Partial<MarkSubTypeOptions>): MarkSubTypeOptions {
+    protected collectMarkSubTypeOptions(
+        options?: Partial<MarkSubTypeOptions>,
+    ): MarkSubTypeOptions {
         return {
             // the default values:
             checkForCycles: true,
             // the actually overriden values:
-            ...options
+            ...options,
         };
     }
 
-    markAsSubType(subType: Type, superType: Type, options: MarkSubTypeOptions): void {
+    markAsSubType(
+        subType: Type,
+        superType: Type,
+        options: MarkSubTypeOptions,
+    ): void {
         const actualOptions = this.collectMarkSubTypeOptions(options);
         let edge = this.getSubTypeEdge(subType, superType);
         if (!edge) {
@@ -134,30 +156,35 @@ export class DefaultSubType<LanguageType> implements SubType {
                 $relation: SubTypeEdge,
                 from: subType,
                 to: superType,
-                cachingInformation: 'LINK_EXISTS',
+                cachingInformation: "LINK_EXISTS",
                 error: undefined,
             };
             this.graph.addEdge(edge);
         } else {
-            edge.cachingInformation = 'LINK_EXISTS';
+            edge.cachingInformation = "LINK_EXISTS";
         }
 
         // check for cycles
         if (actualOptions.checkForCycles) {
-            const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [SubTypeEdge]);
+            const hasIntroducedCycle = this.algorithms.existsEdgePath(
+                subType,
+                subType,
+                [SubTypeEdge],
+            );
             if (hasIntroducedCycle) {
-                throw new Error(`Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`);
+                throw new Error(
+                    `Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`,
+                );
             }
         }
     }
-
 }
 
 export interface SubTypeEdge extends TypeEdge {
-    readonly $relation: 'SubTypeEdge';
+    readonly $relation: "SubTypeEdge";
     readonly error: SubTypeProblem | undefined;
 }
-export const SubTypeEdge = 'SubTypeEdge';
+export const SubTypeEdge = "SubTypeEdge";
 
 export function isSubTypeEdge(edge: unknown): edge is SubTypeEdge {
     return isTypeEdge(edge) && edge.$relation === SubTypeEdge;

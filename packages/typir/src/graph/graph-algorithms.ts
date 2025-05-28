@@ -4,19 +4,33 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypirServices } from '../typir.js';
-import { TypeEdge } from './type-edge.js';
-import { TypeGraph } from './type-graph.js';
-import { Type } from './type-node.js';
+import { TypirServices } from "../typir.js";
+import { TypeEdge } from "./type-edge.js";
+import { TypeGraph } from "./type-graph.js";
+import { Type } from "./type-node.js";
 
 /**
  * Graph algorithms to do calculations on the type graph.
  * All algorithms are robust regarding cycles.
  */
 export interface GraphAlgorithms {
-    collectReachableTypes(from: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): Set<Type>;
-    existsEdgePath(from: Type, to: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): boolean;
-    getEdgePath(from: Type, to: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): TypeEdge[];
+    collectReachableTypes(
+        from: Type,
+        $relations: Array<TypeEdge["$relation"]>,
+        filterEdges?: (edgr: TypeEdge) => boolean,
+    ): Set<Type>;
+    existsEdgePath(
+        from: Type,
+        to: Type,
+        $relations: Array<TypeEdge["$relation"]>,
+        filterEdges?: (edgr: TypeEdge) => boolean,
+    ): boolean;
+    getEdgePath(
+        from: Type,
+        to: Type,
+        $relations: Array<TypeEdge["$relation"]>,
+        filterEdges?: (edgr: TypeEdge) => boolean,
+    ): TypeEdge[];
 }
 
 export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
@@ -26,15 +40,24 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
         this.graph = services.infrastructure.Graph;
     }
 
-    collectReachableTypes(from: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): Set<Type> {
+    collectReachableTypes(
+        from: Type,
+        $relations: Array<TypeEdge["$relation"]>,
+        filterEdges?: (edgr: TypeEdge) => boolean,
+    ): Set<Type> {
         const result: Set<Type> = new Set();
         const remainingToCheck: Type[] = [from];
 
         while (remainingToCheck.length > 0) {
             const current = remainingToCheck.pop()!;
-            const outgoingEdges = $relations.flatMap(r => current.getOutgoingEdges(r));
+            const outgoingEdges = $relations.flatMap((r) =>
+                current.getOutgoingEdges(r),
+            );
             for (const edge of outgoingEdges) {
-                if (edge.cachingInformation === 'LINK_EXISTS' && (filterEdges === undefined || filterEdges(edge))) {
+                if (
+                    edge.cachingInformation === "LINK_EXISTS" &&
+                    (filterEdges === undefined || filterEdges(edge))
+                ) {
                     if (result.has(edge.to)) {
                         // already checked
                     } else {
@@ -48,7 +71,12 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
         return result;
     }
 
-    existsEdgePath(from: Type, to: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): boolean {
+    existsEdgePath(
+        from: Type,
+        to: Type,
+        $relations: Array<TypeEdge["$relation"]>,
+        filterEdges?: (edgr: TypeEdge) => boolean,
+    ): boolean {
         const visited: Set<Type> = new Set();
         const stack: Type[] = [from];
 
@@ -56,9 +84,14 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
             const current = stack.pop()!;
             visited.add(current);
 
-            const outgoingEdges = $relations.flatMap(r => current.getOutgoingEdges(r));
+            const outgoingEdges = $relations.flatMap((r) =>
+                current.getOutgoingEdges(r),
+            );
             for (const edge of outgoingEdges) {
-                if (edge.cachingInformation === 'LINK_EXISTS' && (filterEdges === undefined || filterEdges(edge))) {
+                if (
+                    edge.cachingInformation === "LINK_EXISTS" &&
+                    (filterEdges === undefined || filterEdges(edge))
+                ) {
                     if (edge.to === to) {
                         /* It was possible to reach our goal type using this path.
                          * Base case that also catches the case in which start and end are the same
@@ -81,17 +114,27 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
         return false;
     }
 
-    getEdgePath(from: Type, to: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): TypeEdge[] {
-        const visited: Map<Type, TypeEdge|undefined> = new Map(); // the edge from the parent to the current node
+    getEdgePath(
+        from: Type,
+        to: Type,
+        $relations: Array<TypeEdge["$relation"]>,
+        filterEdges?: (edgr: TypeEdge) => boolean,
+    ): TypeEdge[] {
+        const visited: Map<Type, TypeEdge | undefined> = new Map(); // the edge from the parent to the current node
         visited.set(from, undefined);
         const stack: Type[] = [from];
 
         while (stack.length > 0) {
             const current = stack.pop()!;
 
-            const outgoingEdges = $relations.flatMap(r => current.getOutgoingEdges(r));
+            const outgoingEdges = $relations.flatMap((r) =>
+                current.getOutgoingEdges(r),
+            );
             for (const edge of outgoingEdges) {
-                if (edge.cachingInformation === 'LINK_EXISTS' && (filterEdges === undefined || filterEdges(edge))) {
+                if (
+                    edge.cachingInformation === "LINK_EXISTS" &&
+                    (filterEdges === undefined || filterEdges(edge))
+                ) {
                     if (edge.to === to) {
                         /* It was possible to reach our goal type using this path.
                          * Base case that also catches the case in which start and end are the same
@@ -122,5 +165,4 @@ export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
         // Fall through means that we could not reach the goal type
         return [];
     }
-
 }

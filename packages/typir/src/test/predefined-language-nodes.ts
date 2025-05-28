@@ -4,9 +4,9 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { DefaultLanguageService } from '../services/language.js';
-import { InferOperatorWithMultipleOperands } from '../services/operator.js';
-import { DefaultTypeConflictPrinter } from '../services/printing.js';
+import { DefaultLanguageService } from "../services/language.js";
+import { InferOperatorWithMultipleOperands } from "../services/operator.js";
+import { DefaultTypeConflictPrinter } from "../services/printing.js";
 
 /* eslint-disable @typescript-eslint/parameter-properties */
 
@@ -15,7 +15,6 @@ import { DefaultTypeConflictPrinter } from '../services/printing.js';
  * which are predefined for test cases.
  */
 export abstract class TestLanguageNode {
-
     constructor() {
         // empty
     }
@@ -25,13 +24,15 @@ export abstract class TestLanguageNode {
         const obj = this;
         const properties = Object.entries(obj)
             .map((key, value) => `${key}: ${this.printObject(value)}`)
-            .join(', ');
+            .join(", ");
         return `${this.constructor.name}(${properties})`;
     }
 
     protected printObject(obj: unknown): string {
         if (Array.isArray(obj)) {
-            const entries = Array.from(obj.values()).map(v => this.printObject(v)).join(', ');
+            const entries = Array.from(obj.values())
+                .map((v) => this.printObject(v))
+                .join(", ");
             return `[${entries}]`;
         }
         if (obj instanceof TestLanguageNode) {
@@ -39,35 +40,31 @@ export abstract class TestLanguageNode {
         }
         return `${obj}`;
     }
-
 }
 
-export abstract class TestExpressionNode extends TestLanguageNode {
-}
+export abstract class TestExpressionNode extends TestLanguageNode {}
 
-export abstract class TestStatementNode extends TestLanguageNode {
-}
-
+export abstract class TestStatementNode extends TestLanguageNode {}
 
 export class IntegerLiteral extends TestExpressionNode {
-    constructor(
-        public value: number,
-    ) { super(); }
+    constructor(public value: number) {
+        super();
+    }
 }
 export class DoubleLiteral extends TestExpressionNode {
-    constructor(
-        public value: number,
-    ) { super(); }
+    constructor(public value: number) {
+        super();
+    }
 }
 export class BooleanLiteral extends TestExpressionNode {
-    constructor(
-        public value: boolean,
-    ) { super(); }
+    constructor(public value: boolean) {
+        super();
+    }
 }
 export class StringLiteral extends TestExpressionNode {
-    constructor(
-        public value: string,
-    ) { super(); }
+    constructor(public value: string) {
+        super();
+    }
 }
 
 // some predefined literals
@@ -84,81 +81,92 @@ export const double3_0 = new DoubleLiteral(3.0);
 export const booleanTrue = new BooleanLiteral(true);
 export const booleanFalse = new BooleanLiteral(false);
 
-export const string123 = new StringLiteral('123');
-export const string456 = new StringLiteral('456');
-export const string2 = new StringLiteral('2');
-export const string3 = new StringLiteral('3');
-export const stringHello = new StringLiteral('Hello');
-export const stringWorld = new StringLiteral('World');
-
+export const string123 = new StringLiteral("123");
+export const string456 = new StringLiteral("456");
+export const string2 = new StringLiteral("2");
+export const string3 = new StringLiteral("3");
+export const stringHello = new StringLiteral("Hello");
+export const stringWorld = new StringLiteral("World");
 
 export class ClassConstructorCall extends TestExpressionNode {
-    constructor(
-        public className: string,
-    ) { super(); }
+    constructor(public className: string) {
+        super();
+    }
 }
 
 export class ClassFieldAccess extends TestExpressionNode {
     constructor(
         public classVariable: Variable,
         public fieldName: string,
-    ) { super(); }
+    ) {
+        super();
+    }
 }
-
 
 export class BinaryExpression extends TestExpressionNode {
     constructor(
         public left: TestExpressionNode,
         public operator: string,
         public right: TestExpressionNode,
-    ) { super(); }
+    ) {
+        super();
+    }
 }
-
 
 export class Variable extends TestLanguageNode {
     constructor(
         public name: string,
         public initialValue: TestExpressionNode, // the type of this initialization expression is used as type of the variable
-    ) { super(); }
+    ) {
+        super();
+    }
 }
-
 
 export class AssignmentStatement extends TestStatementNode {
     constructor(
         public left: Variable,
         public right: TestExpressionNode,
-    ) { super(); }
+    ) {
+        super();
+    }
 }
 
 export class StatementBlock extends TestStatementNode {
-    constructor(
-        public statements: TestLanguageNode[],
-    ) { super(); }
+    constructor(public statements: TestLanguageNode[]) {
+        super();
+    }
 }
-
 
 /*
  * Some predefined utils for configuring Typir accordingly
  */
 
-export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<TestLanguageNode, BinaryExpression> = {
-    filter: node => node instanceof BinaryExpression,
+export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<
+    TestLanguageNode,
+    BinaryExpression
+> = {
+    filter: (node) => node instanceof BinaryExpression,
     matching: (node, operatorName) => node.operator === operatorName,
-    operands: node => [node.left, node.right],
+    operands: (node) => [node.left, node.right],
     validateArgumentsOfCalls: true,
 };
 
 export class TestProblemPrinter extends DefaultTypeConflictPrinter<TestLanguageNode> {
-    override printLanguageNode(languageNode: TestLanguageNode, sentenceBegin?: boolean | undefined): string {
+    override printLanguageNode(
+        languageNode: TestLanguageNode,
+        sentenceBegin?: boolean | undefined,
+    ): string {
         if (languageNode instanceof TestLanguageNode) {
-            return `${sentenceBegin ? 'T' : 't'}he language node '${languageNode.print()}'`;
+            return `${sentenceBegin ? "T" : "t"}he language node '${languageNode.print()}'`;
         }
         return super.printLanguageNode(languageNode, sentenceBegin);
     }
 }
 
 export class TestLanguageService extends DefaultLanguageService<TestLanguageNode> {
-    override getLanguageNodeKey(languageNode: TestLanguageNode): string | undefined {
+    override getLanguageNodeKey(
+        languageNode: TestLanguageNode,
+    ): string | undefined {
         return languageNode.constructor.name;
     }
 }

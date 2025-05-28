@@ -4,16 +4,17 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, TypeDetails } from '../../graph/type-node.js';
-import { TypirServices } from '../../typir.js';
-import { assertTrue } from '../../utils/utils.js';
-import { Kind, isKind } from '../kind.js';
-import { MultiplicityType } from './multiplicity-type.js';
+import { Type, TypeDetails } from "../../graph/type-node.js";
+import { TypirServices } from "../../typir.js";
+import { assertTrue } from "../../utils/utils.js";
+import { Kind, isKind } from "../kind.js";
+import { MultiplicityType } from "./multiplicity-type.js";
 
-export interface MultiplicityTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
-    constrainedType: Type,
-    lowerBound: number,
-    upperBound: number
+export interface MultiplicityTypeDetails<LanguageType>
+    extends TypeDetails<LanguageType> {
+    constrainedType: Type;
+    lowerBound: number;
+    upperBound: number;
 }
 
 export interface MultiplicityKindOptions {
@@ -21,39 +22,50 @@ export interface MultiplicityKindOptions {
 }
 
 export const MULTIPLICITY_UNLIMITED = -1;
-export const MultiplicityKindName = 'MultiplicityTypeKind';
+export const MultiplicityKindName = "MultiplicityTypeKind";
 
 /**
  * Types of this kind constrain a type with lower bound and upper bound,
  * e.g. ConstrainedType[1..*] or ConstrainedType[2..4].
  */
 export class MultiplicityKind<LanguageType> implements Kind {
-    readonly $name: 'MultiplicityTypeKind';
+    readonly $name: "MultiplicityTypeKind";
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<MultiplicityKindOptions>;
 
-    constructor(services: TypirServices<LanguageType>, options?: Partial<MultiplicityKindOptions>) {
+    constructor(
+        services: TypirServices<LanguageType>,
+        options?: Partial<MultiplicityKindOptions>,
+    ) {
         this.$name = MultiplicityKindName;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
         this.options = this.collectOptions(options);
     }
 
-    protected collectOptions(options?: Partial<MultiplicityKindOptions>): MultiplicityKindOptions {
+    protected collectOptions(
+        options?: Partial<MultiplicityKindOptions>,
+    ): MultiplicityKindOptions {
         return {
             // the default values:
-            symbolForUnlimited: '*',
+            symbolForUnlimited: "*",
             // the actually overriden values:
-            ...options
+            ...options,
         };
     }
 
-    getMultiplicityType(typeDetails: MultiplicityTypeDetails<LanguageType>): MultiplicityType | undefined {
+    getMultiplicityType(
+        typeDetails: MultiplicityTypeDetails<LanguageType>,
+    ): MultiplicityType | undefined {
         const key = this.calculateIdentifier(typeDetails);
-        return this.services.infrastructure.Graph.getType(key) as MultiplicityType;
+        return this.services.infrastructure.Graph.getType(
+            key,
+        ) as MultiplicityType;
     }
 
-    createMultiplicityType(typeDetails: MultiplicityTypeDetails<LanguageType>): MultiplicityType {
+    createMultiplicityType(
+        typeDetails: MultiplicityTypeDetails<LanguageType>,
+    ): MultiplicityType {
         // check input
         assertTrue(this.getMultiplicityType(typeDetails) === undefined);
         if (!this.checkBounds(typeDetails.lowerBound, typeDetails.upperBound)) {
@@ -61,7 +73,11 @@ export class MultiplicityKind<LanguageType> implements Kind {
         }
 
         // create the type with multiplicities
-        const typeWithMultiplicity = new MultiplicityType(this as MultiplicityKind<unknown>, this.calculateIdentifier(typeDetails), typeDetails);
+        const typeWithMultiplicity = new MultiplicityType(
+            this as MultiplicityKind<unknown>,
+            this.calculateIdentifier(typeDetails),
+            typeDetails,
+        );
         this.services.infrastructure.Graph.addNode(typeWithMultiplicity);
 
         this.registerInferenceRules(typeDetails, typeWithMultiplicity);
@@ -69,11 +85,16 @@ export class MultiplicityKind<LanguageType> implements Kind {
         return typeWithMultiplicity;
     }
 
-    protected registerInferenceRules(_typeDetails: MultiplicityTypeDetails<LanguageType>, _typeWithMultiplicity: MultiplicityType): void {
+    protected registerInferenceRules(
+        _typeDetails: MultiplicityTypeDetails<LanguageType>,
+        _typeWithMultiplicity: MultiplicityType,
+    ): void {
         // TODO
     }
 
-    calculateIdentifier(typeDetails: MultiplicityTypeDetails<LanguageType>): string {
+    calculateIdentifier(
+        typeDetails: MultiplicityTypeDetails<LanguageType>,
+    ): string {
         return `${typeDetails.constrainedType.getIdentifier()}${this.printRange(typeDetails.lowerBound, typeDetails.upperBound)}`;
     }
 
@@ -90,7 +111,10 @@ export class MultiplicityKind<LanguageType> implements Kind {
     }
 
     printRange(lowerBound: number, upperBound: number): string {
-        if (lowerBound === upperBound || (lowerBound === 0 && upperBound === MULTIPLICITY_UNLIMITED)) {
+        if (
+            lowerBound === upperBound ||
+            (lowerBound === 0 && upperBound === MULTIPLICITY_UNLIMITED)
+        ) {
             // [2..2] => [2], [0..*] => [*]
             return `[${this.printBound(upperBound)}]`;
         } else {
@@ -99,7 +123,9 @@ export class MultiplicityKind<LanguageType> implements Kind {
         }
     }
     protected printBound(bound: number): string {
-        return bound === MULTIPLICITY_UNLIMITED ? this.options.symbolForUnlimited : `${bound}`;
+        return bound === MULTIPLICITY_UNLIMITED
+            ? this.options.symbolForUnlimited
+            : `${bound}`;
     }
 
     isBoundGreaterEquals(leftBound: number, rightBound: number): boolean {
@@ -111,9 +137,10 @@ export class MultiplicityKind<LanguageType> implements Kind {
         }
         return leftBound >= rightBound;
     }
-
 }
 
-export function isMultiplicityKind<LanguageType>(kind: unknown): kind is MultiplicityKind<LanguageType> {
+export function isMultiplicityKind<LanguageType>(
+    kind: unknown,
+): kind is MultiplicityKind<LanguageType> {
     return isKind(kind) && kind.$name === MultiplicityKindName;
 }

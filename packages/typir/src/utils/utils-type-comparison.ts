@@ -4,64 +4,79 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from 'langium';
-import { isType, Type } from '../graph/type-node.js';
-import { Kind } from '../kinds/kind.js';
-import { InferenceProblem } from '../services/inference.js';
-import { TypirServices } from '../typir.js';
-import { assertTrue } from '../utils/utils.js';
-import { isNameTypePair, isSpecificTypirProblem, NameTypePair, TypirProblem } from './utils-definitions.js';
+import { assertUnreachable } from "langium";
+import { isType, Type } from "../graph/type-node.js";
+import { Kind } from "../kinds/kind.js";
+import { InferenceProblem } from "../services/inference.js";
+import { TypirServices } from "../typir.js";
+import { assertTrue } from "../utils/utils.js";
+import {
+    isNameTypePair,
+    isSpecificTypirProblem,
+    NameTypePair,
+    TypirProblem,
+} from "./utils-definitions.js";
 
 export type TypeCheckStrategy =
-    'EQUAL_TYPE' | // the most strict checking
-    'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
-    'SUB_TYPE'; // more relaxed checking
+    | "EQUAL_TYPE" // the most strict checking
+    | "ASSIGNABLE_TYPE" // SUB_TYPE or implicit conversion
+    | "SUB_TYPE"; // more relaxed checking
 
-export function createTypeCheckStrategy<LanguageType>(strategy: TypeCheckStrategy, typir: TypirServices<LanguageType>): (t1: Type, t2: Type) => TypirProblem | undefined {
+export function createTypeCheckStrategy<LanguageType>(
+    strategy: TypeCheckStrategy,
+    typir: TypirServices<LanguageType>,
+): (t1: Type, t2: Type) => TypirProblem | undefined {
     switch (strategy) {
-        case 'ASSIGNABLE_TYPE':
+        case "ASSIGNABLE_TYPE":
             return typir.Assignability.getAssignabilityProblem // t1 === source, t2 === target
                 .bind(typir.Assignability);
-        case 'EQUAL_TYPE':
+        case "EQUAL_TYPE":
             return typir.Equality.getTypeEqualityProblem // (unordered, order does not matter)
                 .bind(typir.Equality);
-        case 'SUB_TYPE':
+        case "SUB_TYPE":
             return typir.Subtype.getSubTypeProblem // t1 === sub, t2 === super
                 .bind(typir.Subtype);
-            // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
-            // see https://stackoverflow.com/questions/20279484/how-to-access-the-correct-this-inside-a-callback
+        // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
+        // see https://stackoverflow.com/questions/20279484/how-to-access-the-correct-this-inside-a-callback
         default:
             assertUnreachable(strategy);
     }
 }
 
 export interface ValueConflict extends TypirProblem {
-    readonly $problem: 'ValueConflict';
+    readonly $problem: "ValueConflict";
     // 'undefined' means value is missing, 'string' is the string representation of the value
     firstValue: string | undefined;
     secondValue: string | undefined;
     location: string;
 }
-export const ValueConflict = 'ValueConflict';
+export const ValueConflict = "ValueConflict";
 export function isValueConflict(problem: unknown): problem is ValueConflict {
     return isSpecificTypirProblem(problem, ValueConflict);
 }
 
-export function checkValueForConflict<T>(first: T, second: T, location: string,
-    relationToCheck: (e: T, a: T) => boolean = (e, a) => e === a): ValueConflict[] {
+export function checkValueForConflict<T>(
+    first: T,
+    second: T,
+    location: string,
+    relationToCheck: (e: T, a: T) => boolean = (e, a) => e === a,
+): ValueConflict[] {
     const conflicts: ValueConflict[] = [];
     if (relationToCheck(first, second) === false) {
         conflicts.push({
             $problem: ValueConflict,
             firstValue: `${first}`,
             secondValue: `${second}`,
-            location
+            location,
         });
     }
     return conflicts;
 }
 
-export function createKindConflict(first: Type | Kind, second: Type | Kind): ValueConflict {
+export function createKindConflict(
+    first: Type | Kind,
+    second: Type | Kind,
+): ValueConflict {
     if (isType(first)) {
         first = first.kind;
     }
@@ -72,12 +87,12 @@ export function createKindConflict(first: Type | Kind, second: Type | Kind): Val
         $problem: ValueConflict,
         firstValue: first.$name,
         secondValue: second.$name,
-        location: 'kind',
+        location: "kind",
     };
 }
 
 export interface IndexedTypeConflict extends TypirProblem {
-    $problem: 'IndexedTypeConflict';
+    $problem: "IndexedTypeConflict";
     // 'undefined' means type or information is missing, 'string' is for data which are no Types
     expected: Type | undefined; // first, left
     actual: Type | undefined; // second, right
@@ -86,15 +101,25 @@ export interface IndexedTypeConflict extends TypirProblem {
     propertyName?: string;
     subProblems: TypirProblem[];
 }
-export const IndexedTypeConflict = 'IndexedTypeConflict';
-export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeConflict {
+export const IndexedTypeConflict = "IndexedTypeConflict";
+export function isIndexedTypeConflict(
+    problem: unknown,
+): problem is IndexedTypeConflict {
     return isSpecificTypirProblem(problem, IndexedTypeConflict);
 }
 
-export type TypeToCheck<LanguageType> = Type | NameTypePair | undefined | Array<InferenceProblem<LanguageType>>;
+export type TypeToCheck<LanguageType> =
+    | Type
+    | NameTypePair
+    | undefined
+    | Array<InferenceProblem<LanguageType>>;
 
-export function checkTypes<LanguageType>(left: TypeToCheck<LanguageType>, right: TypeToCheck<LanguageType>,
-    relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
+export function checkTypes<LanguageType>(
+    left: TypeToCheck<LanguageType>,
+    right: TypeToCheck<LanguageType>,
+    relationToCheck: (l: Type, r: Type) => TypirProblem | undefined,
+    checkNamesOfNameTypePairs: boolean,
+): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
     const leftInferenceProblems = Array.isArray(left);
@@ -139,7 +164,9 @@ export function checkTypes<LanguageType>(left: TypeToCheck<LanguageType>, right:
 
         const subProblems: TypirProblem[] = [];
         if (isLeftPair && isRightPair && checkNamesOfNameTypePairs) {
-            subProblems.push(...checkValueForConflict(left.name, right.name, 'name'));
+            subProblems.push(
+                ...checkValueForConflict(left.name, right.name, "name"),
+            );
         }
         const relationCheckResult = relationToCheck(leftType, rightType);
         if (relationCheckResult !== undefined) {
@@ -151,7 +178,11 @@ export function checkTypes<LanguageType>(left: TypeToCheck<LanguageType>, right:
                 $problem: IndexedTypeConflict,
                 expected: leftType,
                 actual: rightType,
-                propertyName: isLeftPair ? left.name : (isRightPair ? right.name : undefined),
+                propertyName: isLeftPair
+                    ? left.name
+                    : isRightPair
+                      ? right.name
+                      : undefined,
                 subProblems: subProblems,
             });
         } else {
@@ -163,13 +194,26 @@ export function checkTypes<LanguageType>(left: TypeToCheck<LanguageType>, right:
     return conflicts;
 }
 
-export function checkTypeArrays<LanguageType>(leftTypes: Array<TypeToCheck<LanguageType>>, rightTypes: Array<TypeToCheck<LanguageType>>,
-    relationToCheck: (l: Type, r: Type, index: number) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
+export function checkTypeArrays<LanguageType>(
+    leftTypes: Array<TypeToCheck<LanguageType>>,
+    rightTypes: Array<TypeToCheck<LanguageType>>,
+    relationToCheck: (
+        l: Type,
+        r: Type,
+        index: number,
+    ) => TypirProblem | undefined,
+    checkNamesOfNameTypePairs: boolean,
+): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
     for (let i = 0; i < Math.min(leftTypes.length, rightTypes.length); i++) {
-        const currentProblems = checkTypes(leftTypes[i], rightTypes[i], (l, r) => relationToCheck(l, r, i), checkNamesOfNameTypePairs);
-        currentProblems.forEach(p => p.propertyIndex = i); // add the index
+        const currentProblems = checkTypes(
+            leftTypes[i],
+            rightTypes[i],
+            (l, r) => relationToCheck(l, r, i),
+            checkNamesOfNameTypePairs,
+        );
+        currentProblems.forEach((p) => (p.propertyIndex = i)); // add the index
         conflicts.push(...currentProblems);
     }
     // missing in the left
@@ -207,7 +251,10 @@ export function checkTypeArrays<LanguageType>(leftTypes: Array<TypeToCheck<Langu
     return conflicts;
 }
 
-function createOnlyLeftConflict(left: Type | NameTypePair | undefined, propertyIndex: number | undefined): IndexedTypeConflict {
+function createOnlyLeftConflict(
+    left: Type | NameTypePair | undefined,
+    propertyIndex: number | undefined,
+): IndexedTypeConflict {
     if (isNameTypePair(left)) {
         return {
             $problem: IndexedTypeConflict,
@@ -215,7 +262,7 @@ function createOnlyLeftConflict(left: Type | NameTypePair | undefined, propertyI
             actual: undefined,
             propertyName: left.name,
             propertyIndex,
-            subProblems: []
+            subProblems: [],
         };
     } else {
         return {
@@ -223,11 +270,14 @@ function createOnlyLeftConflict(left: Type | NameTypePair | undefined, propertyI
             expected: left,
             actual: undefined,
             propertyIndex,
-            subProblems: []
+            subProblems: [],
         };
     }
 }
-function createOnlyRightConflict(right: Type | NameTypePair | undefined, propertyIndex: number | undefined): IndexedTypeConflict {
+function createOnlyRightConflict(
+    right: Type | NameTypePair | undefined,
+    propertyIndex: number | undefined,
+): IndexedTypeConflict {
     if (isNameTypePair(right)) {
         return {
             $problem: IndexedTypeConflict,
@@ -235,7 +285,7 @@ function createOnlyRightConflict(right: Type | NameTypePair | undefined, propert
             actual: right.type,
             propertyName: right.name,
             propertyIndex,
-            subProblems: []
+            subProblems: [],
         };
     } else {
         return {
@@ -243,13 +293,16 @@ function createOnlyRightConflict(right: Type | NameTypePair | undefined, propert
             expected: undefined,
             actual: right,
             propertyIndex,
-            subProblems: []
+            subProblems: [],
         };
     }
 }
 
-
-export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, relationToCheck: (s: Type, t: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
+export function checkNameTypesMap(
+    sourceFields: Map<string, Type | undefined>,
+    targetFields: Map<string, Type | undefined>,
+    relationToCheck: (s: Type, t: Type) => TypirProblem | undefined,
+): IndexedTypeConflict[] {
     const targetCopy = new Map(targetFields);
     const conflicts: IndexedTypeConflict[] = [];
     for (const entry of sourceFields.entries()) {
@@ -268,7 +321,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                     expected: undefined,
                     actual: targetType,
                     propertyName: name,
-                    subProblems: []
+                    subProblems: [],
                 });
             } else if (sourceType !== undefined && targetType === undefined) {
                 // only the source type exists
@@ -277,11 +330,14 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                     expected: sourceType,
                     actual: undefined,
                     propertyName: name,
-                    subProblems: []
+                    subProblems: [],
                 });
             } else if (sourceType !== undefined && targetType !== undefined) {
                 // both types exist => check them
-                const relationCheckResult = relationToCheck(sourceType, targetType);
+                const relationCheckResult = relationToCheck(
+                    sourceType,
+                    targetType,
+                );
                 if (relationCheckResult !== undefined) {
                     // different types
                     conflicts.push({
@@ -289,13 +345,13 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                         expected: sourceType,
                         actual: targetType,
                         propertyName: name,
-                        subProblems: [relationCheckResult]
+                        subProblems: [relationCheckResult],
                     });
                 } else {
                     // same type
                 }
             } else {
-                throw new Error('impossible case');
+                throw new Error("impossible case");
             }
         } else {
             // field is missing in target
@@ -307,7 +363,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                     expected: sourceType,
                     actual: undefined,
                     propertyName: name,
-                    subProblems: []
+                    subProblems: [],
                 });
             }
         }
@@ -322,7 +378,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                 expected: undefined,
                 actual,
                 propertyName: index,
-                subProblems: []
+                subProblems: [],
             });
         }
     }
@@ -337,7 +393,7 @@ export class MapListConverter {
         return Array.from(values)
             .map(([fieldName, fieldType]) => ({ fieldName, fieldType }))
             .sort((e1, e2) => e1.fieldName.localeCompare(e2.fieldName))
-            .map(e => {
+            .map((e) => {
                 this.names.push(e.fieldName);
                 return e.fieldType;
             });

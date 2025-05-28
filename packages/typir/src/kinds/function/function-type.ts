@@ -4,13 +4,23 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, isType } from '../../graph/type-node.js';
-import { TypeReference } from '../../initialization/type-reference.js';
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { NameTypePair, TypirProblem } from '../../utils/utils-definitions.js';
-import { checkTypeArrays, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { assertTrue, assertUnreachable } from '../../utils/utils.js';
-import { FunctionKind, FunctionTypeDetails, isFunctionKind } from './function-kind.js';
+import { Type, isType } from "../../graph/type-node.js";
+import { TypeReference } from "../../initialization/type-reference.js";
+import { TypeEqualityProblem } from "../../services/equality.js";
+import { NameTypePair, TypirProblem } from "../../utils/utils-definitions.js";
+import {
+    checkTypeArrays,
+    checkTypes,
+    checkValueForConflict,
+    createKindConflict,
+    createTypeCheckStrategy,
+} from "../../utils/utils-type-comparison.js";
+import { assertTrue, assertUnreachable } from "../../utils/utils.js";
+import {
+    FunctionKind,
+    FunctionTypeDetails,
+    isFunctionKind,
+} from "./function-kind.js";
 
 export interface ParameterDetails {
     name: string;
@@ -24,16 +34,27 @@ export class FunctionType extends Type {
     readonly outputParameter: ParameterDetails | undefined;
     readonly inputParameters: ParameterDetails[];
 
-    constructor(kind: FunctionKind<unknown>, typeDetails: FunctionTypeDetails<unknown>) {
+    constructor(
+        kind: FunctionKind<unknown>,
+        typeDetails: FunctionTypeDetails<unknown>,
+    ) {
         super(undefined, typeDetails);
         this.kind = kind;
         this.functionName = typeDetails.functionName;
 
         // output parameter
-        const outputType = typeDetails.outputParameter ? new TypeReference(typeDetails.outputParameter.type, this.kind.services) : undefined;
+        const outputType = typeDetails.outputParameter
+            ? new TypeReference(
+                  typeDetails.outputParameter.type,
+                  this.kind.services,
+              )
+            : undefined;
         if (typeDetails.outputParameter) {
             assertTrue(outputType !== undefined);
-            this.kind.enforceParameterName(typeDetails.outputParameter.name, this.kind.options.enforceOutputParameterName);
+            this.kind.enforceParameterName(
+                typeDetails.outputParameter.name,
+                this.kind.options.enforceOutputParameterName,
+            );
             this.outputParameter = {
                 name: typeDetails.outputParameter.name,
                 type: outputType,
@@ -44,8 +65,11 @@ export class FunctionType extends Type {
         }
 
         // input parameters
-        this.inputParameters = typeDetails.inputParameters.map(input => {
-            this.kind.enforceParameterName(input.name, this.kind.options.enforceInputParameterNames);
+        this.inputParameters = typeDetails.inputParameters.map((input) => {
+            this.kind.enforceParameterName(
+                input.name,
+                this.kind.options.enforceInputParameterNames,
+            );
             return <ParameterDetails>{
                 name: input.name,
                 type: new TypeReference(input.type, this.kind.services),
@@ -53,7 +77,7 @@ export class FunctionType extends Type {
         });
 
         // define to wait for the parameter types
-        const allParameterRefs = this.inputParameters.map(p => p.type);
+        const allParameterRefs = this.inputParameters.map((p) => p.type);
         if (outputType) {
             allParameterRefs.push(outputType);
         }
@@ -85,18 +109,22 @@ export class FunctionType extends Type {
         const simpleFunctionName = this.getSimpleFunctionName();
         // inputs
         const inputs = this.getInputs();
-        const inputsString = inputs.map(input => this.kind.getParameterRepresentation(input)).join(', ');
+        const inputsString = inputs
+            .map((input) => this.kind.getParameterRepresentation(input))
+            .join(", ");
         // output
         const output = this.getOutput();
         const outputString = output
-            ? (this.kind.hasParameterName(output.name) ? `(${this.kind.getParameterRepresentation(output)})` : output.type.getName())
+            ? this.kind.hasParameterName(output.name)
+                ? `(${this.kind.getParameterRepresentation(output)})`
+                : output.type.getName()
             : undefined;
         // complete signature
         if (this.kind.hasFunctionName(simpleFunctionName)) {
-            const outputValue = outputString ? `: ${outputString}` : '';
+            const outputValue = outputString ? `: ${outputString}` : "";
             return `${simpleFunctionName}(${inputsString})${outputValue}`;
         } else {
-            return `(${inputsString}) => ${outputString ?? '()'}`;
+            return `(${inputsString}) => ${outputString ?? "()"}`;
         }
     }
 
@@ -105,34 +133,80 @@ export class FunctionType extends Type {
             const conflicts: TypirProblem[] = [];
             // same name? since functions with different names are different
             if (this.kind.options.enforceFunctionName) {
-                conflicts.push(...checkValueForConflict(this.getSimpleFunctionName(), otherType.getSimpleFunctionName(), 'simple name'));
+                conflicts.push(
+                    ...checkValueForConflict(
+                        this.getSimpleFunctionName(),
+                        otherType.getSimpleFunctionName(),
+                        "simple name",
+                    ),
+                );
             }
             // same output?
-            conflicts.push(...checkTypes(this.getOutput(), otherType.getOutput(),
-                (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceOutputParameterName));
+            conflicts.push(
+                ...checkTypes(
+                    this.getOutput(),
+                    otherType.getOutput(),
+                    (s, t) =>
+                        this.kind.services.Equality.getTypeEqualityProblem(
+                            s,
+                            t,
+                        ),
+                    this.kind.options.enforceOutputParameterName,
+                ),
+            );
             // same input?
-            conflicts.push(...checkTypeArrays(this.getInputs(), otherType.getInputs(),
-                (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames));
+            conflicts.push(
+                ...checkTypeArrays(
+                    this.getInputs(),
+                    otherType.getInputs(),
+                    (s, t) =>
+                        this.kind.services.Equality.getTypeEqualityProblem(
+                            s,
+                            t,
+                        ),
+                    this.kind.options.enforceInputParameterNames,
+                ),
+            );
             return conflicts;
         } else {
-            return [<TypeEqualityProblem>{
-                $problem: TypeEqualityProblem,
-                type1: this,
-                type2: otherType,
-                subProblems: [createKindConflict(otherType, this)],
-            }];
+            return [
+                <TypeEqualityProblem>{
+                    $problem: TypeEqualityProblem,
+                    type1: this,
+                    type2: otherType,
+                    subProblems: [createKindConflict(otherType, this)],
+                },
+            ];
         }
     }
 
-    protected analyzeSubTypeProblems(subType: FunctionType, superType: FunctionType): TypirProblem[] {
+    protected analyzeSubTypeProblems(
+        subType: FunctionType,
+        superType: FunctionType,
+    ): TypirProblem[] {
         const conflicts: TypirProblem[] = [];
-        const strategy = createTypeCheckStrategy(this.kind.options.subtypeParameterChecking, this.kind.services);
+        const strategy = createTypeCheckStrategy(
+            this.kind.options.subtypeParameterChecking,
+            this.kind.services,
+        );
         // output: sub type output must be assignable (which can be configured) to super type output
-        conflicts.push(...checkTypes(subType.getOutput(), superType.getOutput(),
-            (sub, superr) => strategy(sub, superr), this.kind.options.enforceOutputParameterName));
+        conflicts.push(
+            ...checkTypes(
+                subType.getOutput(),
+                superType.getOutput(),
+                (sub, superr) => strategy(sub, superr),
+                this.kind.options.enforceOutputParameterName,
+            ),
+        );
         // input: super type inputs must be assignable (which can be configured) to sub type inputs
-        conflicts.push(...checkTypeArrays(subType.getInputs(), superType.getInputs(),
-            (sub, superr) => strategy(superr, sub), this.kind.options.enforceInputParameterNames));
+        conflicts.push(
+            ...checkTypeArrays(
+                subType.getInputs(),
+                superType.getInputs(),
+                (sub, superr) => strategy(superr, sub),
+                this.kind.options.enforceInputParameterNames,
+            ),
+        );
         return conflicts;
     }
 
@@ -140,7 +214,9 @@ export class FunctionType extends Type {
         return this.functionName;
     }
 
-    getOutput(notResolvedBehavior: 'EXCEPTION' | 'RETURN_UNDEFINED' = 'EXCEPTION'): NameTypePair | undefined {
+    getOutput(
+        notResolvedBehavior: "EXCEPTION" | "RETURN_UNDEFINED" = "EXCEPTION",
+    ): NameTypePair | undefined {
         if (this.outputParameter) {
             const type = this.outputParameter.type.getType();
             if (type) {
@@ -150,9 +226,11 @@ export class FunctionType extends Type {
                 };
             } else {
                 switch (notResolvedBehavior) {
-                    case 'EXCEPTION':
-                        throw new Error(`Output parameter ${this.outputParameter.name} is not resolved.`);
-                    case 'RETURN_UNDEFINED':
+                    case "EXCEPTION":
+                        throw new Error(
+                            `Output parameter ${this.outputParameter.name} is not resolved.`,
+                        );
+                    case "RETURN_UNDEFINED":
                         return undefined;
                     default:
                         assertUnreachable(notResolvedBehavior);
@@ -164,7 +242,7 @@ export class FunctionType extends Type {
     }
 
     getInputs(): NameTypePair[] {
-        return this.inputParameters.map(param => {
+        return this.inputParameters.map((param) => {
             const type = param.type.getType();
             if (type) {
                 return <NameTypePair>{
@@ -172,7 +250,9 @@ export class FunctionType extends Type {
                     type,
                 };
             } else {
-                throw new Error(`Input parameter ${param.name} is not resolved.`);
+                throw new Error(
+                    `Input parameter ${param.name} is not resolved.`,
+                );
             }
         });
     }

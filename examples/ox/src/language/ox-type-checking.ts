@@ -2,69 +2,165 @@
  * Copyright 2024 TypeFox GmbH
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
-******************************************************************************/
+ ******************************************************************************/
 
-import { AstNode, AstUtils, assertUnreachable } from 'langium';
-import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, ValidationProblemAcceptor } from 'typir';
-import { LangiumTypeSystemDefinition, TypirLangiumServices } from 'typir-langium';
-import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
+import { AstNode, AstUtils, assertUnreachable } from "langium";
+import {
+    CreateParameterDetails,
+    InferOperatorWithMultipleOperands,
+    InferOperatorWithSingleOperand,
+    InferenceRuleNotApplicable,
+    NO_PARAMETER_NAME,
+    TypirServices,
+    ValidationProblemAcceptor,
+} from "typir";
+import {
+    LangiumTypeSystemDefinition,
+    TypirLangiumServices,
+} from "typir-langium";
+import {
+    BinaryExpression,
+    ForStatement,
+    FunctionDeclaration,
+    IfStatement,
+    MemberCall,
+    NumberLiteral,
+    OxAstType,
+    TypeReference,
+    UnaryExpression,
+    WhileStatement,
+    isBinaryExpression,
+    isBooleanLiteral,
+    isFunctionDeclaration,
+    isParameter,
+    isTypeReference,
+    isUnaryExpression,
+    isVariableDeclaration,
+} from "./generated/ast.js";
 
 export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
-
     onInitialize(typir: TypirLangiumServices<OxAstType>): void {
         // define primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
-        const typeBool = typir.factory.Primitives.create({ primitiveName: 'boolean' })
+        const typeBool = typir.factory.Primitives.create({
+            primitiveName: "boolean",
+        })
             .inferenceRule({ filter: isBooleanLiteral })
-            .inferenceRule({ filter: isTypeReference, matching: node => node.primitive === 'boolean' })
+            .inferenceRule({
+                filter: isTypeReference,
+                matching: (node) => node.primitive === "boolean",
+            })
             .finish();
         // ... but their primitive kind is provided/preset by Typir
-        const typeNumber = typir.factory.Primitives.create({ primitiveName: 'number' })
+        const typeNumber = typir.factory.Primitives.create({
+            primitiveName: "number",
+        })
             .inferenceRule({ languageKey: NumberLiteral })
-            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'number' })
+            .inferenceRule({
+                languageKey: TypeReference,
+                matching: (node: TypeReference) => node.primitive === "number",
+            })
             .finish();
-        const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' })
-            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'void' })
+        const typeVoid = typir.factory.Primitives.create({
+            primitiveName: "void",
+        })
+            .inferenceRule({
+                languageKey: TypeReference,
+                matching: (node: TypeReference) => node.primitive === "void",
+            })
             .finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
-        const binaryInferenceRule: InferOperatorWithMultipleOperands<AstNode, BinaryExpression> = {
+        const binaryInferenceRule: InferOperatorWithMultipleOperands<
+            AstNode,
+            BinaryExpression
+        > = {
             filter: isBinaryExpression,
-            matching: (node: BinaryExpression, name: string) => node.operator === name,
-            operands: (node: BinaryExpression, _name: string) => [node.left, node.right],
+            matching: (node: BinaryExpression, name: string) =>
+                node.operator === name,
+            operands: (node: BinaryExpression, _name: string) => [
+                node.left,
+                node.right,
+            ],
             validateArgumentsOfCalls: true,
         };
-        const unaryInferenceRule: InferOperatorWithSingleOperand<AstNode, UnaryExpression> = {
+        const unaryInferenceRule: InferOperatorWithSingleOperand<
+            AstNode,
+            UnaryExpression
+        > = {
             filter: isUnaryExpression,
-            matching: (node: UnaryExpression, name: string) => node.operator === name,
+            matching: (node: UnaryExpression, name: string) =>
+                node.operator === name,
             operand: (node: UnaryExpression, _name: string) => node.value,
             validateArgumentsOfCalls: true,
         };
 
         // define operators
         // binary operators: numbers => number
-        for (const operator of ['+', '-', '*', '/']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
+        for (const operator of ["+", "-", "*", "/"]) {
+            typir.factory.Operators.createBinary({
+                name: operator,
+                signature: {
+                    left: typeNumber,
+                    right: typeNumber,
+                    return: typeNumber,
+                },
+            })
+                .inferenceRule(binaryInferenceRule)
+                .finish();
         }
         // binary operators: numbers => boolean
-        for (const operator of ['<', '<=', '>', '>=']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+        for (const operator of ["<", "<=", ">", ">="]) {
+            typir.factory.Operators.createBinary({
+                name: operator,
+                signature: {
+                    left: typeNumber,
+                    right: typeNumber,
+                    return: typeBool,
+                },
+            })
+                .inferenceRule(binaryInferenceRule)
+                .finish();
         }
         // binary operators: booleans => boolean
-        for (const operator of ['and', 'or']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+        for (const operator of ["and", "or"]) {
+            typir.factory.Operators.createBinary({
+                name: operator,
+                signature: {
+                    left: typeBool,
+                    right: typeBool,
+                    return: typeBool,
+                },
+            })
+                .inferenceRule(binaryInferenceRule)
+                .finish();
         }
         // ==, != for booleans and numbers
-        for (const operator of ['==', '!=']) {
-            typir.factory.Operators.createBinary({ name: operator, signatures: [
-                { left: typeNumber, right: typeNumber, return: typeBool },
-                { left: typeBool, right: typeBool, return: typeBool },
-            ]}).inferenceRule(binaryInferenceRule).finish();
+        for (const operator of ["==", "!="]) {
+            typir.factory.Operators.createBinary({
+                name: operator,
+                signatures: [
+                    { left: typeNumber, right: typeNumber, return: typeBool },
+                    { left: typeBool, right: typeBool, return: typeBool },
+                ],
+            })
+                .inferenceRule(binaryInferenceRule)
+                .finish();
         }
 
         // unary operators
-        typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }}).inferenceRule(unaryInferenceRule).finish();
-        typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({
+            name: "!",
+            signature: { operand: typeBool, return: typeBool },
+        })
+            .inferenceRule(unaryInferenceRule)
+            .finish();
+        typir.factory.Operators.createUnary({
+            name: "-",
+            signature: { operand: typeNumber, return: typeNumber },
+        })
+            .inferenceRule(unaryInferenceRule)
+            .finish();
 
         /** Hints regarding the order of Typir configurations for OX:
          * - In general, Typir aims to not depend on the order of configurations.
@@ -115,38 +211,85 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
         typir.validation.Collector.addValidationRulesForAstNodes({
             AssignmentStatement: (node, accept, typir) => {
                 if (node.varRef.ref) {
-                    typir.validation.Constraints.ensureNodeIsAssignable(node.value, node.varRef.ref, accept,
+                    typir.validation.Constraints.ensureNodeIsAssignable(
+                        node.value,
+                        node.varRef.ref,
+                        accept,
                         (actual, expected) => ({
                             message: `The expression '${node.value.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.varRef.ref!.name}' with type '${expected.name}'.`,
-                            languageProperty: 'value',
-                        }));
+                            languageProperty: "value",
+                        }),
+                    );
                 }
             },
             ForStatement: validateCondition,
             IfStatement: validateCondition,
             ReturnStatement: (node, accept, typir) => {
-                const functionDeclaration = AstUtils.getContainerOfType(node, isFunctionDeclaration);
-                if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
+                const functionDeclaration = AstUtils.getContainerOfType(
+                    node,
+                    isFunctionDeclaration,
+                );
+                if (
+                    functionDeclaration &&
+                    functionDeclaration.returnType.primitive !== "void" &&
+                    node.value
+                ) {
                     // the return value must fit to the return type of the function
-                    typir.validation.Constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType, accept,
-                        () => ({ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, languageProperty: 'value' }));
+                    typir.validation.Constraints.ensureNodeIsAssignable(
+                        node.value,
+                        functionDeclaration.returnType,
+                        accept,
+                        () => ({
+                            message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`,
+                            languageProperty: "value",
+                        }),
+                    );
                 }
             },
             VariableDeclaration: (node, accept, typir) => {
-                typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid, accept,
-                    () => ({ message: "Variables can't be declared with the type 'void'.", languageProperty: 'type' }));
-                typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, accept,
-                    (actual, expected) => ({ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, languageProperty: 'value' }));
+                typir.validation.Constraints.ensureNodeHasNotType(
+                    node,
+                    typeVoid,
+                    accept,
+                    () => ({
+                        message:
+                            "Variables can't be declared with the type 'void'.",
+                        languageProperty: "type",
+                    }),
+                );
+                typir.validation.Constraints.ensureNodeIsAssignable(
+                    node.value,
+                    node,
+                    accept,
+                    (actual, expected) => ({
+                        message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`,
+                        languageProperty: "value",
+                    }),
+                );
             },
             WhileStatement: validateCondition,
         });
-        function validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<AstNode>, typir: TypirServices<AstNode>): void {
-            typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool, accept,
-                () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' }));
+        function validateCondition(
+            node: IfStatement | WhileStatement | ForStatement,
+            accept: ValidationProblemAcceptor<AstNode>,
+            typir: TypirServices<AstNode>,
+        ): void {
+            typir.validation.Constraints.ensureNodeIsAssignable(
+                node.condition,
+                typeBool,
+                accept,
+                () => ({
+                    message: "Conditions need to be evaluated to 'boolean'.",
+                    languageProperty: "condition",
+                }),
+            );
         }
     }
 
-    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<OxAstType>): void {
+    onNewAstNode(
+        languageNode: AstNode,
+        typir: TypirLangiumServices<OxAstType>,
+    ): void {
         // define function types
         // they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
         if (isFunctionDeclaration(languageNode)) {
@@ -155,14 +298,24 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
             typir.factory.Functions.create({
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
-                outputParameter: { name: NO_PARAMETER_NAME, type: languageNode.returnType },
-                inputParameters: languageNode.parameters.map(p => (<CreateParameterDetails<AstNode>>{ name: p.name, type: p.type })),
+                outputParameter: {
+                    name: NO_PARAMETER_NAME,
+                    type: languageNode.returnType,
+                },
+                inputParameters: languageNode.parameters.map(
+                    (p) =>
+                        <CreateParameterDetails<AstNode>>{
+                            name: p.name,
+                            type: p.type,
+                        },
+                ),
                 associatedLanguageNode: languageNode,
             })
                 // inference rule for function declaration:
                 .inferenceRuleForDeclaration({
                     languageKey: FunctionDeclaration,
-                    matching: (node: FunctionDeclaration) => node === languageNode // only the current function declaration matches!
+                    matching: (node: FunctionDeclaration) =>
+                        node === languageNode, // only the current function declaration matches!
                 })
                 /** inference rule for funtion calls:
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
@@ -170,7 +323,10 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                  * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
                 .inferenceRuleForCalls({
                     languageKey: MemberCall,
-                    matching: (call: MemberCall) => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
+                    matching: (call: MemberCall) =>
+                        isFunctionDeclaration(call.element.ref) &&
+                        call.explicitOperationCall &&
+                        call.element.ref.name === functionName,
                     inputArguments: (call: MemberCall) => call.arguments, // they are needed to check, that the given arguments are assignable to the parameters
                     // Note that OX does not support overloaded function declarations for simplicity: Look into LOX to see how to handle overloaded functions and methods!
                     validateArgumentsOfFunctionCalls: true,
@@ -178,5 +334,4 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                 .finish();
         }
     }
-
 }

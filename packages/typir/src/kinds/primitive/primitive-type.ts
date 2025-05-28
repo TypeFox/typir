@@ -4,16 +4,27 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from '../../graph/type-node.js';
-import { TypeEqualityProblem } from '../../services/equality.js';
-import { TypirProblem } from '../../utils/utils-definitions.js';
-import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
-import { isPrimitiveKind, PrimitiveKind, PrimitiveTypeDetails } from './primitive-kind.js';
+import { isType, Type } from "../../graph/type-node.js";
+import { TypeEqualityProblem } from "../../services/equality.js";
+import { TypirProblem } from "../../utils/utils-definitions.js";
+import {
+    checkValueForConflict,
+    createKindConflict,
+} from "../../utils/utils-type-comparison.js";
+import {
+    isPrimitiveKind,
+    PrimitiveKind,
+    PrimitiveTypeDetails,
+} from "./primitive-kind.js";
 
 export class PrimitiveType extends Type {
     override readonly kind: PrimitiveKind<unknown>;
 
-    constructor(kind: PrimitiveKind<unknown>, identifier: string, typeDetails: PrimitiveTypeDetails<unknown>) {
+    constructor(
+        kind: PrimitiveKind<unknown>,
+        identifier: string,
+        typeDetails: PrimitiveTypeDetails<unknown>,
+    ) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions
@@ -29,21 +40,29 @@ export class PrimitiveType extends Type {
 
     override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isPrimitiveType(otherType)) {
-            return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
+            return checkValueForConflict(
+                this.getIdentifier(),
+                otherType.getIdentifier(),
+                "name",
+            );
         } else {
-            return [<TypeEqualityProblem>{
-                $problem: TypeEqualityProblem,
-                type1: this,
-                type2: otherType,
-                subProblems: [createKindConflict(otherType, this)],
-            }];
+            return [
+                <TypeEqualityProblem>{
+                    $problem: TypeEqualityProblem,
+                    type1: this,
+                    type2: otherType,
+                    subProblems: [createKindConflict(otherType, this)],
+                },
+            ];
         }
     }
 
-    protected analyzeSubTypeProblems(subType: PrimitiveType, superType: PrimitiveType): TypirProblem[] {
+    protected analyzeSubTypeProblems(
+        subType: PrimitiveType,
+        superType: PrimitiveType,
+    ): TypirProblem[] {
         return subType.analyzeTypeEqualityProblems(superType);
     }
-
 }
 
 export function isPrimitiveType(type: unknown): type is PrimitiveType {

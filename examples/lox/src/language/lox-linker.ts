@@ -4,11 +4,22 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNodeDescription, DefaultLinker, LinkingError, ReferenceInfo } from 'langium';
-import { isType } from 'typir';
-import { TypirLangiumServices } from 'typir-langium';
-import { isClass, isFunctionDeclaration, isMemberCall, isMethodMember, LoxAstType } from './generated/ast.js';
-import { LoxServices } from './lox-module.js';
+import {
+    AstNodeDescription,
+    DefaultLinker,
+    LinkingError,
+    ReferenceInfo,
+} from "langium";
+import { isType } from "typir";
+import { TypirLangiumServices } from "typir-langium";
+import {
+    isClass,
+    isFunctionDeclaration,
+    isMemberCall,
+    isMethodMember,
+    LoxAstType,
+} from "./generated/ast.js";
+import { LoxServices } from "./lox-module.js";
 
 export class LoxLinker extends DefaultLinker {
     protected readonly typir: TypirLangiumServices<LoxAstType>;
@@ -18,29 +29,57 @@ export class LoxLinker extends DefaultLinker {
         this.typir = services.typir;
     }
 
-    override getCandidate(refInfo: ReferenceInfo): AstNodeDescription | LinkingError {
+    override getCandidate(
+        refInfo: ReferenceInfo,
+    ): AstNodeDescription | LinkingError {
         const container = refInfo.container;
         if (isMemberCall(container) && container.explicitOperationCall) {
             // handle overloaded functions/methods
             const scope = this.scopeProvider.getScope(refInfo);
-            const calledDescriptions = scope.getAllElements().filter(d => d.name === refInfo.reference.$refText).toArray(); // same name
+            const calledDescriptions = scope
+                .getAllElements()
+                .filter((d) => d.name === refInfo.reference.$refText)
+                .toArray(); // same name
             if (calledDescriptions.length === 1) {
                 return calledDescriptions[0]; // no overloaded functions/methods
-            } if (calledDescriptions.length >= 2) {
+            }
+            if (calledDescriptions.length >= 2) {
                 // in case of overloaded functions/methods, do type inference for given arguments
-                const argumentTypes = container.arguments.map(arg => this.typir.Inference.inferType(arg)).filter(isType);
-                if (argumentTypes.length === container.arguments.length) { // for all given arguments, a type is inferred
+                const argumentTypes = container.arguments
+                    .map((arg) => this.typir.Inference.inferType(arg))
+                    .filter(isType);
+                if (argumentTypes.length === container.arguments.length) {
+                    // for all given arguments, a type is inferred
                     for (const calledDescription of calledDescriptions) {
                         const called = this.loadAstNode(calledDescription);
                         if (isClass(called)) {
                             // special case: call of the constructur, without any arguments/parameters
                             return calledDescription; // there is only one constructor without any parameters
                         }
-                        if ((isMethodMember(called) || isFunctionDeclaration(called)) && called.parameters.length === container.arguments.length) { // same number of arguments
+                        if (
+                            (isMethodMember(called) ||
+                                isFunctionDeclaration(called)) &&
+                            called.parameters.length ===
+                                container.arguments.length
+                        ) {
+                            // same number of arguments
                             // infer expected types of parameters
-                            const parameterTypes = called.parameters.map(p => this.typir.Inference.inferType(p)).filter(isType);
-                            if (parameterTypes.length === called.parameters.length) { // for all parameters, a type is inferred
-                                if (argumentTypes.every((arg, index) => this.typir.Assignability.isAssignable(arg, parameterTypes[index]))) {
+                            const parameterTypes = called.parameters
+                                .map((p) => this.typir.Inference.inferType(p))
+                                .filter(isType);
+                            if (
+                                parameterTypes.length ===
+                                called.parameters.length
+                            ) {
+                                // for all parameters, a type is inferred
+                                if (
+                                    argumentTypes.every((arg, index) =>
+                                        this.typir.Assignability.isAssignable(
+                                            arg,
+                                            parameterTypes[index],
+                                        ),
+                                    )
+                                ) {
                                     return calledDescription;
                                 }
                             }

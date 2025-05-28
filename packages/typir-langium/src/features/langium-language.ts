@@ -4,15 +4,21 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AbstractAstReflection, AstNode } from 'langium';
-import { removeFromArray } from 'typir';
-import { DefaultLanguageService, LanguageService } from '../../../typir/lib/services/language.js';
+import { AbstractAstReflection, AstNode } from "langium";
+import { removeFromArray } from "typir";
+import {
+    DefaultLanguageService,
+    LanguageService,
+} from "../../../typir/lib/services/language.js";
 
 /**
  * The default implementation of the 'LanguageService' for Langium exploits the generated XXXAstReflection,
  * which needs to be given in the constructor.
  */
-export class LangiumLanguageService extends DefaultLanguageService<AstNode> implements LanguageService<AstNode> {
+export class LangiumLanguageService
+    extends DefaultLanguageService<AstNode>
+    implements LanguageService<AstNode>
+{
     protected readonly reflection: AbstractAstReflection;
     protected superKeys: Map<string, string[]> | undefined = undefined; // key => all its super-keys
 
@@ -53,5 +59,4 @@ export class LangiumLanguageService extends DefaultLanguageService<AstNode> impl
         }
         return this.superKeys.get(languageKey) ?? [];
     }
-
 }

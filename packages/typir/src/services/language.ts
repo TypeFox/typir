@@ -40,12 +40,12 @@ export interface LanguageService<LanguageType> {
     getAllSuperKeys(languageKey: string): string[];
 }
 
-
 /**
  * This default implementation provides no information about the current language.
  */
-export class DefaultLanguageService<LanguageType> implements LanguageService<LanguageType> {
-
+export class DefaultLanguageService<LanguageType>
+    implements LanguageService<LanguageType>
+{
     getLanguageNodeKey(_languageNode: LanguageType): string | undefined {
         return undefined;
     }
@@ -57,5 +57,4 @@ export class DefaultLanguageService<LanguageType> implements LanguageService<Lan
     getAllSuperKeys(_languageKey: string): string[] {
         return [];
     }
-
 }

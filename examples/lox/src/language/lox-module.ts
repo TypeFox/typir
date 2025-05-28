@@ -4,45 +4,74 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { LangiumSharedCoreServices, Module, PartialLangiumCoreServices, createDefaultCoreModule, inject } from 'langium';
-import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
-import { TypirLangiumServices, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
-import { LoxAstType, reflection } from './generated/ast.js';
-import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module.js';
-import { LoxLinker } from './lox-linker.js';
-import { LoxScopeProvider } from './lox-scope.js';
-import { LoxTypeSystem } from './lox-type-checking.js';
-import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
+import {
+    LangiumSharedCoreServices,
+    Module,
+    PartialLangiumCoreServices,
+    createDefaultCoreModule,
+    inject,
+} from "langium";
+import {
+    DefaultSharedModuleContext,
+    LangiumServices,
+    LangiumSharedServices,
+    createDefaultSharedModule,
+} from "langium/lsp";
+import {
+    TypirLangiumServices,
+    createTypirLangiumServices,
+    initializeLangiumTypirServices,
+} from "typir-langium";
+import { LoxAstType, reflection } from "./generated/ast.js";
+import {
+    LoxGeneratedModule,
+    LoxGeneratedSharedModule,
+} from "./generated/module.js";
+import { LoxLinker } from "./lox-linker.js";
+import { LoxScopeProvider } from "./lox-scope.js";
+import { LoxTypeSystem } from "./lox-type-checking.js";
+import { LoxValidationRegistry, LoxValidator } from "./lox-validator.js";
 
 /**
  * Declaration of custom services - add your own service classes here.
  */
 export type LoxAddedServices = {
     validation: {
-        LoxValidator: LoxValidator,
-    },
-    typir: TypirLangiumServices<LoxAstType>, // all Langium services are able to access these Typir services for type-checking
-}
+        LoxValidator: LoxValidator;
+    };
+    typir: TypirLangiumServices<LoxAstType>; // all Langium services are able to access these Typir services for type-checking
+};
 
 /**
  * Union of Langium default services and your custom services - use this as constructor parameter
  * of custom service classes.
  */
-export type LoxServices = LangiumServices & LoxAddedServices
+export type LoxServices = LangiumServices & LoxAddedServices;
 
 /**
  * Dependency injection module that overrides Langium default services and contributes the
  * declared custom services. The Langium defaults can be partially specified to override only
  * selected services, while the custom services must be fully specified.
  */
-export function createLoxModule(shared: LangiumSharedCoreServices): Module<LoxServices, PartialLangiumCoreServices & LoxAddedServices> {
+export function createLoxModule(
+    shared: LangiumSharedCoreServices,
+): Module<LoxServices, PartialLangiumCoreServices & LoxAddedServices> {
     return {
         validation: {
-            ValidationRegistry: (services) => new LoxValidationRegistry(services),
+            ValidationRegistry: (services) =>
+                new LoxValidationRegistry(services),
             LoxValidator: () => new LoxValidator(),
         },
         // For type checking with Typir, configure the Typir & Typir-Langium services in this way:
-        typir: () => createTypirLangiumServices(shared, reflection, new LoxTypeSystem(), { /* customize Typir services here */ }),
+        typir: () =>
+            createTypirLangiumServices(
+                shared,
+                reflection,
+                new LoxTypeSystem(),
+                {
+                    /* customize Typir services here */
+                },
+            ),
         references: {
             ScopeProvider: (services) => new LoxScopeProvider(services),
             Linker: (services) => new LoxLinker(services),
@@ -66,8 +95,8 @@ export function createLoxModule(shared: LangiumSharedCoreServices): Module<LoxSe
  * @returns An object wrapping the shared services and the language-specific services
  */
 export function createLoxServices(context: DefaultSharedModuleContext): {
-    shared: LangiumSharedServices,
-    Lox: LoxServices
+    shared: LangiumSharedServices;
+    Lox: LoxServices;
 } {
     const shared = inject(
         createDefaultSharedModule(context),

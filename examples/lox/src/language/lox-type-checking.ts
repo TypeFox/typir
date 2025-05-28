@@ -2,108 +2,251 @@
  * Copyright 2024 TypeFox GmbH
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
-******************************************************************************/
+ ******************************************************************************/
 
-import { AstNode, AstUtils, assertUnreachable } from 'langium';
-import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, ValidationProblemAcceptor } from 'typir';
-import { TypirLangiumServices, LangiumTypeSystemDefinition } from 'typir-langium';
-import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, VariableDeclaration, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMethodMember, isParameter, isVariableDeclaration } from './generated/ast.js';
+import { AstNode, AstUtils, assertUnreachable } from "langium";
+import {
+    CreateFieldDetails,
+    CreateMethodDetails,
+    CreateParameterDetails,
+    FunctionType,
+    InferOperatorWithMultipleOperands,
+    InferOperatorWithSingleOperand,
+    InferenceRuleNotApplicable,
+    NO_PARAMETER_NAME,
+    TypeInitializer,
+    TypirServices,
+    ValidationProblemAcceptor,
+} from "typir";
+import {
+    TypirLangiumServices,
+    LangiumTypeSystemDefinition,
+} from "typir-langium";
+import {
+    BinaryExpression,
+    BooleanLiteral,
+    Class,
+    ForStatement,
+    FunctionDeclaration,
+    IfStatement,
+    LoxAstType,
+    MemberCall,
+    MethodMember,
+    NilLiteral,
+    NumberLiteral,
+    PrintStatement,
+    ReturnStatement,
+    StringLiteral,
+    TypeReference,
+    UnaryExpression,
+    VariableDeclaration,
+    WhileStatement,
+    isClass,
+    isFieldMember,
+    isFunctionDeclaration,
+    isMethodMember,
+    isParameter,
+    isVariableDeclaration,
+} from "./generated/ast.js";
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
-
     onInitialize(typir: TypirLangiumServices<LoxAstType>): void {
         // primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
-        const typeBool = typir.factory.Primitives.create({ primitiveName: 'boolean' })
+        const typeBool = typir.factory.Primitives.create({
+            primitiveName: "boolean",
+        })
             .inferenceRule({ languageKey: BooleanLiteral }) // this is the more performant notation compared to ...
             // .inferenceRule({ filter: isBooleanLiteral }) // ... this alternative solution, but they provide the same functionality
-            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'boolean' }) // this is the more performant notation compared to ...
+            .inferenceRule({
+                languageKey: TypeReference,
+                matching: (node: TypeReference) => node.primitive === "boolean",
+            }) // this is the more performant notation compared to ...
             // .inferenceRule({ filter: isTypeReference, matching: node => node.primitive === 'boolean' }) // ... this "easier" notation, but they provide the same functionality
             .finish();
         // ... but their primitive kind is provided/preset by Typir
-        const typeNumber = typir.factory.Primitives.create({ primitiveName: 'number' })
+        const typeNumber = typir.factory.Primitives.create({
+            primitiveName: "number",
+        })
             .inferenceRule({ languageKey: NumberLiteral })
-            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'number' })
+            .inferenceRule({
+                languageKey: TypeReference,
+                matching: (node: TypeReference) => node.primitive === "number",
+            })
             .finish();
-        const typeString = typir.factory.Primitives.create({ primitiveName: 'string' })
+        const typeString = typir.factory.Primitives.create({
+            primitiveName: "string",
+        })
             .inferenceRule({ languageKey: StringLiteral })
-            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'string' })
+            .inferenceRule({
+                languageKey: TypeReference,
+                matching: (node: TypeReference) => node.primitive === "string",
+            })
             .finish();
-        const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' })
-            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'void' })
+        const typeVoid = typir.factory.Primitives.create({
+            primitiveName: "void",
+        })
+            .inferenceRule({
+                languageKey: TypeReference,
+                matching: (node: TypeReference) => node.primitive === "void",
+            })
             .inferenceRule({ languageKey: PrintStatement })
-            .inferenceRule({ languageKey: ReturnStatement, matching: (node: ReturnStatement) => node.value === undefined })
+            .inferenceRule({
+                languageKey: ReturnStatement,
+                matching: (node: ReturnStatement) => node.value === undefined,
+            })
             .finish();
-        const typeNil = typir.factory.Primitives.create({ primitiveName: 'nil' })
+        const typeNil = typir.factory.Primitives.create({
+            primitiveName: "nil",
+        })
             .inferenceRule({ languageKey: NilLiteral })
             .finish(); // 'nil' is only assignable to variables with a class as type in the LOX implementation here
         const typeAny = typir.factory.Top.create({}).finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
-        const binaryInferenceRule: InferOperatorWithMultipleOperands<AstNode, BinaryExpression> = {
+        const binaryInferenceRule: InferOperatorWithMultipleOperands<
+            AstNode,
+            BinaryExpression
+        > = {
             languageKey: BinaryExpression,
-            matching: (node: BinaryExpression, name: string) => node.operator === name,
-            operands: (node: BinaryExpression, _name: string) => [node.left, node.right],
+            matching: (node: BinaryExpression, name: string) =>
+                node.operator === name,
+            operands: (node: BinaryExpression, _name: string) => [
+                node.left,
+                node.right,
+            ],
             validateArgumentsOfCalls: true,
         };
-        const unaryInferenceRule: InferOperatorWithSingleOperand<AstNode, UnaryExpression> = {
+        const unaryInferenceRule: InferOperatorWithSingleOperand<
+            AstNode,
+            UnaryExpression
+        > = {
             languageKey: UnaryExpression,
-            matching: (node: UnaryExpression, name: string) => node.operator === name,
+            matching: (node: UnaryExpression, name: string) =>
+                node.operator === name,
             operand: (node: UnaryExpression, _name: string) => node.value,
             validateArgumentsOfCalls: true,
         };
 
         // binary operators: numbers => number
-        for (const operator of ['-', '*', '/']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
+        for (const operator of ["-", "*", "/"]) {
+            typir.factory.Operators.createBinary({
+                name: operator,
+                signature: {
+                    left: typeNumber,
+                    right: typeNumber,
+                    return: typeNumber,
+                },
+            })
+                .inferenceRule(binaryInferenceRule)
+                .finish();
         }
-        typir.factory.Operators.createBinary({ name: '+', signatures: [
-            { left: typeNumber, right: typeNumber, return: typeNumber },
-            { left: typeString, right: typeString, return: typeString },
-            { left: typeNumber, right: typeString, return: typeString },
-            { left: typeString, right: typeNumber, return: typeString },
-        ]}).inferenceRule(binaryInferenceRule).finish();
+        typir.factory.Operators.createBinary({
+            name: "+",
+            signatures: [
+                { left: typeNumber, right: typeNumber, return: typeNumber },
+                { left: typeString, right: typeString, return: typeString },
+                { left: typeNumber, right: typeString, return: typeString },
+                { left: typeString, right: typeNumber, return: typeString },
+            ],
+        })
+            .inferenceRule(binaryInferenceRule)
+            .finish();
 
         // binary operators: numbers => boolean
-        for (const operator of ['<', '<=', '>', '>=']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+        for (const operator of ["<", "<=", ">", ">="]) {
+            typir.factory.Operators.createBinary({
+                name: operator,
+                signature: {
+                    left: typeNumber,
+                    right: typeNumber,
+                    return: typeBool,
+                },
+            })
+                .inferenceRule(binaryInferenceRule)
+                .finish();
         }
 
         // binary operators: booleans => boolean
-        for (const operator of ['and', 'or']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+        for (const operator of ["and", "or"]) {
+            typir.factory.Operators.createBinary({
+                name: operator,
+                signature: {
+                    left: typeBool,
+                    right: typeBool,
+                    return: typeBool,
+                },
+            })
+                .inferenceRule(binaryInferenceRule)
+                .finish();
         }
 
         // ==, != for all data types (the warning for different types is realized below)
-        for (const operator of ['==', '!=']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }})
+        for (const operator of ["==", "!="]) {
+            typir.factory.Operators.createBinary({
+                name: operator,
+                signature: { left: typeAny, right: typeAny, return: typeBool },
+            })
                 .inferenceRule({
                     ...binaryInferenceRule,
                     // show a warning to the user, if something like "3 == false" is compared, since different types already indicate, that the IF condition will be evaluated to false
-                    validation: (node, _operatorName, _operatorType, accept, typir) => typir.validation.Constraints.ensureNodeIsEquals(node.left, node.right, accept, (actual, expected) => ({
-                        message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
-                        languageNode: node, // inside the BinaryExpression ...
-                        languageProperty: 'operator', // ... mark the '==' or '!=' token, i.e. the 'operator' property
-                        severity: 'warning',
-                        // (The use of "node.right" and "node.left" without casting is possible, since the type checks of the given properties for the actual inference rule are reused for the validation.)
-                    }))
+                    validation: (
+                        node,
+                        _operatorName,
+                        _operatorType,
+                        accept,
+                        typir,
+                    ) =>
+                        typir.validation.Constraints.ensureNodeIsEquals(
+                            node.left,
+                            node.right,
+                            accept,
+                            (actual, expected) => ({
+                                message: `This comparison will always return '${node.operator === "==" ? "false" : "true"}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
+                                languageNode: node, // inside the BinaryExpression ...
+                                languageProperty: "operator", // ... mark the '==' or '!=' token, i.e. the 'operator' property
+                                severity: "warning",
+                                // (The use of "node.right" and "node.left" without casting is possible, since the type checks of the given properties for the actual inference rule are reused for the validation.)
+                            }),
+                        ),
                 })
                 .finish();
         }
         // = for SuperType = SubType (Note that this implementation of LOX realized assignments as operators!)
-        typir.factory.Operators.createBinary({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }})
+        typir.factory.Operators.createBinary({
+            name: "=",
+            signature: { left: typeAny, right: typeAny, return: typeAny },
+        })
             .inferenceRule({
                 ...binaryInferenceRule,
                 // this validation will be checked for each call of this operator!
-                validation: (node, _opName, _opType, accept, typir) => typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => ({
-                    message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left.$cstNode?.text}' with type '${expected.name}'`,
-                    languageProperty: 'value' }))})
+                validation: (node, _opName, _opType, accept, typir) =>
+                    typir.validation.Constraints.ensureNodeIsAssignable(
+                        node.right,
+                        node.left,
+                        accept,
+                        (actual, expected) => ({
+                            message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left.$cstNode?.text}' with type '${expected.name}'`,
+                            languageProperty: "value",
+                        }),
+                    ),
+            })
             .finish();
 
         // unary operators
-        typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }}).inferenceRule(unaryInferenceRule).finish();
-        typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({
+            name: "!",
+            signature: { operand: typeBool, return: typeBool },
+        })
+            .inferenceRule(unaryInferenceRule)
+            .finish();
+        typir.factory.Operators.createUnary({
+            name: "-",
+            signature: { operand: typeNumber, return: typeNumber },
+        })
+            .inferenceRule(unaryInferenceRule)
+            .finish();
 
         // additional inference rules for ...
         typir.Inference.addInferenceRulesForAstNodes({
@@ -152,10 +295,15 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         });
 
         // check for unique function declarations
-        typir.factory.Functions.createUniqueFunctionValidation({ registration: { languageKey: FunctionDeclaration }});
+        typir.factory.Functions.createUniqueFunctionValidation({
+            registration: { languageKey: FunctionDeclaration },
+        });
 
         // check for unique class declarations
-        const uniqueClassValidator = typir.factory.Classes.createUniqueClassValidation({ registration: 'MYSELF' });
+        const uniqueClassValidator =
+            typir.factory.Classes.createUniqueClassValidation({
+                registration: "MYSELF",
+            });
         // check for unique method declarations
         typir.factory.Classes.createUniqueMethodValidation({
             isMethodDeclaration: (node) => isMethodMember(node), // MethodMembers could have other $containers?
@@ -163,9 +311,13 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             uniqueClassValidator: uniqueClassValidator,
             registration: { languageKey: MethodMember },
         });
-        typir.validation.Collector.addValidationRule(uniqueClassValidator, { languageKey: Class }); // TODO this order is important, solve it in a different way!
+        typir.validation.Collector.addValidationRule(uniqueClassValidator, {
+            languageKey: Class,
+        }); // TODO this order is important, solve it in a different way!
         // check for cycles in super-sub-type relationships
-        typir.factory.Classes.createNoSuperClassCyclesValidation({ registration: { languageKey: Class } });
+        typir.factory.Classes.createNoSuperClassCyclesValidation({
+            registration: { languageKey: Class },
+        });
     }
 
     onNewAstNode(node: AstNode, typir: TypirLangiumServices<LoxAstType>): void {
@@ -181,63 +333,99 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         // class types (nominal typing):
         if (isClass(node)) {
             const className = node.name;
-            const classType = typir.factory.Classes
-                .create({
-                    className,
-                    superClasses: node.superClass?.ref, // note that type inference is used here
-                    fields: node.members
-                        .filter(isFieldMember) // only Fields, no Methods
-                        .map(f => <CreateFieldDetails<AstNode>>{
-                            name: f.name,
-                            type: f.type, // note that type inference is used here
-                        }),
-                    methods: node.members
-                        .filter(isMethodMember) // only Methods, no Fields
-                        .map(member => <CreateMethodDetails<AstNode>>{ type: this.createFunctionDetails(member, typir) }), // same logic as for functions, since the LOX grammar defines them very similar
-                    associatedLanguageNode: node, // this is used by the ScopeProvider to get the corresponding class declaration after inferring the (class) type of an expression
-                })
+            const classType = typir.factory.Classes.create({
+                className,
+                superClasses: node.superClass?.ref, // note that type inference is used here
+                fields: node.members
+                    .filter(isFieldMember) // only Fields, no Methods
+                    .map(
+                        (f) =>
+                            <CreateFieldDetails<AstNode>>{
+                                name: f.name,
+                                type: f.type, // note that type inference is used here
+                            },
+                    ),
+                methods: node.members
+                    .filter(isMethodMember) // only Methods, no Fields
+                    .map(
+                        (member) =>
+                            <CreateMethodDetails<AstNode>>{
+                                type: this.createFunctionDetails(member, typir),
+                            },
+                    ), // same logic as for functions, since the LOX grammar defines them very similar
+                associatedLanguageNode: node, // this is used by the ScopeProvider to get the corresponding class declaration after inferring the (class) type of an expression
+            })
                 // inference rule for declaration
-                .inferenceRuleForClassDeclaration({ languageKey: Class, matching: (languageNode: Class) => languageNode === node})
-                // inference rule for constructor calls (i.e. class literals) conforming to the current class
-                .inferenceRuleForClassLiterals({ // <InferClassLiteral<MemberCall>>
-                    languageKey: MemberCall,
-                    matching: (languageNode: MemberCall) => isClass(languageNode.element?.ref) && languageNode.element!.ref.name === className && languageNode.explicitOperationCall,
-                    inputValuesForFields: (_languageNode: MemberCall) => new Map(), // values for fields don't matter for nominal typing
+                .inferenceRuleForClassDeclaration({
+                    languageKey: Class,
+                    matching: (languageNode: Class) => languageNode === node,
                 })
-                .inferenceRuleForClassLiterals({ // <InferClassLiteral<TypeReference>>
+                // inference rule for constructor calls (i.e. class literals) conforming to the current class
+                .inferenceRuleForClassLiterals({
+                    // <InferClassLiteral<MemberCall>>
+                    languageKey: MemberCall,
+                    matching: (languageNode: MemberCall) =>
+                        isClass(languageNode.element?.ref) &&
+                        languageNode.element!.ref.name === className &&
+                        languageNode.explicitOperationCall,
+                    inputValuesForFields: (_languageNode: MemberCall) =>
+                        new Map(), // values for fields don't matter for nominal typing
+                })
+                .inferenceRuleForClassLiterals({
+                    // <InferClassLiteral<TypeReference>>
                     languageKey: TypeReference,
-                    matching: (languageNode: TypeReference) => isClass(languageNode.reference?.ref) && languageNode.reference!.ref.name === className,
-                    inputValuesForFields: (_languageNode: TypeReference) => new Map(), // values for fields don't matter for nominal typing
+                    matching: (languageNode: TypeReference) =>
+                        isClass(languageNode.reference?.ref) &&
+                        languageNode.reference!.ref.name === className,
+                    inputValuesForFields: (_languageNode: TypeReference) =>
+                        new Map(), // values for fields don't matter for nominal typing
                 })
                 // inference rule for accessing fields
                 .inferenceRuleForFieldAccess({
                     languageKey: MemberCall,
-                    matching: (languageNode: MemberCall) => isFieldMember(languageNode.element?.ref) && languageNode.element!.ref.$container === node && !languageNode.explicitOperationCall,
-                    field: (languageNode: MemberCall) => languageNode.element!.ref!.name,
+                    matching: (languageNode: MemberCall) =>
+                        isFieldMember(languageNode.element?.ref) &&
+                        languageNode.element!.ref.$container === node &&
+                        !languageNode.explicitOperationCall,
+                    field: (languageNode: MemberCall) =>
+                        languageNode.element!.ref!.name,
                 })
                 .finish();
 
             // explicitly declare, that 'nil' can be assigned to any Class variable
-            classType.addListener(type => {
-                typir.Conversion.markAsConvertible(typir.factory.Primitives.get({ primitiveName: 'nil' })!, type, 'IMPLICIT_EXPLICIT');
+            classType.addListener((type) => {
+                typir.Conversion.markAsConvertible(
+                    typir.factory.Primitives.get({ primitiveName: "nil" })!,
+                    type,
+                    "IMPLICIT_EXPLICIT",
+                );
             });
             // The following idea does not work, since variables in LOX have a concrete class type and not an "any class" type:
             // typir.conversion.markAsConvertible(typeNil, this.classKind.getOrCreateTopClassType({}), 'IMPLICIT_EXPLICIT');
         }
     }
 
-    protected createFunctionDetails(node: FunctionDeclaration | MethodMember, typir: TypirLangiumServices<LoxAstType>): TypeInitializer<FunctionType, AstNode> {
-        const config = typir.factory.Functions
-            .create({
-                functionName: node.name,
-                outputParameter: { name: NO_PARAMETER_NAME, type: node.returnType },
-                inputParameters: node.parameters.map(p => (<CreateParameterDetails<AstNode>>{ name: p.name, type: p.type })),
-                associatedLanguageNode: node,
-            })
+    protected createFunctionDetails(
+        node: FunctionDeclaration | MethodMember,
+        typir: TypirLangiumServices<LoxAstType>,
+    ): TypeInitializer<FunctionType, AstNode> {
+        const config = typir.factory.Functions.create({
+            functionName: node.name,
+            outputParameter: { name: NO_PARAMETER_NAME, type: node.returnType },
+            inputParameters: node.parameters.map(
+                (p) =>
+                    <CreateParameterDetails<AstNode>>{
+                        name: p.name,
+                        type: p.type,
+                    },
+            ),
+            associatedLanguageNode: node,
+        })
             // inference rule for function declaration:
             .inferenceRuleForDeclaration({
                 languageKey: node.$type,
-                matching: (languageNode: FunctionDeclaration | MethodMember) => languageNode === node, // only the current function/method declaration matches!
+                matching: (languageNode: FunctionDeclaration | MethodMember) =>
+                    languageNode === node, // only the current function/method declaration matches!
             });
         /** inference rule for funtion/method calls:
          * - inferring of overloaded functions works only, if the actual arguments have the expected types!
@@ -246,17 +434,23 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         if (isFunctionDeclaration(node)) {
             config.inferenceRuleForCalls({
                 languageKey: MemberCall,
-                matching: (languageNode: MemberCall) => isFunctionDeclaration(languageNode.element?.ref)
-                    && languageNode.explicitOperationCall && languageNode.element!.ref === node,
-                inputArguments: (languageNode: MemberCall) => languageNode.arguments,
+                matching: (languageNode: MemberCall) =>
+                    isFunctionDeclaration(languageNode.element?.ref) &&
+                    languageNode.explicitOperationCall &&
+                    languageNode.element!.ref === node,
+                inputArguments: (languageNode: MemberCall) =>
+                    languageNode.arguments,
                 validateArgumentsOfFunctionCalls: true,
             });
         } else if (isMethodMember(node)) {
             config.inferenceRuleForCalls({
                 languageKey: MemberCall,
-                matching: (languageNode: MemberCall) => isMethodMember(languageNode.element?.ref)
-                    && languageNode.explicitOperationCall && languageNode.element!.ref === node,
-                inputArguments: (languageNode: MemberCall) => languageNode.arguments,
+                matching: (languageNode: MemberCall) =>
+                    isMethodMember(languageNode.element?.ref) &&
+                    languageNode.explicitOperationCall &&
+                    languageNode.element!.ref === node,
+                inputArguments: (languageNode: MemberCall) =>
+                    languageNode.arguments,
                 validateArgumentsOfFunctionCalls: true,
             });
         } else {
@@ -265,32 +459,83 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         return config.finish();
     }
 
-
     // Extracting functions for each validation check might improve their readability
 
-    protected validateReturnStatement(node: ReturnStatement, accept: ValidationProblemAcceptor<AstNode>, typir: TypirServices<AstNode>): void {
-        const callableDeclaration: FunctionDeclaration | MethodMember | undefined = AstUtils.getContainerOfType(node, node => isFunctionDeclaration(node) || isMethodMember(node));
-        if (callableDeclaration && callableDeclaration.returnType.primitive && callableDeclaration.returnType.primitive !== 'void' && node.value) {
+    protected validateReturnStatement(
+        node: ReturnStatement,
+        accept: ValidationProblemAcceptor<AstNode>,
+        typir: TypirServices<AstNode>,
+    ): void {
+        const callableDeclaration:
+            | FunctionDeclaration
+            | MethodMember
+            | undefined = AstUtils.getContainerOfType(
+            node,
+            (node) => isFunctionDeclaration(node) || isMethodMember(node),
+        );
+        if (
+            callableDeclaration &&
+            callableDeclaration.returnType.primitive &&
+            callableDeclaration.returnType.primitive !== "void" &&
+            node.value
+        ) {
             // the return value must fit to the return type of the function / method
-            typir.validation.Constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, accept, (actual, expected) => ({
-                message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
-                languageProperty: 'value' }));
+            typir.validation.Constraints.ensureNodeIsAssignable(
+                node.value,
+                callableDeclaration.returnType,
+                accept,
+                (actual, expected) => ({
+                    message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
+                    languageProperty: "value",
+                }),
+            );
         }
     }
 
-    protected validateVariableDeclaration(node: VariableDeclaration, accept: ValidationProblemAcceptor<AstNode>, typir: TypirServices<AstNode>): void {
-        const typeVoid = typir.factory.Primitives.get({ primitiveName: 'void' })!;
-        typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid, accept,
-            () => ({ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' }));
-        typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, accept, (actual, expected) => ({
-            message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
-            languageProperty: 'value' }));
+    protected validateVariableDeclaration(
+        node: VariableDeclaration,
+        accept: ValidationProblemAcceptor<AstNode>,
+        typir: TypirServices<AstNode>,
+    ): void {
+        const typeVoid = typir.factory.Primitives.get({
+            primitiveName: "void",
+        })!;
+        typir.validation.Constraints.ensureNodeHasNotType(
+            node,
+            typeVoid,
+            accept,
+            () => ({
+                message: "Variable can't be declared with a type 'void'.",
+                languageProperty: "type",
+            }),
+        );
+        typir.validation.Constraints.ensureNodeIsAssignable(
+            node.value,
+            node,
+            accept,
+            (actual, expected) => ({
+                message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
+                languageProperty: "value",
+            }),
+        );
     }
 
-    protected validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<AstNode>, typir: TypirServices<AstNode>): void {
-        const typeBool = typir.factory.Primitives.get({ primitiveName: 'boolean' })!;
-        typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool, accept,
-            () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' }));
+    protected validateCondition(
+        node: IfStatement | WhileStatement | ForStatement,
+        accept: ValidationProblemAcceptor<AstNode>,
+        typir: TypirServices<AstNode>,
+    ): void {
+        const typeBool = typir.factory.Primitives.get({
+            primitiveName: "boolean",
+        })!;
+        typir.validation.Constraints.ensureNodeIsAssignable(
+            node.condition,
+            typeBool,
+            accept,
+            () => ({
+                message: "Conditions need to be evaluated to 'boolean'.",
+                languageProperty: "condition",
+            }),
+        );
     }
-
 }

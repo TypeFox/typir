@@ -16,11 +16,14 @@
  * dependencies.
  */
 export type Module<I, T = I> = {
-    [K in keyof T]: Module<I, T[K]> | ((injector: I) => T[K])
-}
+    [K in keyof T]: Module<I, T[K]> | ((injector: I) => T[K]);
+};
 
 export namespace Module {
-    export const merge = <M1, M2, R extends M1 & M2>(m1: Module<R, M1>, m2: Module<R, M2>) => (_merge(_merge({}, m1), m2) as Module<R, M1 & M2>);
+    export const merge = <M1, M2, R extends M1 & M2>(
+        m1: Module<R, M1>,
+        m2: Module<R, M2>,
+    ) => _merge(_merge({}, m1), m2) as Module<R, M1 & M2>;
 }
 
 /**
@@ -45,14 +48,43 @@ export namespace Module {
  * @param module9 (optional) ninth Module
  * @returns a new object of type I
  */
-export function inject<I1, I2, I3, I4, I5, I6, I7, I8, I9, I extends I1 & I2 & I3 & I4 & I5 & I6 & I7 & I8 & I9>(
-    module1: Module<I, I1>, module2?: Module<I, I2>, module3?: Module<I, I3>, module4?: Module<I, I4>, module5?: Module<I, I5>, module6?: Module<I, I6>, module7?: Module<I, I7>, module8?: Module<I, I8>, module9?: Module<I, I9>
+export function inject<
+    I1,
+    I2,
+    I3,
+    I4,
+    I5,
+    I6,
+    I7,
+    I8,
+    I9,
+    I extends I1 & I2 & I3 & I4 & I5 & I6 & I7 & I8 & I9,
+>(
+    module1: Module<I, I1>,
+    module2?: Module<I, I2>,
+    module3?: Module<I, I3>,
+    module4?: Module<I, I4>,
+    module5?: Module<I, I5>,
+    module6?: Module<I, I6>,
+    module7?: Module<I, I7>,
+    module8?: Module<I, I8>,
+    module9?: Module<I, I9>,
 ): I {
-    const module = [module1, module2, module3, module4, module5, module6, module7, module8, module9].reduce(_merge, {}) as Module<I>;
+    const module = [
+        module1,
+        module2,
+        module3,
+        module4,
+        module5,
+        module6,
+        module7,
+        module8,
+        module9,
+    ].reduce(_merge, {}) as Module<I>;
     return _inject(module);
 }
 
-const isProxy = Symbol('isProxy');
+const isProxy = Symbol("isProxy");
 
 /**
  * Eagerly load all services in the given dependency injection container. This is sometimes
@@ -75,7 +107,9 @@ function _inject<I, T>(module: Module<I, T>, injector?: any): T {
     const proxy: any = new Proxy({} as any, {
         deleteProperty: () => false,
         set: () => {
-            throw new Error('Cannot set property on injected service container');
+            throw new Error(
+                "Cannot set property on injected service container",
+            );
         },
         get: (obj, prop) => {
             if (prop === isProxy) {
@@ -84,9 +118,12 @@ function _inject<I, T>(module: Module<I, T>, injector?: any): T {
                 return _resolve(obj, prop, module, injector || proxy);
             }
         },
-        getOwnPropertyDescriptor: (obj, prop) => (_resolve(obj, prop, module, injector || proxy), Object.getOwnPropertyDescriptor(obj, prop)), // used by for..in
+        getOwnPropertyDescriptor: (obj, prop) => (
+            _resolve(obj, prop, module, injector || proxy),
+            Object.getOwnPropertyDescriptor(obj, prop)
+        ), // used by for..in
         has: (_, prop) => prop in module, // used by ..in..
-        ownKeys: () => [...Object.getOwnPropertyNames(module)] // used by for..in
+        ownKeys: () => [...Object.getOwnPropertyNames(module)], // used by for..in
     });
     return proxy;
 }
@@ -109,20 +146,36 @@ const __requested__ = Symbol();
  * @returns the requested value `obj[prop]`
  * @throws Error if a dependency cycle is detected
  */
-function _resolve<I, T>(obj: any, prop: string | symbol | number, module: Module<I, T>, injector: I): T[keyof T] | undefined {
+function _resolve<I, T>(
+    obj: any,
+    prop: string | symbol | number,
+    module: Module<I, T>,
+    injector: I,
+): T[keyof T] | undefined {
     if (prop in obj) {
         if (obj[prop] instanceof Error) {
-            throw new Error('Construction failure. Please make sure that your dependencies are constructable.', {cause: obj[prop]});
+            throw new Error(
+                "Construction failure. Please make sure that your dependencies are constructable.",
+                { cause: obj[prop] },
+            );
         }
         if (obj[prop] === __requested__) {
-            throw new Error('Cycle detected. Please make "' + String(prop) + '" lazy. Visit https://langium.org/docs/reference/configuration-services/#resolving-cyclic-dependencies');
+            throw new Error(
+                'Cycle detected. Please make "' +
+                    String(prop) +
+                    '" lazy. Visit https://langium.org/docs/reference/configuration-services/#resolving-cyclic-dependencies',
+            );
         }
         return obj[prop];
     } else if (prop in module) {
-        const value: Module<I, T[keyof T]> | ((injector: I) => T[keyof T]) = module[prop as keyof T];
+        const value: Module<I, T[keyof T]> | ((injector: I) => T[keyof T]) =
+            module[prop as keyof T];
         obj[prop] = __requested__;
         try {
-            obj[prop] = (typeof value === 'function') ? value(injector) : _inject(value, injector);
+            obj[prop] =
+                typeof value === "function"
+                    ? value(injector)
+                    : _inject(value, injector);
         } catch (error) {
             obj[prop] = error instanceof Error ? error : undefined;
             throw error;
@@ -145,7 +198,12 @@ function _merge(target: Module<any>, source?: Module<any>): Module<unknown> {
         for (const [key, value2] of Object.entries(source)) {
             if (value2 !== undefined) {
                 const value1 = target[key];
-                if (value1 !== null && value2 !== null && typeof value1 === 'object' && typeof value2 === 'object') {
+                if (
+                    value1 !== null &&
+                    value2 !== null &&
+                    typeof value1 === "object" &&
+                    typeof value2 === "object"
+                ) {
                     target[key] = _merge(value1, value2);
                 } else {
                     target[key] = value2;

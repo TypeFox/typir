@@ -4,16 +4,33 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { EmptyFileSystem } from 'langium';
-import { parseDocument } from 'langium/test';
-import { isFunctionType } from 'typir';
-import { deleteAllDocuments } from 'typir-langium';
-import { compareValidationIssuesStrict, expectTypirTypes } from 'typir/test';
-import { afterEach, expect } from 'vitest';
-import { createOxServices } from '../src/language/ox-module.js';
+import { EmptyFileSystem } from "langium";
+import { parseDocument } from "langium/test";
+import { isFunctionType } from "typir";
+import { deleteAllDocuments } from "typir-langium";
+import { compareValidationIssuesStrict, expectTypirTypes } from "typir/test";
+import { afterEach, expect } from "vitest";
+import { createOxServices } from "../src/language/ox-module.js";
 
 export const oxServices = createOxServices(EmptyFileSystem).Ox;
-export const operatorNames = ['-', '*', '/', '+', '<', '<=', '>', '>=', 'and', 'or', '==', '==', '!=', '!=', '!', '-'];
+export const operatorNames = [
+    "-",
+    "*",
+    "/",
+    "+",
+    "<",
+    "<=",
+    ">",
+    ">=",
+    "and",
+    "or",
+    "==",
+    "==",
+    "!=",
+    "!=",
+    "!",
+    "-",
+];
 
 afterEach(async () => {
     await deleteAllDocuments(oxServices.shared);
@@ -21,13 +38,18 @@ afterEach(async () => {
     expectTypirTypes(oxServices.typir, isFunctionType, ...operatorNames);
 });
 
-export async function validateOx(ox: string, errors: number | string | string[]) {
+export async function validateOx(
+    ox: string,
+    errors: number | string | string[],
+) {
     const document = await parseDocument(oxServices, ox.trim());
-    const diagnostics: string[] = (await oxServices.validation.DocumentValidator.validateDocument(document)).map(d => d.message);
-    const msgError = diagnostics.join('\n');
-    if (typeof errors === 'number') {
+    const diagnostics: string[] = (
+        await oxServices.validation.DocumentValidator.validateDocument(document)
+    ).map((d) => d.message);
+    const msgError = diagnostics.join("\n");
+    if (typeof errors === "number") {
         expect(diagnostics, msgError).toHaveLength(errors);
-    } else if (typeof errors === 'string') {
+    } else if (typeof errors === "string") {
         expect(diagnostics, msgError).toHaveLength(1);
         expect(diagnostics[0], msgError).includes(errors);
     } else {

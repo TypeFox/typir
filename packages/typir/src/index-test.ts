@@ -7,4 +7,4 @@
 // export all utilities which are using 'vitest' and which are not located in test/ */ but in src/ here
 // to be imported via 'typir/test' in order not to mix up production code with 'vitest' dependencies
 
-export * from './utils/test-utils.js';
+export * from "./utils/test-utils.js";

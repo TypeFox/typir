@@ -4,42 +4,61 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { LangiumSharedCoreServices, Module, inject } from 'langium';
-import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, PartialLangiumServices, createDefaultModule, createDefaultSharedModule } from 'langium/lsp';
-import { TypirLangiumServices, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
-import { OxAstType, reflection } from './generated/ast.js';
-import { OxGeneratedModule, OxGeneratedSharedModule } from './generated/module.js';
-import { OxTypeSystem } from './ox-type-checking.js';
-import { OxValidator, registerValidationChecks } from './ox-validator.js';
+import { LangiumSharedCoreServices, Module, inject } from "langium";
+import {
+    DefaultSharedModuleContext,
+    LangiumServices,
+    LangiumSharedServices,
+    PartialLangiumServices,
+    createDefaultModule,
+    createDefaultSharedModule,
+} from "langium/lsp";
+import {
+    TypirLangiumServices,
+    createTypirLangiumServices,
+    initializeLangiumTypirServices,
+} from "typir-langium";
+import { OxAstType, reflection } from "./generated/ast.js";
+import {
+    OxGeneratedModule,
+    OxGeneratedSharedModule,
+} from "./generated/module.js";
+import { OxTypeSystem } from "./ox-type-checking.js";
+import { OxValidator, registerValidationChecks } from "./ox-validator.js";
 
 /**
  * Declaration of custom services - add your own service classes here.
  */
 export type OxAddedServices = {
     validation: {
-        OxValidator: OxValidator
-    },
-    typir: TypirLangiumServices<OxAstType>, // all Langium services are able to access these Typir services for type-checking
-}
+        OxValidator: OxValidator;
+    };
+    typir: TypirLangiumServices<OxAstType>; // all Langium services are able to access these Typir services for type-checking
+};
 
 /**
  * Union of Langium default services and your custom services - use this as constructor parameter
  * of custom service classes.
  */
-export type OxServices = LangiumServices & OxAddedServices
+export type OxServices = LangiumServices & OxAddedServices;
 
 /**
  * Dependency injection module that overrides Langium default services and contributes the
  * declared custom services. The Langium defaults can be partially specified to override only
  * selected services, while the custom services must be fully specified.
  */
-export function createOxModule(shared: LangiumSharedCoreServices): Module<OxServices, PartialLangiumServices & OxAddedServices> {
+export function createOxModule(
+    shared: LangiumSharedCoreServices,
+): Module<OxServices, PartialLangiumServices & OxAddedServices> {
     return {
         validation: {
-            OxValidator: () => new OxValidator()
+            OxValidator: () => new OxValidator(),
         },
         // For type checking with Typir, configure the Typir & Typir-Langium services in this way:
-        typir: () => createTypirLangiumServices(shared, reflection, new OxTypeSystem(), { /* customize Typir services here */ }),
+        typir: () =>
+            createTypirLangiumServices(shared, reflection, new OxTypeSystem(), {
+                /* customize Typir services here */
+            }),
     };
 }
 
@@ -59,12 +78,12 @@ export function createOxModule(shared: LangiumSharedCoreServices): Module<OxServ
  * @returns An object wrapping the shared services and the language-specific services
  */
 export function createOxServices(context: DefaultSharedModuleContext): {
-    shared: LangiumSharedServices,
-    Ox: OxServices
+    shared: LangiumSharedServices;
+    Ox: OxServices;
 } {
     const shared = inject(
         createDefaultSharedModule(context),
-        OxGeneratedSharedModule
+        OxGeneratedSharedModule,
     );
     const Ox = inject(
         createDefaultModule({ shared }),
