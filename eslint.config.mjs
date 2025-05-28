@@ -22,6 +22,11 @@ export default defineConfig([
             "**/*.js",
             "**/*.cjs",
             "packages/typir/lib/**",
+            "packages/typir-langium/lib/**",
+            "examples/lox/src/language/generated/**",
+            "examples/ox/src/language/generated/**",
+            "examples/lox/out/**",
+            "examples/ox/out/**",
         ],
     },
     {
@@ -83,7 +88,7 @@ export default defineConfig([
 
             quotes: [
                 2,
-                "single",
+                "double",
                 {
                     avoidEscape: true,
                 },
@@ -104,9 +109,8 @@ export default defineConfig([
                 },
             ],
 
-            "@typescript-eslint/ban-types": "error",
+            "@typescript-eslint/no-empty-object-type": "off",
             "@typescript-eslint/no-inferrable-types": "off",
-            "@typescript-eslint/indent": "error",
             "@typescript-eslint/no-misused-new": "error",
             "@typescript-eslint/no-namespace": "off",
             "@typescript-eslint/no-non-null-assertion": "off",
@@ -123,7 +127,6 @@ export default defineConfig([
             "@typescript-eslint/prefer-for-of": "error",
             "@typescript-eslint/prefer-namespace-keyword": "error",
             "@typescript-eslint/triple-slash-reference": "error",
-            "@typescript-eslint/type-annotation-spacing": "error",
         },
     },
 ]);

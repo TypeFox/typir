@@ -221,7 +221,7 @@ export function createTypirServices<LanguageType>(
  * any methods. If it does, it's one of our services and therefore should not be partialized.
  * Copied from Langium.
  */
-//eslint-disable-next-line @typescript-eslint/ban-types
+//eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export type DeepPartial<T> = T[keyof T] extends Function
     ? T
     : {
