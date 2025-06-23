@@ -3,8 +3,11 @@
 We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
-
 ## v0.3.0 (2025-??-??)
+
+### New features
+
+- New example how to use Typir (core) for a simple expression language with a handwritten parser (#59)
 
 ## Fixed bugs
 

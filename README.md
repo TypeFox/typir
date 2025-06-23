@@ -62,6 +62,7 @@ This repository contains the following stand-alone applications, which demonstra
 
 - [LOX](./examples/lox/README.md) - static type checking for LOX, implemented with Typir-Langium
 - [OX](./examples/ox/README.md) - a reduced version of LOX, implemented with Typir-Langium
+- [Expression](./examples/expression/README.md) - a handwritten parser for a simple expression language with type checking implemented with Typir (core)
 
 
 ## Tiny Typir Example
