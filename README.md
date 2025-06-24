@@ -183,6 +183,10 @@ Typir is presented in these talks:
 - [LangDev'24](https://langdevcon.org/2024/program#26): [Video](https://www.youtube.com/watch?v=CL8EbJYeyTE), [slides](./resources/talks/2024-10-17-LangDev.pdf) (2024-10-17)
 - [OCX/EclipseCon'24](https://www.ocxconf.org/event/778b82cc-6834-48a4-a58e-f883c5a7b8c9/agenda?session=23b97df9-0435-4fab-8a01-e0a9cf3e3831&shareLink=true): [Video](https://www.youtube.com/watch?v=WLzXAhcl-aY&list=PLy7t4z5SYNaRRGVdF83feN-_uHLwvGvgw&index=23), [slides](./resources/talks/2024-10-24-EclipseCon.pdf) (2024-10-24)
 
+Blog posts about Typir:
+
+- [Announcing Typir](https://www.typefox.io/blog/typir-introduction/) (2025-06-06)
+
 
 ## Roadmap
 
