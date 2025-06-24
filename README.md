@@ -1,4 +1,11 @@
-# Typir
+<div id="typir-logo" align="center">
+  <a href="https://github.com/TypeFox/typir">
+    <img alt="Typir logo including the name 'typir' and a stylised tapir" width="40%" max-width="100%" height="auto" src="./resources/logo/logo-black.svg#svgView(viewBox(180, 200, 280, 397))">
+  </a>
+  <h3>
+    the library for type systems and type checking for software languages in the web
+  </h3>
+</div>
 
 <div id="badges" align="center">
 
@@ -10,8 +17,6 @@
 </div>
 
 ---
-
-Typir is a library for type systems and type checking for software languages in the web.
 
 Typir is OpenSource, written in TypeScript, and follows pragmatic approaches for simplifying type checking in practical language engineering projects by providing default implementations for recurring problems.
 As a stand-alone library, Typir provides a TypeScript-API for language engineers without an additional, external DSL for formalizing types.
