@@ -1,4 +1,11 @@
-# Typir
+<div id="typir-logo" align="center">
+  <a href="https://github.com/TypeFox/typir">
+    <img alt="Typir logo including the name 'typir' and a stylised tapir" width="40%" max-width="100%" height="auto" src="./resources/logo/logo-black.svg#svgView(viewBox(180, 200, 280, 397))">
+  </a>
+  <h3>
+    the library for type systems and type checking for software languages in the web
+  </h3>
+</div>
 
 <div id="badges" align="center">
 
@@ -10,8 +17,6 @@
 </div>
 
 ---
-
-Typir is a library for type systems and type checking for software languages in the web.
 
 Typir is OpenSource, written in TypeScript, and follows pragmatic approaches for simplifying type checking in practical language engineering projects by providing default implementations for recurring problems.
 As a stand-alone library, Typir provides a TypeScript-API for language engineers without an additional, external DSL for formalizing types.
@@ -177,6 +182,10 @@ Typir is presented in these talks:
 
 - [LangDev'24](https://langdevcon.org/2024/program#26): [Video](https://www.youtube.com/watch?v=CL8EbJYeyTE), [slides](./resources/talks/2024-10-17-LangDev.pdf) (2024-10-17)
 - [OCX/EclipseCon'24](https://www.ocxconf.org/event/778b82cc-6834-48a4-a58e-f883c5a7b8c9/agenda?session=23b97df9-0435-4fab-8a01-e0a9cf3e3831&shareLink=true): [Video](https://www.youtube.com/watch?v=WLzXAhcl-aY&list=PLy7t4z5SYNaRRGVdF83feN-_uHLwvGvgw&index=23), [slides](./resources/talks/2024-10-24-EclipseCon.pdf) (2024-10-24)
+
+Blog posts about Typir:
+
+- [Announcing Typir](https://www.typefox.io/blog/typir-introduction/) (2025-06-06)
 
 
 ## Roadmap
