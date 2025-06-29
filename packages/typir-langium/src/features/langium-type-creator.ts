@@ -18,15 +18,18 @@ export interface LangiumTypeSystemDefinition<AstTypes extends LangiumAstTypes> {
      * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules,
      * which are constant and don't depend on the actual language nodes.
      * This method will be executed once before the first added/updated/removed language node.
-     * @param typir the current Typir services
+     * @param typir the current Typir services, just for convenience
      */
     onInitialize(typir: TypirLangiumServices<AstTypes>): void;
 
     /**
      * React on updates of the AST in order to add/remove corresponding types from the type system,
      * e.g. for user-defined functions to create corresponding function types in the type graph.
-     * @param languageNode an AstNode of the current AST
-     * @param typir the current Typir services
+     * Note that Langium does no incremental parsing, but skips the whole AST for an updated document and creates a completely new AST.
+     * Therefore, only new AstNodes need to be considered,
+     * since types created for removed AstNodes are automatically removed from the type system.
+     * @param languageNode an AstNode of the current AST, as this method is called for each
+     * @param typir the current Typir services, just for convenience, these services are the same as for 'onInitialize'
      */
     onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<AstTypes>): void;
 }
@@ -39,7 +42,7 @@ export interface LangiumTypeSystemDefinition<AstTypes extends LangiumAstTypes> {
 export interface LangiumTypeCreator {
     /**
      * This function needs to be called once to trigger the initialization process.
-     * Depending on the implemention, it might or might not call onInitialize().
+     * Depending on the implemention, it might or might not call onInitialize() from the LangiumTypeSystemDefinition.
      */
     triggerInitialization(): void;
 }
