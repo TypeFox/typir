@@ -11,6 +11,9 @@ import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting, expectTypirTypes } from '../../../src/utils/test-utils.js';
 
+// These test cases test, that it is possible to work with two different kinds of custom types independent from each other in the same Typir instance,
+// even when these custom types/kinds have the same properties!
+
 export type MyCustomType1 = {
     myNumber: number;
     myString: string;

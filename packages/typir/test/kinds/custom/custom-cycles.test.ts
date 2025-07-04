@@ -15,6 +15,9 @@ import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting, expectToBeType } from '../../../src/utils/test-utils.js';
 
+// These test cases test, that custom types might depend on other types including custom types
+// and the creation of custom types is delayed, when those types are not yet existing.
+
 export type MyCustomType = {
     dependsOnType: Type; // PrimitiveType | CustomType<MyCustomType, TestLanguageNode>; TODO extends
     myProperty: number;

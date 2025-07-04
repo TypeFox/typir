@@ -16,6 +16,12 @@ import { RuleRegistry } from '../../../src/utils/rule-registration.js';
 import { createTypirServicesForTesting, expectToBeType, expectTypirTypes, expectValidationIssuesNone, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
 import { assertTypirType } from '../../../src/utils/utils.js';
 
+/**
+ * The custom type called "Matrix" represents a two-dimensional array of primitive types.
+ * Known from mathematics, the "width" represents the number of columns and the "height" the number of row of a matrix.
+ *
+ * This TypeScript type specifies the properties of the the Typir types which represent "matrices".
+ */
 export type MatrixType = { // "interface" instead of "type" does not work!
     baseType: PrimitiveType;
     width: number;
@@ -32,7 +38,8 @@ describe('Tests simple custom types for Matrix types', () => {
         // create a custom kind to create custom types with dedicated properties, as defined in <MatrixType>
         const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
             name: 'Matrix',
-            // determine which identifier is used to store and retrieve a custom type in the type graph (and to check its uniqueness)
+            // determine which identifier is used to store and retrieve a custom type in the type graph
+            // (and to check its uniqueness, i.e. if two types have the same identifier, they are the same and only one of it will be added to the type graph)
             calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
         });
@@ -144,8 +151,8 @@ describe('Tests simple custom types for Matrix types', () => {
         // ... but a single, generic inference rule here
         typir.Inference.addInferenceRule(node => {
             if (node instanceof MatrixLiteral) {
-                const width = node.elements.length;
-                const height = node.elements.map(row => row.length).reduce((l, r) => Math.max(l, r), 0);
+                const width = node.elements.map(row => row.length).reduce((l, r) => Math.max(l, r), 0); // the number of cells in the longest row
+                const height = node.elements.length; // the number of rows
                 const type = customKind.get({ baseType: integerType, width, height });
                 return type.getType() || InferenceRuleNotApplicable;
             }
@@ -175,8 +182,8 @@ describe('Tests simple custom types for Matrix types', () => {
         // a single, generic inference rule
         typir.Inference.addInferenceRule(node => {
             if (node instanceof MatrixLiteral) {
-                const width = node.elements.length;
-                const height = node.elements.map(row => row.length).reduce((l, r) => Math.max(l, r), 0);
+                const width = node.elements.map(row => row.length).reduce((l, r) => Math.max(l, r), 0); // the number of cells in the longest row
+                const height = node.elements.length; // the number of rows
                 return customKind.create({ typeName: 'My1x1MatrixType', properties: { baseType: integerType, width, height }})
                     .finish().getTypeFinal()!; // we know, that the type can be created now, without delay
             }
@@ -258,7 +265,7 @@ describe('Tests simple custom types for Matrix types', () => {
             expect(countInferenceRules()).toBe(initialInferenceRuleSize + 1); // new Matrix type with its own inference rule
             // "create it again" => in the end, the existing Matrix type is reused
             const matrix2x2Another = getOrCreateMatrixType(2, 2, false);
-            // both types are the same, ...
+            // both types are the same (since they have the same identifier, since it contains the same values for the primitive type, width and height), ...
             expect(matrix2x2).toBe(matrix2x2Another);
             // ... but we have another inference rule now, since the rules for the new type are moved to the existing type!
             expect(countInferenceRules()).toBe(initialInferenceRuleSize + 2);
@@ -282,11 +289,19 @@ describe('Tests simple custom types for Matrix types', () => {
 });
 
 
+/**
+ * Instances of this class represent literals for matrices in the AST, i.e. AST nodes. An example might be visualized like this:
+ * [ 1, 2, 3;
+ *   4, 5, 6 ]
+ * They are similar to array literals in usual programming languages.
+ */
 class MatrixLiteral extends TestExpressionNode {
     constructor(
         public elements: IntegerLiteral[][],
     ) { super(); }
 }
+
+// some predefined literals for matrices to be reused in test cases
 
 const matrixLiteral1x1 = new MatrixLiteral([
     [new IntegerLiteral(1)],

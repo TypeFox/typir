@@ -34,8 +34,11 @@ export type CustomTypePropertyTypes =
 export type TypeSelectorForCustomTypes<T extends Type, LanguageType> = Exclude<TypeSelector<T, LanguageType>, string>;
 
 export type CustomTypePropertyInitialization<T extends CustomTypePropertyTypes, LanguageType> =
-    // replace Type by a TypeSelector for it ...
-    T extends Type ? TypeSelectorForCustomTypes<T, LanguageType> : // note that TypeSelector includes "unknown" (if the LanguageType is not specified), which makes the TypeScript type-checking "useless" here!
+    /* replace Type by a TypeSelector for it ...
+     * (Note this special case: If the LanguageType is set to "unknown", then the TypeSelector includes "unknown",
+     * which makes the TypeScript type-checking "useless" here, i.e. the TypeScript compiler allows you to use any value here (e.g. 'true') which does not work in general!
+     * Therefore "unknown" should not be used for LanguageType if possible.) */
+    T extends Type ? TypeSelectorForCustomTypes<T, LanguageType> :
     // unchanged for the atomic cases:
     T extends (string | number | boolean | bigint | symbol) ? T :
     // ... in recursive way for the composites:

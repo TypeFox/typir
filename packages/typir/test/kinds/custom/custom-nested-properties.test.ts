@@ -12,6 +12,8 @@ import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting } from '../../../src/utils/test-utils.js';
 
+// These test cases test, that nesting of properties for custom types is possible (including recursion).
+
 export type NestedProperty = {
     myBool: boolean;
     myType: PrimitiveType;
