@@ -28,7 +28,7 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         this.typeUserRepresentation = typeDetails.typeUserRepresentation;
 
         const collectedReferences: Array<TypeReference<Type, LanguageType>> = [];
-        this.properties = this.replaceWhole(typeDetails.properties, collectedReferences) as CustomTypeStorage<Properties, LanguageType>;
+        this.properties = this.replaceAllProperties(typeDetails.properties, collectedReferences) as CustomTypeStorage<Properties, LanguageType>;
         const allReferences: Array<TypeReference<Type, unknown>> = collectedReferences as Array<TypeReference<Type, unknown>>; // type-node.ts does not use <LanguageType>
 
         this.defineTheInitializationProcessOfThisType({
@@ -42,24 +42,16 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         }); // TODO Are there more preconditions? deregistration from listeners?
     }
 
-    protected replaceWhole(properties: CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypeStorage<CustomTypeProperties, LanguageType> {
+    protected replaceAllProperties(properties: CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypeStorage<CustomTypeProperties, LanguageType> {
         const result: CustomTypeStorage<CustomTypeProperties, LanguageType> = {};
         for (const [key, value] of Object.entries(properties)) {
-            const transformed: CustomTypePropertyStorage<CustomTypePropertyTypes, LanguageType> = this.replace(value, collectedReferences);
+            const transformed: CustomTypePropertyStorage<CustomTypePropertyTypes, LanguageType> = this.replaceSingleProperty(value, collectedReferences);
             result[key] = transformed;
         }
         return result;
-        // for (const key in properties) {
-        //     if (Object.prototype.hasOwnProperty.call(properties, key)) { // https://eslint.org/docs/latest/rules/guard-for-in
-        //         const  value = properties[key];
-        //         const transformed: CustomTypePropertyStorage<CustomTypePropertyTypes, LanguageType> = this.replace(value, collectedReferences);
-        //         result[key] = transformed as CustomTypePropertyStorage<CustomTypePropertyTypes, LanguageType>;
-        //     }
-        // }
-        // return result;
     }
 
-    protected replace<T extends CustomTypePropertyTypes>(value: CustomTypePropertyInitialization<T, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypePropertyStorage<T, LanguageType> {
+    protected replaceSingleProperty<T extends CustomTypePropertyTypes>(value: CustomTypePropertyInitialization<T, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypePropertyStorage<T, LanguageType> {
         // TypeSelector --> TypeReference
         //      function
         //      Type
@@ -104,16 +96,16 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         }
         // grouping with Array, Set, Map
         else if (Array.isArray(value)) {
-            return value.map(content => this.replace(content, collectedReferences)) as unknown as CustomTypePropertyStorage<T, LanguageType>;
+            return value.map(content => this.replaceSingleProperty(content, collectedReferences)) as unknown as CustomTypePropertyStorage<T, LanguageType>;
         } else if (isSet(value)) {
             const result = new Set<CustomTypePropertyStorage<T, LanguageType>>();
             for (const entry of value) {
-                result.add(this.replace(entry, collectedReferences));
+                result.add(this.replaceSingleProperty(entry, collectedReferences));
             }
             return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
         } else if (isMap(value)) {
             const result: Map<string, CustomTypePropertyStorage<T, LanguageType>> = new Map();
-            value.forEach((content, key) => result.set(key, this.replace(content, collectedReferences)));
+            value.forEach((content, key) => result.set(key, this.replaceSingleProperty(content, collectedReferences)));
             return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
         }
         // primitives
@@ -122,7 +114,7 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         }
         // composite with recursive object / index signature
         else if (typeof value === 'object' && value !== null) {
-            return this.replaceWhole(value as CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences) as CustomTypePropertyStorage<T, LanguageType>;
+            return this.replaceAllProperties(value as CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences) as CustomTypePropertyStorage<T, LanguageType>;
         } else {
             throw new Error(`missing implementation for ${value}`);
         }

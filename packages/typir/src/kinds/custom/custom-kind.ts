@@ -19,7 +19,8 @@ export interface CustomKindOptions<Properties extends CustomTypeProperties, Lang
     /** Name for this custom kind. */
     name: string;
 
-    /** This identifier needs to consider all properties which make the custom type unique. The identifiers are used to detect unique custom types. */
+    /** This identifier needs to consider all properties which make the custom type unique. The identifiers are used to detect unique custom types.
+     * It is the responsibility of the user of Typir to consider all relevant properties and their structure/nesting. */
     calculateTypeIdentifier: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
 
     /** Define the name for each custom type; might be overridden by the custom type-specific name. */
