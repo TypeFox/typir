@@ -5,8 +5,7 @@
  ******************************************************************************/
 
 import { AbstractAstReflection, AstNode } from 'langium';
-import { removeFromArray } from 'typir';
-import { DefaultLanguageService, LanguageService } from '../../../typir/lib/services/language.js';
+import { DefaultLanguageService, LanguageService, removeFromArray } from 'typir';
 
 /**
  * The default implementation of the 'LanguageService' for Langium exploits the generated XXXAstReflection,
@@ -21,7 +20,7 @@ export class LangiumLanguageService extends DefaultLanguageService<AstNode> impl
         this.reflection = reflection;
     }
 
-    override getLanguageNodeKey(languageNode: AstNode): string | undefined {
+    override getLanguageNodeKey(languageNode: AstNode): string {
         return languageNode.$type;
     }
 

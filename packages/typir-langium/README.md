@@ -4,7 +4,7 @@ Typir-Langium is a framework for type checking of languages developed with [Lang
 the language workbench for developing textual domain-specific languages (DSLs) in the web.
 
 Typir-Langium depends on Typir, the stand-alone library for type systems and type checking for software languages in the web, independent from any language workbench.
-Typir-Langium is a dedicated binding of Typir for DSLs which are developed with Langium.
+Typir-Langium is a dedicated binding of Typir for languages and DSLs which are developed with Langium.
 
 
 ## Installation
@@ -50,6 +50,8 @@ The Typir services are created in your module in this way:
 }
 ```
 
+After creating the Langium services (which contain the Typir serivces now) and storing them in a variable like `langiumServices`, the Typir services need to be initialized with `initializeLangiumTypirServices(langiumServices, langiumServices.typir)`.
+
 The actual type system for your Langium-based language is defined as an implementation of the interface `LangiumTypeSystemDefinition`:
 
 ```typescript
@@ -59,10 +61,9 @@ export class MyDSLTypeSystem implements LangiumTypeSystemDefinition<MyDSLAstType
     }
 
     onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<MyDSLAstType>): void {
-      // define types and their rules which depend on the current AST (as parsed by Langium from programs written by users of your language) here
+      // define types and their rules which depend on the current AST respectively the given AstNode (as parsed by Langium from programs written by users of your language) here
     }
 }
-
 ```
 
 Beyond the APIs inherited from Typir core, Typir-Langium provides some *additional APIs* to ease type checking with Typir in Langium projects.

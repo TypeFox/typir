@@ -51,8 +51,8 @@ Typir does intentionally _not_ include ...
   since type inference is calculated in a recursive manner and does not use unification/substitution
 - Formal proofs
 - External DSLs for formalizing types
-- Support for dynamic type systems, which do typing during the execution of the DSL.
-  Typir aims at static type systems, which do typing during the writing of the DSL.
+- Support for dynamic type systems, which perform type checking during the execution of the DSL.
+  Typir aims at static type systems, which perform type checking during the writing of the DSL.
 
 
 ## NPM workspace
@@ -68,6 +68,11 @@ This repository contains the following stand-alone applications, which demonstra
 - [LOX](./examples/lox/README.md) - static type checking for LOX, implemented with Typir-Langium
 - [OX](./examples/ox/README.md) - a reduced version of LOX, implemented with Typir-Langium
 - [Expression](./examples/expression/README.md) - a handwritten parser for a simple expression language with type checking implemented with Typir (core)
+
+
+## Documentation
+
+A work-in-progress documentation in Markdown format is provided in the [documentation/](./documentation/) folder in this repository, which will be extended step-by-step and integrated soon into [typir.org](https://www.typir.org).
 
 
 ## Tiny Typir Example
