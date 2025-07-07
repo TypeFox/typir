@@ -66,7 +66,7 @@ This repository contains the following stand-alone applications, which demonstra
 
 ## Documentation
 
-A work-in-progress documentation in Markdown format is provided in the [documentation/](./documentation/) folder in this repository, which will be extended step-by-step and migrated soon to [typir.org](https://www.typir.org).
+A work-in-progress documentation in Markdown format is provided in the [documentation/](./documentation/) folder in this repository, which will be extended step-by-step and integrated soon into [typir.org](https://www.typir.org).
 
 
 ## Tiny Typir Example

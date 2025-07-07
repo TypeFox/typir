@@ -30,7 +30,7 @@ The default implementation exploits the following relationships between types:
 If you are interested in more details, why types are assignable or why two types are not assignable, use the following more advanced API to get a result object, which gives some more information:
 
 ```typescript
-typir.Assignability.getAssignabilityResult(source: Type, target: Type): AssignabilityResult;
+typir.Assignability.getAssignabilityResult(source: Type, target: Type): AssignabilityResult
 
 type AssignabilityResult = AssignabilitySuccess | AssignabilityProblem;
 

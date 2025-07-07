@@ -10,7 +10,8 @@ This describes the structure and the main content of the documentation for Typir
 ## Services for type checking
 
 - [Assignability](./services/assignability.md)
-- Language: Don't interchange "language service" and "language server"!
+- [Language](./services/language.md): Don't interchange "language service" and "language server"!
+- [Type inference](./services/inference.md)
 - ...
 
 ## Predefined types
@@ -19,9 +20,13 @@ This describes the structure and the main content of the documentation for Typir
 
 ## Bindings
 
-- Core
-- [Langium](./bindings/binding-langium.md)
-- Test fixtures
+While Typir (core) is language workbench-independent in general,
+some Typir bindings are provided for type-checking languages which are developed with a dedicated language workbench.
+Bindings usually provide all features of Typir core and add some more features and APIs to ease type checking with the target language workbench.
+
+- Typir (core) for any languages, developed with or without a language workbench
+- [Typir-Langium](./bindings/binding-langium.md) for languages developed with [Langium](https://langium.org/)
+- Test fixtures: some predefined AST nodes and adapted Typir service implementations to ease writing internal test cases for Typir itself, see [predefined-language-nodes.ts](../packages/typir/src/test/predefined-language-nodes.ts)
 
 
 ## Customization
@@ -39,5 +44,6 @@ This repository contains the following stand-alone applications. Read their link
 
 - [LOX](./examples/lox/README.md) - static type checking for LOX, implemented with Typir-Langium
 - [OX](./examples/ox/README.md) - a reduced version of LOX, implemented with Typir-Langium
+- Expressions - TODO
 
 Some of the internal test cases developed in [packages/typir/test/](../packages/typir/test/) demonstrate some features of Typir in more detail.

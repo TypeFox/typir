@@ -9,7 +9,7 @@
  *
  * The main idea for this services is to improve the performance of some other services (mainly validation and type inference)
  * by introducing the concept of "language keys" for language nodes.
- * If each language node has a language key, rules for validation and type inference might be associated only for some language keys,
+ * If a language node has a language key, rules for validation and type inference might be associated only for some language keys,
  * so that the rules are applied only to those language nodes which have this language key, not to all language nodes.
  *
  * Language keys are represented by string values and might by, depending on the DSL implementation/language workbench,
@@ -26,15 +26,15 @@ export interface LanguageService<LanguageType> {
     getLanguageNodeKey(languageNode: LanguageType): string | undefined;
 
     /**
-     * Returns all keys, which are direct and indirect sub-keys of the given language key.
-     * @param _languageKey the given language key
+     * Returns all keys, which are direct or indirect sub-keys of the given language key.
+     * @param languageKey the given language key
      * @returns the list does not contain the given language key itself
      */
     getAllSubKeys(languageKey: string): string[];
 
     /**
-     * Returns all keys, which are direct and indirect super-keys of the given language key.
-     * @param _languageKey the given language key
+     * Returns all keys, which are direct or indirect super-keys of the given language key.
+     * @param languageKey the given language key
      * @returns the list does not contain the given language key itself
      */
     getAllSuperKeys(languageKey: string): string[];
