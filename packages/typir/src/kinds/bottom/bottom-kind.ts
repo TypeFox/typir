@@ -8,7 +8,7 @@ import { TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
-import { isKind, Kind } from '../kind.js';
+import { Kind, KindOptions } from '../kind.js';
 import { BottomType } from './bottom-type.js';
 
 export interface BottomTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
@@ -18,7 +18,7 @@ export interface CreateBottomTypeDetails<LanguageType> extends BottomTypeDetails
     inferenceRules: Array<InferCurrentTypeRule<BottomType, LanguageType>>;
 }
 
-export interface BottomKindOptions {
+export interface BottomKindOptions extends KindOptions {
     name: string;
 }
 
@@ -35,20 +35,21 @@ interface BottomConfigurationChain<LanguageType> {
 }
 
 export class BottomKind<LanguageType> implements Kind, BottomFactoryService<LanguageType> {
-    readonly $name: 'BottomKind';
+    readonly $name: string;
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<BottomKindOptions>;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<BottomKindOptions>) {
-        this.$name = BottomKindName;
+        this.options = this.collectOptions(options);
+        this.$name = this.options.$name;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = this.collectOptions(options);
     }
 
     protected collectOptions(options?: Partial<BottomKindOptions>): BottomKindOptions {
         return {
             // the default values:
+            $name: BottomKindName,
             name: 'never',
             // the actually overriden values:
             ...options
@@ -72,7 +73,7 @@ export class BottomKind<LanguageType> implements Kind, BottomFactoryService<Lang
 }
 
 export function isBottomKind<LanguageType>(kind: unknown): kind is BottomKind<LanguageType> {
-    return isKind(kind) && kind.$name === BottomKindName;
+    return kind instanceof BottomKind;
 }
 
 
