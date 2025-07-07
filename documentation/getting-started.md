@@ -18,7 +18,7 @@ If all nodes of your language AST have a common TypeScript super type, add this 
 const typir = createTypirServices<MyDSLAstType>();
 ```
 
-This type system is enriched now by types and relationships between the types according to the specifics of your language under development. All types and relationships are created using the type system instance `typir`, e.g.
+This type system is going to be enriched now by types and relationships between the types according to the specifics of your language under development. All types and relationships are created using the type system instance `typir`, e.g.
 
 ```typescript
 // create two primitive types
@@ -41,9 +41,9 @@ This [NPM package](https://www.npmjs.com/package/typir-langium?activeTab=version
 npm install typir-langium
 ```
 
-Since languages often enable their user to define function-like or class-like elements for which a corresponding Typir type in the type system needs to be created,
-see OX and LOX as examples,
-these types depend on user input and needs to be added or removed when the underlying Langium documents are added, removed or updated.
+Languages often enable their users to define function-like or class-like elements
+for which a corresponding Typir type in the type system needs to be created, see OX and LOX as examples.
+These types depend on user input and need to be added or removed when the underlying Langium documents are added, removed or updated.
 
 Therefore, the actual type system for your Langium-based language is defined as an implementation of the interface `LangiumTypeSystemDefinition`,
 which separates constant types (and their rules) from user-dependent types (and their rules):
@@ -88,5 +88,5 @@ After creating the Langium services (which contain the Typir serivces now) and s
 
 ## General suggestions
 
-If your type system is small or does need a lot of customization, a single `type-system.ts` file is enough. Otherwise a dedicated folder `type-system/` containing files like `type-system.ts`, `validation-rules.ts`, ... is usefull in practice.
+If your type system is small or does not need a lot of customization, a single `type-system.ts` file is enough. Otherwise a dedicated folder `type-system/` containing files like `type-system.ts`, `validation-rules.ts`, ... is usefull in practice.
 

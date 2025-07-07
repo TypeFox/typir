@@ -26,7 +26,7 @@ The release process is mostly automated and requires running only a few commands
 The release process for `next` releases is different from the `latest` releases. We configured a GitHub action to publish the `next` packages. It has to be called manually (it is a `workflow_dispatch`). This will release the current state of `main`. Follow these steps to release a `next` version:
 
 1. Go to the Actions tab of your repository.
-2. On the left there is a list of workflow. Click the one with the title "Publish `next`".
+2. On the left there is a list of workflows. Click the one with the title "Publish `next`".
 3. A blue ribbon will appear, stating `This workflow has a workflow_dispatch event trigger.`.
 4. Click the button `Run workflow` from the ribbon.
 5. A popup will appear, asking you for which branch you want to run the workflow. Select `main` and click the button `Run workflow`.

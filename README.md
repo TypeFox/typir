@@ -46,8 +46,8 @@ Typir does intentionally _not_ include ...
   since type inference is calculated in a recursive manner and does not use unification/substitution
 - Formal proofs
 - External DSLs for formalizing types
-- Support for dynamic type systems, which do type checking during the execution of the DSL.
-  Typir aims at static type systems, which do type checking during the writing of the DSL.
+- Support for dynamic type systems, which perform type checking during the execution of the DSL.
+  Typir aims at static type systems, which perform type checking during the writing of the DSL.
 
 
 ## NPM workspace

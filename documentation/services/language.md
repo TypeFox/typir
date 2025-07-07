@@ -1,13 +1,17 @@
 # Language
 
-The language services provides some static information about the language/DSL, for which the type system is created.
+The language service provides some static information about the language/DSL, for which the type system is created.
 These information are exploited to improve performance and to provide some advanced features of Typir.
 Don't interchange the terms "language service" (this Typir service) and "language server" (from Language Server Protocol (LSP) terminology)!
 
 Central for performance improvements is the concept of *language keys* for language nodes:
-If a language node has a language key, rules for validation and type inference might be associated only for some language keys,
-so that the rules are applied only to those language nodes which have this language key, not to all language nodes.
-Language keys are represented by string values and might by, depending on the DSL implementation/language workbench,
+
+If rules for validation and type inference are associated to a language key,
+these rules are applied only to those language nodes which have this language key, not to all language nodes.
+It is possible to associate rules to multiple language keys.
+Rule which are associated to no language key, are applied to all language nodes.
+
+Language keys are represented by string values and might be depending on the DSL implementation/language workbench,
 class names or `$type`-property-information of the language node implementations.
 Language keys might have sub/super language keys ("sub-type relationship of language keys").
 

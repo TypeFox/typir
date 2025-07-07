@@ -9,8 +9,10 @@
  *
  * The main idea for this services is to improve the performance of some other services (mainly validation and type inference)
  * by introducing the concept of "language keys" for language nodes.
- * If a language node has a language key, rules for validation and type inference might be associated only for some language keys,
- * so that the rules are applied only to those language nodes which have this language key, not to all language nodes.
+ * If rules for validation and type inference are associated to a language key,
+ * these rules are applied only to those language nodes which have this language key, not to all language nodes.
+ * It is possible to associate rules to multiple language keys.
+ * Rule which are associated to no language key, are applied to all language nodes.
  *
  * Language keys are represented by string values and might by, depending on the DSL implementation/language workbench,
  * class names or $type-property-information of the language node implementations.
