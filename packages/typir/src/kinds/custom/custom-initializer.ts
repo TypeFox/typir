@@ -59,8 +59,8 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
             this.registerRules(readyCustomType);
         }
 
-        // TODO Review: where to call this? already after creating the type or after Completed?
-        // Benefit here: The final type is already produced!
+        // This logic could be called also after creating the type or after completing it instead.
+        // Benefit here: The final type is already produced and its identifier is usable, but it might not yet been completed!
         this.handleEdgeRelationshipsOfNewType();
     }
 

@@ -50,7 +50,7 @@ export interface CustomTypeDetails<Properties extends CustomTypeProperties, Lang
     /** Values for all custom properties of the custom type. Note that TypeSelector<A> are supported to initialize type properties of Type A. */
     properties: CustomTypeInitialization<Properties, LanguageType>;
     /** If specified, overrides the kind-specific name for custom types. */
-    typeName?: string; // TODO review: skip this property to simplify custom types?
+    typeName?: string;
     /** If specified, overrides the kind-specific user representation for custom types. */
     typeUserRepresentation?: string;
 }
@@ -62,7 +62,6 @@ export interface CreateCustomTypeDetails<Properties extends CustomTypeProperties
 export interface CustomFactoryService<Properties extends CustomTypeProperties, LanguageType> {
     create(typeDetails: CustomTypeDetails<Properties, LanguageType>): CustomTypeConfigurationChain<Properties, LanguageType>;
     get(properties: CustomTypeInitialization<Properties, LanguageType>): TypeReference<CustomType<Properties, LanguageType>, LanguageType>;
-    // TODO getOrCreateTopCustomType ??
 }
 
 export interface CustomTypeConfigurationChain<Properties extends CustomTypeProperties, LanguageType> {

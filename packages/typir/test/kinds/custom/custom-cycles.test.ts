@@ -62,7 +62,7 @@ describe('Check custom types depending on other types', () => {
     test('Custom types depend on other custom types: in difficult order', () => {
         // custom2 depends on custom1, which is not defined yet
         const config2 = customKind.create({ typeName: 'C2', properties: {
-            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 })  as unknown as TypeReference<Type, TestLanguageNode>,
+            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 }) as unknown as TypeReference<Type, TestLanguageNode>,
             myProperty: 2 } }).finish();
         let custom2 = config2.getTypeFinal();
         expect(custom2).toBeUndefined();

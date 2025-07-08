@@ -57,6 +57,10 @@ describe('Check that nested properties for custom types work', () => {
 
         const customKind = new CustomKind<Properties, TestLanguageNode>(typir, {
             name: 'MyCustom',
+            /** Compared with the test case above, this calculation creates the same identifiers, since it does not take the deeper nesting into account.
+             * For these independent test cases, this is now problem.
+             * But if both kinds are used together in the same Typir instance, the calculation of type identifiers need to be different for both kinds in order to produce unique identifiers.
+             */
             calculateTypeIdentifier: properties => `mycustom-${properties.nested.deeper.myBool}-${typir.infrastructure.TypeResolver.resolve(properties.nested.deeper.myType).getIdentifier()}`,
             calculateTypeName: properties => `Custom-${typir.infrastructure.TypeResolver.resolve(properties.nested.deeper.myType).getName()}`,
         });
