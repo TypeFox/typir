@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { isMap, isSet } from 'util/types';
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
@@ -11,7 +12,7 @@ import { ConversionMode } from '../../services/conversion.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
 import { Kind } from '../kind.js';
-import { CustomTypeInitialization, CustomTypeProperties } from './custom-definitions.js';
+import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyTypes, CustomTypeStorage, TypeSelectorForCustomTypes } from './custom-definitions.js';
 import { CustomTypeInitializer } from './custom-initializer.js';
 import { CustomType } from './custom-type.js';
 
@@ -20,13 +21,17 @@ export interface CustomKindOptions<Properties extends CustomTypeProperties, Lang
     name: string;
 
     /** This identifier needs to consider all properties which make the custom type unique. The identifiers are used to detect unique custom types.
+     * The default implementation considers all properties and their structure in a straight-forward way,
+     * but does not guarantee unique identifiers in all cases in general, since string properties might contain values looking like identifiers of other properties.
+     * The default implementation can be customized in order to overcome this limitation or to produce better readable identifiers.
      * It is the responsibility of the user of Typir to consider all relevant properties and their structure/nesting. */
-    calculateTypeIdentifier: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
+    calculateTypeIdentifier?: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
 
-    /** Define the name for each custom type; might be overridden by the custom type-specific name. */
-    calculateTypeName?: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
+    /** Define the name for each custom type; might be overridden by the custom type-specific name.
+     * If undefined, the identifier is used instead. */
+    calculateTypeName?: (properties: CustomTypeStorage<Properties, LanguageType>) => string;
     /** Define the user representation for each custom type; might be overridden by the custom type-specific user representation. */
-    calculateTypeUserRepresentation?: (properties: CustomTypeInitialization<Properties, LanguageType>) => string;
+    calculateTypeUserRepresentation?: (properties: CustomTypeStorage<Properties, LanguageType>) => string;
 
     // SubType
     getSubTypesOfNewCustomType?: (superNewCustom: CustomType<Properties, LanguageType>) => Type[];
@@ -98,7 +103,47 @@ export class CustomKind<Properties extends CustomTypeProperties, LanguageType> i
     }
 
     calculateIdentifier(properties: CustomTypeInitialization<Properties, LanguageType>): string {
-        return this.options.calculateTypeIdentifier(properties);
+        if (this.options.calculateTypeIdentifier) {
+            return this.options.calculateTypeIdentifier(properties);
+        } else {
+            return `custom-${this.options.name/*is unique for all custom kinds*/}-${this.calculateIdentifierAll(properties)}`;
+        }
+    }
+
+    protected calculateIdentifierAll(properties: CustomTypeInitialization<Properties, LanguageType>): string {
+        return Object.entries(properties)
+            .map(entry => `${entry[0]}:${this.calculateIdentifierSingle(entry[1])}`)
+            .join(',');
+    }
+    protected calculateIdentifierSingle<T extends CustomTypePropertyTypes>(value: CustomTypePropertyInitialization<T, LanguageType>): string {
+        // all possible TypeSelectors
+        if (typeof value === 'function') {
+            return this.services.infrastructure.TypeResolver.resolve(value as TypeSelectorForCustomTypes<Type, LanguageType>).getIdentifier();
+        } else if (value instanceof Type
+            || value instanceof TypeInitializer
+            || value instanceof TypeReference
+            || this.services.Language.isLanguageNode(value)
+        ) {
+            return this.services.infrastructure.TypeResolver.resolve(value).getIdentifier();
+        }
+        // grouping with Array, Set, Map
+        else if (Array.isArray(value)) {
+            return `[${value.map(content => this.calculateIdentifierSingle(content)).join(',')}]`;
+        } else if (isSet(value)) {
+            return `(${Array.from(value.entries()).map(content => this.calculateIdentifierSingle(content)).sort().join(',')})`; // stable order of elements required
+        } else if (isMap(value)) {
+            return `{${Array.from(value.entries()).sort((c1, c2) => (c1[0] as string).localeCompare(c2[0])).map(content => `${content[0]}=${this.calculateIdentifierSingle(content[1])}`).join(',')}}`; // stable order of elements required
+        }
+        // primitives
+        else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint' || typeof value === 'symbol') {
+            return String(value);
+        }
+        // composite with recursive object / index signature
+        else if (typeof value === 'object' && value !== null) {
+            return this.calculateIdentifierAll(value as CustomTypeInitialization<Properties, LanguageType>);
+        } else {
+            throw new Error(`missing implementation for ${value}`);
+        }
     }
 }
 

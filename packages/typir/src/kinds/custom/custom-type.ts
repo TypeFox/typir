@@ -8,12 +8,11 @@ import { isMap, isSet } from 'util/types';
 import { Type } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
-import { TypirProblem } from '../../utils/utils-definitions.js';
-import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage } from './custom-definitions.js';
-import { CustomKind, CustomTypeDetails } from './custom-kind.js';
-import { TypeSelector } from '../../initialization/type-selector.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
+import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict, ValueConflict } from '../../utils/utils-type-comparison.js';
+import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage, TypeSelectorForCustomTypes } from './custom-definitions.js';
+import { CustomKind, CustomTypeDetails } from './custom-kind.js';
 
 export class CustomType<Properties extends CustomTypeProperties, LanguageType> extends Type {
     override readonly kind: CustomKind<Properties, LanguageType>;
@@ -43,12 +42,13 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
     }
 
     protected replaceAllProperties(properties: CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypeStorage<CustomTypeProperties, LanguageType> {
-        const result: CustomTypeStorage<CustomTypeProperties, LanguageType> = {};
+        // const result: CustomTypeStorage<CustomTypeProperties, LanguageType> = {}; // does not work, since the properties of CustomTypeStorage are defined as "readonly"!
+        const result: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(properties)) {
             const transformed: CustomTypePropertyStorage<CustomTypePropertyTypes, LanguageType> = this.replaceSingleProperty(value, collectedReferences);
             result[key] = transformed;
         }
-        return result;
+        return result as CustomTypeStorage<CustomTypeProperties, LanguageType>;
     }
 
     protected replaceSingleProperty<T extends CustomTypePropertyTypes>(value: CustomTypePropertyInitialization<T, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypePropertyStorage<T, LanguageType> {
@@ -58,7 +58,7 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         //      (string)                            forbidden/not supported, since it is not unique, treat it as content/primitive property!
         //      TypeInitializer
         //      TypeReference
-        //      LanguageType                        TODO: additional "Language"-Service required to distinguish it from object with index signature
+        //      LanguageType                        additional "Language"-Service required to distinguish it from object with index signature
         // Array --> Array
         //      values: recursive transformation
         // Map --> Map
@@ -74,22 +74,14 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
 
         // all possible TypeSelectors
         if (typeof value === 'function') {
-            const result = new TypeReference<Type, LanguageType>(value as TypeSelector<Type, LanguageType>, this.kind.services);
+            const result = new TypeReference<Type, LanguageType>(value as TypeSelectorForCustomTypes<Type, LanguageType>, this.kind.services);
             collectedReferences.push(result);
             return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
-        } else if (value instanceof Type) {
-            const result = new TypeReference<Type, LanguageType>(value, this.kind.services);
-            collectedReferences.push(result);
-            return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
-        } else if (value instanceof TypeInitializer) {
-            const result = new TypeReference<Type, LanguageType>(value, this.kind.services);
-            collectedReferences.push(result);
-            return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
-        } else if (value instanceof TypeReference) {
-            const result = new TypeReference<Type, LanguageType>(value, this.kind.services);
-            collectedReferences.push(result);
-            return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
-        } else if (this.kind.services.Language.isLanguageNode(value)) {
+        } else if (value instanceof Type
+            || value instanceof TypeInitializer
+            || value instanceof TypeReference
+            || this.kind.services.Language.isLanguageNode(value)
+        ) {
             const result = new TypeReference<Type, LanguageType>(value, this.kind.services);
             collectedReferences.push(result);
             return result as unknown as CustomTypePropertyStorage<T, LanguageType>;

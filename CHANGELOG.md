@@ -40,6 +40,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 ### Fixed bugs
 
 - Clear edges from invalid types, which are never added into the type graph (#73)
+- The properties of all types are `readonly` now (#73)
 - ...
 
 

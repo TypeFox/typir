@@ -14,8 +14,8 @@ import { FunctionType } from '../function/function-type.js';
 import { ClassKind, ClassTypeDetails, isClassKind } from './class-kind.js';
 
 export interface FieldDetails {
-    name: string;
-    type: TypeReference<Type>;
+    readonly name: string;
+    readonly type: TypeReference<Type>;
 }
 
 /**
@@ -25,7 +25,7 @@ export interface FieldDetails {
  * This interfaces makes annotating further properties to methods easier (which are not supported by functions).
  */
 export interface MethodDetails {
-    type: TypeReference<FunctionType>;
+    readonly type: TypeReference<FunctionType>;
     // methods might have some more properties in the future
 }
 
@@ -36,7 +36,7 @@ export class ClassType extends Type {
     protected superClasses: Array<TypeReference<ClassType>>; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
     protected readonly subClasses: ClassType[] = []; // additional sub classes might be added later on!
     protected readonly fields: Map<string, FieldDetails> = new Map(); // unordered
-    protected methods: MethodDetails[]; // unordered
+    protected readonly methods: MethodDetails[]; // unordered
 
     constructor(kind: ClassKind<unknown>, typeDetails: ClassTypeDetails<unknown>) {
         super(kind.options.typing === 'Nominal'

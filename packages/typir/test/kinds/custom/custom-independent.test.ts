@@ -31,12 +31,12 @@ describe('Check that different custom types can be used in parallel', () => {
 
         customKind1 = new CustomKind<MyCustomType1, TestLanguageNode>(typir, {
             name: 'MyCustom1',
-            calculateTypeIdentifier: properties => `custom-mycustom1-${properties.myNumber}-${properties.myString}`,
+            // use the default 'calculateTypeIdentifier' implementation here
             calculateTypeName: properties => `Custom1-${properties.myNumber}`,
         });
         customKind2 = new CustomKind<MyCustomType2, TestLanguageNode>(typir, {
             name: 'MyCustom2',
-            calculateTypeIdentifier: properties => `custom-mycustom2-${properties.myNumber}-${properties.myString}`,
+            // use the default 'calculateTypeIdentifier' implementation here
             calculateTypeName: properties => `Custom1-${properties.myNumber}`, // same names! but different identifiers!
         });
     });

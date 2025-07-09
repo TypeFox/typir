@@ -53,7 +53,7 @@ export type CustomTypeInitialization<T extends CustomTypeProperties, LanguageTyp
 };
 
 
-/* Corresponding properties to store inside the type */
+/* Corresponding read-only properties to store inside the type */
 
 export type CustomTypePropertyStorage<T extends CustomTypePropertyTypes, LanguageType> =
     // replace Type by a TypeReference to it ...
@@ -61,12 +61,12 @@ export type CustomTypePropertyStorage<T extends CustomTypePropertyTypes, Languag
     // unchanged for the atomic cases:
     T extends (string | number | boolean | bigint | symbol) ? T :
     // ... in recursive way for the composites:
-    T extends Array<infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Array<CustomTypePropertyStorage<ValueType, LanguageType>> : never) :
-    T extends Map<string, infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Map<string, CustomTypePropertyStorage<ValueType, LanguageType>> : never) :
-    T extends Set<infer ContentType> ? (ContentType extends CustomTypePropertyTypes ? Set<CustomTypePropertyStorage<ContentType, LanguageType>> : never) :
+    T extends Array<infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? ReadonlyArray<CustomTypePropertyStorage<ValueType, LanguageType>> : never) :
+    T extends Map<string, infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? ReadonlyMap<string, CustomTypePropertyStorage<ValueType, LanguageType>> : never) :
+    T extends Set<infer ContentType> ? (ContentType extends CustomTypePropertyTypes ? ReadonlySet<CustomTypePropertyStorage<ContentType, LanguageType>> : never) :
     T extends CustomTypeProperties ? CustomTypeStorage<T, LanguageType> :
     never;
 
 export type CustomTypeStorage<T extends CustomTypeProperties, LanguageType> = {
-    [P in keyof T]: CustomTypePropertyStorage<T[P], LanguageType>;
+    readonly [P in keyof T]: CustomTypePropertyStorage<T[P], LanguageType>;
 };

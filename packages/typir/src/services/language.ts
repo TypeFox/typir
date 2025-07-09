@@ -67,7 +67,7 @@ export class DefaultLanguageService<LanguageType> implements LanguageService<Lan
         return [];
     }
 
-    isLanguageNode(node: unknown): node is LanguageType { // TODO make this property optional?
+    isLanguageNode(node: unknown): node is LanguageType {
         // explicitly check for some common TypeSelectors
         if (typeof node === 'function') {
             return false;
@@ -75,6 +75,6 @@ export class DefaultLanguageService<LanguageType> implements LanguageService<Lan
         if (node instanceof TypeReference || node instanceof TypeInitializer || node instanceof Type || isKind(node)) {
             return false;
         }
-        return true;
+        return true; // this is very weak, provide more advanced implementations for your current language (workbench)!
     }
 }
