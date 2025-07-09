@@ -17,7 +17,7 @@ import { CustomTypeInitializer } from './custom-initializer.js';
 import { CustomType } from './custom-type.js';
 
 export interface CustomKindOptions<Properties extends CustomTypeProperties, LanguageType> {
-    /** Name for this custom kind. */
+    /** Name for this custom kind. The names of custom kinds are unique. */
     name: string;
 
     /** This identifier needs to consider all properties which make the custom type unique. The identifiers are used to detect unique custom types.

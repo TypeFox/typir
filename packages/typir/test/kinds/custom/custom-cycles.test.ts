@@ -19,7 +19,7 @@ import { createTypirServicesForTesting, expectToBeType } from '../../../src/util
 // and the creation of custom types is delayed, when those types are not yet existing.
 
 export type MyCustomType = {
-    dependsOnType: Type; // PrimitiveType | CustomType<MyCustomType, TestLanguageNode>; TODO extends
+    dependsOnType: Type;
     myProperty: number;
 };
 
@@ -85,13 +85,13 @@ describe('Check custom types depending on other types', () => {
     test('Custom types depend on other custom types: in difficult order, transitive', () => {
         // custom2 depends on custom1, which is not defined yet
         const config2 = customKind.create({ typeName: 'C2', properties: {
-            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 })  as unknown as TypeReference<Type, TestLanguageNode>, // TODO why is casting necessary?
+            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 })  as unknown as TypeReference<Type, TestLanguageNode>,
             myProperty: 2 } }).finish();
         let custom2 = config2.getTypeFinal();
         expect(custom2).toBeUndefined();
 
         // custom3 depends on custom2
-        const config3 = customKind.create({ typeName: 'C3', properties: { dependsOnType: config2 as unknown as TypeInitializer<Type, TestLanguageNode>, myProperty: 3 } }).finish(); // TODO why is casting necessary?
+        const config3 = customKind.create({ typeName: 'C3', properties: { dependsOnType: config2 as unknown as TypeInitializer<Type, TestLanguageNode>, myProperty: 3 } }).finish();
         let custom3 = config3.getTypeFinal();
         expect(custom3).toBeUndefined();
 

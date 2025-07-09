@@ -52,7 +52,6 @@ describe('Test all possible TypeSelectors with custom types', () => {
         // custom1 depends on nothing
         const custom1 = customKind.create({ properties: { myProperty: 1 } }).finish().getTypeFinal()!;
         // custom2 depends on custom1, identified by its identifier
-        // TODO delayed!
         const custom2 = customKind.create({ properties: { dependsOnType: () => custom1.getIdentifier(), myProperty: 2 } }).finish().getTypeFinal()!;
         expect(custom2.properties.dependsOnType?.getType()).toBe(custom1);
     });

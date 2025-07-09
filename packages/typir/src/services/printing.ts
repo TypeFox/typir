@@ -64,6 +64,7 @@ export class DefaultTypeConflictPrinter<LanguageType> implements ProblemPrinter<
             throw new Error();
         }
         result = this.printIndentation(result, level);
+        result = this.printSubProblems(result, problem.subProblems, level);
         return result;
     }
 
