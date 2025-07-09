@@ -14,9 +14,18 @@ This describes the structure and the main content of the documentation for Typir
 - [Type inference](./services/inference.md)
 - ...
 
+
 ## Predefined types
 
-- ...
+The current set of predefined types:
+
+- Top and bottom types
+- Primitive types
+- Structurally typed classes
+- [Custom types](./kinds/custom-types.md)
+- Function types
+- Operators (are internally mappped to function types)
+
 
 ## Bindings
 
@@ -44,6 +53,6 @@ This repository contains the following stand-alone applications. Read their link
 
 - [LOX](./examples/lox/README.md) - static type checking for LOX, implemented with Typir-Langium
 - [OX](./examples/ox/README.md) - a reduced version of LOX, implemented with Typir-Langium
-- Expressions - TODO
+- [Expressions](./examples/expression.README.md) - static type checking for a hand-written reduced expression language, implemented with Typir (core)
 
 Some of the internal test cases developed in [packages/typir/test/](../packages/typir/test/) demonstrate some features of Typir in more detail.
