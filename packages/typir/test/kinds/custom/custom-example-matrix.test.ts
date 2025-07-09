@@ -39,6 +39,7 @@ describe('Tests simple custom types for Matrix types', () => {
         const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
             name: 'Matrix',
             // determine which identifier is used to store and retrieve a custom type in the type graph
+            calculateTypeName: properties => `My${properties.width}x${properties.height}Matrix`,
             // (and to check its uniqueness, i.e. if two types have the same identifier, they are the same and only one of it will be added to the type graph)
             calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
@@ -184,7 +185,7 @@ describe('Tests simple custom types for Matrix types', () => {
             if (node instanceof MatrixLiteral) {
                 const width = node.elements.map(row => row.length).reduce((l, r) => Math.max(l, r), 0); // the number of cells in the longest row
                 const height = node.elements.length; // the number of rows
-                return customKind.create({ typeName: 'My1x1MatrixType', properties: { baseType: integerType, width, height }})
+                return customKind.create({ typeName: `My${width}x${height}MatrixType`, properties: { baseType: integerType, width, height }})
                     .finish().getTypeFinal()!; // we know, that the type can be created now, without delay
             }
             return InferenceRuleNotApplicable;
@@ -213,6 +214,10 @@ describe('Tests simple custom types for Matrix types', () => {
             .create({ typeName: 'My1x1MatrixType', properties: { baseType: integerType, width: 1, height: 1 } })
             .finish().getTypeFinal()!; // ... the already existing 1x1 Matrix type is returned: 'create' behaves like 'getOrCreate', since no duplicated types should be created
         expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind), result => result === matrix1x1);
+        // but we receive an error, if we specified a different 'typeName'
+        expect(() => customKind
+            .create({ typeName: 'AnotherName', properties: { baseType: integerType, width: 1, height: 1 } })
+            .finish().getTypeFinal()).toThrowError("There is already a custom type 'custom-matrix-Integer-1-1' with name 'My1x1MatrixType', but now the name is 'AnotherName'!");
     });
 
     describe('Matrix type with type-specific inference rules', () => {

@@ -50,6 +50,13 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
         assertTrue(customType === this.initialCustomType);
         const readyCustomType = this.producedType(customType);
         if (readyCustomType !== customType) {
+            // check some additional properties to be unique
+            if (readyCustomType.getName() !== customType.getName()) {
+                throw new Error(`There is already a custom type '${readyCustomType.getIdentifier()}' with name '${readyCustomType.getName()}', but now the name is '${customType.getName()}'!`);
+            }
+            if (readyCustomType.getUserRepresentation() !== customType.getUserRepresentation()) {
+                throw new Error(`There is already a custom type '${readyCustomType.getIdentifier()}' with user representation '${readyCustomType.getUserRepresentation()}', but now the user representation is '${customType.getUserRepresentation()}'!`);
+            }
             customType.removeListener(this);
             this.deregisterRules(undefined);
             this.createRules(readyCustomType);

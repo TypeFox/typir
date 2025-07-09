@@ -39,7 +39,7 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
             onIdentifiable: () => {
                 this.identifier = this.kind.calculateIdentifier(typeDetails.properties);
             }
-        }); // TODO Are there more preconditions? deregistration from listeners?
+        });
     }
 
     protected replaceAllProperties(properties: CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypeStorage<CustomTypeProperties, LanguageType> {
