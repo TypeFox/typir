@@ -17,9 +17,10 @@ import { ClassType, isClassType } from './class-type.js';
 export class ClassTypeInitializer<LanguageType> extends TypeInitializer<ClassType, LanguageType> implements TypeStateListener {
     protected readonly typeDetails: CreateClassTypeDetails<LanguageType>;
     protected readonly kind: ClassKind<LanguageType>;
+    protected readonly initialClassType: ClassType;
+
     protected inferenceRules: Array<InferenceRuleWithOptions<LanguageType>> = [];
     protected validationRules: Array<ValidationRuleWithOptions<LanguageType>> = [];
-    protected readonly initialClassType: ClassType;
 
     constructor(services: TypirServices<LanguageType>, kind: ClassKind<LanguageType>, typeDetails: CreateClassTypeDetails<LanguageType>) {
         super(services);
@@ -33,10 +34,9 @@ export class ClassTypeInitializer<LanguageType> extends TypeInitializer<ClassTyp
             this.services.infrastructure.Graph.addNode(this.initialClassType, kind.calculateIdentifierWithClassNameOnly(typeDetails));
         }
 
-        this.createInferenceAndValidationRules(this.typeDetails, this.initialClassType);
+        this.createRules(this.typeDetails, this.initialClassType);
         // register all the inference rules already now to enable early type inference for this Class type ('undefined', since its Identifier is still missing)
-        this.inferenceRules.forEach(rule => services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, undefined)));
-        this.validationRules.forEach(rule => services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, undefined)));
+        this.registerRules(undefined);
 
         this.initialClassType.addListener(this, true); // trigger directly, if some initialization states are already reached!
     }
@@ -63,23 +63,18 @@ export class ClassTypeInitializer<LanguageType> extends TypeInitializer<ClassTyp
             }
 
             // remove the inference rules for the invalid type
-            this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, undefined)));
-            this.validationRules.forEach(rule => this.services.validation.Collector.removeValidationRule(rule.rule, optionsBoundToType(rule.options, undefined)));
+            this.deregisterRules(undefined);
             // but re-create the inference rules for the new type!!
             // This is required, since inference rules for different declarations in the AST might be different, but should infer the same Typir type!
-            this.createInferenceAndValidationRules(this.typeDetails, readyClassType);
+            this.createRules(this.typeDetails, readyClassType);
             // add the new rules
-            this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, readyClassType)));
-            this.validationRules.forEach(rule => this.services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, readyClassType)));
+            this.registerRules(readyClassType);
         } else {
             // the class type is unchanged (this is the usual case)
 
             // keep the existing inference rules, but register it for the unchanged class type
-            this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, undefined)));
-            this.validationRules.forEach(rule => this.services.validation.Collector.removeValidationRule(rule.rule, optionsBoundToType(rule.options, undefined)));
-
-            this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, readyClassType)));
-            this.validationRules.forEach(rule => this.services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, readyClassType)));
+            this.deregisterRules(undefined);
+            this.registerRules(readyClassType);
         }
     }
 
@@ -105,7 +100,7 @@ export class ClassTypeInitializer<LanguageType> extends TypeInitializer<ClassTyp
         return this.initialClassType;
     }
 
-    protected createInferenceAndValidationRules(typeDetails: CreateClassTypeDetails<LanguageType>, classType: ClassType): void {
+    protected createRules(typeDetails: CreateClassTypeDetails<LanguageType>, classType: ClassType): void {
         // clear the current list ...
         this.inferenceRules.splice(0, this.inferenceRules.length);
         this.validationRules.splice(0, this.validationRules.length);
@@ -305,6 +300,16 @@ export class ClassTypeInitializer<LanguageType> extends TypeInitializer<ClassTyp
                 // boundToType: ... this property will be specified outside of this method
             },
         };
+    }
+
+    protected registerRules(classType: ClassType | undefined): void {
+        this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, classType)));
+        this.validationRules.forEach(rule => this.services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, classType)));
+    }
+
+    protected deregisterRules(classType: ClassType | undefined): void {
+        this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, classType)));
+        this.validationRules.forEach(rule => this.services.validation.Collector.removeValidationRule(rule.rule, optionsBoundToType(rule.options, classType)));
     }
 
 }

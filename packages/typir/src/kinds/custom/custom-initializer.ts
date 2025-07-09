@@ -147,8 +147,6 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
         }
     }
 
-    // TODO dieses Design für Class and Functions genau so umsetzen/angleichen
-
     protected registerRules(customType: CustomType<Properties, LanguageType> | undefined): void {
         this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, customType)));
         this.validationRules.forEach(rule => this.services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, customType)));
