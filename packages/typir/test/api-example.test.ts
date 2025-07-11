@@ -4,8 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-/* eslint-disable @typescript-eslint/parameter-properties */
-
 import { describe, expect, test } from 'vitest';
 import { InferenceRuleNotApplicable } from '../src/services/inference.js';
 import { InferOperatorWithMultipleOperands } from '../src/services/operator.js';

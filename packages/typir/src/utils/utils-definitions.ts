@@ -135,11 +135,24 @@ export interface InferCurrentTypeRule<TypeType extends Type, LanguageType, T ext
      * This validation is specific for this inference rule and this inferred type.
      */
     validation?: InferCurrentTypeValidationRule<TypeType, LanguageType, T> | Array<InferCurrentTypeValidationRule<TypeType, LanguageType, T>>;
+
+    skipThisRuleIfThisTypeAlreadyExists?: boolean | ((existingType: TypeType) => boolean); // default is false
 }
 
 export type InferCurrentTypeValidationRule<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType> =
     (languageNode: T, inferredType: TypeType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
 
+
+export function skipInferenceRuleForExistingType<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType>(
+    inferenceRule: InferCurrentTypeRule<TypeType, LanguageType, T>, newType: TypeType, existingType: TypeType
+): boolean {
+    if (newType !== existingType) {
+        const skipRuleForExisting = inferenceRule.skipThisRuleIfThisTypeAlreadyExists;
+        // don't create (additional) rules for the already existing type
+        return skipRuleForExisting === true || (typeof skipRuleForExisting === 'function' && skipRuleForExisting(existingType) === true);
+    }
+    return false;
+}
 
 function checkRule<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType>(rule: InferCurrentTypeRule<TypeType, LanguageType, T>): void {
     if (rule.languageKey === undefined && rule.filter === undefined && rule.matching === undefined) {

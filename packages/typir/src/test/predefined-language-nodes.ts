@@ -8,8 +8,6 @@ import { DefaultLanguageService } from '../services/language.js';
 import { InferOperatorWithMultipleOperands } from '../services/operator.js';
 import { DefaultTypeConflictPrinter } from '../services/printing.js';
 
-/* eslint-disable @typescript-eslint/parameter-properties */
-
 /**
  * Base class for all language nodes,
  * which are predefined for test cases.
@@ -160,5 +158,9 @@ export class TestProblemPrinter extends DefaultTypeConflictPrinter<TestLanguageN
 export class TestLanguageService extends DefaultLanguageService<TestLanguageNode> {
     override getLanguageNodeKey(languageNode: TestLanguageNode): string | undefined {
         return languageNode.constructor.name;
+    }
+
+    override isLanguageNode(node: TestLanguageNode): node is TestLanguageNode {
+        return node instanceof TestLanguageNode;
     }
 }

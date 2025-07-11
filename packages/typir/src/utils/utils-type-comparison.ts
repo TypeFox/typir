@@ -41,6 +41,7 @@ export interface ValueConflict extends TypirProblem {
     firstValue: string | undefined;
     secondValue: string | undefined;
     location: string;
+    subProblems?: TypirProblem[];
 }
 export const ValueConflict = 'ValueConflict';
 export function isValueConflict(problem: unknown): problem is ValueConflict {
@@ -53,8 +54,8 @@ export function checkValueForConflict<T>(first: T, second: T, location: string,
     if (relationToCheck(first, second) === false) {
         conflicts.push({
             $problem: ValueConflict,
-            firstValue: `${first}`,
-            secondValue: `${second}`,
+            firstValue: String(first),
+            secondValue: String(second),
             location
         });
     }

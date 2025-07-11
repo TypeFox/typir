@@ -13,8 +13,8 @@ import { assertTrue, assertUnreachable } from '../../utils/utils.js';
 import { FunctionKind, FunctionTypeDetails, isFunctionKind } from './function-kind.js';
 
 export interface ParameterDetails {
-    name: string;
-    type: TypeReference<Type>;
+    readonly name: string;
+    readonly type: TypeReference<Type>;
 }
 
 export class FunctionType extends Type {

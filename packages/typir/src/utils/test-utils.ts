@@ -34,7 +34,7 @@ export function expectTypirTypes<LanguageType>(services: TypirServices<LanguageT
     return types;
 }
 
-export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails: (t: T) => boolean): void {
+export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails: (t: T) => boolean): asserts type is T {
     if (checkType(type)) {
         if (checkDetails(type)) {
             // everything is fine
@@ -248,7 +248,7 @@ export function createTypirServicesForTesting(
     customizationForTesting: Module<TypirServices<TestLanguageNode>, PartialTypirServices<TestLanguageNode>> = {},
 ): TypirServices<TestLanguageNode> {
     return createTypirServices<TestLanguageNode>(
-        createDefaultTypirServicesModule(),              // all default core implementations
+        createDefaultTypirServicesModule(),             // all default core implementations
         {                                               // override some default implementations:
             Printer: () => new TestProblemPrinter(),    // use the dedicated printer for TestLanguageNode's
             Language: () => new TestLanguageService(),  // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)

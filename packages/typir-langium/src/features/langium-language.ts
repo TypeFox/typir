@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AbstractAstReflection, AstNode } from 'langium';
+import { AbstractAstReflection, AstNode, isAstNode } from 'langium';
 import { DefaultLanguageService, LanguageService, removeFromArray } from 'typir';
 
 /**
@@ -51,6 +51,10 @@ export class LangiumLanguageService extends DefaultLanguageService<AstNode> impl
             }
         }
         return this.superKeys.get(languageKey) ?? [];
+    }
+
+    override isLanguageNode(node: unknown): node is AstNode {
+        return isAstNode(node);
     }
 
 }

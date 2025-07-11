@@ -289,6 +289,11 @@ export abstract class Type {
         this.waitForIdentifiable.deconstruct();
         this.waitForCompleted.deconstruct();
         this.waitForInvalid.deconstruct();
+        // edges are already removed, when the type is removed from the graph,
+        //  but in some cases, the type was not (yet) added to the graph, but got already edges => these edges need to be removed now
+        //  e.g. "duplicated" types which are created and disposed by TypeInitializers
+        this.edgesIncoming.clear();
+        this.edgesOutgoing.clear();
     }
 
     protected switchFromInvalidToIdentifiable(): void {

@@ -4,6 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { Type } from '../graph/type-node.js';
+import { TypeInitializer } from '../initialization/type-initializer.js';
+import { TypeReference } from '../initialization/type-reference.js';
+import { isKind } from '../kinds/kind.js';
+
 /**
  * This services provides some static information about the language/DSL, for which the type system is created.
  *
@@ -40,6 +45,8 @@ export interface LanguageService<LanguageType> {
      * @returns the list does not contain the given language key itself
      */
     getAllSuperKeys(languageKey: string): string[];
+
+    isLanguageNode(node: unknown): node is LanguageType;
 }
 
 
@@ -60,4 +67,14 @@ export class DefaultLanguageService<LanguageType> implements LanguageService<Lan
         return [];
     }
 
+    isLanguageNode(node: unknown): node is LanguageType {
+        // explicitly check for some common TypeSelectors
+        if (typeof node === 'function') {
+            return false;
+        }
+        if (node instanceof TypeReference || node instanceof TypeInitializer || node instanceof Type || isKind(node)) {
+            return false;
+        }
+        return true; // this is very weak, provide more advanced implementations for your current language (workbench)!
+    }
 }

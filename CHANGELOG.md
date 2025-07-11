@@ -2,6 +2,7 @@
 
 We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
+For each minor and major version, there is a corresponding [milestone on GitHub](https://github.com/TypeFox/typir/milestones).
 
 ## v0.3.0 (2025-??-??)
 
@@ -14,12 +15,43 @@ Note that the versions "0.x.0" probably will include breaking changes.
 - Fixed the implementation for merging modules for dependency injection, it is exactly the same fix from [Langium](https://github.com/eclipse-langium/langium/pull/1939), since we reused its DI implementation (#79).
 
 
+## v0.3.0 (2025-??-??)
+
+[Linked issues and PRs for v0.3.0](https://github.com/TypeFox/typir/milestone/4)
+
+### New features
+
+- New API to support custom types, i.e. types which are not predefined by Typir, but are created by users of Typir and tailored to the current language (#73):
+  - Supports custom properties with arrays, sets, maps, primitives and types
+  - Create a new `CustomKind` and use it to create corresponding `CustomType`s, which support the desired custom properties in TypeScript-safe way
+  - Type-specific names, user representations, inference rules and validation rules
+  - Specific rules for conversion and sub-type which are applied to all custom types
+  - Builtin support for dependencies between probably delayed (custom) types and unique custom types
+  - See some examples in `packages/typir/test/kinds/custom/custom-matrix.test.ts` and `packages/typir/test/kinds/custom/custom-restricted.test.ts`
+- If you try to create a function type, class type or custom type a second time, the existing implementation already ensured, that the already existing type is reused and no new type is created (#73):
+  - For the type-specific inference rules, there is now an additional property `skipThisRuleIfThisTypeAlreadyExists` (in `InferCurrentTypeRule`) to control, whether these given inference rules for the "second new type" should be added to the existing type or whether they should be skipped.
+  - The default value is `false`, meaning that these type-specific inference (and validation) rules are attached to the existing type. That conforms to the behaviour before introducing this new property.
+- ...
+
+### Breaking changes
+
+- ...
+
+### Fixed bugs
+
+- Clear edges from invalid types, which are never added into the type graph (#73)
+- The properties of all types are `readonly` now (#73)
+- ...
+
+
 ## v0.2.1 (2025-04-09)
 
 - Export `test-utils.ts` which are using `vitest` via the new namespace `'typir/test'` in order to not pollute production code with vitest dependencies (#68)
 
 
 ## v0.2.0 (2025-03-31)
+
+[Linked issues and PRs for v0.2.0](https://github.com/TypeFox/typir/milestone/3)
 
 ### New features
 
@@ -91,7 +123,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 This is the first official release of Typir.
 It serves as first version to experiment with Typir and to gather feedback to guide and improve the upcoming versions. We are looking forward to your feedback!
 
-- [Linked issues and PRs](https://github.com/TypeFox/typir/milestone/2)
+- [Linked issues and PRs for v0.1.0](https://github.com/TypeFox/typir/milestone/2)
 - Core implementations of the following [type-checking services](./packages/typir/src/services/):
   - Assignability
   - Equality

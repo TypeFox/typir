@@ -39,7 +39,7 @@ export class TypeGraph {
             if (this.nodes.get(mapKey) === type) {
                 // this type is already registered => that is OK
             } else {
-                throw new Error(`Names of types must be unique: ${mapKey}`);
+                throw new Error(`There is already a type with the identifier '${mapKey}'.`);
             }
         } else {
             this.nodes.set(mapKey, type);
@@ -121,8 +121,11 @@ export class TypeGraph {
 
     // register listeners for changed types/edges in the type graph
 
-    addListener(listener: TypeGraphListener): void {
+    addListener(listener: TypeGraphListener, options?: { callOnAddedForAllExisting: boolean }): void {
         this.listeners.push(listener);
+        if (options?.callOnAddedForAllExisting && listener.onAddedType) {
+            this.nodes.forEach((type, key) => listener.onAddedType!.call(listener, type, key));
+        }
     }
     removeListener(listener: TypeGraphListener): void {
         removeFromArray(listener, this.listeners);

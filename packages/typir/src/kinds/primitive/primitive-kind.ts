@@ -59,7 +59,7 @@ export class PrimitiveKind<LanguageType> implements Kind, PrimitiveFactoryServic
     }
 
     create(typeDetails: PrimitiveTypeDetails<LanguageType>): PrimitiveConfigurationChain<LanguageType> {
-        assertTrue(this.get(typeDetails) === undefined); // ensure that the type is not created twice
+        assertTrue(this.get(typeDetails) === undefined, `There is already a primitive type with name '${typeDetails.primitiveName}'.`); // ensure that the type is not created twice
         return new PrimitiveConfigurationChainImpl(this.services, this, typeDetails);
     }
 
