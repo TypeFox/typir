@@ -7,7 +7,6 @@
 import { Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { TypeReference } from '../initialization/type-reference.js';
-import { isKind } from '../kinds/kind.js';
 
 /**
  * This services provides some static information about the language/DSL, for which the type system is created.
@@ -72,7 +71,7 @@ export class DefaultLanguageService<LanguageType> implements LanguageService<Lan
         if (typeof node === 'function') {
             return false;
         }
-        if (node instanceof TypeReference || node instanceof TypeInitializer || node instanceof Type || isKind(node)) {
+        if (node instanceof TypeReference || node instanceof TypeInitializer || node instanceof Type) {
             return false;
         }
         return true; // this is very weak, provide more advanced implementations for your current language (workbench)!
