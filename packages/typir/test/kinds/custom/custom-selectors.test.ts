@@ -11,7 +11,7 @@ import { TestExpressionNode, TestLanguageNode } from '../../../src/test/predefin
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting } from '../../../src/utils/test-utils.js';
 
-// These test cases test, that all possible TypeSelectors work for custom types.
+// These test cases test that all possible TypeSelectors work for custom types.
 
 export type MyCustomProperties = {
     dependsOnType?: CustomType<MyCustomProperties, TestLanguageNode>;

@@ -57,7 +57,7 @@ In the example above, calling `matrix2x3.properties.width` is supported by auto-
 ### Uniqueness
 
 Typir ensures uniqueness for custom types.
-Two custom types are unique, if their identifiers are the same (this counts for any type, not only for custom types).
+Two custom types are identical, if their identifiers are the same (this counts for any type, not only for custom types).
 The default implementation calculates the identifier by concatenating the values of all properties.
 
 ### Circular dependencies

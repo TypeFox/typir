@@ -20,7 +20,7 @@ import { assertTypirType } from '../../../src/utils/utils.js';
  * The custom type called "Matrix" represents a two-dimensional array of primitive types.
  * Known from mathematics, the "width" represents the number of columns and the "height" the number of row of a matrix.
  *
- * This TypeScript type specifies the properties of the the Typir types which represent "matrices".
+ * This TypeScript type specifies the properties of the Typir types which represent "matrices".
  */
 export type MatrixType = { // "interface" instead of "type" does not work!
     baseType: PrimitiveType;

@@ -18,7 +18,7 @@ import { createTypirServicesForTesting, expectToBeType } from '../../../src/util
  * The custom type called "RestrictedInteger" represents a primitive integer type with an upper bound,
  * i.e. it looks like usual integers, but integer values/literals higher than the upper bound cannot be assigned to the restricted integer.
  *
- * This TypeScript type specifies the properties of the the Typir types which represent "restricted integers".
+ * This TypeScript type specifies the properties of the Typir types which represent "restricted integers".
  */
 export type RestrictedInteger = {
     upperBound: number;

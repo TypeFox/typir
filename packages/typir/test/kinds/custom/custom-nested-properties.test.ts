@@ -12,7 +12,7 @@ import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting } from '../../../src/utils/test-utils.js';
 
-// These test cases test, that nesting of properties for custom types is possible (including recursion).
+// These test cases test that nesting of properties for custom types is possible (including recursion).
 
 export type NestedProperty = {
     myBool: boolean;
@@ -58,7 +58,7 @@ describe('Check that nested properties for custom types work', () => {
         const customKind = new CustomKind<Properties, TestLanguageNode>(typir, {
             name: 'MyCustom',
             /** Compared with the test case above, this calculation creates the same identifiers, since it does not take the deeper nesting into account.
-             * For these independent test cases, this is now problem.
+             * For these independent test cases, this is no problem.
              * But if both kinds are used together in the same Typir instance, the calculation of type identifiers need to be different for both kinds in order to produce unique identifiers.
              */
             calculateTypeIdentifier: properties => `mycustom-${properties.nested.deeper.myBool}-${typir.infrastructure.TypeResolver.resolve(properties.nested.deeper.myType).getIdentifier()}`,
