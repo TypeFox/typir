@@ -21,7 +21,7 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         const classB = typir.factory.Classes.create({ className: 'B', fields: [], methods: [], superClasses: [] }).finish().getTypeFinal()!;
         expectToBeType(classA, isClassType, type => type.className === 'A');
         expectToBeType(classB, isClassType, type => type.className === 'B');
-        // Not more than 1 super-class are allowed:
+        // Not more than 1 super-class is allowed:
         expect(() => typir.factory.Classes.create({ className: 'C', fields: [], methods: [], superClasses: [classA, classB] }).finish())
             .toThrowError('Only 1 super-class is allowed.');
     });
