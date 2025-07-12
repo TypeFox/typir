@@ -305,6 +305,8 @@ describe('Tests simple custom types for Matrix types', () => {
  * [ 1, 2, 3;
  *   4, 5, 6 ]
  * They are similar to array literals in usual programming languages.
+ *
+ * To keep the example more clear, this new literal is not registered in the TestLanguageService (see custom-example-restricted.test.ts for a corresponding example).
  */
 class MatrixLiteral extends TestExpressionNode {
     constructor(

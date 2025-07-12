@@ -24,7 +24,7 @@ export abstract class TestLanguageNode {
         const properties = Object.entries(obj)
             .map((key, value) => `${key}: ${this.printObject(value)}`)
             .join(', ');
-        return `${this.constructor.name}(${properties})`;
+        return `${this}(${properties})`;
     }
 
     protected printObject(obj: unknown): string {
@@ -156,8 +156,66 @@ export class TestProblemPrinter extends DefaultTypeConflictPrinter<TestLanguageN
 }
 
 export class TestLanguageService extends DefaultLanguageService<TestLanguageNode> {
+    protected subKeys: Map<string, string[]> = new Map(); // key => all its direct sub-keys
+    protected superKeys: Map<string, string[]> = new Map(); // key => all its direct super-keys
+
+    constructor(subSuper: Array<{ superKey: string, subKey: string}> = []) {
+        super();
+        this.registerSubSuperRelationship('TestLanguageNode', 'Variable');
+        this.registerSubSuperRelationship('TestLanguageNode', 'TestExpressionNode');
+        this.registerSubSuperRelationship('TestLanguageNode', 'TestStatementNode');
+        this.registerSubSuperRelationship('TestExpressionNode', 'IntegerLiteral');
+        this.registerSubSuperRelationship('TestExpressionNode', 'DoubleLiteral');
+        this.registerSubSuperRelationship('TestExpressionNode', 'BooleanLiteral');
+        this.registerSubSuperRelationship('TestExpressionNode', 'StringLiteral');
+        this.registerSubSuperRelationship('TestExpressionNode', 'ClassConstructorCall');
+        this.registerSubSuperRelationship('TestExpressionNode', 'ClassFieldAccess');
+        this.registerSubSuperRelationship('TestExpressionNode', 'BinaryExpression');
+        this.registerSubSuperRelationship('TestStatementNode', 'AssignmentStatement');
+        this.registerSubSuperRelationship('TestStatementNode', 'StatementBlock');
+        subSuper.forEach(entry => this.registerSubSuperRelationship(entry.superKey, entry.subKey));
+    }
+
     override getLanguageNodeKey(languageNode: TestLanguageNode): string | undefined {
         return languageNode.constructor.name;
+    }
+
+    protected registerSubSuperRelationship(superKey: string, subKey: string): void {
+        this.addKeyValue(subKey, superKey, this.superKeys);
+        this.addKeyValue(superKey, subKey, this.subKeys);
+    }
+    protected addKeyValue(key: string, value: string, map: Map<string, string[]>): void {
+        let entries = map.get(key);
+        if (entries === undefined) {
+            entries = [];
+            map.set(key, entries);
+        }
+        entries.push(value);
+    }
+
+    override getAllSubKeys(languageKey: string): string[] {
+        return this.getTransitiveKeys(languageKey, this.subKeys);
+    }
+
+    override getAllSuperKeys(languageKey: string): string[] {
+        return this.getTransitiveKeys(languageKey, this.superKeys);
+    }
+
+    protected getTransitiveKeys(languageKey: string, map: Map<string, string[]>): string[] {
+        const result: Set<string> = new Set();
+        const toCheck: string[] = [languageKey];
+        while (toCheck.length >= 1) {
+            const current = toCheck.splice(0, 1)[0];
+            for (const next of map.get(current) ?? []) {
+                if (result.has(next)) {
+                    // already collected => nothing to do
+                } else {
+                    result.add(next);
+                    toCheck.push(next);
+                }
+            }
+        }
+        return Array.from(result);
     }
 
     override isLanguageNode(node: TestLanguageNode): node is TestLanguageNode {

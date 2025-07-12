@@ -38,6 +38,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 - Clear edges from invalid types, which are never added into the type graph (#73)
 - The properties of all types are `readonly` now (#73)
 - The logic to ensure that types are not created multiple times needs to check that the kind of the types is the same. Otherwise a collision of duplicated identifiers of types needs to be reported (#78).
+- Specified sub-super-relationships of language keys for the predefined test fixtures in `predefined-language-nodes.ts` (#78)
 - Fixed the implementation for merging modules for dependency injection (DI), it is exactly the same fix from [Langium](https://github.com/eclipse-langium/langium/pull/1939), since we reused its DI implementation (#79).
 
 
