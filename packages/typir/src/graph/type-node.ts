@@ -6,7 +6,7 @@
 
 import { TypeReference } from '../initialization/type-reference.js';
 import { WaitingForIdentifiableAndCompletedTypeReferences, WaitingForInvalidTypeReferences } from '../initialization/type-waiting.js';
-import { Kind, isKind } from '../kinds/kind.js';
+import { Kind } from '../kinds/kind.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { assertTrue, assertUnreachable, removeFromArray } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
@@ -410,7 +410,7 @@ export abstract class Type {
 }
 
 export function isType(type: unknown): type is Type {
-    return typeof type === 'object' && type !== null && typeof (type as Type).getIdentifier === 'function' && isKind((type as Type).kind);
+    return typeof type === 'object' && type !== null && typeof (type as Type).getIdentifier === 'function' && typeof (type as Type).kind === 'object';
 }
 
 

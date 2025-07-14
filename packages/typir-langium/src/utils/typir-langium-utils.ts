@@ -25,8 +25,8 @@ export async function deleteAllDocuments(services: LangiumSharedCoreServices) {
         .map((x) => x.uri)
         .toArray();
     await services.workspace.DocumentBuilder.update(
-        [], // update no documents
-        docsToDelete // delete all documents
+        [],             // update no documents, but ...
+        docsToDelete    // delete all documents
     );
 }
 

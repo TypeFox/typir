@@ -119,7 +119,10 @@ export class ClassType extends Type {
                 // check number of allowed super classes
                 if (this.kind.options.maximumNumberOfSuperClasses >= 0) {
                     if (this.kind.options.maximumNumberOfSuperClasses < this.getDeclaredSuperClasses().length) {
-                        throw new Error(`Only ${this.kind.options.maximumNumberOfSuperClasses} super-classes are allowed.`);
+                        throw new Error(this.kind.options.maximumNumberOfSuperClasses === 1
+                            ? 'Only 1 super-class is allowed.'
+                            : `Only ${this.kind.options.maximumNumberOfSuperClasses} super-classes are allowed.`
+                        );
                     }
                 }
             },

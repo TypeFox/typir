@@ -30,6 +30,8 @@ Each type system, i.e. each instance of the `TypirServices`, has one type graph:
 - services
 - (default) implementations
 - Typir module in `typir.ts`: assembles services and implementations
+  - It is possible to group services
+  - Names of services start with an uppercase letter, names of groups start with a lowercase letter
 - Dependency injection (DI)
 
 
