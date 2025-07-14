@@ -4,16 +4,6 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 For each minor and major version, there is a corresponding [milestone on GitHub](https://github.com/TypeFox/typir/milestones).
 
-## v0.3.0 (2025-??-??)
-
-### New features
-
-- New example how to use Typir (core) for a simple expression language with a handwritten parser (#59)
-
-## Fixed bugs
-
-- Fixed the implementation for merging modules for dependency injection, it is exactly the same fix from [Langium](https://github.com/eclipse-langium/langium/pull/1939), since we reused its DI implementation (#79).
-
 
 ## v0.3.0 (2025-??-??)
 
@@ -21,6 +11,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 ### New features
 
+- New example how to use Typir (core) for a simple expression language with a handwritten parser (#59)
 - New API to support custom types, i.e. types which are not predefined by Typir, but are created by users of Typir and tailored to the current language (#73):
   - Supports custom properties with arrays, sets, maps, primitives and types
   - Create a new `CustomKind` and use it to create corresponding `CustomType`s, which support the desired custom properties in TypeScript-safe way
@@ -31,7 +22,12 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 - If you try to create a function type, class type or custom type a second time, the existing implementation already ensured, that the already existing type is reused and no new type is created (#73):
   - For the type-specific inference rules, there is now an additional property `skipThisRuleIfThisTypeAlreadyExists` (in `InferCurrentTypeRule`) to control, whether these given inference rules for the "second new type" should be added to the existing type or whether they should be skipped.
   - The default value is `false`, meaning that these type-specific inference (and validation) rules are attached to the existing type. That conforms to the behaviour before introducing this new property.
-- ...
+- Create Typir services with additional services, which are specific for the current application (#78):
+  - Typir core: `createTypirServicesWithAdditionalServices<..., AdditionalServices>(Module<AdditionalServices>, ...)`, see `customization-example.test.ts` for examples and explanations
+  - Typir-Langium: `createTypirLangiumServicesWithAdditionalServices<..., AdditionalServices>(..., Module<AdditionalServices>, ...)` works in the same way
+  - Internal testing in Typir (core): `createTypirServicesForTestingWithAdditionalServices<AdditionalServices>(Module<AdditionalServices>, ...)`
+- The `$name`s of kinds/factories are configurable now (#78).
+- Typir-Langium: The Langium services are stored in the `TypirLangiumAddedServices` now as `services.langium.LangiumServices` in order to make them available for all Typir services (#78).
 
 ### Breaking changes
 
@@ -41,22 +37,8 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 - Clear edges from invalid types, which are never added into the type graph (#73)
 - The properties of all types are `readonly` now (#73)
-- ...
-
-
-## v0.3.0 (2025-??-??)
-
-### New features
-
-- Create Typir services with additional services, which are specific for the current application:
-  - Typir core: `createTypirServicesWithAdditionalServices<..., AdditionalServices>(Module<AdditionalServices>, ...)`, see `customization-example.test.ts` for examples and explanations
-  - Typir-Langium: `createTypirLangiumServicesWithAdditionalServices<..., AdditionalServices>(..., Module<AdditionalServices>, ...)` works in the same way
-- The `$name`s of kinds are configurable now.
-- Typir-Langium: The Langium services are stored in the `TypirLangiumAddedServices` now as `services.langium.LangiumServices` in order to make them available for all Typir services.
-
-### Fixed bugs
-
-- The logic to ensure that types are not created multiple times needs to check that the kind of the types is the same. Otherwise a collision of duplicated identifiers of types needs to be reported.
+- The logic to ensure that types are not created multiple times needs to check that the kind of the types is the same. Otherwise a collision of duplicated identifiers of types needs to be reported (#78).
+- Fixed the implementation for merging modules for dependency injection (DI), it is exactly the same fix from [Langium](https://github.com/eclipse-langium/langium/pull/1939), since we reused its DI implementation (#79).
 
 
 ## v0.2.1 (2025-04-09)
