@@ -20,8 +20,8 @@ import { LangiumAstTypes } from './utils/typir-langium-utils.js';
  */
 export type TypirLangiumAddedServices<AstTypes extends LangiumAstTypes> = {
     readonly Inference: LangiumTypeInferenceCollector<AstTypes>; // concretizes the TypeInferenceCollector for Langium
-    readonly langium: { // new services which are specific for Langium
-        readonly LangiumServices: LangiumSharedCoreServices; // store the Langium services to make them usable for all Typir services
+    readonly langium: { // all new services which are specific for Langium
+        readonly LangiumServices: LangiumSharedCoreServices; // store the Langium services to make them available for all Typir services
         readonly TypeCreator: LangiumTypeCreator;
         readonly TypeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>;
     };
@@ -121,7 +121,7 @@ export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
  * @param langiumServices Typir-Langium needs to interact with the Langium lifecycle
  * @param reflection Typir-Langium needs to know the existing AstNode$.types in order to do some performance optimizations
  * @param typeSystemDefinition the actual definition of the type system
- * @param moduleForAdditionalServices contains configurations for all added services
+ * @param moduleForAdditionalServices contains the configurations for all added services
  * @param customization1 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for production
  * @param customization2 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
  * @param customization3 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing

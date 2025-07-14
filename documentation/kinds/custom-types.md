@@ -23,8 +23,8 @@ Then you create a new factory for these matrix types:
 ```typescript
 const matrixFactory = new CustomKind<MatrixType, TestLanguageNode>(typir, {
     name: 'Matrix',
+    // ... here you can specify some optional rules for type names, conversion, sub-types, ... for all matrix types:
     calculateTypeName: properties => `My${properties.width}x${properties.height}Matrix`,
-    // ... here you can specify additional rules for conversion, sub-types, ... for all matrix types ...
 });
 ```
 
@@ -37,6 +37,28 @@ const matrix2x3 = matrixFactory
 ```
 
 See `custom-example-restricted.test.ts` for another application example.
+
+In order to provide the matrix factory like the other predefined factories for primitives, functions and so on,
+read the [section about customization](../customization.md), summarized as follows:
+
+```typescript
+// define your custom factory as additional Typir service
+type AdditionalMatrixTypirServices = {
+    readonly factory: {
+        readonly Matrix: CustomKind<MatrixType, TestLanguageNode>;
+    }
+}
+
+// specify the additional services as TypeScript generic when initializing the Typir services and provide the custom factory
+const typir = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalMatrixTypirServices>({
+    factory: {
+        Matrix: services => new CustomKind<MatrixType, TestLanguageNode>(services, { ... })
+    }
+});
+
+// now the custom matrix factory is usable like the predefined factories
+typir.factory.Matrix.create({ ... }).finish().getTypeFinal()!;
+```
 
 
 ## Features
@@ -90,5 +112,6 @@ See `custom-independent.test.ts` for an example.
 
 - You cannot use simple string values for `TypeSelector`s (in order to specify custom properties of type `Type`), since they cannot be distinguished from string values for primitive custom properties.
   Therefore, only the restricted `TypeSelectorForCustomTypes` is supported by custom types instead of the usual `TypeSelector`.
+  As a workaround for the identifier `'MyIdentifier'`, use `() => 'MyIdentifier'` instead.
 - Even if your custom type does not depend on other types or if you know, that the types your custom type depends on are already available,
   you need to call `getTypeFinal()`, e.g. `const myCustomType = customKind.create({...}).finish().getTypeFinal()!;`.
