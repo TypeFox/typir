@@ -1,7 +1,9 @@
 <div id="typir-logo" align="center">
-  <a href="https://github.com/TypeFox/typir">
-    <img alt="Typir logo including the name 'typir' and a stylised tapir" width="40%" max-width="100%" height="auto" src="./resources/logo/logo-black.svg#svgView(viewBox(180, 200, 280, 397))">
-  </a>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./resources/logo/logo-white.svg" sizes="40vw"/>
+    <source media="(prefers-color-scheme: light)" srcset="./resources/logo/logo-black.svg" sizes="40vw"/>
+    <img alt="Typir logo including the name 'typir' and a stylised tapir" src="./resources/logo/logo-black.svg" width="40%"/>
+  </picture>
   <h3>
     the library for type systems and type checking for software languages in the web
   </h3>
