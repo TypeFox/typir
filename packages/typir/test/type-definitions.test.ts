@@ -66,27 +66,27 @@ describe('Tests for Typir', () => {
         }).finish();
 
         // binary operators on Integers
-        const opAdd = typir.factory.Operators.createBinary({ name: '+', signature: { left: typeInt, right: typeInt, return: typeInt } }).finish();
-        const opMinus = typir.factory.Operators.createBinary({ name: '-', signature: { left: typeInt, right: typeInt, return: typeInt } }).finish();
-        const opLess = typir.factory.Operators.createBinary({ name: '<', signature: { left: typeInt, right: typeInt, return: typeBoolean } }).finish();
-        const opEqualInt = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeInt, right: typeInt, return: typeBoolean } })
+        const opAdd = typir.factory.Operators.createBinary({ name: '+' }).signature({ left: typeInt, right: typeInt, return: typeInt }).finish();
+        const opMinus = typir.factory.Operators.createBinary({ name: '-' }).signature({ left: typeInt, right: typeInt, return: typeInt }).finish();
+        const opLess = typir.factory.Operators.createBinary({ name: '<' }).signature({ left: typeInt, right: typeInt, return: typeBoolean }).finish();
+        const opEqualInt = typir.factory.Operators.createBinary({ name: '==' }).signature({ left: typeInt, right: typeInt, return: typeBoolean })
             .inferenceRule({
                 filter: (languageNode): languageNode is string => typeof languageNode === 'string',
                 matching: languageNode => languageNode.includes('=='),
                 operands: languageNode => []
             }).finish();
         // binary operators on Booleans
-        const opEqualBool = typir.factory.Operators.createBinary({ name: '==', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } }).finish();
-        const opAnd = typir.factory.Operators.createBinary({ name: '&&', signature: { left: typeBoolean, right: typeBoolean, return: typeBoolean } }).finish();
+        const opEqualBool = typir.factory.Operators.createBinary({ name: '==' }).signature({ left: typeBoolean, right: typeBoolean, return: typeBoolean }).finish();
+        const opAnd = typir.factory.Operators.createBinary({ name: '&&' }).signature({ left: typeBoolean, right: typeBoolean, return: typeBoolean }).finish();
         // unary operators
-        const opNotBool = typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBoolean, return: typeBoolean } })
+        const opNotBool = typir.factory.Operators.createUnary({ name: '!' }).signature({ operand: typeBoolean, return: typeBoolean })
             .inferenceRule({
                 filter: (languageNode): languageNode is string => typeof languageNode === 'string',
                 matching: languageNode => languageNode.includes('NOT'),
                 operand: languageNode => []
             }).finish();
         // ternary operator
-        const opTernaryIf = typir.factory.Operators.createTernary({ name: 'if', signature: { first: typeBoolean, second: typeInt, third: typeInt, return: typeInt } }).finish();
+        const opTernaryIf = typir.factory.Operators.createTernary({ name: 'if' }).signature({ first: typeBoolean, second: typeInt, third: typeInt, return: typeInt }).finish();
 
         // automated conversion from int to string
         typir.Conversion.markAsConvertible(typeInt, typeString, 'EXPLICIT');

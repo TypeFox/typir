@@ -37,7 +37,7 @@ export const FunctionKindName = 'FunctionKind';
 
 export interface CreateParameterDetails<LanguageType> {
     name: string;
-    type: TypeSelector<Type, LanguageType>;
+    type: TypeSelector<Type, LanguageType>; // TODO Type => boolean; specify optional identifier?
 }
 
 export interface FunctionTypeDetails<LanguageType> extends TypeDetails<LanguageType> {

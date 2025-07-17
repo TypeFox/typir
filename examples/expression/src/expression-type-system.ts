@@ -27,9 +27,9 @@ export function initializeTypir() {
         validateArgumentsOfCalls: true,
     };
     for (const operator of ['+', '-', '/', '*', '%']) {
-        typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber } }).inferenceRule(binaryInferenceRule).finish();
+        typir.factory.Operators.createBinary({ name: operator }).signature({ left: typeNumber, right: typeNumber, return: typeNumber }).inferenceRule(binaryInferenceRule).finish();
     }
-    typir.factory.Operators.createBinary({ name: '+', signature: { left: typeString, right: typeString, return: typeString } }).inferenceRule(binaryInferenceRule).finish();
+    typir.factory.Operators.createBinary({ name: '+' }).signature({ left: typeString, right: typeString, return: typeString }).inferenceRule(binaryInferenceRule).finish();
 
     const unaryInferenceRule: InferOperatorWithSingleOperand<Node, UnaryExpression> = {
         filter: isUnaryExpression,
@@ -37,8 +37,8 @@ export function initializeTypir() {
         operand: (node: UnaryExpression, _name: string) => node.operand,
         validateArgumentsOfCalls: true,
     };
-    typir.factory.Operators.createUnary({ name: '+', signature: { operand: typeNumber, return: typeNumber } }).inferenceRule(unaryInferenceRule).finish();
-    typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber } }).inferenceRule(unaryInferenceRule).finish();
+    typir.factory.Operators.createUnary({ name: '+' }).signature({ operand: typeNumber, return: typeNumber }).inferenceRule(unaryInferenceRule).finish();
+    typir.factory.Operators.createUnary({ name: '-' }).signature({ operand: typeNumber, return: typeNumber }).inferenceRule(unaryInferenceRule).finish();
 
     typir.factory.Functions.create({
         functionName: 'print',

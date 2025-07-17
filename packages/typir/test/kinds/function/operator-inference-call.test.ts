@@ -27,12 +27,14 @@ describe('Tests some special cases for (overloaded) operator calls', () => {
 
             // + operator: is overloaded
             // integers, without arguments
-            typir.factory.Operators.createBinary({ name: '+', signature: { left: integerType, right: integerType, return: integerType }})
+            typir.factory.Operators.createBinary({ name: '+' })
+                .signature({ left: integerType, right: integerType, return: integerType })
                 .inferenceRule({ ...InferenceRuleBinaryExpression, operands: () => []})
                 // .inferenceRule(inferenceRule)
                 .finish();
             // strings, with arguments
-            typir.factory.Operators.createBinary({ name: '+', signature: { left: stringType, right: stringType, return: stringType }})
+            typir.factory.Operators.createBinary({ name: '+' })
+                .signature({ left: stringType, right: stringType, return: stringType })
                 .inferenceRule(InferenceRuleBinaryExpression)
                 .finish();
         });
@@ -57,12 +59,14 @@ describe('Tests some special cases for (overloaded) operator calls', () => {
 
         // + operator: is overloaded
         // integers, without arguments
-        typir.factory.Operators.createBinary({ name: '+', signature: { left: integerType, right: integerType, return: integerType }})
+        typir.factory.Operators.createBinary({ name: '+' })
+            .signature({ left: integerType, right: integerType, return: integerType })
             .inferenceRule({ ...InferenceRuleBinaryExpression, operands: () => []})
             .inferenceRule(InferenceRuleBinaryExpression) // this has a second inference rule
             .finish();
         // strings, with arguments
-        typir.factory.Operators.createBinary({ name: '+', signature: { left: stringType, right: stringType, return: stringType }})
+        typir.factory.Operators.createBinary({ name: '+' })
+            .signature({ left: stringType, right: stringType, return: stringType })
             .inferenceRule(InferenceRuleBinaryExpression)
             .finish();
 
@@ -79,14 +83,16 @@ describe('Tests some special cases for (overloaded) operator calls', () => {
 
         // + operator: is overloaded
         // integers, with validation
-        typir.factory.Operators.createBinary({ name: '+', signature: { left: integerType, right: integerType, return: integerType }})
+        typir.factory.Operators.createBinary({ name: '+' })
+            .signature({ left: integerType, right: integerType, return: integerType })
             .inferenceRule({
                 ...InferenceRuleBinaryExpression,
                 validation: (node, name, opType, accept) => accept({ languageNode: node, severity: 'error', message: `Called '${name}' with '${opType.getOutput()!.type.getName()}'.` }),
             })
             .finish();
         // strings, without validation
-        typir.factory.Operators.createBinary({ name: '+', signature: { left: stringType, right: stringType, return: stringType }})
+        typir.factory.Operators.createBinary({ name: '+' })
+            .signature({ left: stringType, right: stringType, return: stringType })
             .inferenceRule(InferenceRuleBinaryExpression)
             .finish();
 

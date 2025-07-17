@@ -33,12 +33,12 @@ describe('Multiple best matches for overloaded operators', () => {
         booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean' }).inferenceRule({ filter: node => node instanceof BooleanLiteral }).finish();
 
         // operators
-        typir.factory.Operators.createBinary({ name: '+', signatures: [ // operator overloading
-            { left: integerType, right: integerType, return: integerType }, // 2 + 3 => 5
-            { left: doubleType, right: doubleType, return: doubleType }, // 2.0 + 3.0 => 5.0
-            { left: stringType, right: stringType, return: stringType }, // "2" + "3" => "23"
-            { left: booleanType, right: booleanType, return: booleanType }, // TRUE + TRUE => FALSE
-        ] }).inferenceRule(InferenceRuleBinaryExpression).finish();
+        typir.factory.Operators.createBinary({ name: '+' }) // operator overloading
+            .signature({ left: integerType, right: integerType, return: integerType }) // 2 + 3 => 5
+            .signature({ left: doubleType, right: doubleType, return: doubleType }) // 2.0 + 3.0 => 5.0
+            .signature({ left: stringType, right: stringType, return: stringType }) // "2" + "3" => "23"
+            .signature({ left: booleanType, right: booleanType, return: booleanType }) // TRUE + TRUE => FALSE
+            .inferenceRule(InferenceRuleBinaryExpression).finish();
 
         // define relationships between types
         typir.Conversion.markAsConvertible(booleanType, integerType, 'IMPLICIT_EXPLICIT'); // integerVariable := booleanValue;

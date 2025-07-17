@@ -44,27 +44,27 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
         // define operators
         // binary operators: numbers => number
         for (const operator of ['+', '-', '*', '/']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator }).signature({ left: typeNumber, right: typeNumber, return: typeNumber }).inferenceRule(binaryInferenceRule).finish();
         }
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator }).signature({ left: typeNumber, right: typeNumber, return: typeBool }).inferenceRule(binaryInferenceRule).finish();
         }
         // binary operators: booleans => boolean
         for (const operator of ['and', 'or']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator }).signature({ left: typeBool, right: typeBool, return: typeBool }).inferenceRule(binaryInferenceRule).finish();
         }
         // ==, != for booleans and numbers
         for (const operator of ['==', '!=']) {
-            typir.factory.Operators.createBinary({ name: operator, signatures: [
-                { left: typeNumber, right: typeNumber, return: typeBool },
-                { left: typeBool, right: typeBool, return: typeBool },
-            ]}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator })
+                .signature({ left: typeNumber, right: typeNumber, return: typeBool })
+                .signature({ left: typeBool, right: typeBool, return: typeBool })
+                .inferenceRule(binaryInferenceRule).finish();
         }
 
         // unary operators
-        typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }}).inferenceRule(unaryInferenceRule).finish();
-        typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({ name: '!' }).signature({ operand: typeBool, return: typeBool }).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({ name: '-' }).signature({ operand: typeNumber, return: typeNumber }).inferenceRule(unaryInferenceRule).finish();
 
         /** Hints regarding the order of Typir configurations for OX:
          * - In general, Typir aims to not depend on the order of configurations.

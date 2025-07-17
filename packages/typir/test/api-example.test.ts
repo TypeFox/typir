@@ -25,11 +25,11 @@ describe('Tiny Typir', () => {
             operands: node => [node.left, node.right],
             validateArgumentsOfCalls: true, // explicitly request to check, that the types of the arguments in operator calls fit to the parameters
         };
-        typir.factory.Operators.createBinary({ name: '+', signatures: [ // operator overloading
-            { left: numberType, right: numberType, return: numberType }, // 2 + 3
-            { left: stringType, right: stringType, return: stringType }, // "2" + "3"
-        ] }).inferenceRule(inferenceRule).finish();
-        typir.factory.Operators.createBinary({ name: '-', signatures: [{ left: numberType, right: numberType, return: numberType }] }).inferenceRule(inferenceRule).finish(); // 2 - 3
+        typir.factory.Operators.createBinary({ name: '+' }) // operator overloading
+            .signature({ left: numberType, right: numberType, return: numberType }) // 2 + 3
+            .signature({ left: stringType, right: stringType, return: stringType }) // "2" + "3"
+            .inferenceRule(inferenceRule).finish();
+        typir.factory.Operators.createBinary({ name: '-' }).signature({ left: numberType, right: numberType, return: numberType }).inferenceRule(inferenceRule).finish(); // 2 - 3
 
         // numbers are implicitly convertable to strings
         typir.Conversion.markAsConvertible(numberType, stringType, 'IMPLICIT_EXPLICIT');

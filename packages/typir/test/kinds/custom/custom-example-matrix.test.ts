@@ -291,6 +291,60 @@ describe('Tests simple custom types for Matrix types', () => {
 
     });
 
+    test('Matrix type with matrix multiplication operator', () => {
+        const typir = createTypirServicesForTesting();
+        const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
+        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+            name: 'Matrix',
+            calculateTypeIdentifier: properties =>
+                `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
+        });
+        // a single, generic inference rule
+        typir.Inference.addInferenceRule(node => {
+            if (node instanceof MatrixLiteral) {
+                const width = node.elements.map(row => row.length).reduce((l, r) => Math.max(l, r), 0); // the number of cells in the longest row
+                const height = node.elements.length; // the number of rows
+                return customKind.create({ typeName: `My${width}x${height}MatrixType`, properties: { baseType: integerType, width, height }})
+                    .finish().getTypeFinal()!; // we know, that the type can be created now, without delay
+            }
+            return InferenceRuleNotApplicable;
+        });
+
+        typir.factory.Operators.createBinary({ name: '*' }).signature({
+            left: type => isCustomType(type, customKind),
+            right: type => isCustomType(type, customKind),
+            return: (left, right) => customKind.create({ properties: { baseType: integerType, width: left.properties.height, height: right.properties.width }}).finish().getTypeFinal()!,
+        }).finish();
+
+        // we create some Matrix types in advance
+        const matrix2x2 = customKind
+            .create({ typeName: 'My2x2MatrixType', properties: { baseType: integerType, width: 2, height: 2 } })
+            .finish().getTypeFinal()!;
+        const matrix3x3 = customKind
+            .create({ typeName: 'My3x3MatrixType', properties: { baseType: integerType, width: 3, height: 3 } })
+            .finish().getTypeFinal()!;
+
+        // the already created Matrix types are inferred
+        expectToBeType(typir.Inference.inferType(matrixLiteral3x3), result => isCustomType(result, customKind), result => result === matrix3x3);
+        expectToBeType(typir.Inference.inferType(matrixLiteral2x2), result => isCustomType(result, customKind), result => result === matrix2x2);
+        expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType', 'My3x3MatrixType'); // we have only 2 Matrix types in the type graph
+
+        // a new Matrix type is created and inferred for the 1x1 matrix literal:
+        expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind),
+            result => result.properties.height === 1 && result.properties.width === 1 && result.properties.baseType.getType() === integerType);
+        expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType', 'My3x3MatrixType', 'My1x1MatrixType'); // now we have 3 Matrix types
+
+        // we try to explicitly create the 1x1 Matrix type ...
+        const matrix1x1 = customKind
+            .create({ typeName: 'My1x1MatrixType', properties: { baseType: integerType, width: 1, height: 1 } })
+            .finish().getTypeFinal()!; // ... the already existing 1x1 Matrix type is returned: 'create' behaves like 'getOrCreate', since no duplicated types should be created
+        expectToBeType(typir.Inference.inferType(matrixLiteral1x1), result => isCustomType(result, customKind), result => result === matrix1x1);
+        // but we receive an error, if we specified a different 'typeName'
+        expect(() => customKind
+            .create({ typeName: 'AnotherName', properties: { baseType: integerType, width: 1, height: 1 } })
+            .finish().getTypeFinal()).toThrowError("There is already a custom type 'custom-matrix-Integer-1-1' with name 'My1x1MatrixType', but now the name is 'AnotherName'!");
+    });
+
 });
 
 

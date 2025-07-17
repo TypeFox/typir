@@ -54,6 +54,8 @@ export class DefaultTypeResolver<LanguageType> implements TypeResolvingService<L
         this.services = services;
     }
 
+    // TODO provide service with registering call-backs ?
+
     tryToResolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T | undefined {
         if (isType(selector)) {
             // TODO is there a way to explicitly enforce/ensure "as T"?

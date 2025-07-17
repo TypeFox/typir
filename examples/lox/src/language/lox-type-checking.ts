@@ -56,28 +56,29 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
 
         // binary operators: numbers => number
         for (const operator of ['-', '*', '/']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeNumber }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator }).signature({ left: typeNumber, right: typeNumber, return: typeNumber }).inferenceRule(binaryInferenceRule).finish();
         }
-        typir.factory.Operators.createBinary({ name: '+', signatures: [
-            { left: typeNumber, right: typeNumber, return: typeNumber },
-            { left: typeString, right: typeString, return: typeString },
-            { left: typeNumber, right: typeString, return: typeString },
-            { left: typeString, right: typeNumber, return: typeString },
-        ]}).inferenceRule(binaryInferenceRule).finish();
+        typir.factory.Operators.createBinary({ name: '+' })
+            .signature({ left: typeNumber, right: typeNumber, return: typeNumber })
+            .signature({ left: typeString, right: typeString, return: typeString })
+            .signature({ left: typeNumber, right: typeString, return: typeString })
+            .signature({ left: typeString, right: typeNumber, return: typeString })
+            .inferenceRule(binaryInferenceRule).finish();
 
         // binary operators: numbers => boolean
         for (const operator of ['<', '<=', '>', '>=']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeNumber, right: typeNumber, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator }).signature({ left: typeNumber, right: typeNumber, return: typeBool }).inferenceRule(binaryInferenceRule).finish();
         }
 
         // binary operators: booleans => boolean
         for (const operator of ['and', 'or']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
+            typir.factory.Operators.createBinary({ name: operator }).signature({ left: typeBool, right: typeBool, return: typeBool }).inferenceRule(binaryInferenceRule).finish();
         }
 
         // ==, != for all data types (the warning for different types is realized below)
         for (const operator of ['==', '!=']) {
-            typir.factory.Operators.createBinary({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }})
+            typir.factory.Operators.createBinary({ name: operator })
+                .signature({ left: typeAny, right: typeAny, return: typeBool })
                 .inferenceRule({
                     ...binaryInferenceRule,
                     // show a warning to the user, if something like "3 == false" is compared, since different types already indicate, that the IF condition will be evaluated to false
@@ -92,7 +93,8 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
                 .finish();
         }
         // = for SuperType = SubType (Note that this implementation of LOX realized assignments as operators!)
-        typir.factory.Operators.createBinary({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }})
+        typir.factory.Operators.createBinary({ name: '=' })
+            .signature({ left: typeAny, right: typeAny, return: typeAny })
             .inferenceRule({
                 ...binaryInferenceRule,
                 // this validation will be checked for each call of this operator!
@@ -102,8 +104,8 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             .finish();
 
         // unary operators
-        typir.factory.Operators.createUnary({ name: '!', signature: { operand: typeBool, return: typeBool }}).inferenceRule(unaryInferenceRule).finish();
-        typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({ name: '!' }).signature({ operand: typeBool, return: typeBool }).inferenceRule(unaryInferenceRule).finish();
+        typir.factory.Operators.createUnary({ name: '-' }).signature({ operand: typeNumber, return: typeNumber }).inferenceRule(unaryInferenceRule).finish();
 
         // additional inference rules for ...
         typir.Inference.addInferenceRulesForAstNodes({

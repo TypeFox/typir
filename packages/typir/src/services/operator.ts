@@ -38,46 +38,46 @@ export interface AnyOperatorDetails {
 }
 
 export interface UnaryOperatorDetails extends AnyOperatorDetails {
-    signature?: UnaryOperatorSignature;
-    signatures?: UnaryOperatorSignature[];
+    // no more special attributes
 }
-export interface UnaryOperatorSignature {
-    operand: Type;
-    return: Type;
+export interface UnaryOperatorSignature<Input extends Type, Return extends Type> {
+    operand: Input | ((type: Type) => type is Input);
+    return: Return | ((input: Input) => Return);
 }
 interface CreateUnaryOperatorDetails<LanguageType> extends UnaryOperatorDetails { // only internally used for collecting all information with the chaining API
+    signatures: Array<UnaryOperatorSignature<Type, Type>>;
     inferenceRules: Array<InferOperatorWithSingleOperand<LanguageType>>;
 }
 
 export interface BinaryOperatorDetails extends AnyOperatorDetails {
-    signature?: BinaryOperatorSignature;
-    signatures?: BinaryOperatorSignature[];
+    // no more special attributes
 }
-export interface BinaryOperatorSignature {
-    left: Type;
-    right: Type;
-    return: Type;
+export interface BinaryOperatorSignature<Left extends Type, Right extends Type, Return extends Type> {
+    left: Left | ((type: Type) => type is Left);
+    right: Right | ((type: Type) => type is Right);
+    return: Return | ((left: Left, right: Right) => Return);
 }
 interface CreateBinaryOperatorDetails<LanguageType> extends BinaryOperatorDetails { // only internally used for collecting all information with the chaining API
+    signatures: Array<BinaryOperatorSignature<Type, Type, Type>>;
     inferenceRules: Array<InferOperatorWithMultipleOperands<LanguageType>>;
 }
 
 export interface TernaryOperatorDetails extends AnyOperatorDetails {
-    signature?: TernaryOperatorSignature;
-    signatures?: TernaryOperatorSignature[];
+    // no more special attributes
 }
-export interface TernaryOperatorSignature {
-    first: Type;
-    second: Type;
-    third: Type;
-    return: Type;
+export interface TernaryOperatorSignature<First extends Type, Second extends Type, Third extends Type, Return extends Type> {
+    first: First | ((type: Type) => type is First);
+    second: Second | ((type: Type) => type is Second);
+    third: Third | ((type: Type) => type is Third);
+    return: Return | ((first: First, second: Second, third: Third) => Return);
 }
 interface CreateTernaryOperatorDetails<LanguageType> extends TernaryOperatorDetails { // only internally used for collecting all information with the chaining API
+    signatures: Array<TernaryOperatorSignature<Type, Type, Type, Type>>;
     inferenceRules: Array<InferOperatorWithMultipleOperands<LanguageType>>;
 }
 
 export interface GenericOperatorDetails extends AnyOperatorDetails {
-    outputType: Type;
+    outputType: Type | ((input: Type[]) => Type); // TODO update this
     inputParameter: NameTypePair[];
 }
 interface CreateGenericOperatorDetails<LanguageType> extends GenericOperatorDetails { // only internally used for collecting all information with the chaining API
@@ -94,18 +94,22 @@ export interface OperatorFactoryService<LanguageType> {
 }
 
 export interface OperatorConfigurationUnaryChain<LanguageType> {
+    signature<Input extends Type, Return extends Type>(signature: UnaryOperatorSignature<Input, Return>): OperatorConfigurationUnaryChain<LanguageType>;
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithSingleOperand<LanguageType, T>): OperatorConfigurationUnaryChain<LanguageType>;
     finish(): Array<TypeInitializer<Type, LanguageType>>;
 }
 export interface OperatorConfigurationBinaryChain<LanguageType> {
+    signature<Left extends Type, Right extends Type, Return extends Type>(signature: BinaryOperatorSignature<Left, Right, Return>): OperatorConfigurationBinaryChain<LanguageType>;
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationBinaryChain<LanguageType>;
     finish(): Array<TypeInitializer<Type, LanguageType>>;
 }
 export interface OperatorConfigurationTernaryChain<LanguageType> {
+    signature<First extends Type, Second extends Type, Third extends Type, Return extends Type>(signature: TernaryOperatorSignature<First, Second, Third, Return>): OperatorConfigurationTernaryChain<LanguageType>;
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationTernaryChain<LanguageType>;
     finish(): Array<TypeInitializer<Type, LanguageType>>;
 }
 export interface OperatorConfigurationGenericChain<LanguageType> {
+    // TODO signature
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithSingleOperand<LanguageType, T> | InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationGenericChain<LanguageType>;
     finish(): TypeInitializer<Type, LanguageType>;
 }
@@ -158,8 +162,14 @@ class OperatorConfigurationUnaryChainImpl<LanguageType> implements OperatorConfi
         this.services = services;
         this.typeDetails = {
             ...typeDetails,
+            signatures: [],
             inferenceRules: [],
         };
+    }
+
+    signature<Input extends Type, Return extends Type>(signature: UnaryOperatorSignature<Input, Return>): OperatorConfigurationUnaryChain<LanguageType> {
+        this.typeDetails.signatures.push(signature as unknown as UnaryOperatorSignature<Type, Type>);
+        return this;
     }
 
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithSingleOperand<LanguageType, T>): OperatorConfigurationUnaryChain<LanguageType> {
@@ -173,9 +183,10 @@ class OperatorConfigurationUnaryChainImpl<LanguageType> implements OperatorConfi
         for (const signature of signatures) {
             const generic = new OperatorConfigurationGenericChainImpl(this.services, {
                 name: this.typeDetails.name,
-                outputType: signature.return,
+                // TODO
+                outputType: signature.return as Type,
                 inputParameter: [
-                    { name: 'operand', type: signature.operand },
+                    { name: 'operand', type: signature.operand as Type },
                 ],
             });
             // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
@@ -194,8 +205,14 @@ class OperatorConfigurationBinaryChainImpl<LanguageType> implements OperatorConf
         this.services = services;
         this.typeDetails = {
             ...typeDetails,
+            signatures: [],
             inferenceRules: [],
         };
+    }
+
+    signature<Left extends Type, Right extends Type, Return extends Type>(signature: BinaryOperatorSignature<Left, Right, Return>): OperatorConfigurationBinaryChain<LanguageType> {
+        this.typeDetails.signatures.push(signature as unknown as BinaryOperatorSignature<Type, Type, Type>);
+        return this;
     }
 
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationBinaryChain<LanguageType> {
@@ -209,10 +226,11 @@ class OperatorConfigurationBinaryChainImpl<LanguageType> implements OperatorConf
         for (const signature of signatures) {
             const generic = new OperatorConfigurationGenericChainImpl(this.services, {
                 name: this.typeDetails.name,
-                outputType: signature.return,
+                // TODO
+                outputType: signature.return as Type,
                 inputParameter: [
-                    { name: 'left', type: signature.left},
-                    { name: 'right', type: signature.right},
+                    { name: 'left', type: signature.left as Type},
+                    { name: 'right', type: signature.right as Type},
                 ],
             });
             // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
@@ -231,8 +249,14 @@ class OperatorConfigurationTernaryChainImpl<LanguageType> implements OperatorCon
         this.services = services;
         this.typeDetails = {
             ...typeDetails,
+            signatures: [],
             inferenceRules: [],
         };
+    }
+
+    signature<First extends Type, Second extends Type, Third extends Type, Return extends Type>(signature: TernaryOperatorSignature<First, Second, Third, Return>): OperatorConfigurationTernaryChain<LanguageType> {
+        this.typeDetails.signatures.push(signature as unknown as TernaryOperatorSignature<Type, Type, Type, Type>);
+        return this;
     }
 
     inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationTernaryChain<LanguageType> {
@@ -246,11 +270,12 @@ class OperatorConfigurationTernaryChainImpl<LanguageType> implements OperatorCon
         for (const signature of signatures) {
             const generic = new OperatorConfigurationGenericChainImpl(this.services, {
                 name: this.typeDetails.name,
-                outputType: signature.return,
+                // TODO
+                outputType: signature.return as Type,
                 inputParameter: [
-                    { name: 'first', type: signature.first },
-                    { name: 'second', type: signature.second },
-                    { name: 'third', type: signature.third },
+                    { name: 'first', type: signature.first as Type },
+                    { name: 'second', type: signature.second as Type },
+                    { name: 'third', type: signature.third as Type },
                 ],
             });
             // the same inference rule is used (and required) for all overloads, since multiple FunctionTypes are created!
@@ -286,7 +311,7 @@ class OperatorConfigurationGenericChainImpl<LanguageType> implements OperatorCon
         // create the operator as type of kind 'function'
         const newOperatorType = functionFactory.create({
             functionName: operatorName,
-            outputParameter: { name: NO_PARAMETER_NAME, type: this.typeDetails.outputType },
+            outputParameter: { name: NO_PARAMETER_NAME, type: this.typeDetails.outputType as Type }, // TODO
             inputParameters: this.typeDetails.inputParameter,
         });
         // infer the operator when the operator is called!

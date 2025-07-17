@@ -23,17 +23,17 @@ describe('Tests the "validateArgumentsOfCalls" option to check the given argumen
         booleanType = typir.factory.Primitives.create({ primitiveName: 'boolean' }).inferenceRule({ filter: node => node instanceof BooleanLiteral }).finish();
 
         // + operator: only integers, validate it
-        typir.factory.Operators.createBinary({ name: '+', signature: { left: integerType, right: integerType, return: integerType }})
+        typir.factory.Operators.createBinary({ name: '+' }).signature({ left: integerType, right: integerType, return: integerType })
             .inferenceRule({ ...InferenceRuleBinaryExpression, validateArgumentsOfCalls: true }).finish();
 
         // && operator: only booleans, don't validate it
-        typir.factory.Operators.createBinary({ name: '&&', signature: { left: booleanType, right: booleanType, return: booleanType }})
+        typir.factory.Operators.createBinary({ name: '&&' }).signature({ left: booleanType, right: booleanType, return: booleanType })
             .inferenceRule({ ...InferenceRuleBinaryExpression, validateArgumentsOfCalls: false }).finish();
 
         // == operator: is overloaded, validate the integer signature, don't validate the boolean signature
-        typir.factory.Operators.createBinary({ name: '==', signature: { left: integerType, right: integerType, return: booleanType }})
+        typir.factory.Operators.createBinary({ name: '==' }).signature({ left: integerType, right: integerType, return: booleanType })
             .inferenceRule({ ...InferenceRuleBinaryExpression, validateArgumentsOfCalls: true }).finish();
-        typir.factory.Operators.createBinary({ name: '==', signature: { left: booleanType, right: booleanType, return: booleanType }})
+        typir.factory.Operators.createBinary({ name: '==' }).signature({ left: booleanType, right: booleanType, return: booleanType })
             .inferenceRule({ ...InferenceRuleBinaryExpression, validateArgumentsOfCalls: false }).finish();
     });
 
