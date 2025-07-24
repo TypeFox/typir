@@ -103,7 +103,7 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
     addRule(rule: RuleType, givenOptions?: Partial<RuleOptions>): void {
         const newOptions = this.getRuleOptions(givenOptions);
         const languageKeyUndefined: boolean = newOptions.languageKey === undefined;
-        const languageKeys: string[] = toArray(newOptions.languageKey);
+        const languageKeys: string[] = toArray(newOptions.languageKey, { newArray: true });
 
         const existingOptions = this.ruleToOptions.get(rule);
         const diffOptions: RuleOptions = {
