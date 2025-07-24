@@ -42,6 +42,13 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 - Fixed the implementation for merging modules for dependency injection (DI), it is exactly the same fix from [Langium](https://github.com/eclipse-langium/langium/pull/1939), since we reused its DI implementation (#79).
 
 
+## v0.2.2 (2025-07-??)
+
+- Fixed wrong imports of `assertUnreachable` (#86)
+- Copy instead of reuse arrays with language keys to prevent side effects (#87)
+- Updated Typir-Langium to Langium v3.5 (#88)
+
+
 ## v0.2.1 (2025-04-09)
 
 - Export `test-utils.ts` which are using `vitest` via the new namespace `'typir/test'` in order to not pollute production code with vitest dependencies (#68)
@@ -67,7 +74,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 - Thanks to the new chaining API for defining types (see corresponding breaking changes below), they can be annotated in TypeScript-type-safe way with multiple inference rules, e.g. multiple inference rules for class literals with `typir.factory.Classes.create({...}).inferenceRuleForClassLiterals({...}).inferenceRuleForClassLiterals({...}).finish();` (#64).
 - Provide new `expectValidationIssues*(...)` utilities for developers to ease the writing of test cases for Typir-based type systems (#64).
 - Create the predefined validations using the factory API, e.g. `typir.factory.Functions.createUniqueFunctionValidation()` and `typir.factory.Classes.createNoSuperClassCyclesValidation()`, see LOX for examples. Benefits of this design decision: the returned rule is easier to exchange, users can use the known factory API with auto-completion (no need to remember the names of the validations) (#64)
-- Updated Langium-Typir to Langium v3.4 (#65)
+- Updated Typir-Langium to Langium v3.4 (#65)
 
 ### Breaking changes
 
