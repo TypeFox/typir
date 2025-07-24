@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from 'langium';
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
@@ -14,7 +13,7 @@ import { ValidationRule } from '../../services/validation.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { assertTrue, assertTypirType, toArray } from '../../utils/utils.js';
+import { assertTrue, assertTypirType, assertUnreachable, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
 import { Kind, isKind } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
