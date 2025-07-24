@@ -322,7 +322,7 @@ function toSignatureArray<T>(values: {
     signature?: T;
     signatures?: T[];
 }): T[] {
-    const result = [...toArray(values.signatures)]; // create a new array in order to prevent side-effects in the given array
+    const result = toArray(values.signatures, { newArray: true }); // create a new array in order to prevent side-effects in the given array
     if (values.signature) {
         result.push(values.signature);
     }
