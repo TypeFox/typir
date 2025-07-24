@@ -4,12 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from 'langium';
 import { isType, Type } from '../graph/type-node.js';
 import { TypirServices } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
-import { removeFromArray, toArray } from '../utils/utils.js';
+import { assertUnreachable, removeFromArray, toArray } from '../utils/utils.js';
 import { LanguageNodeInferenceCaching } from './caching.js';
 
 export interface InferenceProblem<LanguageType> extends TypirProblem {

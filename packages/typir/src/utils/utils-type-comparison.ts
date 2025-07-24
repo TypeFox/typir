@@ -4,12 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { assertUnreachable } from 'langium';
 import { isType, Type } from '../graph/type-node.js';
 import { Kind } from '../kinds/kind.js';
 import { InferenceProblem } from '../services/inference.js';
 import { TypirServices } from '../typir.js';
-import { assertTrue } from '../utils/utils.js';
+import { assertTrue, assertUnreachable } from '../utils/utils.js';
 import { isNameTypePair, isSpecificTypirProblem, NameTypePair, TypirProblem } from './utils-definitions.js';
 
 export type TypeCheckStrategy =
