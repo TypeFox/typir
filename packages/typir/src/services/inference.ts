@@ -146,24 +146,6 @@ export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenc
         this.ruleRegistry.addListener(this);
     }
 
-    protected getTypeInferenceRuleOptions(options?: Partial<TypeInferenceRuleOptions>): TypeInferenceRuleOptions {
-        return {
-            // default values ...
-            languageKey: undefined,
-            boundToType: undefined,
-            // ... overridden by the actual options:
-            ...options,
-        };
-    }
-
-    protected getLanguageKeys(options?: Partial<TypeInferenceRuleOptions>): Array<string|undefined> {
-        if (options === undefined || options.languageKey === undefined) {
-            return [undefined];
-        } else {
-            return toArray(options.languageKey);
-        }
-    }
-
     addInferenceRule<InputType extends LanguageType = LanguageType>(rule: TypeInferenceRule<LanguageType, InputType>, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
         this.ruleRegistry.addRule(rule as unknown as TypeInferenceRule<LanguageType>, givenOptions);
     }
