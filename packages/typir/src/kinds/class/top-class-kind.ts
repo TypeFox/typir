@@ -8,35 +8,36 @@ import { TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
-import { isKind, Kind } from '../kind.js';
+import { Kind, KindOptions } from '../kind.js';
 import { TopClassType } from './top-class-type.js';
 
 export interface TopClassTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
     inferenceRules?: InferCurrentTypeRule<TopClassType, LanguageType> | Array<InferCurrentTypeRule<TopClassType, LanguageType>>
 }
 
-export interface TopClassKindOptions {
+export interface TopClassKindOptions extends KindOptions {
     name: string;
 }
 
 export const TopClassKindName = 'TopClassKind';
 
 export class TopClassKind<LanguageType> implements Kind {
-    readonly $name: 'TopClassKind';
+    readonly $name: string;
     readonly services: TypirServices<LanguageType>;
     readonly options: TopClassKindOptions;
     protected instance: TopClassType | undefined;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<TopClassKindOptions>) {
-        this.$name = TopClassKindName;
+        this.options = this.collectOptions(options);
+        this.$name = this.options.$name;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = this.collectOptions(options);
     }
 
     protected collectOptions(options?: Partial<TopClassKindOptions>): TopClassKindOptions {
         return {
             // the default values:
+            $name: TopClassKindName,
             name: 'TopClass',
             // the actually overriden values:
             ...options
@@ -72,5 +73,5 @@ export class TopClassKind<LanguageType> implements Kind {
 }
 
 export function isTopClassKind<LanguageType>(kind: unknown): kind is TopClassKind<LanguageType> {
-    return isKind(kind) && kind.$name === TopClassKindName;
+    return kind instanceof TopClassKind;
 }

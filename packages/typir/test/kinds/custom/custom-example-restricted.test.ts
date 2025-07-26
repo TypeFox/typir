@@ -10,7 +10,7 @@ import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { CustomType, isCustomType } from '../../../src/kinds/custom/custom-type.js';
 import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
-import { IntegerLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { IntegerLiteral, TestExpressionNode, TestLanguageNode, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting, expectToBeType } from '../../../src/utils/test-utils.js';
 
@@ -30,7 +30,9 @@ describe('Tests inference and assignability for Integers with an upper bound', (
     let customKind: CustomKind<RestrictedInteger, TestLanguageNode>;
 
     beforeEach(() => {
-        typir = createTypirServicesForTesting();
+        typir = createTypirServicesForTesting({
+            Language: () => new TestLanguageService([{ superKey: 'TestExpressionNode', subKey: 'RestrictedIntegerLiteral' }]), // register the language key of the new RestrictedIntegerLiteral
+        });
 
         integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
 
