@@ -1,7 +1,7 @@
 # Custom types
 
 Many languages contain features which cannot be easily described with the predefined types.
-This describes how language-specific custom types can be defined and used in Typir.
+This section describes how language-specific custom types can be defined and used in Typir.
 
 
 ## API by example
@@ -79,8 +79,9 @@ In the example above, calling `matrix2x3.properties.width` is supported by auto-
 ### Uniqueness
 
 Typir ensures uniqueness for custom types.
-Two custom types are identical, if their identifiers are the same (this counts for any type, not only for custom types).
-The default implementation calculates the identifier by concatenating the values of all properties.
+Two custom types are identical, if their identifiers are the same (this counts for any type, not only for custom types, see the [general design](../design.md) for types).
+The default implementation calculates the identifier by concatenating the values of all properties and therefore provides a sufficient default solution.
+Nevertheless, it is possible to customize the calculation of identifiers (`calculateTypeIdentifier`), e.g. to improve their readability.
 
 ### Circular dependencies
 

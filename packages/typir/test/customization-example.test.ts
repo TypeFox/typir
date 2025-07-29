@@ -89,7 +89,8 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         type AdditionalExampleTypirServices = {
             TestService: TestService;
         };
-        // Defining this TypeScript type is not mandatory, but makes the customization with additional services easier (search for the use of this type!)
+        // Defining the following TypeScript type "ExampleTypirServices" is not mandatory, but makes the customization with additional services easier.
+        //  Without this type "ExampleTypirServices", you would need to replace all its occurrances by "TypirServices<TestLanguageNode> & AdditionalExampleTypirServices".
         type ExampleTypirServices = TypirServices<TestLanguageNode> & AdditionalExampleTypirServices;
 
         // implementation for the new service
@@ -172,7 +173,7 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         // Types need to have unique identifiers: this is ensured by having unique prefixes
         expectToBeType(typir.factory.Classes.create({ className: 'A', fields: [], methods: [] }).finish().getTypeFinal(), isClassType, type => type.className === 'A');
         expect(() => typir.factory.OtherClasses.create({ className: 'A', fields: [], methods: [] }).finish())
-            .toThrowError("A new type with identifier 'class-A' and kind 'OtherClass' (implemented in ClassKind) shall be created, but there is already a type with identifier 'class-A' and kind 'ClassKind' (implemented in ClassKind) in the type graph.");
+            .toThrowError("The identifier 'class-A' for the new type of kind 'OtherClass' (implemented in ClassKind) collides with the identifier 'class-A' of an existing type of kind 'ClassKind' (implemented in ClassKind).");
         typir = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>({
             factory: {
                 OtherClasses: services => new ClassKind(services, {

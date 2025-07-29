@@ -31,7 +31,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 ### Breaking changes
 
-- ...
+- Typir-Langium: `LangiumLanguageNodeInferenceCaching` and `DefaultLangiumTypeCreator` use the `TypirLangiumServices` parameter to retrieve the `LangiumSharedCoreServices` now (#78).
 
 ### Fixed bugs
 

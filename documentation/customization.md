@@ -43,8 +43,9 @@ type AdditionalExampleTypirServices = {
 };
 ```
 
-Provide implementations for all added services when you instantiate the Typir services.
-Instead of `createTypirServices`, use `createTypirServicesWithAdditionalServices` instead:
+Mark new services with the keyword `readonly` to prevent changing them at runtime, since they are instantiated only once when they are used for the first time.
+Specify implementations for all added services which are considered when you instantiate the Typir services.
+Instead of `createTypirServices`, use `createTypirServicesWithAdditionalServices` instead and specify the new services as generic (here `<..., AdditionalExampleTypirServices>`):
 
 ```typescript
 const customizedTypir: TypirServices<TestLanguageNode> & AdditionalExampleTypirServices = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>({
@@ -54,8 +55,10 @@ const customizedTypir: TypirServices<TestLanguageNode> & AdditionalExampleTypirS
 });
 ```
 
-TypeScript don't force you to write `TypirServices<TestLanguageNode> & AdditionalExampleTypirServices` in the code snipped above, but makes explicit what is going on here.
-To simplify the code, it is possible (but not mandatory) to introduce a TypeScript type like the following and to use it instead:
+TypeScript doesn't force you to write `TypirServices<TestLanguageNode> & AdditionalExampleTypirServices` in the code snipped above, but makes explicit what is going on here:
+You get the `TypirServices` as usual, but they are combined with your defined `AdditionalExampleTypirServices`, i.e. you get only one object back containing default and custom services. Additionally, both default and custom services are correctly TypeScript-typed.
+
+To simplify the code, it is recommended (but not mandatory) to introduce a TypeScript type like the following and to use it instead, since it makes explicit that the current Typir services are customized:
 
 ```typescript
 type ExampleTypirServices = TypirServices<TestLanguageNode> & AdditionalExampleTypirServices;
@@ -68,8 +71,8 @@ It is possible to provide implementations for new services together with customi
 
 ```typescript
 const customizedTypir: ExampleTypirServices = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>({
-    // 1st argument: mandatory implementations for all new services
+    // 1st mandatory argument: implementations for all new services
 }, {
-    // 2nd argument: customize some existing services here
-});
+    // 2nd optional argument: customize some (existing or new) services here
+}, /* even more arguments for even more customizations for services are possible here */);
 ```

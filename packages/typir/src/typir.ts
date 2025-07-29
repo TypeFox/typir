@@ -131,7 +131,7 @@ export function createTypirServices<LanguageType>(
 }
 
 /**
- * Creates the TypirServices with the default module containing the default implements for Typir,
+ * Creates the TypirServices with the default module containing the default implementations for Typir,
  * which might be exchanged by the given optional customized modules.
  * Additionally, some new services are defined, and implementations for them are registered.
  * @param moduleForAdditionalServices contains the configurations for all added services
