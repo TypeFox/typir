@@ -81,6 +81,7 @@ export function createDefaultTypirLangiumServicesModule<AstTypes extends Langium
  * @param customization1 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for production
  * @param customization2 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
  * @param customization3 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
+ * @param customization4 some optional customizations of the Typir-Langium and Typir(-core) services
  * @returns the Typir services configured for the current Langium-based language
  */
 export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
@@ -90,6 +91,7 @@ export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
     customization1?: Module<PartialTypirLangiumServices<AstTypes>>,
     customization2?: Module<PartialTypirLangiumServices<AstTypes>>,
     customization3?: Module<PartialTypirLangiumServices<AstTypes>>,
+    customization4?: Module<PartialTypirLangiumServices<AstTypes>>,
 ): TypirLangiumServices<AstTypes> {
     return inject(
         // use the default implementations for all core Typir services ...
@@ -109,10 +111,9 @@ export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
         customization1, // ... production
         customization2, // ... testing (in order to replace some customizations of production)
         customization3, // ... testing (e.g. to have customizations for all test cases and for single test cases)
+        customization4, // ... for even more flexibility
     );
 }
-
-// TODO Review: Is it possible to merge/unify these two functions in a nice way?
 
 /**
  * This is the entry point to create Typir-Langium services to simplify type checking for DSLs developed with Langium,
@@ -125,6 +126,7 @@ export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
  * @param customization1 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for production
  * @param customization2 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
  * @param customization3 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
+ * @param customization4 some optional customizations of the Typir-Langium and Typir(-core) services
  * @returns the Typir services configured for the current Langium-based language
  */
 export function createTypirLangiumServicesWithAdditionalServices<AstTypes extends LangiumAstTypes, AdditionalServices>(
@@ -135,6 +137,7 @@ export function createTypirLangiumServicesWithAdditionalServices<AstTypes extend
     customization1?: Module<TypirLangiumServices<AstTypes> & AdditionalServices, DeepPartial<TypirLangiumServices<AstTypes> & AdditionalServices>>,
     customization2?: Module<TypirLangiumServices<AstTypes> & AdditionalServices, DeepPartial<TypirLangiumServices<AstTypes> & AdditionalServices>>,
     customization3?: Module<TypirLangiumServices<AstTypes> & AdditionalServices, DeepPartial<TypirLangiumServices<AstTypes> & AdditionalServices>>,
+    customization4?: Module<TypirLangiumServices<AstTypes> & AdditionalServices, DeepPartial<TypirLangiumServices<AstTypes> & AdditionalServices>>,
 ): TypirLangiumServices<AstTypes> & AdditionalServices {
     return inject(
         // use the default implementations for all core Typir services ...
@@ -156,6 +159,7 @@ export function createTypirLangiumServicesWithAdditionalServices<AstTypes extend
         customization1, // ... production
         customization2, // ... testing (in order to replace some customizations of production)
         customization3, // ... testing (e.g. to have customizations for all test cases and for single test cases)
+        customization4, // ... for even more flexibility
     );
 }
 

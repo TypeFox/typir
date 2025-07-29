@@ -113,12 +113,14 @@ export function createDefaultTypirServicesModule<LanguageType>(): Module<TypirSe
  * @param customization1 optional Typir module with customizations
  * @param customization2 optional Typir module with customizations
  * @param customization3 optional Typir module with customizations
+ * @param customization4 optional Typir module with customizations
  * @returns a Typir instance, i.e. the TypirServices with implementations for all services
  */
 export function createTypirServices<LanguageType>(
     customization1?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
     customization2?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
     customization3?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
+    customization4?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
 ): TypirServices<LanguageType> {
     return inject(
         // use the default implementations for all core Typir services
@@ -127,6 +129,7 @@ export function createTypirServices<LanguageType>(
         customization1, // ... production
         customization2, // ... testing (in order to replace some customizations of production)
         customization3, // ... testing (e.g. to have customizations for all test cases and for single test cases)
+        customization4, // ... for even more flexibility
     );
 }
 
@@ -138,6 +141,7 @@ export function createTypirServices<LanguageType>(
  * @param customization1 optional Typir module with customizations (for new and existing services)
  * @param customization2 optional Typir module with customizations (for new and existing services)
  * @param customization3 optional Typir module with customizations (for new and existing services)
+ * @param customization4 optional Typir module with customizations (for new and existing services)
  * @returns a Typir instance, i.e. the TypirServices consisting of the default services and the added services,
  * with implementations for all services
  */
@@ -146,6 +150,7 @@ export function createTypirServicesWithAdditionalServices<LanguageType, Addition
     customization1?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
     customization2?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
     customization3?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
+    customization4?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
 ): TypirServices<LanguageType> & AdditionalServices {
     return inject(
         // use the default implementations for all core Typir services
@@ -156,30 +161,7 @@ export function createTypirServicesWithAdditionalServices<LanguageType, Addition
         customization1, // ... production
         customization2, // ... testing (in order to replace some customizations of production)
         customization3, // ... testing (e.g. to have customizations for all test cases and for single test cases)
-    );
-}
-
-// TODO Review: Is it possible to merge/unify the two functions above in a nice way?
-
-// The following function is a possible solution, but with a small limitation:
-// - If you specify non-empty additional services via the <AdditionalServices> generic, you will get no TypeScript compiler error,
-//   if you don't specify a value for 'moduleForAdditionalServices'. (Doing that makes no sense of course, but a hint would be nice nevertheless.)
-//   'moduleForAdditionalServices' needs to be optional, otherwise, you need to add '{}' as value even when you specified no additional services.
-
-export function createTypirServicesBoth<LanguageType, AdditionalServices = Record<string, never>>( // "Record<string, never>" means an empty object!
-    moduleForAdditionalServices?: Module<TypirServices<LanguageType> & AdditionalServices, AdditionalServices>,
-    customization1?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
-    customization2?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
-    customization3?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
-): TypirServices<LanguageType> & AdditionalServices {
-    return inject(
-        // use the default implementations for all core Typir services
-        createDefaultTypirServicesModule<LanguageType>(),
-        moduleForAdditionalServices,
-        // optionally add some more language-specific customization, e.g. for ...
-        customization1, // ... production
-        customization2, // ... testing (in order to replace some customizations of production)
-        customization3, // ... testing (e.g. to have customizations for all test cases and for single test cases)
+        customization4, // ... for even more flexibility
     );
 }
 
