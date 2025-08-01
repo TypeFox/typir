@@ -49,7 +49,7 @@
   },
   "bugs": "https://github.com/TypeFox/typir/issues",
   "dependencies": {
-    "langium": "~3.4.0",
+    "langium": "~3.5.0",
     "typir": "~0.2.0"
   }
 }
