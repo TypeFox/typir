@@ -1,7 +1,7 @@
 {
     "name": "typir-example-ox",
     "displayName": "ox",
-    "version": "0.2.1",
+    "version": "0.2.2",
     "private": true,
     "description": "",
     "author": {
@@ -30,7 +30,7 @@
     "dependencies": {
         "commander": "~12.1.0",
         "langium": "~3.5.0",
-        "typir-langium": "~0.2.1",
+        "typir-langium": "~0.2.2",
         "vscode-languageclient": "~9.0.1",
         "vscode-languageserver": "~9.0.1"
     },

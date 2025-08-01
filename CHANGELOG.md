@@ -4,7 +4,7 @@ We roughly follow the ideas of [semantic versioning](https://semver.org/).
 Note that the versions "0.x.0" probably will include breaking changes.
 
 
-## v0.2.2 (2025-07-??)
+## v0.2.2 (2025-08-01)
 
 - Fixed wrong imports of `assertUnreachable` (#86)
 - Copy instead of reuse arrays with language keys to prevent side effects (#87)
