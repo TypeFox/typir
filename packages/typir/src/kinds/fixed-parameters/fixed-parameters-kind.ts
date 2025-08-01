@@ -8,7 +8,7 @@ import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
-import { Kind, isKind } from '../kind.js';
+import { Kind, KindOptions } from '../kind.js';
 import { FixedParameterType } from './fixed-parameters-type.js';
 
 export class Parameter {
@@ -25,7 +25,7 @@ export interface FixedParameterTypeDetails<LanguageType> extends TypeDetails<Lan
     parameterTypes: Type | Type[]
 }
 
-export interface FixedParameterKindOptions {
+export interface FixedParameterKindOptions extends KindOptions {
     parameterSubtypeCheckingStrategy: TypeCheckStrategy,
 }
 
@@ -35,18 +35,18 @@ export const FixedParameterKindName = 'FixedParameterKind';
  * Suitable for kinds like Collection<T>, List<T>, Array<T>, Map<K, V>, ..., i.e. types with a fixed number of arbitrary parameter types
  */
 export class FixedParameterKind<LanguageType> implements Kind {
-    readonly $name: `FixedParameterKind-${string}`;
+    readonly $name: string;
     readonly services: TypirServices<LanguageType>;
     readonly baseName: string;
     readonly options: Readonly<FixedParameterKindOptions>;
     readonly parameters: Parameter[]; // assumption: the parameters are in the correct order!
 
     constructor(typir: TypirServices<LanguageType>, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
-        this.$name = `${FixedParameterKindName}-${baseName}`;
+        this.options = this.collectOptions(options);
+        this.$name = `${this.options.$name}-${baseName}`;
         this.services = typir;
         this.services.infrastructure.Kinds.register(this);
         this.baseName = baseName;
-        this.options = this.collectOptions(options);
         this.parameters = parameterNames.map((name, index) => <Parameter>{ name, index });
 
         // check input
@@ -56,6 +56,7 @@ export class FixedParameterKind<LanguageType> implements Kind {
     protected collectOptions(options?: Partial<FixedParameterKindOptions>): FixedParameterKindOptions {
         return {
             // the default values:
+            $name: FixedParameterKindName,
             parameterSubtypeCheckingStrategy: 'EQUAL_TYPE',
             // the actually overriden values:
             ...options
@@ -95,5 +96,5 @@ export class FixedParameterKind<LanguageType> implements Kind {
 }
 
 export function isFixedParametersKind<LanguageType>(kind: unknown): kind is FixedParameterKind<LanguageType> {
-    return isKind(kind) && kind.$name.startsWith('FixedParameterKind-');
+    return kind instanceof FixedParameterKind;
 }

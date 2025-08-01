@@ -8,7 +8,7 @@ import { TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
-import { isKind, Kind } from '../kind.js';
+import { Kind, KindOptions } from '../kind.js';
 import { TopType } from './top-type.js';
 
 export interface TopTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
@@ -18,7 +18,7 @@ interface CreateTopTypeDetails<LanguageType> extends TopTypeDetails<LanguageType
     inferenceRules: Array<InferCurrentTypeRule<TopType, LanguageType>>;
 }
 
-export interface TopKindOptions {
+export interface TopKindOptions extends KindOptions {
     name: string;
 }
 
@@ -35,20 +35,21 @@ export interface TopConfigurationChain<LanguageType> {
 }
 
 export class TopKind<LanguageType> implements Kind, TopFactoryService<LanguageType> {
-    readonly $name: 'TopKind';
+    readonly $name: string;
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<TopKindOptions>;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<TopKindOptions>) {
-        this.$name = TopKindName;
+        this.options = this.collectOptions(options);
+        this.$name = this.options.$name;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = this.collectOptions(options);
     }
 
     protected collectOptions(options?: Partial<TopKindOptions>): TopKindOptions {
         return {
             // the default values:
+            $name: TopKindName,
             name: 'any',
             // the actually overriden values:
             ...options
@@ -72,7 +73,7 @@ export class TopKind<LanguageType> implements Kind, TopFactoryService<LanguageTy
 }
 
 export function isTopKind<LanguageType>(kind: unknown): kind is TopKind<LanguageType> {
-    return isKind(kind) && kind.$name === TopKindName;
+    return kind instanceof TopKind;
 }
 
 

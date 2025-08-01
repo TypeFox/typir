@@ -13,7 +13,7 @@ import { ValidationProblemAcceptor } from '../../../src/services/validation.js';
 import { IntegerLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 import { RuleRegistry } from '../../../src/utils/rule-registration.js';
-import { createTypirServicesForTesting, expectToBeType, expectTypirTypes, expectValidationIssuesNone, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
+import { createTypirServicesForTesting, createTypirServicesForTestingWithAdditionalServices, expectToBeType, expectTypirTypes, expectValidationIssuesNone, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
 import { assertTypirType } from '../../../src/utils/utils.js';
 
 /**
@@ -30,38 +30,44 @@ export type MatrixType = { // "interface" instead of "type" does not work!
 
 describe('Tests simple custom types for Matrix types', () => {
 
-    test('Matrix type', () => {
-        const typir = createTypirServicesForTesting();
-        // TODO does not yet work: { factory: { Matrix: services => new CustomKind<MatrixType, TestLanguageNode>(services, { ... }) } }
+    test('Matrix type with exposed factory', () => {
+        type AdditionalMatrixTypirServices = {
+            readonly factory: {
+                readonly Matrix: CustomKind<MatrixType, TestLanguageNode>;
+            },
+        };
+        const typir = createTypirServicesForTestingWithAdditionalServices<AdditionalMatrixTypirServices>({
+            factory: {
+                // create a custom kind to create custom types with dedicated properties (as defined in <MatrixType>) and provide it as additional Typir service
+                Matrix: services => new CustomKind<MatrixType, TestLanguageNode>(services, {
+                    name: 'Matrix',
+                    // determine which identifier is used to store and retrieve a custom type in the type graph
+                    calculateTypeName: properties => `My${properties.width}x${properties.height}Matrix`,
+                    // (and to check its uniqueness, i.e. if two types have the same identifier, they are the same and only one of it will be added to the type graph)
+                    calculateTypeIdentifier: properties =>
+                        `custom-matrix-${services.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
+                }),
+            },
+        });
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
 
-        // create a custom kind to create custom types with dedicated properties, as defined in <MatrixType>
-        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
-            name: 'Matrix',
-            // determine which identifier is used to store and retrieve a custom type in the type graph
-            calculateTypeName: properties => `My${properties.width}x${properties.height}Matrix`,
-            // (and to check its uniqueness, i.e. if two types have the same identifier, they are the same and only one of it will be added to the type graph)
-            calculateTypeIdentifier: properties =>
-                `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
-        });
-
-        // now use this custom kind to create some custom types
-        const matrix2x2 = customKind // "lazy" to use matrix2x2 as 'baseType' => review ZOD, separate primitives and Typir-Types
+        // now use this custom factory to create some custom types
+        const matrix2x2 = typir.factory.Matrix // "lazy" to use matrix2x2 as 'baseType' => review ZOD, separate primitives and Typir-Types
             .create({ typeName: 'My2x2MatrixType', properties: { baseType: integerType, width: 2, height: 2 } })
             .finish().getTypeFinal()!; // we know, that the new custom type depends only on types which are already available
         expect(typir.Printer.printTypeUserRepresentation(matrix2x2)).toBe('My2x2MatrixType');
-        assertTypirType(matrix2x2, type => isCustomType(type, customKind), 'My2x2MatrixType');
-        expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType');
+        assertTypirType(matrix2x2, type => isCustomType(type, typir.factory.Matrix), 'My2x2MatrixType');
+        expectTypirTypes(typir, type => isCustomType(type, typir.factory.Matrix), 'My2x2MatrixType');
         expect(matrix2x2.properties.width).toBe(2);
         expect(matrix2x2.properties.height).toBe(2);
         expectToBeType(matrix2x2.properties.baseType.getType(), isPrimitiveType, type => type === integerType);
 
-        const matrix3x3 = customKind
+        const matrix3x3 = typir.factory.Matrix
             .create({ typeName: 'My3x3MatrixType', properties: { baseType: integerType, width: 3, height: 3 } })
             .finish().getTypeFinal()!; // we know, that the new custom type depends only on types which are already available
         expect(typir.Printer.printTypeUserRepresentation(matrix3x3)).toBe('My3x3MatrixType');
-        assertTypirType(matrix3x3, type => isCustomType(type, customKind), 'My3x3MatrixType');
-        expectTypirTypes(typir, type => isCustomType(type, customKind), 'My2x2MatrixType', 'My3x3MatrixType');
+        assertTypirType(matrix3x3, type => isCustomType(type, typir.factory.Matrix), 'My3x3MatrixType');
+        expectTypirTypes(typir, type => isCustomType(type, typir.factory.Matrix), 'My2x2MatrixType', 'My3x3MatrixType');
         expect(matrix3x3.properties.width).toBe(3);
         expect(matrix3x3.properties.height).toBe(3);
         expectToBeType(matrix3x3.properties.baseType.getType(), isPrimitiveType, type => type === integerType);
@@ -299,6 +305,8 @@ describe('Tests simple custom types for Matrix types', () => {
  * [ 1, 2, 3;
  *   4, 5, 6 ]
  * They are similar to array literals in usual programming languages.
+ *
+ * To keep the example more clear, this new literal is not registered in the TestLanguageService (see custom-example-restricted.test.ts for a corresponding example).
  */
 class MatrixLiteral extends TestExpressionNode {
     constructor(

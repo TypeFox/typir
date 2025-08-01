@@ -108,24 +108,63 @@ export function createDefaultTypirServicesModule<LanguageType>(): Module<TypirSe
 }
 
 /**
- * Creates the TypirServices with the default module containing the default implements for Typir, which might be exchanged by the given optional customized modules.
+ * Creates the TypirServices with the default module containing the default implements for Typir,
+ * which might be exchanged by the given optional customized modules.
  * @param customization1 optional Typir module with customizations
  * @param customization2 optional Typir module with customizations
  * @param customization3 optional Typir module with customizations
- * @returns a Typir instance, i.e. the TypirServices with implementations
+ * @param customization4 optional Typir module with customizations
+ * @returns a Typir instance, i.e. the TypirServices with implementations for all services
  */
 export function createTypirServices<LanguageType>(
-    customization1: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
-    customization2: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
-    customization3: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>> = {},
+    customization1?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
+    customization2?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
+    customization3?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
+    customization4?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
 ): TypirServices<LanguageType> {
     return inject(
+        // use the default implementations for all core Typir services
         createDefaultTypirServicesModule<LanguageType>(),
-        customization1,
-        customization2,
-        customization3,
+        // optionally add some more language-specific customization, e.g. for ...
+        customization1, // ... production
+        customization2, // ... testing (in order to replace some customizations of production)
+        customization3, // ... testing (e.g. to have customizations for all test cases and for single test cases)
+        customization4, // ... for even more flexibility
     );
 }
+
+/**
+ * Creates the TypirServices with the default module containing the default implementations for Typir,
+ * which might be exchanged by the given optional customized modules.
+ * Additionally, some new services are defined, and implementations for them are registered.
+ * @param moduleForAdditionalServices contains the configurations for all added services
+ * @param customization1 optional Typir module with customizations (for new and existing services)
+ * @param customization2 optional Typir module with customizations (for new and existing services)
+ * @param customization3 optional Typir module with customizations (for new and existing services)
+ * @param customization4 optional Typir module with customizations (for new and existing services)
+ * @returns a Typir instance, i.e. the TypirServices consisting of the default services and the added services,
+ * with implementations for all services
+ */
+export function createTypirServicesWithAdditionalServices<LanguageType, AdditionalServices>(
+    moduleForAdditionalServices: Module<TypirServices<LanguageType> & AdditionalServices, AdditionalServices>,
+    customization1?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
+    customization2?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
+    customization3?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
+    customization4?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
+): TypirServices<LanguageType> & AdditionalServices {
+    return inject(
+        // use the default implementations for all core Typir services
+        createDefaultTypirServicesModule<LanguageType>(),
+        // add implementations for all additional services
+        moduleForAdditionalServices,
+        // optionally add some more language-specific customization, e.g. for ...
+        customization1, // ... production
+        customization2, // ... testing (in order to replace some customizations of production)
+        customization3, // ... testing (e.g. to have customizations for all test cases and for single test cases)
+        customization4, // ... for even more flexibility
+    );
+}
+
 
 /**
  * A deep partial type definition for services. We look into T to see whether its type definition contains

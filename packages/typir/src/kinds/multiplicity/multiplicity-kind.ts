@@ -7,7 +7,7 @@
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypirServices } from '../../typir.js';
 import { assertTrue } from '../../utils/utils.js';
-import { Kind, isKind } from '../kind.js';
+import { Kind, KindOptions } from '../kind.js';
 import { MultiplicityType } from './multiplicity-type.js';
 
 export interface MultiplicityTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
@@ -16,7 +16,7 @@ export interface MultiplicityTypeDetails<LanguageType> extends TypeDetails<Langu
     upperBound: number
 }
 
-export interface MultiplicityKindOptions {
+export interface MultiplicityKindOptions extends KindOptions {
     symbolForUnlimited: string;
 }
 
@@ -28,20 +28,21 @@ export const MultiplicityKindName = 'MultiplicityTypeKind';
  * e.g. ConstrainedType[1..*] or ConstrainedType[2..4].
  */
 export class MultiplicityKind<LanguageType> implements Kind {
-    readonly $name: 'MultiplicityTypeKind';
+    readonly $name: string;
     readonly services: TypirServices<LanguageType>;
     readonly options: Readonly<MultiplicityKindOptions>;
 
     constructor(services: TypirServices<LanguageType>, options?: Partial<MultiplicityKindOptions>) {
-        this.$name = MultiplicityKindName;
+        this.options = this.collectOptions(options);
+        this.$name = this.options.$name;
         this.services = services;
         this.services.infrastructure.Kinds.register(this);
-        this.options = this.collectOptions(options);
     }
 
     protected collectOptions(options?: Partial<MultiplicityKindOptions>): MultiplicityKindOptions {
         return {
             // the default values:
+            $name: MultiplicityKindName,
             symbolForUnlimited: '*',
             // the actually overriden values:
             ...options
@@ -115,5 +116,5 @@ export class MultiplicityKind<LanguageType> implements Kind {
 }
 
 export function isMultiplicityKind<LanguageType>(kind: unknown): kind is MultiplicityKind<LanguageType> {
-    return isKind(kind) && kind.$name === MultiplicityKindName;
+    return kind instanceof MultiplicityKind;
 }

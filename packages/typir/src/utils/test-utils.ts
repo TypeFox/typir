@@ -6,10 +6,10 @@
 
 import { expect } from 'vitest';
 import { Type } from '../graph/type-node.js';
-import { TestLanguageNode, TestLanguageService, TestProblemPrinter } from '../test/predefined-language-nodes.js';
-import { createDefaultTypirServicesModule, createTypirServices, PartialTypirServices, TypirServices } from '../typir.js';
-import { Module } from './dependency-injection.js';
 import { Severity } from '../services/validation.js';
+import { TestLanguageNode, TestLanguageService, TestProblemPrinter } from '../test/predefined-language-nodes.js';
+import { createDefaultTypirServicesModule, createTypirServices, DeepPartial, PartialTypirServices, TypirServices } from '../typir.js';
+import { inject, Module } from './dependency-injection.js';
 
 /**
  * Testing utility to check, that exactly the expected types are in the type system.
@@ -34,9 +34,9 @@ export function expectTypirTypes<LanguageType>(services: TypirServices<LanguageT
     return types;
 }
 
-export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails: (t: T) => boolean): asserts type is T {
+export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unknown) => t is T, checkDetails?: (t: T) => boolean): asserts type is T {
     if (checkType(type)) {
-        if (checkDetails(type)) {
+        if (checkDetails === undefined || checkDetails(type)) {
             // everything is fine
         } else {
             expect.fail(`'${type.getIdentifier()}' is the actual Typir type, but the details are wrong`);
@@ -248,11 +248,32 @@ export function createTypirServicesForTesting(
     customizationForTesting: Module<TypirServices<TestLanguageNode>, PartialTypirServices<TestLanguageNode>> = {},
 ): TypirServices<TestLanguageNode> {
     return createTypirServices<TestLanguageNode>(
-        createDefaultTypirServicesModule(),             // all default core implementations
         {                                               // override some default implementations:
             Printer: () => new TestProblemPrinter(),    // use the dedicated printer for TestLanguageNode's
             Language: () => new TestLanguageService(),  // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)
         },
         customizationForTesting,                        // specific customizations for the current test case
+    );
+}
+
+/**
+ * Creates TypirServices dedicated for testing purposes,
+ * with the default module containing the default implements for Typir, which might be exchanged by the given optional customized module.
+ * @param moduleForAdditionalServices required implementations for the additional services
+ * @param customizationForTesting specific customizations for the current test case
+ * @returns a Typir instance, i.e. the TypirServices with implementations
+ */
+export function createTypirServicesForTestingWithAdditionalServices<AdditionalServices>(
+    moduleForAdditionalServices: Module<TypirServices<TestLanguageNode> & AdditionalServices, AdditionalServices>,
+    customizationForTesting?: Module<TypirServices<TestLanguageNode> & AdditionalServices, DeepPartial<TypirServices<TestLanguageNode> & AdditionalServices>>,
+): TypirServices<TestLanguageNode> & AdditionalServices {
+    return inject(
+        createDefaultTypirServicesModule<TestLanguageNode>(),   // all default core implementations
+        moduleForAdditionalServices,
+        {                                                       // override some default implementations:
+            Printer: () => new TestProblemPrinter(),            // use the dedicated printer for TestLanguageNode's
+            Language: () => new TestLanguageService(),          // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)
+        },
+        customizationForTesting,                                // specific customizations for the current test case
     );
 }

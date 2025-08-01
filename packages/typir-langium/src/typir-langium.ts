@@ -20,7 +20,8 @@ import { LangiumAstTypes } from './utils/typir-langium-utils.js';
  */
 export type TypirLangiumAddedServices<AstTypes extends LangiumAstTypes> = {
     readonly Inference: LangiumTypeInferenceCollector<AstTypes>; // concretizes the TypeInferenceCollector for Langium
-    readonly langium: { // new services which are specific for Langium
+    readonly langium: { // all new services which are specific for Langium
+        readonly LangiumServices: LangiumSharedCoreServices; // store the Langium services to make them available for all Typir services
         readonly TypeCreator: LangiumTypeCreator;
         readonly TypeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>;
     };
@@ -40,12 +41,12 @@ export type PartialTypirLangiumServices<AstTypes extends LangiumAstTypes> = Deep
  * @param langiumServices Typir-Langium needs to interact with the Langium lifecycle
  * @returns (only) the replaced implementations
  */
-export function createLangiumSpecificTypirServicesModule(langiumServices: LangiumSharedCoreServices): Module<PartialTypirServices<AstNode>> {
+export function createLangiumSpecificTypirServicesModule<AstTypes extends LangiumAstTypes>(_langiumServices: LangiumSharedCoreServices): Module<TypirLangiumServices<AstTypes>, PartialTypirServices<AstNode>> {
     return {
         Printer: () => new LangiumProblemPrinter(),
         Language: () => { throw new Error('Use new LangiumLanguageService(undefined), and replace "undefined" by the generated XXXAstReflection!'); }, // to be replaced later
         caching: {
-            LanguageNodeInference: () => new LangiumLanguageNodeInferenceCaching(langiumServices),
+            LanguageNodeInference: (typirServices) => new LangiumLanguageNodeInferenceCaching(typirServices),
         },
     };
 }
@@ -59,7 +60,8 @@ export function createDefaultTypirLangiumServicesModule<AstTypes extends Langium
     return {
         Inference: (typirServices) => new DefaultLangiumTypeInferenceCollector(typirServices),
         langium: {
-            TypeCreator: (typirServices) => new DefaultLangiumTypeCreator(typirServices, langiumServices),
+            LangiumServices: () => langiumServices,
+            TypeCreator: (typirServices) => new DefaultLangiumTypeCreator(typirServices),
             TypeSystemDefinition: () => { throw new Error('The type system needs to be specified!'); }, // to be replaced later
         },
         validation: {
@@ -78,19 +80,24 @@ export function createDefaultTypirLangiumServicesModule<AstTypes extends Langium
  * @param typeSystemDefinition the actual definition of the type system
  * @param customization1 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for production
  * @param customization2 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
+ * @param customization3 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
+ * @param customization4 some optional customizations of the Typir-Langium and Typir(-core) services
  * @returns the Typir services configured for the current Langium-based language
  */
 export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
-    langiumServices: LangiumSharedCoreServices, reflection: AbstractAstReflection, typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>,
-    customization1: Module<PartialTypirLangiumServices<AstTypes>> = {},
-    customization2: Module<PartialTypirLangiumServices<AstTypes>> = {},
-    customization3: Module<PartialTypirLangiumServices<AstTypes>> = {},
+    langiumServices: LangiumSharedCoreServices,
+    reflection: AbstractAstReflection,
+    typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>,
+    customization1?: Module<PartialTypirLangiumServices<AstTypes>>,
+    customization2?: Module<PartialTypirLangiumServices<AstTypes>>,
+    customization3?: Module<PartialTypirLangiumServices<AstTypes>>,
+    customization4?: Module<PartialTypirLangiumServices<AstTypes>>,
 ): TypirLangiumServices<AstTypes> {
     return inject(
-        // use all core Typir services ...
+        // use the default implementations for all core Typir services ...
         createDefaultTypirServicesModule<AstNode>(),
         // ... with adapted implementations for Typir-Langium
-        createLangiumSpecificTypirServicesModule(langiumServices),
+        createLangiumSpecificTypirServicesModule<AstTypes>(langiumServices),
         // add the additional services for the Typir-Langium binding
         createDefaultTypirLangiumServicesModule<AstTypes>(langiumServices),
         // add the language-specific parts provided by Langium into the Typir-Services
@@ -104,6 +111,55 @@ export function createTypirLangiumServices<AstTypes extends LangiumAstTypes>(
         customization1, // ... production
         customization2, // ... testing (in order to replace some customizations of production)
         customization3, // ... testing (e.g. to have customizations for all test cases and for single test cases)
+        customization4, // ... for even more flexibility
+    );
+}
+
+/**
+ * This is the entry point to create Typir-Langium services to simplify type checking for DSLs developed with Langium,
+ * the language workbench for textual domain-specific languages (DSLs) in the web (https://langium.org/).
+ * Additionally, some new services are defined, and implementations for them are registered.
+ * @param langiumServices Typir-Langium needs to interact with the Langium lifecycle
+ * @param reflection Typir-Langium needs to know the existing AstNode$.types in order to do some performance optimizations
+ * @param typeSystemDefinition the actual definition of the type system
+ * @param moduleForAdditionalServices contains the configurations for all added services
+ * @param customization1 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for production
+ * @param customization2 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
+ * @param customization3 some optional customizations of the Typir-Langium and Typir(-core) services, e.g. for testing
+ * @param customization4 some optional customizations of the Typir-Langium and Typir(-core) services
+ * @returns the Typir services configured for the current Langium-based language
+ */
+export function createTypirLangiumServicesWithAdditionalServices<AstTypes extends LangiumAstTypes, AdditionalServices>(
+    langiumServices: LangiumSharedCoreServices,
+    reflection: AbstractAstReflection,
+    typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>,
+    moduleForAdditionalServices: Module<TypirLangiumServices<AstTypes> & AdditionalServices, AdditionalServices>,
+    customization1?: Module<TypirLangiumServices<AstTypes> & AdditionalServices, DeepPartial<TypirLangiumServices<AstTypes> & AdditionalServices>>,
+    customization2?: Module<TypirLangiumServices<AstTypes> & AdditionalServices, DeepPartial<TypirLangiumServices<AstTypes> & AdditionalServices>>,
+    customization3?: Module<TypirLangiumServices<AstTypes> & AdditionalServices, DeepPartial<TypirLangiumServices<AstTypes> & AdditionalServices>>,
+    customization4?: Module<TypirLangiumServices<AstTypes> & AdditionalServices, DeepPartial<TypirLangiumServices<AstTypes> & AdditionalServices>>,
+): TypirLangiumServices<AstTypes> & AdditionalServices {
+    return inject(
+        // use the default implementations for all core Typir services ...
+        createDefaultTypirServicesModule<AstNode>(),
+        // ... with adapted implementations for Typir-Langium
+        createLangiumSpecificTypirServicesModule<AstTypes>(langiumServices),
+        // add the additional services for the Typir-Langium binding
+        createDefaultTypirLangiumServicesModule<AstTypes>(langiumServices),
+        // add the language-specific parts provided by Langium into the Typir-Services
+        <Module<PartialTypirLangiumServices<AstTypes>>>{
+            langium: {
+                TypeSystemDefinition: () => typeSystemDefinition,
+            },
+            Language: () => new LangiumLanguageService(reflection),
+        },
+        // add implementations for all additional services
+        moduleForAdditionalServices,
+        // optionally add some more language-specific customization, e.g. for ...
+        customization1, // ... production
+        customization2, // ... testing (in order to replace some customizations of production)
+        customization3, // ... testing (e.g. to have customizations for all test cases and for single test cases)
+        customization4, // ... for even more flexibility
     );
 }
 

@@ -30,6 +30,10 @@ export interface Kind {
 
 }
 
-export function isKind(kind: unknown): kind is Kind {
-    return typeof kind === 'object' && kind !== null && typeof (kind as Kind).$name === 'string';
+/**
+ * Options which are relevant for all kinds.
+ */
+export interface KindOptions {
+    /** Customize the name which is used to register the kind in the kind registry. */
+    $name: string;
 }

@@ -4,6 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+// Copied from Langium
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**

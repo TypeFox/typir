@@ -7,7 +7,7 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { CustomType } from '../../../src/kinds/custom/custom-type.js';
-import { TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { TestExpressionNode, TestLanguageNode, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 import { createTypirServicesForTesting } from '../../../src/utils/test-utils.js';
 
@@ -23,7 +23,7 @@ describe('Test all possible TypeSelectors with custom types', () => {
     let customKind: CustomKind<MyCustomProperties, TestLanguageNode>;
 
     beforeEach(() => {
-        typir = createTypirServicesForTesting();
+        typir = createTypirServicesForTesting({ Language: () => new TestLanguageService([{ superKey: 'TestExpressionNode', subKey: 'CustomLiteral' }])});
 
         customKind = new CustomKind<MyCustomProperties, TestLanguageNode>(typir, {
             name: 'MyCustom',
