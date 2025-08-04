@@ -7,19 +7,20 @@
 import { describe, expect, test } from 'vitest';
 import { InferenceRuleNotApplicable } from '../src/services/inference.js';
 import { InferOperatorWithMultipleOperands } from '../src/services/operator.js';
-import { createTypirServices } from '../src/typir.js';
+import { createTypirServices, TypirSpecifics } from '../src/typir.js';
 
 describe('Tiny Typir', () => {
 
     test('Set-up and test some expressions', async () => {
-        const typir = createTypirServices<AstElement>(); // set-up the type system, <AstElement> specifies the root type of all language nodes
+        interface TinyTypirSpecifics extends TypirSpecifics { LanguageType: AstElement } // `AstElement` is the root type of all language nodes in the AST
+        const typir = createTypirServices<TinyTypirSpecifics>(); // set-up the type system with the specifics of the "Tiny Typir" example as <TinySpecifics>
 
         // primitive types
         const numberType = typir.factory.Primitives.create({ primitiveName: 'number' }).inferenceRule({ filter: node => node instanceof NumberLiteral }).finish();
         const stringType = typir.factory.Primitives.create({ primitiveName: 'string' }).inferenceRule({ filter: node => node instanceof StringLiteral }).finish();
 
         // operators
-        const inferenceRule: InferOperatorWithMultipleOperands<AstElement, BinaryExpression> = {
+        const inferenceRule: InferOperatorWithMultipleOperands<TinyTypirSpecifics, BinaryExpression> = {
             filter: node => node instanceof BinaryExpression,
             matching: (node, operatorName) => node.operator === operatorName,
             operands: node => [node.left, node.right],

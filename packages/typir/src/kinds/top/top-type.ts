@@ -7,14 +7,15 @@
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
+import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
 import { isTopKind, TopKind, TopTypeDetails } from './top-kind.js';
 
 export class TopType extends Type implements TypeGraphListener {
-    override readonly kind: TopKind<unknown>;
+    override readonly kind: TopKind<TypirSpecifics>;
 
-    constructor(kind: TopKind<unknown>, identifier: string, typeDetails: TopTypeDetails<unknown>) {
+    constructor(kind: TopKind<TypirSpecifics>, identifier: string, typeDetails: TopTypeDetails<TypirSpecifics>) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions

@@ -8,6 +8,7 @@ import { Type } from '../../graph/type-node.js';
 import { isConversionEdge } from '../../services/conversion.js';
 import { CompositeTypeInferenceRule, InferenceProblem } from '../../services/inference.js';
 import { isSubTypeEdge } from '../../services/subtype.js';
+import { TypirSpecifics } from '../../typir.js';
 import { assertUnreachable } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
 
@@ -19,20 +20,20 @@ import { FunctionCallInferenceRule } from './function-inference-call.js';
  * In order to deal with multiple matching inference rules for overloaded functions,
  * all available inference rules need to be executed and all successful inference rules need to be collected.
  */
-export class OverloadedFunctionsTypeInferenceRule<LanguageType> extends CompositeTypeInferenceRule<LanguageType> {
+export class OverloadedFunctionsTypeInferenceRule<Specifics extends TypirSpecifics> extends CompositeTypeInferenceRule<Specifics> {
 
-    protected override inferTypeLogic(languageNode: LanguageType): Type | Array<InferenceProblem<LanguageType>> {
+    protected override inferTypeLogic(languageNode: Specifics['LanguageType']): Type | Array<InferenceProblem<Specifics>> {
         this.checkForError(languageNode);
 
         // check all rules in order to search for the best-matching rule, not for the first-matching rule
-        const matchingOverloads: Array<OverloadedMatch<LanguageType>> = [];
-        const collectedInferenceProblems: Array<InferenceProblem<LanguageType>> = [];
+        const matchingOverloads: Array<OverloadedMatch<Specifics>> = [];
+        const collectedInferenceProblems: Array<InferenceProblem<Specifics>> = [];
         // execute the rules which are associated to the key of the current language node
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
         for (const rule of this.ruleRegistry.getRulesByLanguageKey(languageKey)) {
             const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
             if (result) {
-                matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<LanguageType> });
+                matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<Specifics> });
             } else {
                 // no result for this inference rule => check the next inference rules
             }
@@ -42,7 +43,7 @@ export class OverloadedFunctionsTypeInferenceRule<LanguageType> extends Composit
             for (const rule of this.ruleRegistry.getRulesByLanguageKey(undefined)) {
                 const result = this.executeSingleInferenceRuleLogic(rule, languageNode, collectedInferenceProblems);
                 if (result) {
-                    matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<LanguageType> });
+                    matchingOverloads.push({ result, rule: rule as FunctionCallInferenceRule<Specifics> });
                 } else {
                     // no result for this inference rule => check the next inference rules
                 }
@@ -68,7 +69,7 @@ export class OverloadedFunctionsTypeInferenceRule<LanguageType> extends Composit
             // multiple matches => determine the one to return
 
             // 1. identify and collect the best matches
-            const bestMatches: Array<OverloadedMatch<LanguageType>> = [ matchingOverloads[0] ];
+            const bestMatches: Array<OverloadedMatch<Specifics>> = [ matchingOverloads[0] ];
             for (let i = 1; i < matchingOverloads.length; i++) {
                 const currentMatch = matchingOverloads[i];
                 const comparison = this.compareMatchingOverloads(bestMatches[0], currentMatch);
@@ -106,18 +107,18 @@ export class OverloadedFunctionsTypeInferenceRule<LanguageType> extends Composit
         }
     }
 
-    protected handleMultipleBestMatches(matchingOverloads: Array<OverloadedMatch<LanguageType>>): OverloadedMatch<LanguageType> | undefined {
+    protected handleMultipleBestMatches(matchingOverloads: Array<OverloadedMatch<Specifics>>): OverloadedMatch<Specifics> | undefined {
         return matchingOverloads[0]; // by default, return the 1st best match
     }
 
     // better matches are at the beginning of the list, i.e. better matches get values lower than zero
-    protected compareMatchingOverloads(match1: OverloadedMatch<LanguageType>, match2: OverloadedMatch<LanguageType>): number {
+    protected compareMatchingOverloads(match1: OverloadedMatch<Specifics>, match2: OverloadedMatch<Specifics>): number {
         const cost1 = this.calculateCost(match1);
         const cost2 = this.calculateCost(match2);
         return cost1 === cost2 ? 0 : cost1 < cost2 ? -1 : +1;
     }
 
-    protected calculateCost(match: OverloadedMatch<LanguageType>): number {
+    protected calculateCost(match: OverloadedMatch<Specifics>): number {
         return match.rule.assignabilitySuccess // one path (consisting of an arbitrary number of edges) for each parameter
             .flatMap(s => s?.path ?? []) // collect all conversion/sub-type edges which are required to map actual types to the expected types of the parameters
             // equal types (i.e. an empty path) are better than sub-types, sub-types are better than conversions
@@ -126,7 +127,7 @@ export class OverloadedFunctionsTypeInferenceRule<LanguageType> extends Composit
     }
 }
 
-interface OverloadedMatch<LanguageType> {
+interface OverloadedMatch<Specifics extends TypirSpecifics> {
     result: Type;
-    rule: FunctionCallInferenceRule<LanguageType>;
+    rule: FunctionCallInferenceRule<Specifics>;
 }

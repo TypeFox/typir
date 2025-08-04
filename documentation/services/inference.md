@@ -11,7 +11,7 @@ The type inference service infers the type of a language node with this API call
 and returns either the inferred type or an (maybe empty) array with reasons, why the type inference was not successful:
 
 ```typescript
-typir.Inference.inferType(languageNode: LanguageType): Type | Array<InferenceProblem>
+typir.Inference.inferType(languageNode: Specifics['LanguageType']): Type | InferenceProblem[]
 ```
 
 Inference rules can be registered with this API call:

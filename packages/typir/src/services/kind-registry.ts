@@ -5,19 +5,19 @@
  ******************************************************************************/
 
 import { Kind } from '../kinds/kind.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 
-export interface KindRegistry<LanguageType> {
+export interface KindRegistry<Specifics extends TypirSpecifics> {
     register(kind: Kind): void;
     get<T extends Kind>($name: string): T | undefined;
-    getOrCreateKind<T extends Kind>($name: string, factory: (services: TypirServices<LanguageType>) => T): T;
+    getOrCreateKind<T extends Kind>($name: string, factory: (services: TypirServices<Specifics>) => T): T;
 }
 
-export class DefaultKindRegistry<LanguageType> implements KindRegistry<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
+export class DefaultKindRegistry<Specifics extends TypirSpecifics> implements KindRegistry<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
     protected readonly kinds: Map<string, Kind> = new Map(); // name of kind => kind (for an easier look-up)
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.services = services;
     }
 
@@ -38,7 +38,7 @@ export class DefaultKindRegistry<LanguageType> implements KindRegistry<LanguageT
         return this.kinds.get($name) as (T | undefined);
     }
 
-    getOrCreateKind<T extends Kind>($name: string, factory: (services: TypirServices<LanguageType>) => T): T {
+    getOrCreateKind<T extends Kind>($name: string, factory: (services: TypirServices<Specifics>) => T): T {
         const existing = this.get($name);
         if (existing) {
             return existing as T;

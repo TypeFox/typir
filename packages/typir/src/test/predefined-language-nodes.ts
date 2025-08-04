@@ -4,6 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { TestingSpecifics } from '../index-test.js';
 import { DefaultLanguageService } from '../services/language.js';
 import { InferOperatorWithMultipleOperands } from '../services/operator.js';
 import { DefaultTypeConflictPrinter } from '../services/printing.js';
@@ -139,14 +140,14 @@ export class StatementBlock extends TestStatementNode {
  * Some predefined utils for configuring Typir accordingly
  */
 
-export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<TestLanguageNode, BinaryExpression> = {
+export const InferenceRuleBinaryExpression: InferOperatorWithMultipleOperands<TestingSpecifics, BinaryExpression> = {
     filter: node => node instanceof BinaryExpression,
     matching: (node, operatorName) => node.operator === operatorName,
     operands: node => [node.left, node.right],
     validateArgumentsOfCalls: true,
 };
 
-export class TestProblemPrinter extends DefaultTypeConflictPrinter<TestLanguageNode> {
+export class TestProblemPrinter extends DefaultTypeConflictPrinter<TestingSpecifics> {
     override printLanguageNode(languageNode: TestLanguageNode, sentenceBegin?: boolean | undefined): string {
         if (languageNode instanceof TestLanguageNode) {
             return `${sentenceBegin ? 'T' : 't'}he language node '${languageNode.print()}'`;
@@ -155,7 +156,7 @@ export class TestProblemPrinter extends DefaultTypeConflictPrinter<TestLanguageN
     }
 }
 
-export class TestLanguageService extends DefaultLanguageService<TestLanguageNode> {
+export class TestLanguageService extends DefaultLanguageService<TestingSpecifics> {
     protected subKeys: Map<string, string[]> = new Map(); // key => all its direct sub-keys
     protected superKeys: Map<string, string[]> = new Map(); // key => all its direct super-keys
 

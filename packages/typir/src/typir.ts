@@ -41,39 +41,39 @@ import { inject, Module } from './utils/dependency-injection.js';
  * - How to bundle Typir configurations for reuse ("presets")?
  */
 
-export type TypirServices<LanguageType> = {
+export type TypirServices<Specifics extends TypirSpecifics> = {
     readonly Assignability: TypeAssignability;
     readonly Equality: TypeEquality;
     readonly Conversion: TypeConversion;
     readonly Subtype: SubType;
-    readonly Inference: TypeInferenceCollector<LanguageType>;
+    readonly Inference: TypeInferenceCollector<Specifics>;
     readonly caching: {
         readonly TypeRelationships: TypeRelationshipCaching;
         readonly LanguageNodeInference: LanguageNodeInferenceCaching;
     };
-    readonly Printer: ProblemPrinter<LanguageType>;
-    readonly Language: LanguageService<LanguageType>;
+    readonly Printer: ProblemPrinter<Specifics>;
+    readonly Language: LanguageService<Specifics>;
     readonly validation: {
-        readonly Collector: ValidationCollector<LanguageType>;
-        readonly Constraints: ValidationConstraints<LanguageType>;
+        readonly Collector: ValidationCollector<Specifics>;
+        readonly Constraints: ValidationConstraints<Specifics>;
     };
     readonly factory: {
-        readonly Primitives: PrimitiveFactoryService<LanguageType>;
-        readonly Functions: FunctionFactoryService<LanguageType>;
-        readonly Classes: ClassFactoryService<LanguageType>;
-        readonly Top: TopFactoryService<LanguageType>;
-        readonly Bottom: BottomFactoryService<LanguageType>;
-        readonly Operators: OperatorFactoryService<LanguageType>;
+        readonly Primitives: PrimitiveFactoryService<Specifics>;
+        readonly Functions: FunctionFactoryService<Specifics>;
+        readonly Classes: ClassFactoryService<Specifics>;
+        readonly Top: TopFactoryService<Specifics>;
+        readonly Bottom: BottomFactoryService<Specifics>;
+        readonly Operators: OperatorFactoryService<Specifics>;
     };
     readonly infrastructure: {
         readonly Graph: TypeGraph;
         readonly GraphAlgorithms: GraphAlgorithms;
-        readonly Kinds: KindRegistry<LanguageType>;
-        readonly TypeResolver: TypeResolvingService<LanguageType>;
+        readonly Kinds: KindRegistry<Specifics>;
+        readonly TypeResolver: TypeResolvingService<Specifics>;
     };
 };
 
-export function createDefaultTypirServicesModule<LanguageType>(): Module<TypirServices<LanguageType>> {
+export function createDefaultTypirServicesModule<Specifics extends TypirSpecifics>(): Module<TypirServices<Specifics>> {
     return {
         Assignability: (services) => new DefaultTypeAssignability(services),
         Equality: (services) => new DefaultTypeEquality(services),
@@ -116,15 +116,15 @@ export function createDefaultTypirServicesModule<LanguageType>(): Module<TypirSe
  * @param customization4 optional Typir module with customizations
  * @returns a Typir instance, i.e. the TypirServices with implementations for all services
  */
-export function createTypirServices<LanguageType>(
-    customization1?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
-    customization2?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
-    customization3?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
-    customization4?: Module<TypirServices<LanguageType>, PartialTypirServices<LanguageType>>,
-): TypirServices<LanguageType> {
+export function createTypirServices<Specifics extends TypirSpecifics>(
+    customization1?: Module<TypirServices<Specifics>, PartialTypirServices<Specifics>>,
+    customization2?: Module<TypirServices<Specifics>, PartialTypirServices<Specifics>>,
+    customization3?: Module<TypirServices<Specifics>, PartialTypirServices<Specifics>>,
+    customization4?: Module<TypirServices<Specifics>, PartialTypirServices<Specifics>>,
+): TypirServices<Specifics> {
     return inject(
         // use the default implementations for all core Typir services
-        createDefaultTypirServicesModule<LanguageType>(),
+        createDefaultTypirServicesModule<Specifics>(),
         // optionally add some more language-specific customization, e.g. for ...
         customization1, // ... production
         customization2, // ... testing (in order to replace some customizations of production)
@@ -145,16 +145,16 @@ export function createTypirServices<LanguageType>(
  * @returns a Typir instance, i.e. the TypirServices consisting of the default services and the added services,
  * with implementations for all services
  */
-export function createTypirServicesWithAdditionalServices<LanguageType, AdditionalServices>(
-    moduleForAdditionalServices: Module<TypirServices<LanguageType> & AdditionalServices, AdditionalServices>,
-    customization1?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
-    customization2?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
-    customization3?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
-    customization4?: Module<TypirServices<LanguageType> & AdditionalServices, DeepPartial<TypirServices<LanguageType> & AdditionalServices>>,
-): TypirServices<LanguageType> & AdditionalServices {
+export function createTypirServicesWithAdditionalServices<Specifics extends TypirSpecifics, AdditionalServices>(
+    moduleForAdditionalServices: Module<TypirServices<Specifics> & AdditionalServices, AdditionalServices>,
+    customization1?: Module<TypirServices<Specifics> & AdditionalServices, DeepPartial<TypirServices<Specifics> & AdditionalServices>>,
+    customization2?: Module<TypirServices<Specifics> & AdditionalServices, DeepPartial<TypirServices<Specifics> & AdditionalServices>>,
+    customization3?: Module<TypirServices<Specifics> & AdditionalServices, DeepPartial<TypirServices<Specifics> & AdditionalServices>>,
+    customization4?: Module<TypirServices<Specifics> & AdditionalServices, DeepPartial<TypirServices<Specifics> & AdditionalServices>>,
+): TypirServices<Specifics> & AdditionalServices {
     return inject(
         // use the default implementations for all core Typir services
-        createDefaultTypirServicesModule<LanguageType>(),
+        createDefaultTypirServicesModule<Specifics>(),
         // add implementations for all additional services
         moduleForAdditionalServices,
         // optionally add some more language-specific customization, e.g. for ...
@@ -179,4 +179,12 @@ export type DeepPartial<T> = T[keyof T] extends Function ? T : {
 /**
  * Language-specific services to be partially overridden via dependency injection.
  */
-export type PartialTypirServices<LanguageType> = DeepPartial<TypirServices<LanguageType>>
+export type PartialTypirServices<Specifics extends TypirSpecifics> = DeepPartial<TypirServices<Specifics>>
+
+
+/**
+ * This type collects all TypeScript types which might be customized by applications or bindings for language workbenches.
+ */
+export interface TypirSpecifics {
+    LanguageType: unknown;
+}

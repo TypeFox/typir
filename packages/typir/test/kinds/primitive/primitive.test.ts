@@ -5,11 +5,11 @@
  ******************************************************************************/
 
 import { beforeEach, describe, expect, test } from 'vitest';
-import { createTypirServicesForTesting, expectTypirTypes } from '../../../src/utils/test-utils.js';
-import { assertTypirType } from '../../../src/utils/utils.js';
 import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { integer123, IntegerLiteral, stringHello, StringLiteral, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { integer123, IntegerLiteral, stringHello, StringLiteral } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
+import { createTypirServicesForTesting, expectTypirTypes, TestingSpecifics } from '../../../src/utils/test-utils.js';
+import { assertTypirType } from '../../../src/utils/utils.js';
 
 describe('Tests some details for primitive types', () => {
 
@@ -44,7 +44,7 @@ describe('Tests some details for primitive types', () => {
     });
 
     describe('Test validation for inference rule of a primitive type', () => {
-        let typir: TypirServices<TestLanguageNode>;
+        let typir: TypirServices<TestingSpecifics>;
 
         beforeEach(() => {
             typir = createTypirServicesForTesting();

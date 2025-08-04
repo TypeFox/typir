@@ -7,7 +7,7 @@
 import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeInferenceRule } from '../../services/inference.js';
-import { TypirServices } from '../../typir.js';
+import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType } from '../../utils/utils-definitions.js';
 import { assertTypirType } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
@@ -21,15 +21,15 @@ import { FunctionType, isFunctionType } from './function-type.js';
  *
  * If the function type to create already exists, the given inference rules (and its validation rules) will be registered for the existing function type.
  */
-export class FunctionTypeInitializer<LanguageType> extends TypeInitializer<FunctionType, LanguageType> implements TypeStateListener {
-    protected readonly typeDetails: CreateFunctionTypeDetails<LanguageType>;
-    protected readonly functions: AvailableFunctionsManager<LanguageType>;
+export class FunctionTypeInitializer<Specifics extends TypirSpecifics> extends TypeInitializer<FunctionType, Specifics> implements TypeStateListener {
+    protected readonly typeDetails: CreateFunctionTypeDetails<Specifics>;
+    protected readonly functions: AvailableFunctionsManager<Specifics>;
     protected readonly initialFunctionType: FunctionType;
 
-    protected inferenceForCall: Array<InferenceRuleWithOptions<LanguageType>> = [];
-    protected inferenceForDeclaration: Array<InferenceRuleWithOptions<LanguageType>> = [];
+    protected inferenceForCall: Array<InferenceRuleWithOptions<Specifics>> = [];
+    protected inferenceForDeclaration: Array<InferenceRuleWithOptions<Specifics>> = [];
 
-    constructor(services: TypirServices<LanguageType>, kind: FunctionKind<LanguageType>, typeDetails: CreateFunctionTypeDetails<LanguageType>) {
+    constructor(services: TypirServices<Specifics>, kind: FunctionKind<Specifics>, typeDetails: CreateFunctionTypeDetails<Specifics>) {
         super(services);
         this.typeDetails = typeDetails;
         this.functions = kind.functions;
@@ -44,7 +44,7 @@ export class FunctionTypeInitializer<LanguageType> extends TypeInitializer<Funct
         kind.enforceFunctionName(functionName, kind.options.enforceFunctionName);
 
         // create the new Function type
-        this.initialFunctionType = new FunctionType(kind as FunctionKind<unknown>, typeDetails as FunctionTypeDetails<unknown>);
+        this.initialFunctionType = new FunctionType(kind as unknown as FunctionKind<TypirSpecifics>, typeDetails as unknown as FunctionTypeDetails<TypirSpecifics>);
 
         this.createRules(this.initialFunctionType);
         this.registerRules(functionName, undefined);
@@ -132,7 +132,7 @@ export class FunctionTypeInitializer<LanguageType> extends TypeInitializer<Funct
         }
     }
 
-    protected createFunctionCallInferenceRule(rule: InferFunctionCall<LanguageType>, functionType: FunctionType): TypeInferenceRule<LanguageType> {
-        return new FunctionCallInferenceRule<LanguageType>(this.typeDetails, rule, functionType, this.functions);
+    protected createFunctionCallInferenceRule(rule: InferFunctionCall<Specifics>, functionType: FunctionType): TypeInferenceRule<Specifics> {
+        return new FunctionCallInferenceRule<Specifics>(this.typeDetails, rule, functionType, this.functions);
     }
 }

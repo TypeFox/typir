@@ -8,7 +8,7 @@ import { GraphAlgorithms } from '../graph/graph-algorithms.js';
 import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 
 export interface SubTypeProblem extends TypirProblem {
@@ -72,11 +72,11 @@ export interface SubType {
  * so that DSL users might accidentally define e.g. classes with cyclic sub-super classes, resulting in validation errors shown to them.
  * This implementation does not cache any computed sub-type-relationships.
  */
-export class DefaultSubType<LanguageType> implements SubType {
+export class DefaultSubType<Specifics extends TypirSpecifics> implements SubType {
     protected readonly graph: TypeGraph;
     protected readonly algorithms: GraphAlgorithms;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.graph = services.infrastructure.Graph;
         this.algorithms = services.infrastructure.GraphAlgorithms;
     }

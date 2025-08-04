@@ -6,14 +6,15 @@
 
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
+import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
 import { isPrimitiveKind, PrimitiveKind, PrimitiveTypeDetails } from './primitive-kind.js';
 
 export class PrimitiveType extends Type {
-    override readonly kind: PrimitiveKind<unknown>;
+    override readonly kind: PrimitiveKind<TypirSpecifics>;
 
-    constructor(kind: PrimitiveKind<unknown>, identifier: string, typeDetails: PrimitiveTypeDetails<unknown>) {
+    constructor(kind: PrimitiveKind<TypirSpecifics>, identifier: string, typeDetails: PrimitiveTypeDetails<TypirSpecifics>) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions

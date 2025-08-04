@@ -6,13 +6,19 @@
 
 import { AstNode, AstUtils, assertUnreachable } from 'langium';
 import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, ValidationProblemAcceptor } from 'typir';
-import { TypirLangiumServices, LangiumTypeSystemDefinition } from 'typir-langium';
+import { LangiumTypeSystemDefinition, TypirLangiumServices, TypirLangiumSpecifics } from 'typir-langium';
 import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, VariableDeclaration, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMethodMember, isParameter, isVariableDeclaration } from './generated/ast.js';
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
-export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
 
-    onInitialize(typir: TypirLangiumServices<LoxAstType>): void {
+export interface LoxSpecifics extends TypirLangiumSpecifics { // concretize some LOX-specifics here
+    AstTypes: LoxAstType; // all AST types from the generated `ast.ts`
+}
+// interface extensions is used to concretize the `AstTypes`, since type intersection would merge `LangiumAstTypes` and `LoxAstType` (https://www.typescriptlang.org/docs/handbook/2/objects.html#interface-extension-vs-intersection)
+
+export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> {
+
+    onInitialize(typir: TypirLangiumServices<LoxSpecifics>): void {
         // primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
         const typeBool = typir.factory.Primitives.create({ primitiveName: 'boolean' })
@@ -41,13 +47,13 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         const typeAny = typir.factory.Top.create({}).finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
-        const binaryInferenceRule: InferOperatorWithMultipleOperands<AstNode, BinaryExpression> = {
+        const binaryInferenceRule: InferOperatorWithMultipleOperands<LoxSpecifics, BinaryExpression> = {
             languageKey: BinaryExpression,
             matching: (node: BinaryExpression, name: string) => node.operator === name,
             operands: (node: BinaryExpression, _name: string) => [node.left, node.right],
             validateArgumentsOfCalls: true,
         };
-        const unaryInferenceRule: InferOperatorWithSingleOperand<AstNode, UnaryExpression> = {
+        const unaryInferenceRule: InferOperatorWithSingleOperand<LoxSpecifics, UnaryExpression> = {
             languageKey: UnaryExpression,
             matching: (node: UnaryExpression, name: string) => node.operator === name,
             operand: (node: UnaryExpression, _name: string) => node.value,
@@ -168,7 +174,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         typir.factory.Classes.createNoSuperClassCyclesValidation({ registration: { languageKey: Class } });
     }
 
-    onNewAstNode(node: AstNode, typir: TypirLangiumServices<LoxAstType>): void {
+    onNewAstNode(node: AstNode, typir: TypirLangiumServices<LoxSpecifics>): void {
         // define types which are declared by the users of LOX => investigate the current AST
 
         // function types: they have to be updated after each change of the Langium document, since they are derived from FunctionDeclarations!
@@ -187,13 +193,13 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
                     superClasses: node.superClass?.ref, // note that type inference is used here
                     fields: node.members
                         .filter(isFieldMember) // only Fields, no Methods
-                        .map(f => <CreateFieldDetails<AstNode>>{
+                        .map(f => <CreateFieldDetails<LoxSpecifics>>{
                             name: f.name,
                             type: f.type, // note that type inference is used here
                         }),
                     methods: node.members
                         .filter(isMethodMember) // only Methods, no Fields
-                        .map(member => <CreateMethodDetails<AstNode>>{ type: this.createFunctionDetails(member, typir) }), // same logic as for functions, since the LOX grammar defines them very similar
+                        .map(member => <CreateMethodDetails<LoxSpecifics>>{ type: this.createFunctionDetails(member, typir) }), // same logic as for functions, since the LOX grammar defines them very similar
                     associatedLanguageNode: node, // this is used by the ScopeProvider to get the corresponding class declaration after inferring the (class) type of an expression
                 })
                 // inference rule for declaration
@@ -226,12 +232,12 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         }
     }
 
-    protected createFunctionDetails(node: FunctionDeclaration | MethodMember, typir: TypirLangiumServices<LoxAstType>): TypeInitializer<FunctionType, AstNode> {
+    protected createFunctionDetails(node: FunctionDeclaration | MethodMember, typir: TypirLangiumServices<LoxSpecifics>): TypeInitializer<FunctionType, LoxSpecifics> {
         const config = typir.factory.Functions
             .create({
                 functionName: node.name,
                 outputParameter: { name: NO_PARAMETER_NAME, type: node.returnType },
-                inputParameters: node.parameters.map(p => (<CreateParameterDetails<AstNode>>{ name: p.name, type: p.type })),
+                inputParameters: node.parameters.map(p => (<CreateParameterDetails<LoxSpecifics>>{ name: p.name, type: p.type })),
                 associatedLanguageNode: node,
             })
             // inference rule for function declaration:
@@ -268,7 +274,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
 
     // Extracting functions for each validation check might improve their readability
 
-    protected validateReturnStatement(node: ReturnStatement, accept: ValidationProblemAcceptor<AstNode>, typir: TypirServices<AstNode>): void {
+    protected validateReturnStatement(node: ReturnStatement, accept: ValidationProblemAcceptor<LoxSpecifics>, typir: TypirServices<LoxSpecifics>): void {
         const callableDeclaration: FunctionDeclaration | MethodMember | undefined = AstUtils.getContainerOfType(node, node => isFunctionDeclaration(node) || isMethodMember(node));
         if (callableDeclaration && callableDeclaration.returnType.primitive && callableDeclaration.returnType.primitive !== 'void' && node.value) {
             // the return value must fit to the return type of the function / method
@@ -278,7 +284,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
         }
     }
 
-    protected validateVariableDeclaration(node: VariableDeclaration, accept: ValidationProblemAcceptor<AstNode>, typir: TypirServices<AstNode>): void {
+    protected validateVariableDeclaration(node: VariableDeclaration, accept: ValidationProblemAcceptor<LoxSpecifics>, typir: TypirServices<LoxSpecifics>): void {
         const typeVoid = typir.factory.Primitives.get({ primitiveName: 'void' })!;
         typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid, accept,
             () => ({ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' }));
@@ -287,7 +293,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxAstType> {
             languageProperty: 'value' }));
     }
 
-    protected validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<AstNode>, typir: TypirServices<AstNode>): void {
+    protected validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<LoxSpecifics>, typir: TypirServices<LoxSpecifics>): void {
         const typeBool = typir.factory.Primitives.get({ primitiveName: 'boolean' })!;
         typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool, accept,
             () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' }));

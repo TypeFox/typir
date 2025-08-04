@@ -6,7 +6,7 @@
 
 import { GraphAlgorithms } from '../graph/graph-algorithms.js';
 import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { ConversionEdge, isConversionEdge, TypeConversion } from './conversion.js';
 import { TypeEquality } from './equality.js';
@@ -54,13 +54,13 @@ export interface TypeAssignability {
 /**
  * This implementation for assignability checks step-by-step (1) equality, (2) implicit conversion, and (3) sub-type relationships of the source and target type.
  */
-export class DefaultTypeAssignability<LanguageType> implements TypeAssignability {
+export class DefaultTypeAssignability<Specifics extends TypirSpecifics> implements TypeAssignability {
     protected readonly conversion: TypeConversion;
     protected readonly subtype: SubType;
     protected readonly equality: TypeEquality;
     protected readonly algorithms: GraphAlgorithms;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.conversion = services.Conversion;
         this.subtype = services.Subtype;
         this.equality = services.Equality;

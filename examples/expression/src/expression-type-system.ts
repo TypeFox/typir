@@ -3,11 +3,15 @@
  * This program and the accompanying materials are made available under the
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
-import { createTypirServices, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NO_PARAMETER_NAME } from 'typir';
+import { createTypirServices, InferenceRuleNotApplicable, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, NO_PARAMETER_NAME, TypirSpecifics } from 'typir';
 import { BinaryExpression, isAssignment, isBinaryExpression, isCharString, isNumeric, isPrintout, isUnaryExpression, isVariableDeclaration, isVariableUsage, Node, UnaryExpression } from './expression-ast.js';
 
+export interface ExpressionSpecifics extends TypirSpecifics {
+    LanguageType: Node;
+}
+
 export function initializeTypir() {
-    const typir = createTypirServices<Node>();
+    const typir = createTypirServices<ExpressionSpecifics>();
     const typeNumber = typir.factory.Primitives.create({
         primitiveName: 'number',
     }).inferenceRule({
@@ -20,7 +24,7 @@ export function initializeTypir() {
     }).finish();
     const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' }).finish();
 
-    const binaryInferenceRule: InferOperatorWithMultipleOperands<Node, BinaryExpression> = {
+    const binaryInferenceRule: InferOperatorWithMultipleOperands<ExpressionSpecifics, BinaryExpression> = {
         filter: isBinaryExpression,
         matching: (node: BinaryExpression, name: string) => node.op === name,
         operands: (node: BinaryExpression) => [node.left, node.right],
@@ -31,7 +35,7 @@ export function initializeTypir() {
     }
     typir.factory.Operators.createBinary({ name: '+', signature: { left: typeString, right: typeString, return: typeString } }).inferenceRule(binaryInferenceRule).finish();
 
-    const unaryInferenceRule: InferOperatorWithSingleOperand<Node, UnaryExpression> = {
+    const unaryInferenceRule: InferOperatorWithSingleOperand<ExpressionSpecifics, UnaryExpression> = {
         filter: isUnaryExpression,
         matching: (node: UnaryExpression, name: string) => node.op === name,
         operand: (node: UnaryExpression, _name: string) => node.operand,

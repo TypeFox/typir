@@ -11,12 +11,23 @@ To use Typir without any language workbench, e.g. for hand-written languages, mo
 npm install typir
 ```
 
-Afterwards, instantiate a new type system.
-If all nodes of your language AST have a common TypeScript super type, add this super type as generic, otherwise use `<unknown>` as fall-back.
+Afterwards, instantiate a new type system:
 
 ```typescript
-const typir = createTypirServices<MyDSLAstType>();
+const typir = createTypirServices<TypirSpecifics>();
 ```
+
+If all nodes of your language AST have a common TypeScript super type (`MyDSLAstType`), concretize the given `<TypirSpecifics>`. This helps Typir to provide you an API with more accurate TypeScript types, since `unknown` would be the fall-back for all language nodes.
+
+```typescript
+interface MyDSLSpecifics extends TypirSpecifics {
+    LanguageType: MyDSLAstType;
+    // ... more could be customized here ...
+}
+
+const typir = createTypirServices<MyDSLSpecifics>();
+```
+
 
 This type system is going to be enriched now by types and relationships between the types according to the specifics of your language under development. All types and relationships are created using the type system instance `typir`, e.g.
 
@@ -49,12 +60,12 @@ Therefore, the actual type system for your Langium-based language is defined as 
 which separates constant types (and their rules) from user-dependent types (and their rules):
 
 ```typescript
-export class MyDSLTypeSystem implements LangiumTypeSystemDefinition<MyDSLAstType> {
-    onInitialize(typir: TypirLangiumServices<MyDSLAstType>): void {
+export class MyDSLTypeSystem implements LangiumTypeSystemDefinition<MyDSLSpecifics> {
+    onInitialize(typir: TypirLangiumServices<MyDSLSpecifics>): void {
       // define constant types and rules for conversion, inference and validation here
     }
 
-    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<MyDSLAstType>): void {
+    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<MyDSLSpecifics>): void {
       // define types and their rules which depend on the current AST respectively the given AstNode (as parsed by Langium from programs written by users of your language) here
     }
 }
@@ -65,7 +76,7 @@ We recommend to integrate Typir as additional Langium service into your DSL, sin
 ```typescript
 export type MyDSLAddedServices = {
     // ...
-    typir: TypirLangiumServices<MyDSLAstType>,
+    typir: TypirLangiumServices<MyDSLSpecifics>,
     // ...
 }
 ```
@@ -84,6 +95,14 @@ The Typir services are created in your module in this way:
 
 After creating the Langium services (which contain the Typir serivces now) and storing them in a variable like `langiumServices`, the Typir services need to be initialized with `initializeLangiumTypirServices(langiumServices, langiumServices.typir)`.
 
+`<MyDSLSpecifics>` is used to inform Typir-Langium about the generated DSL-specific TypeScript-types, which describe the current, DSL-specific AST. Note that `TypirLangiumSpecifics` extends the `TypirSpecifics` and already concretized `LanguageType` with `AstNode`.
+
+```typescript
+export interface MyDSLSpecifics extends TypirLangiumSpecifics {
+    AstTypes: MyDSLAstType; // all AST types from the generated `ast.ts`
+    // ... more could be customized here ...
+}
+```
 
 
 ## General suggestions

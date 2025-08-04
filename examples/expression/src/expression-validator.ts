@@ -5,8 +5,9 @@
  ******************************************************************************/
 import { TypirServices } from 'typir';
 import { Expression, Model, Node } from './expression-ast.js';
+import { ExpressionSpecifics } from './expression-type-system.js';
 
-export function validate(typir: TypirServices<Node>, model: Model, accept: (message: string) => void) {
+export function validate(typir: TypirServices<ExpressionSpecifics>, model: Model, accept: (message: string) => void) {
     function runValidator(languageNode: Node) {
         typir.validation.Collector.validate(languageNode).forEach(m => accept(m.message));
     }

@@ -38,7 +38,7 @@ In the following example, an additional factory for classes is exposed as servic
 ```typescript
 type AdditionalExampleTypirServices = {
     readonly factory: {
-        readonly OtherClasses: ClassFactoryService<TestLanguageNode>;
+        readonly OtherClasses: ClassFactoryService<TestingSpecifics>;
     },
 };
 ```
@@ -48,20 +48,20 @@ Specify implementations for all added services which are considered when you ins
 Instead of `createTypirServices`, use `createTypirServicesWithAdditionalServices` instead and specify the new services as generic (here `<..., AdditionalExampleTypirServices>`):
 
 ```typescript
-const customizedTypir: TypirServices<TestLanguageNode> & AdditionalExampleTypirServices = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>({
+const customizedTypir: TypirServices<TestingSpecifics> & AdditionalExampleTypirServices = createTypirServicesWithAdditionalServices<TestingSpecifics, AdditionalExampleTypirServices>({
     factory: {
         OtherClasses: services => new ClassKind(services, { maximumNumberOfSuperClasses: 2, $name: 'OtherClass' }),
     },
 });
 ```
 
-TypeScript doesn't force you to write `TypirServices<TestLanguageNode> & AdditionalExampleTypirServices` in the code snipped above, but makes explicit what is going on here:
+TypeScript doesn't force you to write `TypirServices<TestingSpecifics> & AdditionalExampleTypirServices` in the code snipped above, but makes explicit what is going on here:
 You get the `TypirServices` as usual, but they are combined with your defined `AdditionalExampleTypirServices`, i.e. you get only one object back containing default and custom services. Additionally, both default and custom services are correctly TypeScript-typed.
 
 To simplify the code, it is recommended (but not mandatory) to introduce a TypeScript type like the following and to use it instead, since it makes explicit that the current Typir services are customized:
 
 ```typescript
-type ExampleTypirServices = TypirServices<TestLanguageNode> & AdditionalExampleTypirServices;
+type ExampleTypirServices = TypirServices<TestingSpecifics> & AdditionalExampleTypirServices;
 ```
 
 Newly added services are usable by all other services, including new services and existing services.
@@ -70,7 +70,7 @@ The latter is important when customizing default implementations, when the custo
 It is possible to provide implementations for new services together with customizations for existing services:
 
 ```typescript
-const customizedTypir: ExampleTypirServices = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>({
+const customizedTypir: ExampleTypirServices = createTypirServicesWithAdditionalServices<TestingSpecifics, AdditionalExampleTypirServices>({
     // 1st mandatory argument: implementations for all new services
 }, {
     // 2nd optional argument: customize some (existing or new) services here

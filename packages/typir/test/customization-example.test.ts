@@ -5,17 +5,16 @@
  ******************************************************************************/
 
 import { describe, expect, test } from 'vitest';
-import { ClassFactoryService, ClassKind } from '../src/kinds/class/class-kind.js';
-import { TestLanguageNode } from '../src/test/predefined-language-nodes.js';
-import { createTypirServices, createTypirServicesWithAdditionalServices, TypirServices } from '../src/typir.js';
-import { expectToBeType } from '../src/index-test.js';
+import { expectToBeType, TestingSpecifics } from '../src/index-test.js';
 import { DefaultTypeConflictPrinter, isClassType, Type } from '../src/index.js';
+import { ClassFactoryService, ClassKind } from '../src/kinds/class/class-kind.js';
+import { createTypirServices, createTypirServicesWithAdditionalServices, TypirServices } from '../src/typir.js';
 
 describe('Some examples how to customize the Typir services, focusing on adding another type factory', () => {
 
     test('Demonstrate the default behaviour of classes', async () => {
         // Use the default configuration of Typir
-        const typir = createTypirServices<TestLanguageNode>();
+        const typir = createTypirServices<TestingSpecifics>();
         // Create some classes
         const classA = typir.factory.Classes.create({ className: 'A', fields: [], methods: [], superClasses: [] }).finish().getTypeFinal()!;
         const classB = typir.factory.Classes.create({ className: 'B', fields: [], methods: [], superClasses: [] }).finish().getTypeFinal()!;
@@ -30,7 +29,7 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         // The service for creating classes already exists in the Typir services, but its implementation is configured:
         // - Here, only an option of the existing implementation is changed.
         // - But in general you could add a completely new implementation here.
-        const typir = createTypirServices<TestLanguageNode>({
+        const typir = createTypirServices<TestingSpecifics>({
             factory: {
                 Classes: services => new ClassKind(services, { maximumNumberOfSuperClasses: 2 }),
             },
@@ -50,13 +49,13 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         //  In general, you can add an arbitrary number of services, which might be deeply nested
         type AdditionalExampleTypirServices = {
             readonly factory: {
-                readonly OtherClasses: ClassFactoryService<TestLanguageNode>;
+                readonly OtherClasses: ClassFactoryService<TestingSpecifics>;
             },
         };
-        type ExampleTypirServices = TypirServices<TestLanguageNode> & AdditionalExampleTypirServices;
+        type ExampleTypirServices = TypirServices<TestingSpecifics> & AdditionalExampleTypirServices;
 
         // Instantiate the services and provide implementations for all added services.
-        const typir: ExampleTypirServices = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>({
+        const typir: ExampleTypirServices = createTypirServicesWithAdditionalServices<TestingSpecifics, AdditionalExampleTypirServices>({
             factory: {
                 // Here we reuse the existing class kind implementation, but with a different configuration to demonstrate types with a different behaviour:
                 OtherClasses: services => new ClassKind(services, { maximumNumberOfSuperClasses: 2, $name: 'OtherClass' }),
@@ -90,8 +89,8 @@ describe('Some examples how to customize the Typir services, focusing on adding 
             TestService: TestService;
         };
         // Defining the following TypeScript type "ExampleTypirServices" is not mandatory, but makes the customization with additional services easier.
-        //  Without this type "ExampleTypirServices", you would need to replace all its occurrances by "TypirServices<TestLanguageNode> & AdditionalExampleTypirServices".
-        type ExampleTypirServices = TypirServices<TestLanguageNode> & AdditionalExampleTypirServices;
+        //  Without this type "ExampleTypirServices", you would need to replace all its occurrances by "TypirServices<TestingSpecifics> & AdditionalExampleTypirServices".
+        type ExampleTypirServices = TypirServices<TestingSpecifics> & AdditionalExampleTypirServices;
 
         // implementation for the new service
         class TestServiceImpl implements TestService {
@@ -108,7 +107,7 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         }
 
         // adapted implementation for an existing service
-        class ExamplePrinter extends DefaultTypeConflictPrinter<TestLanguageNode> {
+        class ExamplePrinter extends DefaultTypeConflictPrinter<TestingSpecifics> {
             readonly services: ExampleTypirServices;
             constructor(services: ExampleTypirServices) {
                 super();
@@ -121,7 +120,7 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         }
 
         // Instantiate the Typir services and provide implementations for all added and customized services:
-        const typir: ExampleTypirServices = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>(
+        const typir: ExampleTypirServices = createTypirServicesWithAdditionalServices<TestingSpecifics, AdditionalExampleTypirServices>(
             // 1st argument: Specify implementations for all new services
             {
                 TestService: services => new TestServiceImpl(services),
@@ -145,13 +144,13 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         //  This test case aims to point to these issues in general.
         type AdditionalExampleTypirServices = {
             readonly factory: {
-                readonly OtherClasses: ClassFactoryService<TestLanguageNode>;
+                readonly OtherClasses: ClassFactoryService<TestingSpecifics>;
             },
         };
-        type ExampleTypirServices = TypirServices<TestLanguageNode> & AdditionalExampleTypirServices;
+        type ExampleTypirServices = TypirServices<TestingSpecifics> & AdditionalExampleTypirServices;
 
         // Reusing the following default implementation causes some issues with unique names ...
-        let typir: ExampleTypirServices = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>({
+        let typir: ExampleTypirServices = createTypirServicesWithAdditionalServices<TestingSpecifics, AdditionalExampleTypirServices>({
             factory: {
                 OtherClasses: services => new ClassKind(services),
             },
@@ -160,7 +159,7 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         // Each kind needs to have a unique $name
         expect(typir.factory.Classes).toBeTypeOf('object'); // trigger to create the default class factory, since they are created lazily
         expect(() => typir.factory.OtherClasses).toThrowError("duplicate kind named 'ClassKind'");
-        typir = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>({
+        typir = createTypirServicesWithAdditionalServices<TestingSpecifics, AdditionalExampleTypirServices>({
             factory: {
                 OtherClasses: services => new ClassKind(services, {
                     $name: 'OtherClass', // specify another $name for the new kind
@@ -174,7 +173,7 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         expectToBeType(typir.factory.Classes.create({ className: 'A', fields: [], methods: [] }).finish().getTypeFinal(), isClassType, type => type.className === 'A');
         expect(() => typir.factory.OtherClasses.create({ className: 'A', fields: [], methods: [] }).finish())
             .toThrowError("The identifier 'class-A' for the new type of kind 'OtherClass' (implemented in ClassKind) collides with the identifier 'class-A' of an existing type of kind 'ClassKind' (implemented in ClassKind).");
-        typir = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalExampleTypirServices>({
+        typir = createTypirServicesWithAdditionalServices<TestingSpecifics, AdditionalExampleTypirServices>({
             factory: {
                 OtherClasses: services => new ClassKind(services, {
                     $name: 'OtherClass',
@@ -190,7 +189,7 @@ describe('Some examples how to customize the Typir services, focusing on adding 
         // Removing an existing type factory is not possible and does not make sense, since other default services might use this service.
         // - Simple approach: Just don't use this service anymore.
         // - More explicit approach: Throw an exception whenever this service is used, as demonstrated here:
-        const typir = createTypirServices<TestLanguageNode>({
+        const typir = createTypirServices<TestingSpecifics>({
             factory: {
                 Classes: () => { throw new Error('Do not use classes!'); },
             },

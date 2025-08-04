@@ -7,17 +7,18 @@
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { isSubTypeProblem } from '../../services/subtype.js';
+import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkValueForConflict, createKindConflict } from '../../utils/utils-type-comparison.js';
 import { isMultiplicityKind, MultiplicityKind, MultiplicityTypeDetails } from './multiplicity-kind.js';
 
 export class MultiplicityType extends Type {
-    override readonly kind: MultiplicityKind<unknown>;
+    override readonly kind: MultiplicityKind<TypirSpecifics>;
     readonly constrainedType: Type;
     readonly lowerBound: number;
     readonly upperBound: number;
 
-    constructor(kind: MultiplicityKind<unknown>, identifier: string, typeDetails: MultiplicityTypeDetails<unknown>) {
+    constructor(kind: MultiplicityKind<TypirSpecifics>, identifier: string, typeDetails: MultiplicityTypeDetails<TypirSpecifics>) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.constrainedType = typeDetails.constrainedType;

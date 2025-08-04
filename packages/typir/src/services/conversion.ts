@@ -8,7 +8,7 @@ import { GraphAlgorithms } from '../graph/graph-algorithms.js';
 import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
 import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 import { TypeEquality } from './equality.js';
 
 /**
@@ -109,12 +109,12 @@ export interface TypeConversion {
  * - Do not store transitive relationships, since they must be removed, when types of the corresponding path are removed!
  * - Store only EXPLICIT and IMPLICIT relationships, since this is not required, missing edges means NONE/SELF.
  */
-export class DefaultTypeConversion<LanguageType> implements TypeConversion {
+export class DefaultTypeConversion<Specifics extends TypirSpecifics> implements TypeConversion {
     protected readonly equality: TypeEquality;
     protected readonly graph: TypeGraph;
     protected readonly algorithms: GraphAlgorithms;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.equality = services.Equality;
         this.graph = services.infrastructure.Graph;
         this.algorithms = services.infrastructure.GraphAlgorithms;

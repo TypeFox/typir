@@ -4,25 +4,25 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, DocumentCache, DocumentState } from 'langium';
+import { DocumentCache, DocumentState } from 'langium';
 import { CachePending, LanguageNodeInferenceCaching, Type } from 'typir';
-import { TypirLangiumServices } from '../typir-langium.js';
-import { getDocumentKey, LangiumAstTypes } from '../utils/typir-langium-utils.js';
+import { TypirLangiumServices, TypirLangiumSpecifics } from '../typir-langium.js';
+import { getDocumentKey } from '../utils/typir-langium-utils.js';
 
 // cache AstNodes
-export class LangiumLanguageNodeInferenceCaching<AstTypes extends LangiumAstTypes> implements LanguageNodeInferenceCaching {
+export class LangiumLanguageNodeInferenceCaching<Specifics extends TypirLangiumSpecifics> implements LanguageNodeInferenceCaching {
     protected readonly cache: DocumentCache<unknown, Type | CachePending>; // removes cached AstNodes, if their underlying LangiumDocuments are invalidated
 
-    constructor(typirServices: TypirLangiumServices<AstTypes>) {
+    constructor(typirServices: TypirLangiumServices<Specifics>) {
         this.cache = new DocumentCache(typirServices.langium.LangiumServices, DocumentState.IndexedReferences);
     }
 
-    cacheSet(languageNode: AstNode, type: Type): void {
+    cacheSet(languageNode: Specifics['LanguageType'], type: Type): void {
         this.pendingClear(languageNode);
         this.cache.set(getDocumentKey(languageNode), languageNode, type);
     }
 
-    cacheGet(languageNode: AstNode): Type | undefined {
+    cacheGet(languageNode: Specifics['LanguageType']): Type | undefined {
         if (this.pendingGet(languageNode)) {
             return undefined;
         } else {
@@ -34,11 +34,11 @@ export class LangiumLanguageNodeInferenceCaching<AstTypes extends LangiumAstType
         this.cache.clear();
     }
 
-    pendingSet(languageNode: AstNode): void {
+    pendingSet(languageNode: Specifics['LanguageType']): void {
         this.cache.set(getDocumentKey(languageNode), languageNode, CachePending);
     }
 
-    pendingClear(languageNode: AstNode): void {
+    pendingClear(languageNode: Specifics['LanguageType']): void {
         const key = getDocumentKey(languageNode);
         if (this.cache.get(key, languageNode) !== CachePending) {
             // do nothing
@@ -47,7 +47,7 @@ export class LangiumLanguageNodeInferenceCaching<AstTypes extends LangiumAstType
         }
     }
 
-    pendingGet(languageNode: AstNode): boolean {
+    pendingGet(languageNode: Specifics['LanguageType']): boolean {
         const key = getDocumentKey(languageNode);
         return this.cache.has(key, languageNode) && this.cache.get(key, languageNode) === CachePending;
     }
