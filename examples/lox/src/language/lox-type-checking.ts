@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AstNode, AstUtils, assertUnreachable } from 'langium';
+import { AstNode, AstUtils, assertUnreachable, diagnosticData } from 'langium';
 import { CreateFieldDetails, CreateMethodDetails, CreateParameterDetails, FunctionType, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypeInitializer, TypirServices, ValidationProblemAcceptor } from 'typir';
 import { LangiumTypeSystemDefinition, TypirLangiumServices, TypirLangiumSpecifics } from 'typir-langium';
 import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclaration, IfStatement, LoxAstType, MemberCall, MethodMember, NilLiteral, NumberLiteral, PrintStatement, ReturnStatement, StringLiteral, TypeReference, UnaryExpression, VariableDeclaration, WhileStatement, isClass, isFieldMember, isFunctionDeclaration, isMethodMember, isParameter, isVariableDeclaration } from './generated/ast.js';
@@ -88,11 +88,13 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> 
                     ...binaryInferenceRule,
                     // show a warning to the user, if something like "3 == false" is compared, since different types already indicate, that the IF condition will be evaluated to false
                     validation: (node, _operatorName, _operatorType, accept, typir) => typir.validation.Constraints.ensureNodeIsEquals(node.left, node.right, accept, (actual, expected) => ({
-                        message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
-                        languageNode: node, // inside the BinaryExpression ...
-                        languageProperty: 'operator', // ... mark the '==' or '!=' token, i.e. the 'operator' property
-                        severity: 'warning',
                         // (The use of "node.right" and "node.left" without casting is possible, since the type checks of the given properties for the actual inference rule are reused for the validation.)
+                        message: `This comparison will always return '${node.operator === '==' ? 'false' : 'true'}' as '${node.left.$cstNode?.text}' and '${node.right.$cstNode?.text}' have the different types '${actual.name}' and '${expected.name}'.`,
+                        languageNode: node, // mark the whole BinaryExpression
+                        severity: 'warning',
+                        // Langium-specific properties are usable, e.g. to enable a code action for this issue:
+                        //  (The code action is not really helpful, but demonstrates, how to create a Langium code action for a validation issue created by Typir-Langium)
+                        data: diagnosticData(node.operator === '==' ? TypeIssueCodes.ComparisonIsAlwaysFalse : TypeIssueCodes.ComparisonIsAlwaysTrue),
                     }))
                 })
                 .finish();
@@ -299,4 +301,9 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> 
             () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' }));
     }
 
+}
+
+export namespace TypeIssueCodes {
+    export const ComparisonIsAlwaysTrue = 'condition-is-always-true';
+    export const ComparisonIsAlwaysFalse = 'condition-is-always-false';
 }

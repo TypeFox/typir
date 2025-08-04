@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AbstractAstReflection, AstNode, LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
+import { AbstractAstReflection, AstNode, DiagnosticInfo, LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
 import { createDefaultTypirServicesModule, DeepPartial, inject, Module, PartialTypirServices, TypirServices, TypirSpecifics } from 'typir';
 import { LangiumLanguageNodeInferenceCaching } from './features/langium-caching.js';
 import { DefaultLangiumTypeInferenceCollector, LangiumTypeInferenceCollector } from './features/langium-inference.js';
@@ -20,6 +20,10 @@ import { LangiumAstTypes } from './utils/typir-langium-utils.js';
 export interface TypirLangiumSpecifics extends TypirSpecifics {
     LanguageType: AstNode;      // concretizes the `LanguageType`, since all language nodes of a Langium AST are AstNode's
     AstTypes: LangiumAstTypes;  // applications should concretize the `AstTypes` with XXXAstType from the generated `ast.ts`
+    /** Support also the Langium-specific diagnostic properties, e.g. to mark keywords or register code actions */
+    ValidationMessageDetails: TypirSpecifics['ValidationMessageDetails'] & Omit<DiagnosticInfo<AstNode>, 'node'|'property'|'index'> // 'node', 'property', and 'index' are already coverd by TypirSpecifics['ValidationMessageDetails'] with a different name
+    // & { mandatory: boolean }
+    ;
 }
 
 /**

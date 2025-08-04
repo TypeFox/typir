@@ -29,11 +29,6 @@ export function registerTypirValidationChecks<Specifics extends TypirLangiumSpec
 *     - for wrong type of variable declaration
 *     - to add missing explicit type conversion
 * - no validation of parents, when their children already have some problems/warnings
-*
-* Improved Validation API for Langium:
-* - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // use this signature for Langium?
-* - [<VariableDeclaration>{ selector: isVariableDeclaration, result: languageNode => languageNode.type }, <BinaryExpression>{}]      Array<InferenceRule<T>>
-* Apply the same ideas for InferenceRules as well!
 */
 
 
@@ -87,8 +82,15 @@ export class DefaultLangiumTypirValidator<Specifics extends TypirLangiumSpecific
     protected report(problems: Array<ValidationProblem<Specifics>>, node: Specifics['LanguageType'], accept: ValidationAcceptor): void {
         // print all found problems for the given AST node
         for (const problem of problems) {
-            const message = this.services.Printer.printValidationProblem(problem);
-            accept(problem.severity, message, { node, property: problem.languageProperty as Properties<Specifics['LanguageType']>, index: problem.languageIndex });
+            const message = this.services.Printer.printValidationProblem(problem); // includes the subProblems into the message
+            accept(problem.severity, message, {
+                // these properties are named differently in Langium and Typir:
+                node: problem.languageNode,
+                property: problem.languageProperty as Properties<Specifics['LanguageType']>,
+                index: problem.languageIndex,
+                // copy all other DiagnosticInfo properties:
+                ...problem,
+            });
         }
     }
 }
@@ -100,7 +102,7 @@ export class DefaultLangiumTypirValidator<Specifics extends TypirLangiumSpecific
  * A utility type for associating non-primitive AST types to corresponding validation rules. For example:
  *
  * ```ts
- *   addValidationsRulesForAstNodes<LoxAstType>({
+ *   addValidationRulesForAstNodes({
  *      VariableDeclaration: (node, typir) => { return [...]; },
  *   });
  * ```

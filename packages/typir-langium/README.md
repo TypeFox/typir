@@ -93,6 +93,11 @@ typir.validation.Collector.addValidationRulesForAstNodes({
 });
 ```
 
+All properties of `DiagnosticInfo` from Langium are supported in Typir-Langium when creating validation issues.
+For example, this includes `data` to register code actions for validation issues which are created by Typir-Langium (see an example in LOX with test cases in `lox-type-checking-operators.test.ts`).
+Note that the properties `node`, `property`, and `index` are named `languageNode`, `languageProperty`, and `languageIndex` in Typir and these names are used in Typir-Langium as well.
+
+
 In similar way, it is possible to register *inference rules* for `AstNode.$type`s, as demonstrated in the LOX example:
 
 ```typescript

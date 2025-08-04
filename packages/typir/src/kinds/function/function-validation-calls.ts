@@ -4,9 +4,10 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { ValidationProblem, ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
+import { ReducedValidationProblem, ValidationProblem, ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { RuleCollectorListener, RuleOptions } from '../../utils/rule-registration.js';
+import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertUnreachable, toArray } from '../../utils/utils.js';
 import { InferFunctionCall } from './function-kind.js';
@@ -101,11 +102,11 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
             }
             // Since none of the function signatures match, report one validation issue (with sub-problems) for each function signature (and for each language key)
             if (resultOverloaded.length >= 1) {
-                accept({
+                accept(<ReducedValidationProblem<Specifics>>{
                     languageNode: languageNode,
                     severity: 'error',
                     message: `The given operands for the call of ${overloadedFunctions.overloadedFunctions.length >= 2 ? 'the overload ' : ''}'${overloadedName}' don't match.`,
-                    subProblems: resultOverloaded,
+                    subProblems: resultOverloaded as TypirProblem[],
                 });
             }
         }
