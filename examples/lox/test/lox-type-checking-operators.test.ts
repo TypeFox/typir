@@ -4,8 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { describe, test } from 'vitest';
-import { validateLox } from './lox-type-checking-utils.js';
+import { describe, expect, test } from 'vitest';
+import { loxServices, validateLox } from './lox-type-checking-utils.js';
+import { testCodeAction } from 'langium/test';
+import { TypeIssueCodes } from '../src/language/lox-type-checking.js';
+
+const testCodeActions = testCodeAction(loxServices);
 
 describe('Test type checking for operators', () => {
 
@@ -82,6 +86,26 @@ describe('Test type checking for operators', () => {
             // '*' supports only numbers for left and right, but the right operand is always boolean as result of the 'and' operator
             "While validating the AstNode '2 * (2 and false)', this error is found: The given operands for the call of '*' don't match.",
         ]);
+    });
+
+    test('Test code action: true', async () => {
+        const result = await testCodeActions(
+            'var myResult: boolean = 2 != false;', TypeIssueCodes.ComparisonIsAlwaysTrue,
+            'var myResult: boolean = true;',
+        );
+        const action = result.action;
+        expect(action).toBeTruthy();
+        expect(action!.title).toBe("Simplify expression to 'true'");
+    });
+
+    test('Test code action: false', async () => {
+        const result = await testCodeActions(
+            'var myResult: boolean = true == 3;', TypeIssueCodes.ComparisonIsAlwaysFalse,
+            'var myResult: boolean = false;',
+        );
+        const action = result.action;
+        expect(action).toBeTruthy();
+        expect(action!.title).toBe("Simplify expression to 'false'");
     });
 
 });

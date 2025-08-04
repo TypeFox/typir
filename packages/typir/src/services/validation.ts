@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type, isType } from '../graph/type-node.js';
-import { TypirSpecifics, TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices, MakePropertyOptional } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
@@ -15,20 +15,22 @@ import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
-export interface ValidationMessageDetails {
+export interface ValidationMessageDetails { // Using this type only the TypirSpecifics (and not directly in the ValidationProblem below) enables to customize its properties.
     severity: Severity;
     message: string;
     subProblems?: TypirProblem[];
 }
 
-export interface ValidationProblem<
+export type ValidationProblem<
     Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
-> extends ValidationMessageDetails, TypirProblem {
+> = Specifics['ValidationMessageDetails'] & TypirProblem & {
     $problem: 'ValidationProblem';
+    // the following properties are provided always and cannot be customized:
     languageNode: T;
     languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
     languageIndex?: number; // index, if 'languageProperty' is an Array property
 }
+
 export const ValidationProblem = 'ValidationProblem';
 export function isValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: unknown): problem is ValidationProblem<Specifics, T> {
     return isSpecificTypirProblem(problem, ValidationProblem);
@@ -37,6 +39,9 @@ export function isValidationProblem<Specifics extends TypirSpecifics, T extends 
 /** Don't specify the $problem-property. */
 export type ReducedValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>
     = Omit<ValidationProblem<Specifics, T>, '$problem'>;
+/** Make some properties optional */
+export type RelaxedValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>
+    = Omit<MakePropertyOptional<ValidationProblem<Specifics, T>, 'languageNode'|'severity'|'message'>, '$problem'>;
 
 export type ValidationProblemAcceptor<Specifics extends TypirSpecifics>
     = <T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: ReducedValidationProblem<Specifics, T>) => void;
@@ -76,8 +81,8 @@ export interface AnnotatedTypeAfterValidation {
     name: string;
 }
 export type ValidationMessageProvider<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
-    // Partial<...> enables to specificy only some of the mandatory properties, for the remaining ones, the service implementation provides values
-    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ReducedValidationProblem<Specifics, T>>;
+    // RelaxedValidationProblem enables to specificy only some of the mandatory properties; for the remaining ones, the service implementation provides values
+    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => RelaxedValidationProblem<Specifics, T>;
 
 export interface ValidationConstraints<Specifics extends TypirSpecifics> {
     ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
@@ -151,25 +156,29 @@ export class DefaultValidationConstraints<Specifics extends TypirSpecifics> impl
                         // everything is fine
                     } else {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
-                        accept({
-                            languageNode: details.languageNode ?? languageNode,
-                            languageProperty: details.languageProperty,
-                            languageIndex: details.languageIndex,
-                            severity: details.severity ?? 'error',
-                            message: details.message ?? `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
-                            subProblems: [comparisonResult]
+                        accept(<ReducedValidationProblem<Specifics, T>>{
+                            // default values for properties which are optional in RelaxedValidationProblem, but mandatory in ReducedValidationProblem:
+                            languageNode,
+                            severity: 'error',
+                            message: `'${actualType.getIdentifier()}' is not related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
+                            // calculated here and therefore provided, but might be overridden by 'details':
+                            subProblems: [comparisonResult],
+                            // override default values by actual values, also store additional, custom properties:
+                            ...details,
                         });
                     }
                 } else {
                     if (negated) {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
-                        accept({
-                            languageNode: details.languageNode ?? languageNode,
-                            languageProperty: details.languageProperty,
-                            languageIndex: details.languageIndex,
-                            severity: details.severity ?? 'error',
-                            message: details.message ?? `'${actualType.getIdentifier()}' is ${negated ? '' : 'not '}related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
-                            subProblems: [] // no sub-problems are available!
+                        accept(<ReducedValidationProblem<Specifics, T>>{
+                            // default values for properties which are optional in RelaxedValidationProblem, but mandatory in ReducedValidationProblem:
+                            languageNode,
+                            severity: 'error',
+                            message: `'${actualType.getIdentifier()}' is related to '${expectedType.getIdentifier()}' regarding ${strategy}.`,
+                            // calculated here and therefore provided, but might be overridden by 'details':
+                            subProblems: [], // no sub-problems are available!
+                            // override default values by actual values, also store additional, custom properties:
+                            ...details,
                         });
                     } else {
                         // everything is fine

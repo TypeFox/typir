@@ -22,7 +22,7 @@ import { DefaultLanguageService, LanguageService } from './services/language.js'
 import { DefaultOperatorFactory, OperatorFactoryService } from './services/operator.js';
 import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.js';
 import { DefaultSubType, SubType } from './services/subtype.js';
-import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints } from './services/validation.js';
+import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints, ValidationMessageDetails } from './services/validation.js';
 import { inject, Module } from './utils/dependency-injection.js';
 
 /**
@@ -176,6 +176,9 @@ export type DeepPartial<T> = T[keyof T] extends Function ? T : {
     [P in keyof T]?: DeepPartial<T[P]>;
 }
 
+/** Makes only the specified properties of the given type optional */
+export type MakePropertyOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
+
 /**
  * Language-specific services to be partially overridden via dependency injection.
  */
@@ -187,4 +190,5 @@ export type PartialTypirServices<Specifics extends TypirSpecifics> = DeepPartial
  */
 export interface TypirSpecifics {
     LanguageType: unknown;
+    ValidationMessageDetails: ValidationMessageDetails;
 }
