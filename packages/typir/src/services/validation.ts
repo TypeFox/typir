@@ -15,17 +15,19 @@ import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
-export interface ValidationMessageDetails<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> {
+export interface ValidationMessageDetails {
+    severity: Severity;
+    message: string;
+    subProblems?: TypirProblem[];
+}
+
+export interface ValidationProblem<
+    Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
+> extends ValidationMessageDetails, TypirProblem {
+    $problem: 'ValidationProblem';
     languageNode: T;
     languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
     languageIndex?: number; // index, if 'languageProperty' is an Array property
-    severity: Severity;
-    message: string;
-}
-
-export interface ValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> extends ValidationMessageDetails<Specifics, T>, TypirProblem {
-    $problem: 'ValidationProblem';
-    subProblems?: TypirProblem[];
 }
 export const ValidationProblem = 'ValidationProblem';
 export function isValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: unknown): problem is ValidationProblem<Specifics, T> {
@@ -33,9 +35,11 @@ export function isValidationProblem<Specifics extends TypirSpecifics, T extends 
 }
 
 /** Don't specify the $problem-property. */
-export type ReducedValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> = Omit<ValidationProblem<Specifics, T>, '$problem'>;
+export type ReducedValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>
+    = Omit<ValidationProblem<Specifics, T>, '$problem'>;
 
-export type ValidationProblemAcceptor<Specifics extends TypirSpecifics> = <T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: ReducedValidationProblem<Specifics, T>) => void;
+export type ValidationProblemAcceptor<Specifics extends TypirSpecifics>
+    = <T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: ReducedValidationProblem<Specifics, T>) => void;
 
 export type ValidationRule<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> =
     | ValidationRuleFunctional<Specifics, InputType>
@@ -72,7 +76,8 @@ export interface AnnotatedTypeAfterValidation {
     name: string;
 }
 export type ValidationMessageProvider<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
-    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails<Specifics, T>>;
+    // Partial<...> enables to specificy only some of the mandatory properties, for the remaining ones, the service implementation provides values
+    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ReducedValidationProblem<Specifics, T>>;
 
 export interface ValidationConstraints<Specifics extends TypirSpecifics> {
     ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
