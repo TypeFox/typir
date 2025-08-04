@@ -8,7 +8,7 @@ import { expect } from 'vitest';
 import { Type } from '../graph/type-node.js';
 import { Severity } from '../services/validation.js';
 import { TestLanguageNode, TestLanguageService, TestProblemPrinter } from '../test/predefined-language-nodes.js';
-import { createDefaultTypirServicesModule, createTypirServices, DeepPartial, PartialTypirServices, TypirServices } from '../typir.js';
+import { createDefaultTypirServicesModule, createTypirServices, DeepPartial, PartialTypirServices, TypirSpecifics, TypirServices } from '../typir.js';
 import { inject, Module } from './dependency-injection.js';
 
 /**
@@ -20,7 +20,7 @@ import { inject, Module } from './dependency-injection.js';
  * it is possible to specify names multiple times, if there are multiple types with the same name (e.g. for overloaded functions)
  * @returns all the found types
  */
-export function expectTypirTypes<LanguageType>(services: TypirServices<LanguageType>, filterTypes: (type: Type) => boolean, ...namesOfExpectedTypes: string[]): Type[] {
+export function expectTypirTypes<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, filterTypes: (type: Type) => boolean, ...namesOfExpectedTypes: string[]): Type[] {
     const types = services.infrastructure.Graph.getAllRegisteredTypes().filter(filterTypes);
     types.forEach(type => expect(type.getInitializationState()).toBe('Completed')); // check that all types are 'Completed'
     const typeNames = types.map(t => t.getName());
@@ -54,7 +54,7 @@ export function expectToBeType<T extends Type>(type: unknown, checkType: (t: unk
  * @param languageNode the language node to validate
  * @param expectedIssues the expected issues to occur
  */
-export function expectValidationIssues<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, expectedIssues: string[]): void;
+export function expectValidationIssues<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], expectedIssues: string[]): void;
 /**
  * Tests, whether the specified issues are found during the validation of the given language node,
  * more validation issues beyond the specified ones might occur.
@@ -63,8 +63,8 @@ export function expectValidationIssues<LanguageType>(services: TypirServices<Lan
  * @param options These options are used to filter all occurred issues before the expectations are checked
  * @param expectedIssues the expected issues to occur
  */
-export function expectValidationIssues<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, options: ExpectedValidationIssuesOptions, expectedIssues: string[]): void;
-export function expectValidationIssues<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, optionsOrIssues: ExpectedValidationIssuesOptions | string[], issues?: string[]): void {
+export function expectValidationIssues<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], options: ExpectedValidationIssuesOptions, expectedIssues: string[]): void;
+export function expectValidationIssues<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], optionsOrIssues: ExpectedValidationIssuesOptions | string[], issues?: string[]): void {
     const expectedIssues = Array.isArray(optionsOrIssues) ? optionsOrIssues : issues ?? [];
     const options = Array.isArray(optionsOrIssues) ? {} : optionsOrIssues;
     const actualIssues = validateAndFilter(services, languageNode, options);
@@ -78,7 +78,7 @@ export function expectValidationIssues<LanguageType>(services: TypirServices<Lan
  * @param languageNode the language node to validate
  * @param expectedStrictIssues the expected issues to occur
  */
-export function expectValidationIssuesStrict<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, expectedStrictIssues: string[]): void;
+export function expectValidationIssuesStrict<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], expectedStrictIssues: string[]): void;
 /**
  * Tests, whether exactly the specified issues are found during the validation of the given language node,
  * i.e. neither more nor less validation issues.
@@ -87,8 +87,8 @@ export function expectValidationIssuesStrict<LanguageType>(services: TypirServic
  * @param options These options are used to filter all occurred issues before the expectations are checked
  * @param expectedStrictIssues the expected issues to occur
  */
-export function expectValidationIssuesStrict<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, options: ExpectedValidationIssuesOptions, expectedStrictIssues: string[]): void;
-export function expectValidationIssuesStrict<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, optionsOrIssues: ExpectedValidationIssuesOptions | string[], issues?: string[]): void {
+export function expectValidationIssuesStrict<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], options: ExpectedValidationIssuesOptions, expectedStrictIssues: string[]): void;
+export function expectValidationIssuesStrict<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], optionsOrIssues: ExpectedValidationIssuesOptions | string[], issues?: string[]): void {
     const expectedStrictIssues = Array.isArray(optionsOrIssues) ? optionsOrIssues : issues ?? [];
     const options = Array.isArray(optionsOrIssues) ? {} : optionsOrIssues;
     const actualIssues = validateAndFilter(services, languageNode, options);
@@ -102,7 +102,7 @@ export function expectValidationIssuesStrict<LanguageType>(services: TypirServic
  * @param languageNode the language node to validate
  * @param forbiddenIssues the issues which are expected to NOT occur
  */
-export function expectValidationIssuesAbsent<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, forbiddenIssues: string[]): void;
+export function expectValidationIssuesAbsent<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], forbiddenIssues: string[]): void;
 /**
  * Tests, whether the specified issues are NOT found during the validation of the given language node,
  * other validation issues than the specified ones might occur.
@@ -111,8 +111,8 @@ export function expectValidationIssuesAbsent<LanguageType>(services: TypirServic
  * @param options These options are used to filter all occurred issues before the expectations are checked
  * @param forbiddenIssues the issues which are expected to NOT occur
  */
-export function expectValidationIssuesAbsent<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, options: ExpectedValidationIssuesOptions, forbiddenIssues: string[]): void;
-export function expectValidationIssuesAbsent<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, optionsOrIssues: ExpectedValidationIssuesOptions | string[], issues?: string[]): void {
+export function expectValidationIssuesAbsent<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], options: ExpectedValidationIssuesOptions, forbiddenIssues: string[]): void;
+export function expectValidationIssuesAbsent<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], optionsOrIssues: ExpectedValidationIssuesOptions | string[], issues?: string[]): void {
     const expectedForbiddenIssues = Array.isArray(optionsOrIssues) ? optionsOrIssues : issues ?? [];
     const options = Array.isArray(optionsOrIssues) ? {} : optionsOrIssues;
     const actualIssues = validateAndFilter(services, languageNode, options);
@@ -125,7 +125,7 @@ export function expectValidationIssuesAbsent<LanguageType>(services: TypirServic
  * @param languageNode the language node to validate
  * @param options These options are used to filter all occurred issues before the expectations are checked
  */
-export function expectValidationIssuesNone<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, options?: ExpectedValidationIssuesOptions): void {
+export function expectValidationIssuesNone<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], options?: ExpectedValidationIssuesOptions): void {
     const optionsToUse = options ?? {};
     const actualIssues = validateAndFilter(services, languageNode, optionsToUse);
     compareValidationIssuesNone(actualIssues);
@@ -137,7 +137,7 @@ export interface ExpectedValidationIssuesOptions {
     // more properties for filtering might be added in the future
 }
 
-function validateAndFilter<LanguageType>(services: TypirServices<LanguageType>, languageNode: LanguageType, options: ExpectedValidationIssuesOptions): string[] {
+function validateAndFilter<Specifics extends TypirSpecifics>(services: TypirServices<Specifics>, languageNode: Specifics['LanguageType'], options: ExpectedValidationIssuesOptions): string[] {
     return services.validation.Collector.validate(languageNode)
         .filter(v => options.severity ? v.severity === options.severity : true)
         .map(v => services.Printer.printTypirProblem(v));
@@ -237,6 +237,9 @@ function compareValidationIssuesLogicAbsent(actualIssues: string[], forbiddenErr
     }
 }
 
+export interface TestingSpecifics extends TypirSpecifics {
+    LanguageType: TestLanguageNode;
+}
 
 /**
  * Creates TypirServices dedicated for testing purposes,
@@ -245,9 +248,9 @@ function compareValidationIssuesLogicAbsent(actualIssues: string[], forbiddenErr
  * @returns a Typir instance, i.e. the TypirServices with implementations
  */
 export function createTypirServicesForTesting(
-    customizationForTesting: Module<TypirServices<TestLanguageNode>, PartialTypirServices<TestLanguageNode>> = {},
-): TypirServices<TestLanguageNode> {
-    return createTypirServices<TestLanguageNode>(
+    customizationForTesting: Module<TypirServices<TestingSpecifics>, PartialTypirServices<TestingSpecifics>> = {},
+): TypirServices<TestingSpecifics> {
+    return createTypirServices<TestingSpecifics>(
         {                                               // override some default implementations:
             Printer: () => new TestProblemPrinter(),    // use the dedicated printer for TestLanguageNode's
             Language: () => new TestLanguageService(),  // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)
@@ -264,11 +267,11 @@ export function createTypirServicesForTesting(
  * @returns a Typir instance, i.e. the TypirServices with implementations
  */
 export function createTypirServicesForTestingWithAdditionalServices<AdditionalServices>(
-    moduleForAdditionalServices: Module<TypirServices<TestLanguageNode> & AdditionalServices, AdditionalServices>,
-    customizationForTesting?: Module<TypirServices<TestLanguageNode> & AdditionalServices, DeepPartial<TypirServices<TestLanguageNode> & AdditionalServices>>,
-): TypirServices<TestLanguageNode> & AdditionalServices {
+    moduleForAdditionalServices: Module<TypirServices<TestingSpecifics> & AdditionalServices, AdditionalServices>,
+    customizationForTesting?: Module<TypirServices<TestingSpecifics> & AdditionalServices, DeepPartial<TypirServices<TestingSpecifics> & AdditionalServices>>,
+): TypirServices<TestingSpecifics> & AdditionalServices {
     return inject(
-        createDefaultTypirServicesModule<TestLanguageNode>(),   // all default core implementations
+        createDefaultTypirServicesModule<TestingSpecifics>(),   // all default core implementations
         moduleForAdditionalServices,
         {                                                       // override some default implementations:
             Printer: () => new TestProblemPrinter(),            // use the dedicated printer for TestLanguageNode's

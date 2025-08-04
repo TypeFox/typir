@@ -7,7 +7,7 @@
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type } from '../../graph/type-node.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
-import { TypirServices } from '../../typir.js';
+import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { RuleRegistry } from '../../utils/rule-registration.js';
 import { removeFromArray } from '../../utils/utils.js';
 import { OverloadedFunctionsTypeInferenceRule } from './function-inference-overloaded.js';
@@ -19,20 +19,20 @@ import { FunctionCallArgumentsValidation } from './function-validation-calls.js'
  * Collects information about all functions with the same name.
  * This is required to handle overloaded functions.
  */
-export interface OverloadedFunctionDetails<LanguageType> {
+export interface OverloadedFunctionDetails<Specifics extends TypirSpecifics> {
     /** All function overloads/signatures with the same name. */
     overloadedFunctions: FunctionType[];
     /** Collects the details of all functions with the same name, grouped by language keys of their inference rules for function calls. */
-    details: RuleRegistry<SingleFunctionDetails<LanguageType>, LanguageType>;
+    details: RuleRegistry<SingleFunctionDetails<Specifics>, Specifics>;
     /** Collects the inference rules for all functions with the same name */
-    inferenceRule: CompositeTypeInferenceRule<LanguageType>; // remark: language keys are internally used during the registration of rules and during the inference using these rules
+    inferenceRule: CompositeTypeInferenceRule<Specifics>; // remark: language keys are internally used during the registration of rules and during the inference using these rules
     /** If all overloaded functions with the same name have the same output/return type, this type is remembered here (for a small performance optimization). */
     sameOutputType: Type | undefined;
 }
 
-export interface SingleFunctionDetails<LanguageType, T extends LanguageType = LanguageType> {
+export interface SingleFunctionDetails<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> {
     functionType: FunctionType;
-    inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
+    inferenceRuleForCalls: InferFunctionCall<Specifics, T>;
 }
 
 
@@ -41,9 +41,9 @@ export interface SingleFunctionDetails<LanguageType, T extends LanguageType = La
  * in particular, to support overloaded functions.
  * In each type system, exactly one instance of this class is stored by the FunctionKind.
  */
-export class AvailableFunctionsManager<LanguageType> implements TypeGraphListener {
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly kind: FunctionKind<LanguageType>;
+export class AvailableFunctionsManager<Specifics extends TypirSpecifics> implements TypeGraphListener {
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly kind: FunctionKind<Specifics>;
 
     /**
      * function name => all overloaded functions (with additional information) with this name/key
@@ -54,11 +54,11 @@ export class AvailableFunctionsManager<LanguageType> implements TypeGraphListene
      *   the corresponding rules and logic need to involve multiple types,
      *   which makes it more complex and requires to manage them here and not in the single types.
      */
-    protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails<LanguageType>> = new Map();
+    protected readonly mapNameTypes: Map<string, OverloadedFunctionDetails<Specifics>> = new Map();
 
-    protected readonly validatorArgumentsCalls: FunctionCallArgumentsValidation<LanguageType>;
+    protected readonly validatorArgumentsCalls: FunctionCallArgumentsValidation<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, kind: FunctionKind<LanguageType>) {
+    constructor(services: TypirServices<Specifics>, kind: FunctionKind<Specifics>) {
         this.services = services;
         this.kind = kind;
 
@@ -68,22 +68,22 @@ export class AvailableFunctionsManager<LanguageType> implements TypeGraphListene
         this.validatorArgumentsCalls = this.createFunctionCallArgumentsValidation();
     }
 
-    protected createFunctionCallArgumentsValidation(): FunctionCallArgumentsValidation<LanguageType> {
+    protected createFunctionCallArgumentsValidation(): FunctionCallArgumentsValidation<Specifics> {
         // since kind/map is required for the validation (but not visible to the outside), it is created here by the factory
         return new FunctionCallArgumentsValidation(this.services, this);
     }
 
-    protected createInferenceRuleForOverloads(): CompositeTypeInferenceRule<LanguageType> {
+    protected createInferenceRuleForOverloads(): CompositeTypeInferenceRule<Specifics> {
         // This inference rule don't need to be registered at the Inference service, since it manages the (de)registrations itself!
-        return new OverloadedFunctionsTypeInferenceRule<LanguageType>(this.services, this.services.Inference);
+        return new OverloadedFunctionsTypeInferenceRule<Specifics>(this.services, this.services.Inference);
     }
 
 
-    getOverloads(functionName: string): OverloadedFunctionDetails<LanguageType> | undefined {
+    getOverloads(functionName: string): OverloadedFunctionDetails<Specifics> | undefined {
         return this.mapNameTypes.get(functionName);
     }
 
-    getOrCreateOverloads(functionName: string): OverloadedFunctionDetails<LanguageType> {
+    getOrCreateOverloads(functionName: string): OverloadedFunctionDetails<Specifics> {
         let result = this.mapNameTypes.get(functionName);
         if (result === undefined) {
             result = {
@@ -99,11 +99,11 @@ export class AvailableFunctionsManager<LanguageType> implements TypeGraphListene
         return result;
     }
 
-    getAllOverloads(): MapIterator<[string, OverloadedFunctionDetails<LanguageType>]> {
+    getAllOverloads(): MapIterator<[string, OverloadedFunctionDetails<Specifics>]> {
         return this.mapNameTypes.entries();
     }
 
-    addFunction(readyFunctionType: FunctionType, inferenceRulesForCalls: Array<InferFunctionCall<LanguageType, LanguageType>>): void {
+    addFunction(readyFunctionType: FunctionType, inferenceRulesForCalls: Array<InferFunctionCall<Specifics, Specifics['LanguageType']>>): void {
         const overloaded = this.getOrCreateOverloads(readyFunctionType.functionName);
 
         // remember the function type itself
@@ -137,7 +137,7 @@ export class AvailableFunctionsManager<LanguageType> implements TypeGraphListene
         }
     }
 
-    protected calculateSameOutputType(overloaded: OverloadedFunctionDetails<LanguageType>): void {
+    protected calculateSameOutputType(overloaded: OverloadedFunctionDetails<Specifics>): void {
         overloaded.sameOutputType = undefined;
         for (let index = 0; index < overloaded.overloadedFunctions.length; index++) {
             const current = overloaded.overloadedFunctions[index];

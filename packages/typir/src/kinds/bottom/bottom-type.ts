@@ -7,14 +7,15 @@
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
+import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { createKindConflict } from '../../utils/utils-type-comparison.js';
 import { BottomKind, BottomTypeDetails, isBottomKind } from './bottom-kind.js';
 
 export class BottomType extends Type implements TypeGraphListener {
-    override readonly kind: BottomKind<unknown>;
+    override readonly kind: BottomKind<TypirSpecifics>;
 
-    constructor(kind: BottomKind<unknown>, identifier: string, typeDetails: BottomTypeDetails<unknown>) {
+    constructor(kind: BottomKind<TypirSpecifics>, identifier: string, typeDetails: BottomTypeDetails<TypirSpecifics>) {
         super(identifier, typeDetails);
         this.kind = kind;
         this.defineTheInitializationProcessOfThisType({}); // no preconditions

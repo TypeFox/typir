@@ -97,7 +97,8 @@ Feel free to check out the others in the [test code](./packages/typir/test/api-e
 Let's head into setting up the Typir type system and creating the primitive types for our NumberLiteral and StringLiteral, which is a one line of code job each, as we use the Typir's predefined Primitives factory service:
 
 ```typescript
-const typir = createTypirServices<AstElement>(); // <AstElement> specifies the root type of all language nodes
+interface TinyTypirSpecifics extends TypirSpecifics { LanguageType: AstElement } // `AstElement` is the root type of all language nodes in the AST
+const typir = createTypirServices<TinyTypirSpecifics>(); // set-up the type system with the specifics of the "Tiny Typir" example as <TinySpecifics>
 
 const numberType = typir.factory.Primitives.create({ primitiveName: 'number' }).inferenceRule({ filter: node => node instanceof NumberLiteral }).finish();
 
@@ -107,7 +108,7 @@ const stringType = typir.factory.Primitives.create({ primitiveName: 'string' }).
 Note that the inference rules are included in this. For the operators this is a bit longer, as we have to take care of the left and right operand and the operator of the binary expression, so we extract it and will resuse it later for both the `+` and `-` operators:
 
 ```typescript
-const inferenceRule: InferOperatorWithMultipleOperands<AstElement, BinaryExpression> = {
+const inferenceRule: InferOperatorWithMultipleOperands<TinyTypirSpecifics, BinaryExpression> = {
     filter: node => node instanceof BinaryExpression,
     matching: (node, operatorName) => node.operator === operatorName,
     operands: node => [node.left, node.right],

@@ -5,29 +5,29 @@
  ******************************************************************************/
 
 import { isType, Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirServices, TypirSpecifics } from '../typir.js';
 import { TypeInitializer } from './type-initializer.js';
 import { TypeReference } from './type-reference.js';
 
 // TODO find better names: TypeSpecification, TypeDesignation/Designator, ... ?
-export type BasicTypeSelector<T extends Type, LanguageType> =
-    | T                                 // the wanted type
-    | string                            // identifier of the type (to be searched in the type graph)
-    | TypeInitializer<T, LanguageType>  // delayed creation of types
-    | TypeReference<T, LanguageType>    // reference to a (maybe delayed) type
-    | LanguageType                      // language node to infer the final type from
+export type BasicTypeSelector<T extends Type, Specifics extends TypirSpecifics> =
+    | T                             // the wanted type
+    | string                        // identifier of the type (to be searched in the type graph)
+    | TypeInitializer<T, Specifics> // delayed creation of types
+    | TypeReference<T, Specifics>   // reference to a (maybe delayed) type
+    | Specifics['LanguageType']     // language node to infer the final type from
     ;
 
 /**
  * This TypeScript type defines the possible ways to identify a desired Typir type.
  */
-export type TypeSelector<T extends Type, LanguageType> =
-    | BasicTypeSelector<T, LanguageType>          // all base type selectors
-    | (() => BasicTypeSelector<T, LanguageType>)  // all type selectors might be given as functions as well, in order to ease delayed specifications
+export type TypeSelector<T extends Type, Specifics extends TypirSpecifics> =
+    | BasicTypeSelector<T, Specifics>          // all base type selectors
+    | (() => BasicTypeSelector<T, Specifics>)  // all type selectors might be given as functions as well, in order to ease delayed specifications
     ;
 
 
-export interface TypeResolvingService<LanguageType> {
+export interface TypeResolvingService<Specifics extends TypirSpecifics> {
     /**
      * Tries to find the specified type in the type system.
      * This method does not care about the initialization state of the found type,
@@ -35,7 +35,7 @@ export interface TypeResolvingService<LanguageType> {
      * @param selector the specification for the desired type
      * @returns the found type; or undefined, if there is no such type in the type system
      */
-    tryToResolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T | undefined;
+    tryToResolve<T extends Type>(selector: TypeSelector<T, Specifics>): T | undefined;
 
     /**
      * Finds the specified type in the type system.
@@ -44,17 +44,17 @@ export interface TypeResolvingService<LanguageType> {
      * @param selector the specification for the desired type
      * @returns the found type; or an exception, if the type cannot be resolved
      */
-    resolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T;
+    resolve<T extends Type>(selector: TypeSelector<T, Specifics>): T;
 }
 
-export class DefaultTypeResolver<LanguageType> implements TypeResolvingService<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
+export class DefaultTypeResolver<Specifics extends TypirSpecifics> implements TypeResolvingService<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.services = services;
     }
 
-    tryToResolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T | undefined {
+    tryToResolve<T extends Type>(selector: TypeSelector<T, Specifics>): T | undefined {
         if (isType(selector)) {
             // TODO is there a way to explicitly enforce/ensure "as T"?
             return selector as T;
@@ -66,7 +66,7 @@ export class DefaultTypeResolver<LanguageType> implements TypeResolvingService<L
             return selector.getType();
         } else if (typeof selector === 'function') {
             // execute the function and try to recursively resolve the returned result again
-            return this.tryToResolve<T>((selector as () => BasicTypeSelector<T, LanguageType>).call(selector));
+            return this.tryToResolve<T>((selector as () => BasicTypeSelector<T, Specifics>).call(selector));
         } else { // the selector is of type 'known' => do type inference on it
             const result = this.services.Inference.inferType(selector);
             // TODO failures must not be cached, otherwise a type will never be found in the future!!
@@ -78,7 +78,7 @@ export class DefaultTypeResolver<LanguageType> implements TypeResolvingService<L
         }
     }
 
-    resolve<T extends Type>(selector: TypeSelector<T, LanguageType>): T {
+    resolve<T extends Type>(selector: TypeSelector<T, Specifics>): T {
         if (isType(selector)) {
             return selector as T;
         } else if (typeof selector === 'string') {
@@ -92,7 +92,7 @@ export class DefaultTypeResolver<LanguageType> implements TypeResolvingService<L
             return this.handleError(selector.getType(), 'This TypeReference has no resolved type.');
         } else if (typeof selector === 'function') {
             // execute the function and try to recursively resolve the returned result again
-            return this.resolve<T>((selector as () => BasicTypeSelector<T, LanguageType>).call(selector));
+            return this.resolve<T>((selector as () => BasicTypeSelector<T, Specifics>).call(selector));
         } else {
             const result = this.services.Inference.inferType(selector);
             if (isType(result)) {

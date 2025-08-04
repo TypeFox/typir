@@ -12,16 +12,16 @@ import { ValidationRuleOptions } from '../../src/services/validation.js';
 import { booleanFalse, integer123, IntegerLiteral, stringHello, StringLiteral, TestLanguageNode } from '../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../src/typir.js';
 import { RuleRegistry } from '../../src/utils/rule-registration.js';
-import { createTypirServicesForTesting } from '../../src/utils/test-utils.js';
+import { createTypirServicesForTesting, TestingSpecifics } from '../../src/utils/test-utils.js';
 
 describe('Tests the logic for registering rules (applied to inference rules)', () => {
-    let typir: TypirServices<TestLanguageNode>;
+    let typir: TypirServices<TestingSpecifics>;
     let integerType: PrimitiveType;
     let stringType: PrimitiveType;
-    let composite: CompositeTypeInferenceRule<TestLanguageNode>;
-    let ruleString: TypeInferenceRuleWithoutInferringChildren<TestLanguageNode>;
-    let ruleInteger: TypeInferenceRuleWithoutInferringChildren<TestLanguageNode>;
-    let ruleStringInteger: TypeInferenceRuleWithoutInferringChildren<TestLanguageNode>;
+    let composite: CompositeTypeInferenceRule<TestingSpecifics>;
+    let ruleString: TypeInferenceRuleWithoutInferringChildren<TestingSpecifics>;
+    let ruleInteger: TypeInferenceRuleWithoutInferringChildren<TestingSpecifics>;
+    let ruleStringInteger: TypeInferenceRuleWithoutInferringChildren<TestingSpecifics>;
     const NOT_FOUND = 'found no applicable inference rules';
 
     beforeEach(() => {
@@ -211,10 +211,10 @@ describe('Tests the logic for registering rules (applied to inference rules)', (
     function removeType(type: Type): void {
         typir.infrastructure.Graph.removeNode(type);
     }
-    function addInferenceRule(rule: TypeInferenceRuleWithoutInferringChildren<TestLanguageNode>, options?: Partial<ValidationRuleOptions>) {
+    function addInferenceRule(rule: TypeInferenceRuleWithoutInferringChildren<TestingSpecifics>, options?: Partial<ValidationRuleOptions>) {
         typir.Inference.addInferenceRule(rule, options);
     }
-    function removeInferenceRule(rule: TypeInferenceRuleWithoutInferringChildren<TestLanguageNode>, options?: Partial<ValidationRuleOptions>) {
+    function removeInferenceRule(rule: TypeInferenceRuleWithoutInferringChildren<TestingSpecifics>, options?: Partial<ValidationRuleOptions>) {
         typir.Inference.removeInferenceRule(rule, options);
     }
 
@@ -247,7 +247,7 @@ describe('Tests the logic for registering rules (applied to inference rules)', (
     }
 });
 
-class TestInferenceImpl extends DefaultTypeInferenceCollector<TestLanguageNode> {
+class TestInferenceImpl extends DefaultTypeInferenceCollector<TestingSpecifics> {
     // change its visibility to public to access their details
-    override readonly ruleRegistry: RuleRegistry<TypeInferenceRule<TestLanguageNode>, TestLanguageNode>;
+    override readonly ruleRegistry: RuleRegistry<TypeInferenceRule<TestingSpecifics>, TestingSpecifics>;
 }

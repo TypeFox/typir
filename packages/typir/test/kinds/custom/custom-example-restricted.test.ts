@@ -10,9 +10,9 @@ import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { CustomType, isCustomType } from '../../../src/kinds/custom/custom-type.js';
 import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
-import { IntegerLiteral, TestExpressionNode, TestLanguageNode, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
+import { IntegerLiteral, TestExpressionNode, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectToBeType } from '../../../src/utils/test-utils.js';
+import { createTypirServicesForTesting, expectToBeType, TestingSpecifics } from '../../../src/utils/test-utils.js';
 
 /**
  * The custom type called "RestrictedInteger" represents a primitive integer type with an upper bound,
@@ -25,9 +25,9 @@ export type RestrictedInteger = {
 };
 
 describe('Tests inference and assignability for Integers with an upper bound', () => {
-    let typir: TypirServices<TestLanguageNode>;
+    let typir: TypirServices<TestingSpecifics>;
     let integerType: PrimitiveType;
-    let customKind: CustomKind<RestrictedInteger, TestLanguageNode>;
+    let customKind: CustomKind<RestrictedInteger, TestingSpecifics>;
 
     beforeEach(() => {
         typir = createTypirServicesForTesting({
@@ -36,7 +36,7 @@ describe('Tests inference and assignability for Integers with an upper bound', (
 
         integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
 
-        customKind = new CustomKind<RestrictedInteger, TestLanguageNode>(typir, {
+        customKind = new CustomKind<RestrictedInteger, TestingSpecifics>(typir, {
             name: 'RestrictedInteger',
             // determine which identifier is used to store and retrieve a custom type in the type graph
             // (and to check its uniqueness, i.e. if two types have the same identifier, they are the same and only one of it will be added to the type graph)
@@ -67,7 +67,7 @@ describe('Tests inference and assignability for Integers with an upper bound', (
      * @param upperBound the desired upper bound
      * @returns the restricted type which is part of the type system in the current Typir instance/services
      */
-    function restrictedType(upperBound: number): CustomType<RestrictedInteger, TestLanguageNode> {
+    function restrictedType(upperBound: number): CustomType<RestrictedInteger, TestingSpecifics> {
         return customKind.create({ properties: { upperBound } }).finish().getTypeFinal()!;
     }
 

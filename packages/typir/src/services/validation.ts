@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type, isType } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
@@ -15,7 +15,7 @@ import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
-export interface ValidationMessageDetails<LanguageType, T extends LanguageType = LanguageType> {
+export interface ValidationMessageDetails<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> {
     languageNode: T;
     languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
     languageIndex?: number; // index, if 'languageProperty' is an Array property
@@ -23,30 +23,30 @@ export interface ValidationMessageDetails<LanguageType, T extends LanguageType =
     message: string;
 }
 
-export interface ValidationProblem<LanguageType, T extends LanguageType = LanguageType> extends ValidationMessageDetails<LanguageType, T>, TypirProblem {
+export interface ValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> extends ValidationMessageDetails<Specifics, T>, TypirProblem {
     $problem: 'ValidationProblem';
     subProblems?: TypirProblem[];
 }
 export const ValidationProblem = 'ValidationProblem';
-export function isValidationProblem<LanguageType, T extends LanguageType = LanguageType>(problem: unknown): problem is ValidationProblem<LanguageType, T> {
+export function isValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: unknown): problem is ValidationProblem<Specifics, T> {
     return isSpecificTypirProblem(problem, ValidationProblem);
 }
 
 /** Don't specify the $problem-property. */
-export type ReducedValidationProblem<LanguageType, T extends LanguageType = LanguageType> = Omit<ValidationProblem<LanguageType, T>, '$problem'>;
+export type ReducedValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> = Omit<ValidationProblem<Specifics, T>, '$problem'>;
 
-export type ValidationProblemAcceptor<LanguageType> = <T extends LanguageType = LanguageType>(problem: ReducedValidationProblem<LanguageType, T>) => void;
+export type ValidationProblemAcceptor<Specifics extends TypirSpecifics> = <T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: ReducedValidationProblem<Specifics, T>) => void;
 
-export type ValidationRule<LanguageType, InputType extends LanguageType = LanguageType> =
-    | ValidationRuleFunctional<LanguageType, InputType>
-    | ValidationRuleLifecycle<LanguageType, LanguageType, InputType>;
+export type ValidationRule<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> =
+    | ValidationRuleFunctional<Specifics, InputType>
+    | ValidationRuleLifecycle<Specifics, Specifics['LanguageType'], InputType>;
 
 /**
  * Describes a simple, state-less validation rule,
  * which might produce an unlimited number of problems.
  */
-export type ValidationRuleFunctional<LanguageType, InputType extends LanguageType = LanguageType> =
-    (languageNode: InputType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
+export type ValidationRuleFunctional<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> =
+    (languageNode: InputType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
 
 /**
  * Describes a complex validation rule which has a state.
@@ -54,10 +54,14 @@ export type ValidationRuleFunctional<LanguageType, InputType extends LanguageTyp
  * in order to store some information which are calculated during 'validation',
  * which are finally evaluated in 'afterValidation'.
  */
-export interface ValidationRuleLifecycle<LanguageType, RootType extends LanguageType = LanguageType, InputType extends LanguageType = LanguageType> {
-    beforeValidation?: (languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
-    validation: ValidationRuleFunctional<LanguageType, InputType>;
-    afterValidation?: (languageRoot: RootType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
+export interface ValidationRuleLifecycle<
+    Specifics extends TypirSpecifics,
+    RootType extends Specifics['LanguageType'] = Specifics['LanguageType'],
+    InputType extends Specifics['LanguageType'] = Specifics['LanguageType']
+> {
+    beforeValidation?: (languageRoot: RootType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
+    validation: ValidationRuleFunctional<Specifics, InputType>;
+    afterValidation?: (languageRoot: RootType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
 }
 
 
@@ -67,69 +71,69 @@ export interface AnnotatedTypeAfterValidation {
     userRepresentation: string;
     name: string;
 }
-export type ValidationMessageProvider<LanguageType, T extends LanguageType = LanguageType> =
-    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails<LanguageType, T>>;
+export type ValidationMessageProvider<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
+    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => Partial<ValidationMessageDetails<Specifics, T>>;
 
-export interface ValidationConstraints<LanguageType> {
-    ensureNodeIsAssignable<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+export interface ValidationConstraints<Specifics extends TypirSpecifics> {
+    ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
         sourceNode: S | undefined, expected: Type | undefined | E,
-        accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType, T>): void;
-    ensureNodeIsEquals<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        accept: ValidationProblemAcceptor<Specifics>,
+        message: ValidationMessageProvider<Specifics, T>): void;
+    ensureNodeIsEquals<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
         sourceNode: S | undefined, expected: Type | undefined | E,
-        accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType, T>): void;
-    ensureNodeHasNotType<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+        accept: ValidationProblemAcceptor<Specifics>,
+        message: ValidationMessageProvider<Specifics, T>): void;
+    ensureNodeHasNotType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
         sourceNode: S | undefined, notExpected: Type | undefined | E,
-        accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType, T>): void;
+        accept: ValidationProblemAcceptor<Specifics>,
+        message: ValidationMessageProvider<Specifics, T>): void;
 
-    ensureNodeRelatedWithType<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+    ensureNodeRelatedWithType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
         languageNode: S | undefined, expected: Type | undefined | E, strategy: TypeCheckStrategy, negated: boolean,
-        accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType, T>): void;
+        accept: ValidationProblemAcceptor<Specifics>,
+        message: ValidationMessageProvider<Specifics, T>): void;
 }
 
-export class DefaultValidationConstraints<LanguageType> implements ValidationConstraints<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly inference: TypeInferenceCollector<LanguageType>;
-    protected readonly printer: ProblemPrinter<LanguageType>;
+export class DefaultValidationConstraints<Specifics extends TypirSpecifics> implements ValidationConstraints<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly inference: TypeInferenceCollector<Specifics>;
+    protected readonly printer: ProblemPrinter<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.services = services;
         this.inference = services.Inference;
         this.printer = services.Printer;
     }
 
-    ensureNodeIsAssignable<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+    ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
         sourceNode: S | undefined, expected: Type | undefined | E,
-        accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType, T>
+        accept: ValidationProblemAcceptor<Specifics>,
+        message: ValidationMessageProvider<Specifics, T>
     ): void {
         this.ensureNodeRelatedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, accept, message);
     }
 
-    ensureNodeIsEquals<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+    ensureNodeIsEquals<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
         sourceNode: S | undefined, expected: Type | undefined | E,
-        accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType, T>
+        accept: ValidationProblemAcceptor<Specifics>,
+        message: ValidationMessageProvider<Specifics, T>
     ): void {
         this.ensureNodeRelatedWithType(sourceNode, expected, 'EQUAL_TYPE', false, accept, message);
     }
 
-    ensureNodeHasNotType<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+    ensureNodeHasNotType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
         sourceNode: S | undefined, notExpected: Type | undefined | E,
-        accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType, T>
+        accept: ValidationProblemAcceptor<Specifics>,
+        message: ValidationMessageProvider<Specifics, T>
     ): void {
         this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, accept, message);
     }
 
-    ensureNodeRelatedWithType<S extends LanguageType, E extends LanguageType, T extends LanguageType = LanguageType>(
+    ensureNodeRelatedWithType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
         languageNode: S | undefined, expected: Type | undefined | E,
         strategy: TypeCheckStrategy, negated: boolean,
-        accept: ValidationProblemAcceptor<LanguageType>,
-        message: ValidationMessageProvider<LanguageType, T>
+        accept: ValidationProblemAcceptor<Specifics>,
+        message: ValidationMessageProvider<Specifics, T>
     ): void {
         if (languageNode !== undefined && expected !== undefined) {
             const actualType = isType(languageNode) ? languageNode : this.inference.inferType(languageNode);
@@ -182,45 +186,45 @@ export class DefaultValidationConstraints<LanguageType> implements ValidationCon
 }
 
 
-export interface ValidationCollectorListener<LanguageType> {
-    onAddedValidationRule(rule: ValidationRule<LanguageType>, options: ValidationRuleOptions): void;
-    onRemovedValidationRule(rule: ValidationRule<LanguageType>, options: ValidationRuleOptions): void;
+export interface ValidationCollectorListener<Specifics extends TypirSpecifics> {
+    onAddedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions): void;
+    onRemovedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions): void;
 }
 
 export interface ValidationRuleOptions extends RuleOptions {
     // no additional properties so far
 }
 
-export interface ValidationCollector<LanguageType> {
-    validateBefore(languageNode: LanguageType): Array<ValidationProblem<LanguageType>>;
-    validate(languageNode: LanguageType): Array<ValidationProblem<LanguageType>>;
-    validateAfter(languageNode: LanguageType): Array<ValidationProblem<LanguageType>>;
+export interface ValidationCollector<Specifics extends TypirSpecifics> {
+    validateBefore(languageNode: Specifics['LanguageType']): Array<ValidationProblem<Specifics>>;
+    validate(languageNode: Specifics['LanguageType']): Array<ValidationProblem<Specifics>>;
+    validateAfter(languageNode: Specifics['LanguageType']): Array<ValidationProblem<Specifics>>;
 
     /**
      * Registers a validation rule.
      * @param rule a new validation rule
      * @param options some more options to control the handling of the added validation rule
      */
-    addValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, options?: Partial<ValidationRuleOptions>): void;
+    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions>): void;
     /**
      * Removes a validation rule.
      * @param rule the validation rule to remove
      * @param options the same options as given for the registration of the validation rule must be given for the removal!
      */
-    removeValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, options?: Partial<ValidationRuleOptions>): void;
+    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions>): void;
 
-    addListener(listener: ValidationCollectorListener<LanguageType>): void;
-    removeListener(listener: ValidationCollectorListener<LanguageType>): void;
+    addListener(listener: ValidationCollectorListener<Specifics>): void;
+    removeListener(listener: ValidationCollectorListener<Specifics>): void;
 }
 
-export class DefaultValidationCollector<LanguageType> implements ValidationCollector<LanguageType>, RuleCollectorListener<ValidationRule<LanguageType>> {
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly listeners: Array<ValidationCollectorListener<LanguageType>> = [];
+export class DefaultValidationCollector<Specifics extends TypirSpecifics> implements ValidationCollector<Specifics>, RuleCollectorListener<ValidationRule<Specifics>> {
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly listeners: Array<ValidationCollectorListener<Specifics>> = [];
 
-    protected readonly ruleRegistryFunctional: RuleRegistry<ValidationRuleFunctional<LanguageType>, LanguageType>;
-    protected readonly ruleRegistryLifecycle: RuleRegistry<ValidationRuleLifecycle<LanguageType>, LanguageType>;
+    protected readonly ruleRegistryFunctional: RuleRegistry<ValidationRuleFunctional<Specifics>, Specifics>;
+    protected readonly ruleRegistryLifecycle: RuleRegistry<ValidationRuleLifecycle<Specifics>, Specifics>;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.services = services;
 
         this.ruleRegistryFunctional = new RuleRegistry(services);
@@ -230,8 +234,8 @@ export class DefaultValidationCollector<LanguageType> implements ValidationColle
         this.ruleRegistryLifecycle.addListener(this);
     }
 
-    protected createAcceptor(problems: Array<ValidationProblem<LanguageType>>): ValidationProblemAcceptor<LanguageType> {
-        return <T extends LanguageType>(problem: ReducedValidationProblem<LanguageType, T>) => {
+    protected createAcceptor(problems: Array<ValidationProblem<Specifics>>): ValidationProblemAcceptor<Specifics> {
+        return <T extends Specifics['LanguageType']>(problem: ReducedValidationProblem<Specifics, T>) => {
             problems.push({
                 ...problem,
                 $problem: ValidationProblem, // add the missing $property-property
@@ -239,8 +243,8 @@ export class DefaultValidationCollector<LanguageType> implements ValidationColle
         };
     }
 
-    validateBefore(languageRoot: LanguageType): Array<ValidationProblem<LanguageType>> {
-        const problems: Array<ValidationProblem<LanguageType>> = [];
+    validateBefore(languageRoot: Specifics['LanguageType']): Array<ValidationProblem<Specifics>> {
+        const problems: Array<ValidationProblem<Specifics>> = [];
         const accept = this.createAcceptor(problems);
         for (const rule of this.ruleRegistryLifecycle.getUniqueRules()) { // the returned rules are unique
             rule.beforeValidation?.call(rule, languageRoot, accept, this.services);
@@ -248,7 +252,7 @@ export class DefaultValidationCollector<LanguageType> implements ValidationColle
         return problems;
     }
 
-    validate(languageNode: LanguageType): Array<ValidationProblem<LanguageType>> {
+    validate(languageNode: Specifics['LanguageType']): Array<ValidationProblem<Specifics>> {
         // determine all keys to check
         const keysToApply: Array<string|undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
@@ -261,9 +265,9 @@ export class DefaultValidationCollector<LanguageType> implements ValidationColle
         }
 
         // execute all rules wich are associated to the relevant language keys
-        const problems: Array<ValidationProblem<LanguageType>> = [];
+        const problems: Array<ValidationProblem<Specifics>> = [];
         const accept = this.createAcceptor(problems);
-        const alreadyExecutedRules: Set<ValidationRuleFunctional<LanguageType>> = new Set(); // don't execute rules multiple times, if they are associated with multiple keys (with overlapping sub-keys)
+        const alreadyExecutedRules: Set<ValidationRuleFunctional<Specifics>> = new Set(); // don't execute rules multiple times, if they are associated with multiple keys (with overlapping sub-keys)
         for (const key of keysToApply) {
             // state-less rules
             for (const ruleStateless of this.ruleRegistryFunctional.getRulesByLanguageKey(key)) {
@@ -288,8 +292,8 @@ export class DefaultValidationCollector<LanguageType> implements ValidationColle
         return problems;
     }
 
-    validateAfter(languageRoot: LanguageType): Array<ValidationProblem<LanguageType>> {
-        const problems: Array<ValidationProblem<LanguageType>> = [];
+    validateAfter(languageRoot: Specifics['LanguageType']): Array<ValidationProblem<Specifics>> {
+        const problems: Array<ValidationProblem<Specifics>> = [];
         const accept = this.createAcceptor(problems);
         for (const rule of this.ruleRegistryLifecycle.getUniqueRules()) { // the returned rules are unique
             rule.afterValidation?.call(rule, languageRoot, accept, this.services);
@@ -297,62 +301,62 @@ export class DefaultValidationCollector<LanguageType> implements ValidationColle
         return problems;
     }
 
-    addValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
+    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         if (typeof rule === 'function') {
-            this.ruleRegistryFunctional.addRule(rule as ValidationRuleFunctional<LanguageType>, givenOptions);
+            this.ruleRegistryFunctional.addRule(rule as ValidationRuleFunctional<Specifics>, givenOptions);
         } else {
-            this.ruleRegistryLifecycle.addRule(rule as ValidationRuleLifecycle<LanguageType>, givenOptions);
+            this.ruleRegistryLifecycle.addRule(rule as ValidationRuleLifecycle<Specifics>, givenOptions);
         }
     }
 
-    removeValidationRule<InputType extends LanguageType = LanguageType>(rule: ValidationRule<LanguageType, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
+    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
         if (typeof rule === 'function') {
-            this.ruleRegistryFunctional.removeRule(rule as ValidationRuleFunctional<LanguageType>, givenOptions);
+            this.ruleRegistryFunctional.removeRule(rule as ValidationRuleFunctional<Specifics>, givenOptions);
         } else {
-            this.ruleRegistryLifecycle.removeRule(rule as ValidationRuleLifecycle<LanguageType>, givenOptions);
+            this.ruleRegistryLifecycle.removeRule(rule as ValidationRuleLifecycle<Specifics>, givenOptions);
         }
     }
 
-    addListener(listener: ValidationCollectorListener<LanguageType>): void {
+    addListener(listener: ValidationCollectorListener<Specifics>): void {
         this.listeners.push(listener);
     }
-    removeListener(listener: ValidationCollectorListener<LanguageType>): void {
+    removeListener(listener: ValidationCollectorListener<Specifics>): void {
         removeFromArray(listener, this.listeners);
     }
 
-    onAddedRule(rule: ValidationRule<LanguageType, LanguageType>, diffOptions: RuleOptions): void {
+    onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
         // listeners of the composite will be notified about all added inner rules
         this.listeners.forEach(listener => listener.onAddedValidationRule(rule, diffOptions));
     }
-    onRemovedRule(rule: ValidationRule<LanguageType, LanguageType>, diffOptions: RuleOptions): void {
+    onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
         // listeners of the composite will be notified about all removed inner rules
         this.listeners.forEach(listener => listener.onRemovedValidationRule(rule, diffOptions));
     }
 }
 
 
-export class CompositeValidationRule<LanguageType> extends DefaultValidationCollector<LanguageType> implements ValidationRuleLifecycle<LanguageType> {
+export class CompositeValidationRule<Specifics extends TypirSpecifics> extends DefaultValidationCollector<Specifics> implements ValidationRuleLifecycle<Specifics> {
     /** The collector for inference rules, at which this composite rule should be registered. */
-    protected readonly collectorToRegisterThisRule: ValidationCollector<LanguageType>;
+    protected readonly collectorToRegisterThisRule: ValidationCollector<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, collectorToRegisterThisRule: ValidationCollector<LanguageType>) {
+    constructor(services: TypirServices<Specifics>, collectorToRegisterThisRule: ValidationCollector<Specifics>) {
         super(services);
         this.collectorToRegisterThisRule = collectorToRegisterThisRule;
     }
 
-    beforeValidation(languageRoot: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
+    beforeValidation(languageRoot: Specifics['LanguageType'], accept: ValidationProblemAcceptor<Specifics>, _typir: TypirServices<Specifics>): void {
         this.validateBefore(languageRoot).forEach(v => accept(v));
     }
 
-    validation(languageNode: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
+    validation(languageNode: Specifics['LanguageType'], accept: ValidationProblemAcceptor<Specifics>, _typir: TypirServices<Specifics>): void {
         this.validate(languageNode).forEach(v => accept(v));
     }
 
-    afterValidation(languageRoot: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
+    afterValidation(languageRoot: Specifics['LanguageType'], accept: ValidationProblemAcceptor<Specifics>, _typir: TypirServices<Specifics>): void {
         this.validateAfter(languageRoot).forEach(v => accept(v));
     }
 
-    override onAddedRule(rule: ValidationRule<LanguageType, LanguageType>, diffOptions: RuleOptions): void {
+    override onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
         // an inner rule was added
         super.onAddedRule(rule, diffOptions);
 
@@ -363,7 +367,7 @@ export class CompositeValidationRule<LanguageType> extends DefaultValidationColl
         });
     }
 
-    override onRemovedRule(rule: ValidationRule<LanguageType>, diffOptions: RuleOptions): void {
+    override onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
         // an inner rule was removed
         super.onRemovedRule(rule, diffOptions);
 

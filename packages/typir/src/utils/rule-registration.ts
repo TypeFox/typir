@@ -6,7 +6,7 @@
 
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 import { removeFromArray, toArray, toArrayWithValue } from './utils.js';
 
 export interface RuleOptions {
@@ -39,7 +39,7 @@ export interface RuleCollectorListener<RuleType> {
     onRemovedRule(rule: RuleType, diffOptions: RuleOptions): void;
 }
 
-export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
+export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements TypeGraphListener {
     /**
      * language node type --> rules
      * Improves the look-up of related rules, when doing type for a concrete language node.
@@ -61,7 +61,7 @@ export class RuleRegistry<RuleType, LanguageType> implements TypeGraphListener {
     protected readonly listeners: Array<RuleCollectorListener<RuleType>> = [];
 
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         services.infrastructure.Graph.addListener(this);
     }
 

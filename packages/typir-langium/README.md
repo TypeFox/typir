@@ -13,7 +13,7 @@ Typir-Langium is a dedicated binding of Typir for languages and DSLs which are d
 npm install typir-langium
 ```
 
-## Documentation
+## Overview
 
 Typir-Langium provides all features of Typir and adds some specifics for Langium projects:
 
@@ -28,12 +28,14 @@ For an overview about the core features of Typir with a simple application examp
 Important design decision for Typir-Langium:
 Typir-Langium does not depend on `langium/lsp`, i.e. Typir-Langium can be used even for Langium-based DSLs which don't use LSP.
 
-Integrate Typir as additional Langium service into your DSL:
+## Getting started
+
+Integrate Typir as additional Langium service into your DSL (`<MyDSLSpecifics>` is explained later):
 
 ```typescript
 export type MyDSLAddedServices = {
     // ...
-    typir: TypirLangiumServices<MyDSLAstType>,
+    typir: TypirLangiumServices<MyDSLSpecifics>,
     // ...
 }
 ```
@@ -55,16 +57,27 @@ After creating the Langium services (which contain the Typir serivces now) and s
 The actual type system for your Langium-based language is defined as an implementation of the interface `LangiumTypeSystemDefinition`:
 
 ```typescript
-export class MyDSLTypeSystem implements LangiumTypeSystemDefinition<MyDSLAstType> {
-    onInitialize(typir: TypirLangiumServices<MyDSLAstType>): void {
+export class MyDSLTypeSystem implements LangiumTypeSystemDefinition<MyDSLSpecifics> {
+    onInitialize(typir: TypirLangiumServices<MyDSLSpecifics>): void {
       // define constant types and rules for conversion, inference and validation here
     }
 
-    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<MyDSLAstType>): void {
+    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<MyDSLSpecifics>): void {
       // define types and their rules which depend on the current AST respectively the given AstNode (as parsed by Langium from programs written by users of your language) here
     }
 }
 ```
+
+`<MyDSLSpecifics>` is used to inform Typir-Langium about the generated DSL-specific TypeScript-types, which describe the current, DSL-specific AST:
+
+```typescript
+export interface MyDSLSpecifics extends TypirLangiumSpecifics {
+    AstTypes: MyDSLAstType; // all AST types from the generated `ast.ts`
+    // ... more could be customized here ...
+}
+```
+
+## Additional APIs
 
 Beyond the APIs inherited from Typir core, Typir-Langium provides some *additional APIs* to ease type checking with Typir in Langium projects.
 

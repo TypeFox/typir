@@ -4,14 +4,15 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AbstractAstReflection, AstNode, isAstNode } from 'langium';
+import { AbstractAstReflection, isAstNode } from 'langium';
 import { DefaultLanguageService, LanguageService, removeFromArray } from 'typir';
+import { TypirLangiumSpecifics } from '../typir-langium.js';
 
 /**
  * The default implementation of the 'LanguageService' for Langium exploits the generated XXXAstReflection,
  * which needs to be given in the constructor.
  */
-export class LangiumLanguageService extends DefaultLanguageService<AstNode> implements LanguageService<AstNode> {
+export class LangiumLanguageService<Specifics extends TypirLangiumSpecifics> extends DefaultLanguageService<Specifics> implements LanguageService<Specifics> {
     protected readonly reflection: AbstractAstReflection;
     protected superKeys: Map<string, string[]> | undefined = undefined; // key => all its super-keys
 
@@ -20,7 +21,7 @@ export class LangiumLanguageService extends DefaultLanguageService<AstNode> impl
         this.reflection = reflection;
     }
 
-    override getLanguageNodeKey(languageNode: AstNode): string {
+    override getLanguageNodeKey(languageNode: Specifics['LanguageType']): string {
         return languageNode.$type;
     }
 
@@ -53,7 +54,7 @@ export class LangiumLanguageService extends DefaultLanguageService<AstNode> impl
         return this.superKeys.get(languageKey) ?? [];
     }
 
-    override isLanguageNode(node: unknown): node is AstNode {
+    override isLanguageNode(node: unknown): node is Specifics['LanguageType'] {
         return isAstNode(node);
     }
 

@@ -5,22 +5,22 @@
  ******************************************************************************/
 
 import { isType, Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { assertUnreachable, removeFromArray, toArray } from '../utils/utils.js';
 import { LanguageNodeInferenceCaching } from './caching.js';
 
-export interface InferenceProblem<LanguageType> extends TypirProblem {
+export interface InferenceProblem<Specifics extends TypirSpecifics> extends TypirProblem {
     $problem: 'InferenceProblem';
-    languageNode: LanguageType;
+    languageNode: Specifics['LanguageType'];
     inferenceCandidate?: Type;
     location: string;
-    rule?: TypeInferenceRule<LanguageType>; // for debugging only, since rules have no names (so far); TODO this does not really work with TypeInferenceRuleWithoutInferringChildren
+    rule?: TypeInferenceRule<Specifics>; // for debugging only, since rules have no names (so far); TODO this does not really work with TypeInferenceRuleWithoutInferringChildren
     subProblems: TypirProblem[]; // might be missing or empty
 }
 export const InferenceProblem = 'InferenceProblem';
-export function isInferenceProblem<LanguageType>(problem: unknown): problem is InferenceProblem<LanguageType> {
+export function isInferenceProblem<Specifics extends TypirSpecifics>(problem: unknown): problem is InferenceProblem<Specifics> {
     return isSpecificTypirProblem(problem, InferenceProblem);
 }
 
@@ -28,20 +28,20 @@ export function isInferenceProblem<LanguageType>(problem: unknown): problem is I
 export type InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 export const InferenceRuleNotApplicable = 'N/A'; // or 'undefined' instead?
 
-export type TypeInferenceResultWithoutInferringChildren<LanguageType> =
+export type TypeInferenceResultWithoutInferringChildren<Specifics extends TypirSpecifics> =
     /** the identified type */
     Type |
     /** 'N/A' to indicate, that the current inference rule is not applicable for the given language node at all */
     InferenceRuleNotApplicable |
     /** a language node whose type should be inferred instead */
-    LanguageType |
+    Specifics['LanguageType'] |
     /** an inference problem */
-    InferenceProblem<LanguageType>;
-export type TypeInferenceResultWithInferringChildren<LanguageType> =
+    InferenceProblem<Specifics>;
+export type TypeInferenceResultWithInferringChildren<Specifics extends TypirSpecifics> =
     /** the usual results, since it might be possible to determine the type of the parent without its children */
-    TypeInferenceResultWithoutInferringChildren<LanguageType> |
+    TypeInferenceResultWithoutInferringChildren<Specifics> |
     /** the children whos types need to be inferred and taken into account to determine the parent's type */
-    LanguageType[];
+    Array<Specifics['LanguageType']>;
 
 /**
  * Represents a single rule for inference,
@@ -52,17 +52,17 @@ export type TypeInferenceResultWithInferringChildren<LanguageType> =
  * Within inference rules, don't take the initialization state of the inferred type into account,
  * since such inferrence rules might not work for cyclic type definitions.
  */
-export type TypeInferenceRule<LanguageType, InputType extends LanguageType = LanguageType> = TypeInferenceRuleWithoutInferringChildren<LanguageType, InputType> | TypeInferenceRuleWithInferringChildren<LanguageType, InputType>;
+export type TypeInferenceRule<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> = TypeInferenceRuleWithoutInferringChildren<Specifics, InputType> | TypeInferenceRuleWithInferringChildren<Specifics, InputType>;
 
 /** Usual inference rule which don't depend on children's types. */
-export type TypeInferenceRuleWithoutInferringChildren<LanguageType, InputType extends LanguageType = LanguageType> =
-    (languageNode: InputType, typir: TypirServices<LanguageType>) => TypeInferenceResultWithoutInferringChildren<LanguageType>;
+export type TypeInferenceRuleWithoutInferringChildren<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> =
+    (languageNode: InputType, typir: TypirServices<Specifics>) => TypeInferenceResultWithoutInferringChildren<Specifics>;
 
 /**
  * Inference rule which requires for the type inference of the given parent to take the types of its children into account.
  * Therefore, the types of the children need to be inferred first.
  */
-export interface TypeInferenceRuleWithInferringChildren<LanguageType, InputType extends LanguageType = LanguageType> {
+export interface TypeInferenceRuleWithInferringChildren<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> {
     /**
      * 1st step is to check, whether this inference rule is applicable to the given language node.
      * @param languageNode the language node whose type shall be inferred
@@ -70,7 +70,7 @@ export interface TypeInferenceRuleWithInferringChildren<LanguageType, InputType 
      * @returns Only in the case, that child language nodes are returned,
      * the other function will be called for step 2, otherwise, it is skipped.
      */
-    inferTypeWithoutChildren(languageNode: InputType, typir: TypirServices<LanguageType>): TypeInferenceResultWithInferringChildren<LanguageType>;
+    inferTypeWithoutChildren(languageNode: InputType, typir: TypirServices<Specifics>): TypeInferenceResultWithInferringChildren<Specifics>;
 
     /**
      * 2nd step is to finally decide about the inferred type.
@@ -83,13 +83,13 @@ export interface TypeInferenceRuleWithInferringChildren<LanguageType, InputType 
      * @param typir the current Typir instance
      * @returns the finally inferred type or a problem, why this inference rule is finally not applicable
      */
-    inferTypeWithChildrensTypes(languageNode: InputType, childrenTypes: Array<Type | undefined>, typir: TypirServices<LanguageType>): Type | InferenceProblem<LanguageType>;
+    inferTypeWithChildrensTypes(languageNode: InputType, childrenTypes: Array<Type | undefined>, typir: TypirServices<Specifics>): Type | InferenceProblem<Specifics>;
 }
 
 
-export interface TypeInferenceCollectorListener<LanguageType> {
-    onAddedInferenceRule(rule: TypeInferenceRule<LanguageType>, options: TypeInferenceRuleOptions): void;
-    onRemovedInferenceRule(rule: TypeInferenceRule<LanguageType>, options: TypeInferenceRuleOptions): void;
+export interface TypeInferenceCollectorListener<Specifics extends TypirSpecifics> {
+    onAddedInferenceRule(rule: TypeInferenceRule<Specifics>, options: TypeInferenceRuleOptions): void;
+    onRemovedInferenceRule(rule: TypeInferenceRule<Specifics>, options: TypeInferenceRuleOptions): void;
 }
 
 export interface TypeInferenceRuleOptions extends RuleOptions {
@@ -102,13 +102,13 @@ export interface TypeInferenceRuleOptions extends RuleOptions {
  * In case of multiple inference rules, later rules are not evaluated anymore, if an earlier rule already returned a type.
  * Listeners could be registered in order to get informed about added and removed inference rules.
  */
-export interface TypeInferenceCollector<LanguageType> {
+export interface TypeInferenceCollector<Specifics extends TypirSpecifics> {
     /**
      * Infers a type for the given language node.
      * @param languageNode the language node whose type shall be inferred
      * @returns the found Type or some inference problems (might be empty), when none of the inference rules were able to infer a type
      */
-    inferType(languageNode: LanguageType): Type | Array<InferenceProblem<LanguageType>>;
+    inferType(languageNode: Specifics['LanguageType']): Type | Array<InferenceProblem<Specifics>>;
 
     /**
      * Registers an inference rule.
@@ -117,7 +117,7 @@ export interface TypeInferenceCollector<LanguageType> {
      * @param rule a new inference rule
      * @param options additional options
      */
-    addInferenceRule<InputType extends LanguageType = LanguageType>(rule: TypeInferenceRule<LanguageType, InputType>, options?: Partial<TypeInferenceRuleOptions>): void;
+    addInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, options?: Partial<TypeInferenceRuleOptions>): void;
     /**
      * Deregisters an inference rule.
      * @param rule the rule to remove
@@ -125,36 +125,36 @@ export interface TypeInferenceCollector<LanguageType> {
      * the inference rule might still be registered for the not-specified options.
      * Listeners will be informed only about those removed options which were existing before.
      */
-    removeInferenceRule<InputType extends LanguageType = LanguageType>(rule: TypeInferenceRule<LanguageType, InputType>, options?: Partial<TypeInferenceRuleOptions>): void;
+    removeInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, options?: Partial<TypeInferenceRuleOptions>): void;
 
-    addListener(listener: TypeInferenceCollectorListener<LanguageType>): void;
-    removeListener(listener: TypeInferenceCollectorListener<LanguageType>): void;
+    addListener(listener: TypeInferenceCollectorListener<Specifics>): void;
+    removeListener(listener: TypeInferenceCollectorListener<Specifics>): void;
 }
 
 
-export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenceCollector<LanguageType>, RuleCollectorListener<TypeInferenceRule<LanguageType>> {
-    protected readonly ruleRegistry: RuleRegistry<TypeInferenceRule<LanguageType>, LanguageType>;
+export class DefaultTypeInferenceCollector<Specifics extends TypirSpecifics> implements TypeInferenceCollector<Specifics>, RuleCollectorListener<TypeInferenceRule<Specifics>> {
+    protected readonly ruleRegistry: RuleRegistry<TypeInferenceRule<Specifics>, Specifics>;
 
     protected readonly languageNodeInference: LanguageNodeInferenceCaching;
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly listeners: Array<TypeInferenceCollectorListener<LanguageType>> = [];
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly listeners: Array<TypeInferenceCollectorListener<Specifics>> = [];
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.services = services;
         this.languageNodeInference = services.caching.LanguageNodeInference;
         this.ruleRegistry = new RuleRegistry(services);
         this.ruleRegistry.addListener(this);
     }
 
-    addInferenceRule<InputType extends LanguageType = LanguageType>(rule: TypeInferenceRule<LanguageType, InputType>, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
-        this.ruleRegistry.addRule(rule as unknown as TypeInferenceRule<LanguageType>, givenOptions);
+    addInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
+        this.ruleRegistry.addRule(rule as unknown as TypeInferenceRule<Specifics>, givenOptions);
     }
 
-    removeInferenceRule<InputType extends LanguageType = LanguageType>(rule: TypeInferenceRule<LanguageType, InputType>, optionsToRemove?: Partial<TypeInferenceRuleOptions>): void {
-        this.ruleRegistry.removeRule(rule as unknown as TypeInferenceRule<LanguageType>, optionsToRemove);
+    removeInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, optionsToRemove?: Partial<TypeInferenceRuleOptions>): void {
+        this.ruleRegistry.removeRule(rule as unknown as TypeInferenceRule<Specifics>, optionsToRemove);
     }
 
-    inferType(languageNode: LanguageType): Type | Array<InferenceProblem<LanguageType>> {
+    inferType(languageNode: Specifics['LanguageType']): Type | Array<InferenceProblem<Specifics>> {
         // is the result already in the cache?
         const cached = this.cacheGet(languageNode);
         if (cached) {
@@ -180,13 +180,13 @@ export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenc
         return result;
     }
 
-    protected checkForError(languageNode: LanguageType): void {
+    protected checkForError(languageNode: Specifics['LanguageType']): void {
         if (languageNode === undefined || languageNode === null) {
             throw new Error('Language node must be not undefined/null!');
         }
     }
 
-    protected inferTypeLogic(languageNode: LanguageType): Type | Array<InferenceProblem<LanguageType>> {
+    protected inferTypeLogic(languageNode: Specifics['LanguageType']): Type | Array<InferenceProblem<Specifics>> {
         this.checkForError(languageNode);
 
         // determine all keys to check
@@ -201,8 +201,8 @@ export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenc
         }
 
         // execute all rules wich are associated to the relevant language keys
-        const collectedInferenceProblems: Array<InferenceProblem<LanguageType>> = [];
-        const alreadyExecutedRules: Set<TypeInferenceRule<LanguageType>> = new Set();
+        const collectedInferenceProblems: Array<InferenceProblem<Specifics>> = [];
+        const alreadyExecutedRules: Set<TypeInferenceRule<Specifics>> = new Set();
         for (const key of keysToApply) {
             for (const rule of this.ruleRegistry.getRulesByLanguageKey(key)) {
                 if (alreadyExecutedRules.has(rule)) {
@@ -230,21 +230,21 @@ export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenc
         return collectedInferenceProblems;
     }
 
-    protected executeSingleInferenceRuleLogic(rule: TypeInferenceRule<LanguageType>, languageNode: LanguageType, collectedInferenceProblems: Array<InferenceProblem<LanguageType>>): Type | undefined {
+    protected executeSingleInferenceRuleLogic(rule: TypeInferenceRule<Specifics>, languageNode: Specifics['LanguageType'], collectedInferenceProblems: Array<InferenceProblem<Specifics>>): Type | undefined {
         if (typeof rule === 'function') {
             // simple case without type inference for children
-            const ruleResult: TypeInferenceResultWithoutInferringChildren<LanguageType> = rule(languageNode, this.services);
+            const ruleResult: TypeInferenceResultWithoutInferringChildren<Specifics> = rule(languageNode, this.services);
             return this.inferTypeLogicWithoutChildren(ruleResult, collectedInferenceProblems);
         } else if (typeof rule === 'object') {
             // more complex case with inferring the type for children
-            const ruleResult: TypeInferenceResultWithInferringChildren<LanguageType> = rule.inferTypeWithoutChildren(languageNode, this.services);
+            const ruleResult: TypeInferenceResultWithInferringChildren<Specifics> = rule.inferTypeWithoutChildren(languageNode, this.services);
             if (Array.isArray(ruleResult)) {
                 // this rule might match => continue applying this rule
                 // resolve the requested child types
                 const childLanguageNodes = ruleResult;
-                const actualChildTypes: Array<Type | Array<InferenceProblem<LanguageType>>> = childLanguageNodes.map(child => this.services.Inference.inferType(child));
+                const actualChildTypes: Array<Type | Array<InferenceProblem<Specifics>>> = childLanguageNodes.map(child => this.services.Inference.inferType(child));
                 // check, whether inferring the children resulted in some other inference problems
-                const childTypeProblems: Array<InferenceProblem<LanguageType>> = [];
+                const childTypeProblems: Array<InferenceProblem<Specifics>> = [];
                 for (let i = 0; i < actualChildTypes.length; i++) {
                     const child = actualChildTypes[i];
                     if (Array.isArray(child)) {
@@ -286,14 +286,14 @@ export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenc
         }
     }
 
-    protected inferTypeLogicWithoutChildren(result: TypeInferenceResultWithoutInferringChildren<LanguageType>, collectedInferenceProblems: Array<InferenceProblem<LanguageType>>): Type | undefined {
+    protected inferTypeLogicWithoutChildren(result: TypeInferenceResultWithoutInferringChildren<Specifics>, collectedInferenceProblems: Array<InferenceProblem<Specifics>>): Type | undefined {
         if (result === InferenceRuleNotApplicable) {
             // this rule is not applicable at all => ignore this rule
             return undefined;
         } else if (isType(result)) {
             // the result type is found!
             return result;
-        } else if (isInferenceProblem<LanguageType>(result)) {
+        } else if (isInferenceProblem<Specifics>(result)) {
             // found some inference problems
             collectedInferenceProblems.push(result);
             return undefined;
@@ -310,20 +310,20 @@ export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenc
     }
 
 
-    addListener(listener: TypeInferenceCollectorListener<LanguageType>): void {
+    addListener(listener: TypeInferenceCollectorListener<Specifics>): void {
         this.listeners.push(listener);
     }
-    removeListener(listener: TypeInferenceCollectorListener<LanguageType>): void {
+    removeListener(listener: TypeInferenceCollectorListener<Specifics>): void {
         removeFromArray(listener, this.listeners);
     }
 
     // This inference collector is notified by the rule registry and forwards these notifications to its own listeners
 
-    onAddedRule(rule: TypeInferenceRule<LanguageType>, diffOptions: RuleOptions): void {
+    onAddedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
         // listeners of the composite will be notified about all added inner rules
         this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, diffOptions));
     }
-    onRemovedRule(rule: TypeInferenceRule<LanguageType>, diffOptions: RuleOptions): void {
+    onRemovedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
         // clear the cache, since its entries might be created using the removed rule
         // possible performance improvement: remove only entries which depend on the removed rule?
         this.cacheClear();
@@ -334,11 +334,11 @@ export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenc
 
     /* By default, the central cache of Typir is used. */
 
-    protected cacheSet(languageNode: LanguageType, type: Type): void {
+    protected cacheSet(languageNode: Specifics['LanguageType'], type: Type): void {
         this.languageNodeInference.cacheSet(languageNode, type);
     }
 
-    protected cacheGet(languageNode: LanguageType): Type | undefined {
+    protected cacheGet(languageNode: Specifics['LanguageType']): Type | undefined {
         return this.languageNodeInference.cacheGet(languageNode);
     }
 
@@ -346,13 +346,13 @@ export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenc
         this.languageNodeInference.cacheClear();
     }
 
-    protected pendingSet(languageNode: LanguageType): void {
+    protected pendingSet(languageNode: Specifics['LanguageType']): void {
         this.languageNodeInference.pendingSet(languageNode);
     }
-    protected pendingClear(languageNode: LanguageType): void {
+    protected pendingClear(languageNode: Specifics['LanguageType']): void {
         this.languageNodeInference.pendingClear(languageNode);
     }
-    protected pendingGet(languageNode: LanguageType): boolean {
+    protected pendingGet(languageNode: Specifics['LanguageType']): boolean {
         return this.languageNodeInference.pendingGet(languageNode);
     }
 }
@@ -366,27 +366,27 @@ export class DefaultTypeInferenceCollector<LanguageType> implements TypeInferenc
  * This composite rule ensures itself, that it is associated to the set of language keys of the inner rules.
  */
 // This design looks a bit ugly ..., but "implements TypeInferenceRuleWithoutInferringChildren" does not work, since it is a function ...
-export class CompositeTypeInferenceRule<LanguageType> extends DefaultTypeInferenceCollector<LanguageType> implements TypeInferenceRuleWithInferringChildren<LanguageType> {
+export class CompositeTypeInferenceRule<Specifics extends TypirSpecifics> extends DefaultTypeInferenceCollector<Specifics> implements TypeInferenceRuleWithInferringChildren<Specifics> {
     /** The collector for inference rules, at which this composite rule should be registered. */
-    protected readonly collectorToRegisterThisRule: TypeInferenceCollector<LanguageType>;
+    protected readonly collectorToRegisterThisRule: TypeInferenceCollector<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, collectorToRegisterThisRule: TypeInferenceCollector<LanguageType>) {
+    constructor(services: TypirServices<Specifics>, collectorToRegisterThisRule: TypeInferenceCollector<Specifics>) {
         super(services);
         this.collectorToRegisterThisRule = collectorToRegisterThisRule;
     }
 
     // do not check "pending" (again), since it is already checked by the "parent" DefaultTypeInferenceCollector!
-    override pendingGet(_languageNode: unknown): boolean {
+    override pendingGet(_languageNode: Specifics['LanguageType']): boolean {
         return false;
     }
-    protected override pendingSet(_languageNode: LanguageType): void {
+    protected override pendingSet(_languageNode: Specifics['LanguageType']): void {
         // nothing to do, since the pending state is not used in this composite rule
     }
-    protected override pendingClear(_languageNode: LanguageType): void {
+    protected override pendingClear(_languageNode: Specifics['LanguageType']): void {
         // nothing to do, since the pending state is not used in this composite rule
     }
 
-    inferTypeWithoutChildren(languageNode: LanguageType, _typir: TypirServices<LanguageType>): TypeInferenceResultWithInferringChildren<LanguageType> {
+    inferTypeWithoutChildren(languageNode: Specifics['LanguageType'], _typir: TypirServices<Specifics>): TypeInferenceResultWithInferringChildren<Specifics> {
         // do the type inference
         const result = this.inferType(languageNode);
         if (isType(result)) {
@@ -397,7 +397,7 @@ export class CompositeTypeInferenceRule<LanguageType> extends DefaultTypeInferen
             } else if (result.length === 1) {
                 return result[0];
             } else {
-                return <InferenceProblem<LanguageType>>{
+                return <InferenceProblem<Specifics>>{
                     $problem: InferenceProblem,
                     languageNode: languageNode,
                     location: 'sub-rules for inference',
@@ -408,11 +408,11 @@ export class CompositeTypeInferenceRule<LanguageType> extends DefaultTypeInferen
         }
     }
 
-    inferTypeWithChildrensTypes(_languageNode: LanguageType, _childrenTypes: Array<Type | undefined>, _typir: TypirServices<LanguageType>): Type | InferenceProblem<LanguageType> {
+    inferTypeWithChildrensTypes(_languageNode: Specifics['LanguageType'], _childrenTypes: Array<Type | undefined>, _typir: TypirServices<Specifics>): Type | InferenceProblem<Specifics> {
         throw new Error('This function will not be called.');
     }
 
-    override onAddedRule(rule: TypeInferenceRule<LanguageType>, diffOptions: RuleOptions): void {
+    override onAddedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
         // an inner rule was added
         super.onAddedRule(rule, diffOptions);
 
@@ -423,7 +423,7 @@ export class CompositeTypeInferenceRule<LanguageType> extends DefaultTypeInferen
         });
     }
 
-    override onRemovedRule(rule: TypeInferenceRule<LanguageType>, diffOptions: RuleOptions): void {
+    override onRemovedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
         // an inner rule was removed
         super.onRemovedRule(rule, diffOptions);
 

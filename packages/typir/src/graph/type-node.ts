@@ -7,6 +7,7 @@
 import { TypeReference } from '../initialization/type-reference.js';
 import { WaitingForIdentifiableAndCompletedTypeReferences, WaitingForInvalidTypeReferences } from '../initialization/type-waiting.js';
 import { Kind } from '../kinds/kind.js';
+import { TypirSpecifics } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { assertTrue, assertUnreachable, removeFromArray } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
@@ -37,10 +38,10 @@ export interface PreconditionsForInitializationState {
  * Contains properties which are be relevant for all types to create,
  * i.e. it is used for specifying details of all types to create.
  */
-export interface TypeDetails<LanguageType> {
+export interface TypeDetails<Specifics extends TypirSpecifics> {
     /** A node from the language might be associated with the new type to create,
      * e.g. the declaration node in the AST (e.g. a FunctionDeclarationNode is associated with the corresponding FunctionType). */
-    associatedLanguageNode?: LanguageType;
+    associatedLanguageNode?: Specifics['LanguageType'];
 }
 
 /**
@@ -72,7 +73,7 @@ export abstract class Type {
      */
     readonly associatedLanguageNode: unknown | undefined;
 
-    constructor(identifier: string | undefined, typeDetails: TypeDetails<unknown>) {
+    constructor(identifier: string | undefined, typeDetails: TypeDetails<TypirSpecifics>) {
         this.identifier = identifier;
         this.associatedLanguageNode = typeDetails.associatedLanguageNode;
     }

@@ -7,6 +7,7 @@
 import { Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { TypeReference } from '../initialization/type-reference.js';
+import { TypirSpecifics } from '../typir.js';
 
 /**
  * This services provides some static information about the language/DSL, for which the type system is created.
@@ -23,13 +24,13 @@ import { TypeReference } from '../initialization/type-reference.js';
  *
  * Language keys might have sub/super language keys ("sub-type relationship of language keys").
  */
-export interface LanguageService<LanguageType> {
+export interface LanguageService<Specifics extends TypirSpecifics> {
     /**
      * Returns the language key for a given language node
      * @param languageNode the given language node
      * @returns the language key or 'undefined', if there is no language key for the given language node
      */
-    getLanguageNodeKey(languageNode: LanguageType): string | undefined;
+    getLanguageNodeKey(languageNode: Specifics['LanguageType']): string | undefined;
 
     /**
      * Returns all keys, which are direct or indirect sub-keys of the given language key.
@@ -45,16 +46,16 @@ export interface LanguageService<LanguageType> {
      */
     getAllSuperKeys(languageKey: string): string[];
 
-    isLanguageNode(node: unknown): node is LanguageType;
+    isLanguageNode(node: unknown): node is Specifics['LanguageType'];
 }
 
 
 /**
  * This default implementation provides no information about the current language.
  */
-export class DefaultLanguageService<LanguageType> implements LanguageService<LanguageType> {
+export class DefaultLanguageService<Specifics extends TypirSpecifics> implements LanguageService<Specifics> {
 
-    getLanguageNodeKey(_languageNode: LanguageType): string | undefined {
+    getLanguageNodeKey(_languageNode: Specifics['LanguageType']): string | undefined {
         return undefined;
     }
 
@@ -66,7 +67,7 @@ export class DefaultLanguageService<LanguageType> implements LanguageService<Lan
         return [];
     }
 
-    isLanguageNode(node: unknown): node is LanguageType {
+    isLanguageNode(node: unknown): node is Specifics['LanguageType'] {
         // explicitly check for some common TypeSelectors
         if (typeof node === 'function') {
             return false;

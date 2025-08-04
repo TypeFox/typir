@@ -21,7 +21,7 @@ type MatrixType = {
 Then you create a new factory for these matrix types:
 
 ```typescript
-const matrixFactory = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+const matrixFactory = new CustomKind<MatrixType, TestingSpecifics>(typir, {
     name: 'Matrix',
     // ... here you can specify some optional rules for type names, conversion, sub-types, ... for all matrix types:
     calculateTypeName: properties => `My${properties.width}x${properties.height}Matrix`,
@@ -45,14 +45,14 @@ read the [section about customization](../customization.md), summarized as follo
 // define your custom factory as additional Typir service
 type AdditionalMatrixTypirServices = {
     readonly factory: {
-        readonly Matrix: CustomKind<MatrixType, TestLanguageNode>;
+        readonly Matrix: CustomKind<MatrixType, TestingSpecifics>;
     }
 }
 
 // specify the additional services as TypeScript generic when initializing the Typir services and provide the custom factory
-const typir = createTypirServicesWithAdditionalServices<TestLanguageNode, AdditionalMatrixTypirServices>({
+const typir = createTypirServicesWithAdditionalServices<TestingSpecifics, AdditionalMatrixTypirServices>({
     factory: {
-        Matrix: services => new CustomKind<MatrixType, TestLanguageNode>(services, { ... })
+        Matrix: services => new CustomKind<MatrixType, TestingSpecifics>(services, { ... })
     }
 });
 
@@ -85,10 +85,10 @@ Nevertheless, it is possible to customize the calculation of identifiers (`calcu
 
 ### Circular dependencies
 
-Cyclic dependencies of the given types for type properties are handled by Typir.
+Circular dependencies of the given types for type properties are handled by Typir.
 See some examples in `custom-cycles.test.ts` and `custom-selectors.test.ts`.
 Therefore `getTypeFinal()` needs to be called after finishing a new custom type, e.g. `const myCustomType = customKind.create({...}).finish().getTypeFinal();`.
-If the custom type is already available, you will get your `CustomType<Properties, LanguageType>`, otherwise `undefined`.
+If the custom type is already available, you will get your `CustomType<Properties, TestingSpecifics>`, otherwise `undefined`.
 If the type is not yet available, you can register a callback, which is called, when the type is available:
 
 ```typescript
@@ -100,7 +100,7 @@ customKind.create({...}).finish().addListener(finishedType => {
 
 ### Behaviour
 
-Specify rules for conversion, sub-type, names, identifiers, inference and validation (usually for all custom types OR for single ones).
+It is possible to specify rules for conversion, sub-type, names, identifiers, inference and validation, usually for all custom types OR for single ones.
 See `custom-example-restricted.test.ts` for some examples.
 
 ### Multiple different custom types

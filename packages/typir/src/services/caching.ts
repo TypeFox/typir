@@ -7,7 +7,7 @@
 import { TypeEdge } from '../graph/type-edge.js';
 import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 import { assertTrue } from '../utils/utils.js';
 
 /**
@@ -31,10 +31,10 @@ export type EdgeCachingInformation =
     /** The current relationship does not exist. */
     'NO_LINK';
 
-export class DefaultTypeRelationshipCaching<LanguageType> implements TypeRelationshipCaching {
+export class DefaultTypeRelationshipCaching<Specifics extends TypirSpecifics> implements TypeRelationshipCaching {
     protected readonly graph: TypeGraph;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.graph = services.infrastructure.Graph;
     }
 
