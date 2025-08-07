@@ -42,7 +42,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 - Fixed the implementation for merging modules for dependency injection (DI), it is exactly the same fix from [Langium](https://github.com/eclipse-langium/langium/pull/1939), since we reused its DI implementation (#79).
 
 
-## v0.2.2 (2025-07-??)
+## v0.2.2 (2025-08-01)
 
 - Fixed wrong imports of `assertUnreachable` (#86)
 - Copy instead of reuse arrays with language keys to prevent side effects (#87)
