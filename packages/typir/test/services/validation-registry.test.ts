@@ -8,10 +8,10 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { Type } from '../../src/graph/type-node.js';
 import { PrimitiveType } from '../../src/kinds/primitive/primitive-type.js';
 import { DefaultValidationCollector, ValidationRule, ValidationRuleFunctional, ValidationRuleLifecycle, ValidationRuleOptions } from '../../src/services/validation.js';
-import { booleanTrue, integer123, IntegerLiteral, stringHello, StringLiteral } from '../../src/test/predefined-language-nodes.js';
+import { booleanTrue, createTypirServicesForTesting, integer123, IntegerLiteral, stringHello, StringLiteral, TestingSpecifics } from '../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../src/typir.js';
 import { RuleRegistry } from '../../src/utils/rule-registration.js';
-import { createTypirServicesForTesting, expectValidationIssuesStrict, TestingSpecifics } from '../../src/utils/test-utils.js';
+import { expectValidationIssuesStrict } from '../../src/test/test-utils.js';
 
 describe('Tests the logic for registering rules (applied to state-less validation rules)', () => {
     let typir: TypirServices<TestingSpecifics>;

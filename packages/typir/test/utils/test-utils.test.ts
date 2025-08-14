@@ -5,9 +5,9 @@
  ******************************************************************************/
 
 import { beforeAll, describe, test } from 'vitest';
-import { integer123, IntegerLiteral, StatementBlock, TestExpressionNode } from '../../src/test/predefined-language-nodes.js';
+import { createTypirServicesForTesting, integer123, IntegerLiteral, StatementBlock, TestExpressionNode, TestingSpecifics } from '../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../src/typir.js';
-import { createTypirServicesForTesting, expectValidationIssues, expectValidationIssuesAbsent, expectValidationIssuesNone, expectValidationIssuesStrict, TestingSpecifics } from '../../src/utils/test-utils.js';
+import { expectValidationIssues, expectValidationIssuesAbsent, expectValidationIssuesNone, expectValidationIssuesStrict } from '../../src/test/test-utils.js';
 
 describe('Test cases for the "expectValidationIssues*(...)" test utilities', () => {
     let typir: TypirServices<TestingSpecifics>;

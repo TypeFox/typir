@@ -71,7 +71,7 @@ export abstract class Type {
      * since it should be usable for any domain-specific purpose.
      * Therefore, the use and update of this feature is under the responsibility of the user of Typir.
      */
-    readonly associatedLanguageNode: unknown | undefined;
+    readonly associatedLanguageNode: unknown | undefined; // TODO 'unknown' is not replaced by Specifics['LanguageType'], since this generic is not used by Type
 
     constructor(identifier: string | undefined, typeDetails: TypeDetails<TypirSpecifics>) {
         this.identifier = identifier;

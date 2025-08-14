@@ -4,10 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TestingSpecifics } from '../index-test.js';
+import { inject, Module } from '../utils/dependency-injection.js';
 import { DefaultLanguageService } from '../services/language.js';
 import { InferOperatorWithMultipleOperands } from '../services/operator.js';
 import { DefaultTypeConflictPrinter } from '../services/printing.js';
+import { TypirSpecifics, TypirServices, PartialTypirServices, createTypirServices, DeepPartial, createDefaultTypirServicesModule } from '../typir.js';
 
 /**
  * Base class for all language nodes,
@@ -222,4 +223,49 @@ export class TestLanguageService extends DefaultLanguageService<TestingSpecifics
     override isLanguageNode(node: TestLanguageNode): node is TestLanguageNode {
         return node instanceof TestLanguageNode;
     }
+}
+
+
+export interface TestingSpecifics extends TypirSpecifics {
+    LanguageType: TestLanguageNode;
+}
+
+/**
+ * Creates TypirServices dedicated for testing purposes,
+ * with the default module containing the default implements for Typir, which might be exchanged by the given optional customized module.
+ * @param customizationForTesting specific customizations for the current test case
+ * @returns a Typir instance, i.e. the TypirServices with implementations
+ */
+export function createTypirServicesForTesting(
+    customizationForTesting: Module<TypirServices<TestingSpecifics>, PartialTypirServices<TestingSpecifics>> = {},
+): TypirServices<TestingSpecifics> {
+    return createTypirServices<TestingSpecifics>(
+        {                                               // override some default implementations:
+            Printer: () => new TestProblemPrinter(),    // use the dedicated printer for TestLanguageNode's
+            Language: () => new TestLanguageService(),  // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)
+        },
+        customizationForTesting,                        // specific customizations for the current test case
+    );
+}
+
+/**
+ * Creates TypirServices dedicated for testing purposes,
+ * with the default module containing the default implements for Typir, which might be exchanged by the given optional customized module.
+ * @param moduleForAdditionalServices required implementations for the additional services
+ * @param customizationForTesting specific customizations for the current test case
+ * @returns a Typir instance, i.e. the TypirServices with implementations
+ */
+export function createTypirServicesForTestingWithAdditionalServices<AdditionalServices>(
+    moduleForAdditionalServices: Module<TypirServices<TestingSpecifics> & AdditionalServices, AdditionalServices>,
+    customizationForTesting?: Module<TypirServices<TestingSpecifics> & AdditionalServices, DeepPartial<TypirServices<TestingSpecifics> & AdditionalServices>>,
+): TypirServices<TestingSpecifics> & AdditionalServices {
+    return inject(
+        createDefaultTypirServicesModule<TestingSpecifics>(),   // all default core implementations
+        moduleForAdditionalServices,
+        {                                                       // override some default implementations:
+            Printer: () => new TestProblemPrinter(),            // use the dedicated printer for TestLanguageNode's
+            Language: () => new TestLanguageService(),          // provide language keys for the TestLanguageNode's: they are just the names of the classes (without extends so far)
+        },
+        customizationForTesting,                                // specific customizations for the current test case
+    );
 }

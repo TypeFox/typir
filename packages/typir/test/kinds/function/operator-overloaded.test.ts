@@ -11,9 +11,9 @@ import { isAssignabilityProblem, isAssignabilitySuccess } from '../../../src/ser
 import { ConversionEdge } from '../../../src/services/conversion.js';
 import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
 import { SubTypeEdge } from '../../../src/services/subtype.js';
-import { AssignmentStatement, BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, double2_0, double3_0, DoubleLiteral, InferenceRuleBinaryExpression, integer2, integer3, IntegerLiteral, string2, string3, StringLiteral, TestExpressionNode, Variable } from '../../../src/test/predefined-language-nodes.js';
+import { AssignmentStatement, BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, createTypirServicesForTesting, double2_0, double3_0, DoubleLiteral, InferenceRuleBinaryExpression, integer2, integer3, IntegerLiteral, string2, string3, StringLiteral, TestExpressionNode, TestingSpecifics, Variable } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectToBeType, TestingSpecifics } from '../../../src/utils/test-utils.js';
+import { expectToBeType } from '../../../src/test/test-utils.js';
 import { assertTrue } from '../../../src/utils/utils.js';
 
 describe('Multiple best matches for overloaded operators', () => {

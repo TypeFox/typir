@@ -7,9 +7,8 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { CustomType } from '../../../src/kinds/custom/custom-type.js';
-import { TestExpressionNode, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
+import { createTypirServicesForTesting, TestExpressionNode, TestingSpecifics, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, TestingSpecifics } from '../../../src/utils/test-utils.js';
 
 // These test cases test that all possible TypeSelectors work for custom types.
 

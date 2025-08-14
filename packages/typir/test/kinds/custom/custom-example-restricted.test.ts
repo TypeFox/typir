@@ -10,9 +10,9 @@ import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { CustomType, isCustomType } from '../../../src/kinds/custom/custom-type.js';
 import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { InferenceRuleNotApplicable } from '../../../src/services/inference.js';
-import { IntegerLiteral, TestExpressionNode, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
+import { createTypirServicesForTesting, IntegerLiteral, TestExpressionNode, TestingSpecifics, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectToBeType, TestingSpecifics } from '../../../src/utils/test-utils.js';
+import { expectToBeType } from '../../../src/test/test-utils.js';
 
 /**
  * The custom type called "RestrictedInteger" represents a primitive integer type with an upper bound,

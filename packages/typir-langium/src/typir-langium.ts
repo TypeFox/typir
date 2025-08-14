@@ -115,7 +115,7 @@ export function createTypirLangiumServices<Specifics extends TypirLangiumSpecifi
             langium: {
                 TypeSystemDefinition: () => typeSystemDefinition,
             },
-            Language: () => new LangiumLanguageService(reflection),
+            Language: () => new LangiumLanguageService(reflection), // 'reflection' is only managed by the LanguageService by design
         },
         // optionally add some more language-specific customization, e.g. for ...
         customization1, // ... production

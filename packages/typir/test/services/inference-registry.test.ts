@@ -9,10 +9,9 @@ import { isType, Type } from '../../src/graph/type-node.js';
 import { PrimitiveType } from '../../src/kinds/primitive/primitive-type.js';
 import { CompositeTypeInferenceRule, DefaultTypeInferenceCollector, InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule, TypeInferenceRuleWithoutInferringChildren } from '../../src/services/inference.js';
 import { ValidationRuleOptions } from '../../src/services/validation.js';
-import { booleanFalse, integer123, IntegerLiteral, stringHello, StringLiteral, TestLanguageNode } from '../../src/test/predefined-language-nodes.js';
+import { booleanFalse, createTypirServicesForTesting, integer123, IntegerLiteral, stringHello, StringLiteral, TestingSpecifics, TestLanguageNode } from '../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../src/typir.js';
 import { RuleRegistry } from '../../src/utils/rule-registration.js';
-import { createTypirServicesForTesting, TestingSpecifics } from '../../src/utils/test-utils.js';
 
 describe('Tests the logic for registering rules (applied to inference rules)', () => {
     let typir: TypirServices<TestingSpecifics>;

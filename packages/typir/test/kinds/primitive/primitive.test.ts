@@ -6,9 +6,9 @@
 
 import { beforeEach, describe, expect, test } from 'vitest';
 import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { integer123, IntegerLiteral, stringHello, StringLiteral } from '../../../src/test/predefined-language-nodes.js';
+import { createTypirServicesForTesting, integer123, IntegerLiteral, stringHello, StringLiteral, TestingSpecifics } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectTypirTypes, TestingSpecifics } from '../../../src/utils/test-utils.js';
+import { expectTypirTypes } from '../../../src/test/test-utils.js';
 import { assertTypirType } from '../../../src/utils/utils.js';
 
 describe('Tests some details for primitive types', () => {

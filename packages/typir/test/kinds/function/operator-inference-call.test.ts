@@ -7,9 +7,9 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { isType } from '../../../src/graph/type-node.js';
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { BinaryExpression, InferenceRuleBinaryExpression, integer123, integer456, IntegerLiteral, string123, string456, StringLiteral, TestExpressionNode } from '../../../src/test/predefined-language-nodes.js';
+import { BinaryExpression, createTypirServicesForTesting, InferenceRuleBinaryExpression, integer123, integer456, IntegerLiteral, string123, string456, StringLiteral, TestExpressionNode, TestingSpecifics } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectToBeType, expectValidationIssuesStrict, TestingSpecifics } from '../../../src/utils/test-utils.js';
+import { expectToBeType, expectValidationIssuesStrict } from '../../../src/test/test-utils.js';
 
 describe('Tests some special cases for (overloaded) operator calls', () => {
 

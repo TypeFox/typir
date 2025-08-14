@@ -10,10 +10,10 @@ import { CustomType, isCustomType } from '../../../src/kinds/custom/custom-type.
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { DefaultTypeInferenceCollector, InferenceRuleNotApplicable, TypeInferenceRule } from '../../../src/services/inference.js';
 import { ValidationProblemAcceptor } from '../../../src/services/validation.js';
-import { IntegerLiteral, TestExpressionNode } from '../../../src/test/predefined-language-nodes.js';
+import { createTypirServicesForTesting, createTypirServicesForTestingWithAdditionalServices, IntegerLiteral, TestExpressionNode, TestingSpecifics } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 import { RuleRegistry } from '../../../src/utils/rule-registration.js';
-import { createTypirServicesForTesting, createTypirServicesForTestingWithAdditionalServices, expectToBeType, expectTypirTypes, expectValidationIssuesNone, expectValidationIssuesStrict, TestingSpecifics } from '../../../src/utils/test-utils.js';
+import { expectToBeType, expectTypirTypes, expectValidationIssuesNone, expectValidationIssuesStrict } from '../../../src/test/test-utils.js';
 import { assertTypirType } from '../../../src/utils/utils.js';
 
 /**

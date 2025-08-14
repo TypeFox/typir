@@ -11,8 +11,9 @@ import { TypeReference } from '../../../src/initialization/type-reference.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { isCustomType } from '../../../src/kinds/custom/custom-type.js';
 import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
+import { TestingSpecifics, createTypirServicesForTesting } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectToBeType, TestingSpecifics } from '../../../src/utils/test-utils.js';
+import { expectToBeType } from '../../../src/test/test-utils.js';
 
 // These test cases test, that custom types might depend on other types including custom types
 // and the creation of custom types is delayed, when those types are not yet existing.

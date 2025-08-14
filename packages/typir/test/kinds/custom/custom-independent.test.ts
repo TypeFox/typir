@@ -7,8 +7,9 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { isCustomType } from '../../../src/kinds/custom/custom-type.js';
+import { TestingSpecifics, createTypirServicesForTesting } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectTypirTypes, TestingSpecifics } from '../../../src/utils/test-utils.js';
+import { expectTypirTypes } from '../../../src/test/test-utils.js';
 
 // These test cases test that it is possible to work with two different kinds of custom types independent from each other in the same Typir instance,
 // even when these custom types/kinds have the same properties!

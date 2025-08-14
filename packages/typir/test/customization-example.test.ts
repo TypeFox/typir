@@ -5,10 +5,13 @@
  ******************************************************************************/
 
 import { describe, expect, test } from 'vitest';
-import { expectToBeType, TestingSpecifics } from '../src/index-test.js';
-import { DefaultTypeConflictPrinter, isClassType, Type } from '../src/index.js';
+import { Type } from '../src/graph/type-node.js';
 import { ClassFactoryService, ClassKind } from '../src/kinds/class/class-kind.js';
+import { isClassType } from '../src/kinds/class/class-type.js';
+import { DefaultTypeConflictPrinter } from '../src/services/printing.js';
+import { TestingSpecifics } from '../src/test/predefined-language-nodes.js';
 import { createTypirServices, createTypirServicesWithAdditionalServices, TypirServices } from '../src/typir.js';
+import { expectToBeType } from '../src/test/test-utils.js';
 
 describe('Some examples how to customize the Typir services, focusing on adding another type factory', () => {
 

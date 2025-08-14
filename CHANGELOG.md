@@ -53,6 +53,9 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 - Typir-Langium: `LangiumLanguageNodeInferenceCaching` and `DefaultLangiumTypeCreator` use the `TypirLangiumServices` parameter to retrieve the `LangiumSharedCoreServices` now (#78).
 - The `<LanguageType>` generic is replaced by `<Specifics extends TypirSpecifics>` (in Typir-Langium: `<Specifics extends TypirLangiumSpecifics>`) everywhere (see details above).
+- Moved some utilities for testing, requiring to update their imports:
+  - Moved utilities from `test-utils.ts` to `predefined-language-nodes.ts`
+  - Moved `test-utils.ts` into the folder `packages/typir/src/test/`
 
 ### Fixed bugs
 

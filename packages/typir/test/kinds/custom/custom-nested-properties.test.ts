@@ -8,8 +8,8 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { CustomTypeInitialization, CustomTypeStorage } from '../../../src/kinds/custom/custom-definitions.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
+import { TestingSpecifics, createTypirServicesForTesting } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, TestingSpecifics } from '../../../src/utils/test-utils.js';
 
 // These test cases test that nesting of properties for custom types is possible (including recursion).
 
