@@ -22,7 +22,7 @@ import { FunctionType } from './function-type.js';
  * - and validates this call according to the specific validation rules for this function call.
  * There is only one instance of this class for each function kind/manager.
  */
-export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> implements ValidationRuleLifecycle<Specifics>, RuleCollectorListener<SingleFunctionDetails<Specifics>> {
+export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> implements ValidationRuleLifecycle<Specifics>, RuleCollectorListener<Specifics, SingleFunctionDetails<Specifics>> {
     protected readonly services: TypirServices<Specifics>;
     readonly functions: AvailableFunctionsManager<Specifics>;
 
@@ -31,7 +31,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         this.functions = functions;
     }
 
-    onAddedRule(_rule: SingleFunctionDetails<Specifics, Specifics['LanguageType']>, diffOptions: RuleOptions): void {
+    onAddedRule(_rule: SingleFunctionDetails<Specifics, Specifics['LanguageType']>, diffOptions: RuleOptions<Specifics>): void {
         // this rule needs to be registered also for all the language keys of the new inner function call rule
         this.services.validation.Collector.addValidationRule(this, {
             ...diffOptions,
@@ -39,7 +39,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         });
     }
 
-    onRemovedRule(_rule: SingleFunctionDetails<Specifics, Specifics['LanguageType']>, diffOptions: RuleOptions): void {
+    onRemovedRule(_rule: SingleFunctionDetails<Specifics, Specifics['LanguageType']>, diffOptions: RuleOptions<Specifics>): void {
         // remove this "composite" rule for all language keys for which no function call rules are registered anymore
         if (diffOptions.languageKey === undefined) {
             if (this.noFunctionCallRulesForThisLanguageKey(undefined)) {
@@ -59,7 +59,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         }
     }
 
-    protected noFunctionCallRulesForThisLanguageKey(key: undefined | string): boolean {
+    protected noFunctionCallRulesForThisLanguageKey(key: undefined | (keyof Specifics['LanguageKeys'])): boolean {
         for (const overloads of this.functions.getAllOverloads()) {
             if (overloads[1].details.getRulesByLanguageKey(key).length >= 1) {
                 return false;
@@ -70,7 +70,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
 
     validation(languageNode: Specifics['LanguageType'], accept: ValidationProblemAcceptor<Specifics>, _typir: TypirServices<Specifics>): void {
         // determine all keys to check
-        const keysToApply: Array<string|undefined> = [];
+        const keysToApply: Array<(keyof Specifics['LanguageKeys']) | undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
         if (languageKey === undefined) {
             keysToApply.push(undefined);

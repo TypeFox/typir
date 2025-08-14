@@ -45,7 +45,7 @@ export function isNameTypePair(type: unknown): type is NameTypePair {
 /** A pair of a rule for type inference with its additional options. */
 export interface ValidationRuleWithOptions<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> {
     rule: ValidationRule<Specifics, T>;
-    options: Partial<ValidationRuleOptions>;
+    options: Partial<ValidationRuleOptions<Specifics>>;
 }
 
 export function bindValidateCurrentTypeRule<TypeType extends Type, Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
@@ -84,12 +84,12 @@ export function bindValidateCurrentTypeRule<TypeType extends Type, Specifics ext
  * These options are used for pre-defined valiations in order to enable the user to decide,
  * how the created pre-defined valiation should be registered.
  */
-export interface RegistrationOptions {
+export interface RegistrationOptions<Specifics extends TypirSpecifics> {
     /**
      * 'MYSELF' indicates, that the caller is responsible to register the validation rule,
      * otherwise the given options are used to register the return validation rule now.
      */
-    registration: 'MYSELF' | Partial<ValidationRuleOptions>;
+    registration: 'MYSELF' | Partial<ValidationRuleOptions<Specifics>>;
 }
 
 
@@ -100,23 +100,13 @@ export interface RegistrationOptions {
 /** A pair of a rule for type inference with its additional options. */
 export interface InferenceRuleWithOptions<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> {
     rule: TypeInferenceRule<Specifics, T>;
-    options: Partial<TypeInferenceRuleOptions>;
+    options: Partial<TypeInferenceRuleOptions<Specifics>>;
 }
 
-export function optionsBoundToType<T extends Partial<TypeInferenceRuleOptions> | Partial<ValidationRuleOptions>>(options: T, type: Type | undefined): T {
+export function inferenceOptionsBoundToType<Specifics extends TypirSpecifics, T extends Partial<TypeInferenceRuleOptions<Specifics>> = Partial<TypeInferenceRuleOptions<Specifics>>>(options: T, type: Type | undefined): T {
     return {
         ...options,
         boundToType: type,
-    };
-}
-
-export function ruleWithOptionsBoundToType<
-    Specifics extends TypirSpecifics,
-    T extends Specifics['LanguageType'] = Specifics['LanguageType'],
->(rule: InferenceRuleWithOptions<Specifics, T>, type: Type | undefined): InferenceRuleWithOptions<Specifics, T> {
-    return {
-        rule: rule.rule,
-        options: optionsBoundToType(rule.options, type),
     };
 }
 
@@ -131,7 +121,7 @@ export interface InferCurrentTypeRule<
     Specifics extends TypirSpecifics,
     T extends Specifics['LanguageType'] = Specifics['LanguageType'],
 > {
-    languageKey?: string | string[];
+    languageKey?: (keyof Specifics['LanguageKeys']) | Array<keyof Specifics['LanguageKeys']>;
     filter?: (languageNode: Specifics['LanguageType']) => languageNode is T;
     matching?: (languageNode: T, typeToInfer: TypeType) => boolean;
 

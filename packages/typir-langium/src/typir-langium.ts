@@ -18,8 +18,8 @@ import { LangiumAstTypes } from './utils/typir-langium-utils.js';
  * This type collects all TypeScript types which might be customized by applications of Typir-Langium.
  */
 export interface TypirLangiumSpecifics extends TypirSpecifics {
-    LanguageType: AstNode;      // concretizes the `LanguageType`, since all language nodes of a Langium AST are AstNode's
-    AstTypes: LangiumAstTypes;  // applications should concretize the `AstTypes` with XXXAstType from the generated `ast.ts`
+    LanguageType: AstNode;          // concretizes the `LanguageType`, since all language nodes of a Langium AST are AstNode's
+    LanguageKeys: LangiumAstTypes;  // applications should concretize the `LanguageKeys` with XXXAstType from the generated `ast.ts`
     /** Support also the Langium-specific diagnostic properties, e.g. to mark keywords or register code actions */
     ValidationMessageProperties: TypirSpecifics['ValidationMessageProperties'] & Omit<DiagnosticInfo<AstNode>, 'node'|'property'|'index'>; // 'node', 'property', and 'index' are already coverd by TypirSpecifics['ValidationMessageProperties'] with a different name
 }

@@ -210,10 +210,10 @@ describe('Tests the logic for registering rules (applied to inference rules)', (
     function removeType(type: Type): void {
         typir.infrastructure.Graph.removeNode(type);
     }
-    function addInferenceRule(rule: TypeInferenceRuleWithoutInferringChildren<TestingSpecifics>, options?: Partial<ValidationRuleOptions>) {
+    function addInferenceRule(rule: TypeInferenceRuleWithoutInferringChildren<TestingSpecifics>, options?: Partial<ValidationRuleOptions<TestingSpecifics>>) {
         typir.Inference.addInferenceRule(rule, options);
     }
-    function removeInferenceRule(rule: TypeInferenceRuleWithoutInferringChildren<TestingSpecifics>, options?: Partial<ValidationRuleOptions>) {
+    function removeInferenceRule(rule: TypeInferenceRuleWithoutInferringChildren<TestingSpecifics>, options?: Partial<ValidationRuleOptions<TestingSpecifics>>) {
         typir.Inference.removeInferenceRule(rule, options);
     }
 

@@ -74,7 +74,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
        LanguageType: unknown;
     }
     ```
-
+TODO
   - `TypirLangiumSpecifics` extends the Typir specifics for Langium, concretizes the language type and enables to register the available AST types of the current Langium grammar as `AstTypes`:
 
     ```typescript

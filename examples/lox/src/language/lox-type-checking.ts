@@ -12,9 +12,9 @@ import { BinaryExpression, BooleanLiteral, Class, ForStatement, FunctionDeclarat
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 export interface LoxSpecifics extends TypirLangiumSpecifics { // concretize some LOX-specifics here
-    AstTypes: LoxAstType; // all AST types from the generated `ast.ts`
+    LanguageKeys: LoxAstType; // all AST types from the generated `ast.ts`
 }
-// interface extensions is used to concretize the `AstTypes`, since type intersection would merge `LangiumAstTypes` and `LoxAstType` (https://www.typescriptlang.org/docs/handbook/2/objects.html#interface-extension-vs-intersection)
+// interface extensions is used to concretize the `LanguageKeys`, since type intersection would merge `LangiumAstTypes` and `LoxAstType` (https://www.typescriptlang.org/docs/handbook/2/objects.html#interface-extension-vs-intersection)
 
 export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> {
 
