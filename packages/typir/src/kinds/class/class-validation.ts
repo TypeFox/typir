@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ReducedValidationProblem, ValidationProblemAcceptor, ValidationRule, ValidationRuleLifecycle } from '../../services/validation.js';
+import { ValidationProblemAcceptor, ValidationRule, ValidationRuleLifecycle } from '../../services/validation.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { FunctionType, isFunctionType } from '../function/function-type.js';
 import { ClassType, isClassType } from './class-type.js';
@@ -60,7 +60,7 @@ export class UniqueClassValidation<Specifics extends TypirSpecifics> implements 
         for (const [key, classes] of this.foundDeclarations.entries()) {
             if (classes.length >= 2) {
                 for (const clas of classes) {
-                    accept(<ReducedValidationProblem<Specifics>>{
+                    accept({
                         languageNode: clas,
                         severity: 'error',
                         message: `Declared classes need to be unique (${key}).`,
@@ -153,7 +153,7 @@ export class UniqueMethodValidation<Specifics extends TypirSpecifics, T extends 
                     if (this.uniqueClassValidator?.isClassDuplicated(method.classType)) {
                         // ignore duplicated methods inside duplicated classes
                     } else {
-                        accept(<ReducedValidationProblem<Specifics>>{
+                        accept({
                             languageNode: method.languageNode,
                             severity: 'error',
                             message: `Declared methods need to be unique (${key}).`,
@@ -183,7 +183,7 @@ export function createNoSuperClassCyclesValidation<Specifics extends TypirSpecif
             if (isClassType(classType) && classType.isInStateOrLater('Completed')) {
                 // check for cycles in sub-type-relationships
                 if (classType.hasSubSuperClassCycles()) {
-                    accept(<ReducedValidationProblem<Specifics>>{
+                    accept({
                         languageNode: languageNode,
                         severity: 'error',
                         message: `Cycles in super-sub-class-relationships are not allowed: ${classType.getName()}`,

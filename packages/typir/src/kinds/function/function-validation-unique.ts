@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ReducedValidationProblem, ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
+import { ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { FunctionType, isFunctionType } from './function-type.js';
 
@@ -64,7 +64,7 @@ export class UniqueFunctionValidation<Specifics extends TypirSpecifics> implemen
         for (const [key, functions] of this.foundDeclarations.entries()) {
             if (functions.length >= 2) {
                 for (const func of functions) {
-                    accept(<ReducedValidationProblem<Specifics>>{
+                    accept({
                         languageNode: func,
                         severity: 'error',
                         message: `Declared functions need to be unique (${key}).`,

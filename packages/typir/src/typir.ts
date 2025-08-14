@@ -22,7 +22,7 @@ import { DefaultLanguageService, LanguageService } from './services/language.js'
 import { DefaultOperatorFactory, OperatorFactoryService } from './services/operator.js';
 import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.js';
 import { DefaultSubType, SubType } from './services/subtype.js';
-import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints, ValidationMessageDetails } from './services/validation.js';
+import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints, ValidationMessageProperties } from './services/validation.js';
 import { inject, Module } from './utils/dependency-injection.js';
 
 /**
@@ -190,5 +190,5 @@ export type PartialTypirServices<Specifics extends TypirSpecifics> = DeepPartial
  */
 export interface TypirSpecifics {
     LanguageType: unknown;
-    ValidationMessageDetails: ValidationMessageDetails;
+    ValidationMessageProperties: ValidationMessageProperties;
 }

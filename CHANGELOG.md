@@ -46,7 +46,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
     }
     ```
 
-  - It is possible to customize the `ValidationMessageDetails` now, which is used to provide the Langium-specific validation properties in Typir-Langium, e.g. to support code actions for validation issues reported by Typir (see `lox-type-checking-operators.test.ts` for LOX).
+  - It is possible to customize the `ValidationMessageProperties` now, which is used to provide the Langium-specific validation properties in Typir-Langium, e.g. to support code actions for validation issues reported by Typir (see `lox-type-checking-operators.test.ts` for LOX).
 
 ### Breaking changes
 

@@ -15,7 +15,7 @@ import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
-export interface ValidationMessageDetails { // Using this type only the TypirSpecifics (and not directly in the ValidationProblem below) enables to customize its properties.
+export interface ValidationMessageProperties { // Using this type only the TypirSpecifics (and not directly in the ValidationProblem below) enables to customize its properties.
     severity: Severity;
     message: string;
     subProblems?: TypirProblem[];
@@ -23,28 +23,32 @@ export interface ValidationMessageDetails { // Using this type only the TypirSpe
 
 export type ValidationProblem<
     Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
-> = Specifics['ValidationMessageDetails'] & TypirProblem & {
+> = ValidationProblemProperties<Specifics, T> & TypirProblem & {
     $problem: 'ValidationProblem';
+}
+
+export const ValidationProblem = 'ValidationProblem';
+
+export function isValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: unknown): problem is ValidationProblem<Specifics, T> {
+    return isSpecificTypirProblem(problem, ValidationProblem);
+}
+
+export type ValidationProblemProperties<
+    Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
+> = Specifics['ValidationMessageProperties'] & {
     // the following properties are provided always and cannot be customized:
     languageNode: T;
     languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
     languageIndex?: number; // index, if 'languageProperty' is an Array property
 }
 
-export const ValidationProblem = 'ValidationProblem';
-export function isValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: unknown): problem is ValidationProblem<Specifics, T> {
-    return isSpecificTypirProblem(problem, ValidationProblem);
-}
-
-/** Don't specify the $problem-property. */
-export type ReducedValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>
-    = Omit<ValidationProblem<Specifics, T>, '$problem'>;
-/** Make some properties optional */
-export type RelaxedValidationProblem<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']>
-    = Omit<MakePropertyOptional<ValidationProblem<Specifics, T>, 'languageNode'|'severity'|'message'>, '$problem'>;
+/** Make some properties optional for convenience, since there are default values for them. */
+export type RelaxedValidationProblem<
+    Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
+> = MakePropertyOptional<ValidationProblemProperties<Specifics, T>, 'languageNode'|'severity'|'message'>; // TODO If unknown properties are specified, no TypeScript compiler error is shown
 
 export type ValidationProblemAcceptor<Specifics extends TypirSpecifics>
-    = <T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: ReducedValidationProblem<Specifics, T>) => void;
+    = <T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: ValidationProblemProperties<Specifics, T>) => void;
 
 export type ValidationRule<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> =
     | ValidationRuleFunctional<Specifics, InputType>
@@ -156,7 +160,7 @@ export class DefaultValidationConstraints<Specifics extends TypirSpecifics> impl
                         // everything is fine
                     } else {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
-                        accept(<ReducedValidationProblem<Specifics, T>>{
+                        accept(<ValidationProblemProperties<Specifics, T>>{
                             // default values for properties which are optional in RelaxedValidationProblem, but mandatory in ReducedValidationProblem:
                             languageNode,
                             severity: 'error',
@@ -170,7 +174,7 @@ export class DefaultValidationConstraints<Specifics extends TypirSpecifics> impl
                 } else {
                     if (negated) {
                         const details = message(this.annotateType(actualType), this.annotateType(expectedType));
-                        accept(<ReducedValidationProblem<Specifics, T>>{
+                        accept(<ValidationProblemProperties<Specifics, T>>{
                             // default values for properties which are optional in RelaxedValidationProblem, but mandatory in ReducedValidationProblem:
                             languageNode,
                             severity: 'error',
@@ -249,7 +253,7 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
     }
 
     protected createAcceptor(problems: Array<ValidationProblem<Specifics>>): ValidationProblemAcceptor<Specifics> {
-        return <T extends Specifics['LanguageType']>(problem: ReducedValidationProblem<Specifics, T>) => {
+        return <T extends Specifics['LanguageType']>(problem: ValidationProblemProperties<Specifics, T>) => {
             problems.push({
                 ...problem,
                 $problem: ValidationProblem, // add the missing $property-property

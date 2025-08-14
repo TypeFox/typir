@@ -21,9 +21,7 @@ export interface TypirLangiumSpecifics extends TypirSpecifics {
     LanguageType: AstNode;      // concretizes the `LanguageType`, since all language nodes of a Langium AST are AstNode's
     AstTypes: LangiumAstTypes;  // applications should concretize the `AstTypes` with XXXAstType from the generated `ast.ts`
     /** Support also the Langium-specific diagnostic properties, e.g. to mark keywords or register code actions */
-    ValidationMessageDetails: TypirSpecifics['ValidationMessageDetails'] & Omit<DiagnosticInfo<AstNode>, 'node'|'property'|'index'> // 'node', 'property', and 'index' are already coverd by TypirSpecifics['ValidationMessageDetails'] with a different name
-    // & { mandatory: boolean }
-    ;
+    ValidationMessageProperties: TypirSpecifics['ValidationMessageProperties'] & Omit<DiagnosticInfo<AstNode>, 'node'|'property'|'index'>; // 'node', 'property', and 'index' are already coverd by TypirSpecifics['ValidationMessageProperties'] with a different name
 }
 
 /**
