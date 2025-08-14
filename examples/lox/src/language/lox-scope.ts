@@ -24,7 +24,7 @@ export class LoxScopeProvider extends DefaultScopeProvider {
 
     override getScope(context: ReferenceInfo): Scope {
         // target element of member calls
-        if (context.property === 'element' && isMemberCall(context.container)) {
+        if (isMemberCall(context.container) && context.property === MemberCall.element) {
             // for now, `this` and `super` simply target the container class type
             if (context.reference.$refText === 'this' || context.reference.$refText === 'super') {
                 const classItem = AstUtils.getContainerOfType(context.container, isClass);
