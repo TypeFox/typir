@@ -64,14 +64,18 @@ export class UniqueFunctionValidation<Specifics extends TypirSpecifics> implemen
         for (const [key, functions] of this.foundDeclarations.entries()) {
             if (functions.length >= 2) {
                 for (const func of functions) {
-                    accept({
-                        languageNode: func,
-                        severity: 'error',
-                        message: `Declared functions need to be unique (${key}).`,
-                    });
+                    this.reportNonUniqueFunction(func, key, accept);
                 }
             }
         }
         this.foundDeclarations.clear();
+    }
+
+    protected reportNonUniqueFunction(func: Specifics['LanguageType'], key: string, accept: ValidationProblemAcceptor<Specifics>): void {
+        accept({
+            languageNode: func,
+            severity: 'error',
+            message: `Declared functions need to be unique (${key}).`,
+        });
     }
 }

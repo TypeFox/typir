@@ -4,14 +4,17 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
+import { Type } from '../../graph/type-node.js';
+import { InferenceProblem } from '../../services/inference.js';
 import { ValidationProblem, ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { RuleCollectorListener, RuleOptions } from '../../utils/rule-registration.js';
-import { TypirProblem } from '../../utils/utils-definitions.js';
-import { checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import { NameTypePair, TypirProblem } from '../../utils/utils-definitions.js';
+import { checkTypes, checkValueForConflict, createTypeCheckStrategy, IndexedTypeConflict, ValueConflict } from '../../utils/utils-type-comparison.js';
 import { assertUnreachable, toArray } from '../../utils/utils.js';
 import { InferFunctionCall } from './function-kind.js';
-import { AvailableFunctionsManager, SingleFunctionDetails } from './function-overloading.js';
+import { AvailableFunctionsManager, OverloadedFunctionDetails, SingleFunctionDetails } from './function-overloading.js';
+import { FunctionType } from './function-type.js';
 
 /**
  * This validation uses the inference rules for all available function calls to check, whether ...
@@ -102,14 +105,18 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
             }
             // Since none of the function signatures match, report one validation issue (with sub-problems) for each function signature (and for each language key)
             if (resultOverloaded.length >= 1) {
-                accept({
-                    languageNode: languageNode,
-                    severity: 'error',
-                    message: `The given operands for the call of ${overloadedFunctions.overloadedFunctions.length >= 2 ? 'the overload ' : ''}'${overloadedName}' don't match.`,
-                    subProblems: resultOverloaded as TypirProblem[],
-                });
+                this.reportOperandsMismatch(languageNode, overloadedName, overloadedFunctions, resultOverloaded, accept);
             }
         }
+    }
+
+    protected reportOperandsMismatch(languageNode: Specifics['LanguageType'], overloadedName: string, overloadedFunctions: OverloadedFunctionDetails<Specifics>, resultOverloaded: Array<ValidationProblem<Specifics>>, accept: ValidationProblemAcceptor<Specifics>): void {
+        accept({
+            languageNode: languageNode,
+            severity: 'error',
+            message: `The given operands for the call of ${overloadedFunctions.overloadedFunctions.length >= 2 ? 'the overload ' : ''}'${overloadedName}' don't match.`,
+            subProblems: resultOverloaded as TypirProblem[],
+        });
     }
 
     /**
@@ -137,13 +144,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         // check, that the given number of parameters is the same as the expected number of input parameters
         const parameterLength = checkValueForConflict(expectedParameterTypes.length, inputArguments.length, 'number of input parameter values');
         if (parameterLength.length >= 1) {
-            currentProblems.push({
-                $problem: ValidationProblem,
-                languageNode: languageNode,
-                severity: 'error',
-                message: 'The number of given parameter values does not match the expected number of input parameters.',
-                subProblems: parameterLength,
-            });
+            this.reportWrongNumberOfArguments(languageNode, parameterLength, currentProblems);
         } else {
             // compare arguments with their corresponding parameters
             const inferredParameterTypes = inputArguments.map(p => this.services.Inference.inferType(p));
@@ -154,13 +155,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
                 if (parameterProblems.length >= 1) {
                     // the value is not assignable to the type of the input parameter
                     // create one ValidationProblem for each problematic parameter!
-                    currentProblems.push({
-                        $problem: ValidationProblem,
-                        languageNode: inputArguments[i],
-                        severity: 'error',
-                        message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
-                        subProblems: parameterProblems,
-                    });
+                    this.reportWrongArgument(languageNode, inputArguments[i], i, inferredType, expectedType, parameterProblems, currentProblems);
                 } else {
                     // this parameter value is fine
                 }
@@ -171,13 +166,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         if (currentProblems.length >= 1) {
             // some problems with parameters => this signature does not match
             if (this.validateArgumentsOfFunctionCalls(inferenceRule, languageNode)) {
-                resultOverloaded.push({
-                    $problem: ValidationProblem,
-                    languageNode: languageNode,
-                    severity: 'error',
-                    message: `The given arguments don't match the parameters of '${this.services.Printer.printTypeUserRepresentation(functionType)}'.`,
-                    subProblems: currentProblems,
-                });
+                this.reportMismatchingSignature(languageNode, functionType, currentProblems, resultOverloaded);
             } else {
                 // ignore this variant for validation
             }
@@ -199,4 +188,33 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         }
     }
 
+    protected reportWrongNumberOfArguments(languageNode: Specifics['LanguageType'], parameterLength: ValueConflict[], currentProblems: Array<ValidationProblem<Specifics>>): void {
+        currentProblems.push({
+            $problem: ValidationProblem,
+            languageNode: languageNode,
+            severity: 'error',
+            message: 'The number of given parameter values does not match the expected number of input parameters.',
+            subProblems: parameterLength,
+        });
+    }
+
+    protected reportWrongArgument(languageNode: Specifics['LanguageType'], inputArgument: Specifics['LanguageType'], index: number, inferredType: Type | Array<InferenceProblem<Specifics>>, expectedType: NameTypePair, parameterProblems: IndexedTypeConflict[], currentProblems: Array<ValidationProblem<Specifics>>): void {
+        currentProblems.push({
+            $problem: ValidationProblem,
+            languageNode: inputArgument,
+            severity: 'error',
+            message: `The parameter '${expectedType.name}' at index ${index} got a value with a wrong type.`,
+            subProblems: parameterProblems,
+        });
+    }
+
+    protected reportMismatchingSignature(languageNode: Specifics['LanguageType'], functionType: FunctionType, currentProblems: Array<ValidationProblem<Specifics>>, resultOverloaded: Array<ValidationProblem<Specifics>>): void {
+        resultOverloaded.push({
+            $problem: ValidationProblem,
+            languageNode: languageNode,
+            severity: 'error',
+            message: `The given arguments don't match the parameters of '${this.services.Printer.printTypeUserRepresentation(functionType)}'.`,
+            subProblems: currentProblems,
+        });
+    }
 }

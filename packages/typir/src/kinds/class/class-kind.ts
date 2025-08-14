@@ -18,7 +18,7 @@ import { FunctionType } from '../function/function-type.js';
 import { Kind, KindOptions } from '../kind.js';
 import { ClassTypeInitializer } from './class-initializer.js';
 import { ClassType, isClassType } from './class-type.js';
-import { NoSuperClassCyclesValidationOptions, UniqueClassValidation, UniqueMethodValidation, UniqueMethodValidationOptions, createNoSuperClassCyclesValidation } from './class-validation.js';
+import { NoSuperClassCyclesValidation, NoSuperClassCyclesValidationOptions, UniqueClassValidation, UniqueMethodValidation, UniqueMethodValidationOptions } from './class-validation.js';
 import { TopClassKind, TopClassKindName } from './top-class-kind.js';
 
 export interface ClassKindOptions extends KindOptions {
@@ -238,7 +238,7 @@ export class ClassKind<Specifics extends TypirSpecifics> implements Kind, ClassF
     }
 
     createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<Specifics> & RegistrationOptions): ValidationRule<Specifics> {
-        const rule = createNoSuperClassCyclesValidation<Specifics>(options);
+        const rule = new NoSuperClassCyclesValidation<Specifics>(this.services, options);
         if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
         } else {

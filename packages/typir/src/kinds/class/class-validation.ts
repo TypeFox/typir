@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { ValidationProblemAcceptor, ValidationRule, ValidationRuleLifecycle } from '../../services/validation.js';
+import { ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { FunctionType, isFunctionType } from '../function/function-type.js';
 import { ClassType, isClassType } from './class-type.js';
@@ -60,15 +60,19 @@ export class UniqueClassValidation<Specifics extends TypirSpecifics> implements 
         for (const [key, classes] of this.foundDeclarations.entries()) {
             if (classes.length >= 2) {
                 for (const clas of classes) {
-                    accept({
-                        languageNode: clas,
-                        severity: 'error',
-                        message: `Declared classes need to be unique (${key}).`,
-                    });
+                    this.reportNonUniqueClass(clas, key, accept);
                 }
             }
         }
         this.foundDeclarations.clear();
+    }
+
+    protected reportNonUniqueClass(clas: Specifics['LanguageType'], key: string, accept: ValidationProblemAcceptor<Specifics>): void {
+        accept({
+            languageNode: clas,
+            severity: 'error',
+            message: `Declared classes need to be unique (${key}).`,
+        });
     }
 
     isClassDuplicated(clas: ClassType): boolean {
@@ -153,43 +157,57 @@ export class UniqueMethodValidation<Specifics extends TypirSpecifics, T extends 
                     if (this.uniqueClassValidator?.isClassDuplicated(method.classType)) {
                         // ignore duplicated methods inside duplicated classes
                     } else {
-                        accept({
-                            languageNode: method.languageNode,
-                            severity: 'error',
-                            message: `Declared methods need to be unique (${key}).`,
-                        });
+                        this.reportNonUniqueMethod(method, key, accept);
                     }
                 }
             }
         }
         this.foundDeclarations.clear();
     }
+
+    protected reportNonUniqueMethod(method: UniqueMethodValidationEntry<Specifics>, key: string, accept: ValidationProblemAcceptor<Specifics>): void {
+        accept({
+            languageNode: method.languageNode,
+            severity: 'error',
+            message: `Declared methods need to be unique (${key}).`,
+        });
+    }
 }
 
 
 export interface NoSuperClassCyclesValidationOptions<Specifics extends TypirSpecifics> {
+    /** Helps to filter out declarations of classes in the user AS;
+     * this parameter is the reason, why this validation cannot be registered by default by Typir for classes, since this parameter is DSL-specific. */
     isRelevant?: (languageNode: Specifics['LanguageType']) => boolean;
 }
+
 /**
  * Predefined validation to produce errors for all those class declarations, whose class type have cycles in their super-classes.
- * @param isRelevant helps to filter out declarations of classes in the user AST,
- * this parameter is the reason, why this validation cannot be registered by default by Typir for classes, since this parameter is DSL-specific
- * @returns a validation rule which checks for any class declaration/type, whether they have no cycles in their sub-super-class-relationships
  */
-export function createNoSuperClassCyclesValidation<Specifics extends TypirSpecifics>(options: NoSuperClassCyclesValidationOptions<Specifics>): ValidationRule<Specifics> {
-    return (languageNode: Specifics['LanguageType'], accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => {
-        if (options.isRelevant === undefined || options.isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
+export class NoSuperClassCyclesValidation<Specifics extends TypirSpecifics> implements ValidationRuleLifecycle<Specifics> {
+    readonly options: NoSuperClassCyclesValidationOptions<Specifics>;
+
+    constructor(services: TypirServices<Specifics>, options: NoSuperClassCyclesValidationOptions<Specifics>) {
+        this.options = { ...options };
+    }
+
+    validation(languageNode: Specifics['LanguageType'], accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>): void {
+        if (this.options.isRelevant === undefined || this.options.isRelevant(languageNode)) { // improves performance, since type inference need to be done only for relevant language nodes
             const classType = typir.Inference.inferType(languageNode);
             if (isClassType(classType) && classType.isInStateOrLater('Completed')) {
                 // check for cycles in sub-type-relationships
                 if (classType.hasSubSuperClassCycles()) {
-                    accept({
-                        languageNode: languageNode,
-                        severity: 'error',
-                        message: `Cycles in super-sub-class-relationships are not allowed: ${classType.getName()}`,
-                    });
+                    this.reportCycle(languageNode, classType, accept);
                 }
             }
         }
-    };
+    }
+
+    protected reportCycle(languageNode: Specifics['LanguageType'], classType: ClassType, accept: ValidationProblemAcceptor<Specifics>): void {
+        accept({
+            languageNode: languageNode,
+            severity: 'error',
+            message: `Cycles in super-sub-class-relationships are not allowed: ${classType.getName()}`,
+        });
+    }
 }
