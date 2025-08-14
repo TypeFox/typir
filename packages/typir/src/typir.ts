@@ -189,6 +189,13 @@ export type PartialTypirServices<Specifics extends TypirSpecifics> = DeepPartial
  * This type collects all TypeScript types which might be customized by applications or bindings for language workbenches.
  */
 export interface TypirSpecifics {
+    /** This is the TypeScript super-class of all language nodes in the AST */
     LanguageType: unknown;
+
+    /** The set of available language keys:
+     * Each language key maps to the TypeScript type (which extends 'LanguageType') of corresponding language nodes with this language key. */
+    LanguageKeys: Record<string, unknown>;
+
+    /** Properties for validation issues (predefined and custom ones) */
     ValidationMessageProperties: ValidationMessageProperties;
 }

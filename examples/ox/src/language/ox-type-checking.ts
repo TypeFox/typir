@@ -10,7 +10,7 @@ import { LangiumTypeSystemDefinition, TypirLangiumServices, TypirLangiumSpecific
 import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 
 export interface OxSpecifics extends TypirLangiumSpecifics { // concretize some OX-specifics here
-    AstTypes: OxAstType; // all AST types from the generated `ast.ts`
+    LanguageKeys: OxAstType; // all AST types from the generated `ast.ts`
 }
 
 export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {

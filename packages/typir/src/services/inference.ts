@@ -88,11 +88,11 @@ export interface TypeInferenceRuleWithInferringChildren<Specifics extends TypirS
 
 
 export interface TypeInferenceCollectorListener<Specifics extends TypirSpecifics> {
-    onAddedInferenceRule(rule: TypeInferenceRule<Specifics>, options: TypeInferenceRuleOptions): void;
-    onRemovedInferenceRule(rule: TypeInferenceRule<Specifics>, options: TypeInferenceRuleOptions): void;
+    onAddedInferenceRule(rule: TypeInferenceRule<Specifics>, options: TypeInferenceRuleOptions<Specifics>): void;
+    onRemovedInferenceRule(rule: TypeInferenceRule<Specifics>, options: TypeInferenceRuleOptions<Specifics>): void;
 }
 
-export interface TypeInferenceRuleOptions extends RuleOptions {
+export interface TypeInferenceRuleOptions<Specifics extends TypirSpecifics> extends RuleOptions<Specifics> {
     // no additional properties so far
 }
 
@@ -117,7 +117,7 @@ export interface TypeInferenceCollector<Specifics extends TypirSpecifics> {
      * @param rule a new inference rule
      * @param options additional options
      */
-    addInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, options?: Partial<TypeInferenceRuleOptions>): void;
+    addInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, options?: Partial<TypeInferenceRuleOptions<Specifics>>): void;
     /**
      * Deregisters an inference rule.
      * @param rule the rule to remove
@@ -125,14 +125,14 @@ export interface TypeInferenceCollector<Specifics extends TypirSpecifics> {
      * the inference rule might still be registered for the not-specified options.
      * Listeners will be informed only about those removed options which were existing before.
      */
-    removeInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, options?: Partial<TypeInferenceRuleOptions>): void;
+    removeInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, options?: Partial<TypeInferenceRuleOptions<Specifics>>): void;
 
     addListener(listener: TypeInferenceCollectorListener<Specifics>): void;
     removeListener(listener: TypeInferenceCollectorListener<Specifics>): void;
 }
 
 
-export class DefaultTypeInferenceCollector<Specifics extends TypirSpecifics> implements TypeInferenceCollector<Specifics>, RuleCollectorListener<TypeInferenceRule<Specifics>> {
+export class DefaultTypeInferenceCollector<Specifics extends TypirSpecifics> implements TypeInferenceCollector<Specifics>, RuleCollectorListener<Specifics, TypeInferenceRule<Specifics>> {
     protected readonly ruleRegistry: RuleRegistry<TypeInferenceRule<Specifics>, Specifics>;
 
     protected readonly languageNodeInference: LanguageNodeInferenceCaching;
@@ -146,11 +146,11 @@ export class DefaultTypeInferenceCollector<Specifics extends TypirSpecifics> imp
         this.ruleRegistry.addListener(this);
     }
 
-    addInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, givenOptions?: Partial<TypeInferenceRuleOptions>): void {
+    addInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, givenOptions?: Partial<TypeInferenceRuleOptions<Specifics>>): void {
         this.ruleRegistry.addRule(rule as unknown as TypeInferenceRule<Specifics>, givenOptions);
     }
 
-    removeInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, optionsToRemove?: Partial<TypeInferenceRuleOptions>): void {
+    removeInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, optionsToRemove?: Partial<TypeInferenceRuleOptions<Specifics>>): void {
         this.ruleRegistry.removeRule(rule as unknown as TypeInferenceRule<Specifics>, optionsToRemove);
     }
 
@@ -190,7 +190,7 @@ export class DefaultTypeInferenceCollector<Specifics extends TypirSpecifics> imp
         this.checkForError(languageNode);
 
         // determine all keys to check
-        const keysToApply: Array<string|undefined> = [];
+        const keysToApply: Array<(keyof Specifics['LanguageKeys']) | undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
         if (languageKey === undefined) {
             keysToApply.push(undefined);
@@ -319,11 +319,11 @@ export class DefaultTypeInferenceCollector<Specifics extends TypirSpecifics> imp
 
     // This inference collector is notified by the rule registry and forwards these notifications to its own listeners
 
-    onAddedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
+    onAddedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // listeners of the composite will be notified about all added inner rules
         this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, diffOptions));
     }
-    onRemovedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
+    onRemovedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // clear the cache, since its entries might be created using the removed rule
         // possible performance improvement: remove only entries which depend on the removed rule?
         this.cacheClear();
@@ -412,7 +412,7 @@ export class CompositeTypeInferenceRule<Specifics extends TypirSpecifics> extend
         throw new Error('This function will not be called.');
     }
 
-    override onAddedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
+    override onAddedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // an inner rule was added
         super.onAddedRule(rule, diffOptions);
 
@@ -423,7 +423,7 @@ export class CompositeTypeInferenceRule<Specifics extends TypirSpecifics> extend
         });
     }
 
-    override onRemovedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
+    override onRemovedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // an inner rule was removed
         super.onRemovedRule(rule, diffOptions);
 

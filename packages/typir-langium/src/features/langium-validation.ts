@@ -110,7 +110,7 @@ export class DefaultLangiumTypirValidator<Specifics extends TypirLangiumSpecific
  * @param T a type definition mapping language specific type names (keys) to the corresponding types (values)
  */
 export type LangiumValidationRules<Specifics extends TypirLangiumSpecifics> = {
-    [K in keyof Specifics['AstTypes']]?: Specifics['AstTypes'][K] extends Specifics['LanguageType'] ? ValidationRule<Specifics, Specifics['AstTypes'][K]> | Array<ValidationRule<Specifics, Specifics['AstTypes'][K]>> : never
+    [K in keyof Specifics['LanguageKeys']]?: Specifics['LanguageKeys'][K] extends Specifics['LanguageType'] ? ValidationRule<Specifics, Specifics['LanguageKeys'][K]> | Array<ValidationRule<Specifics, Specifics['LanguageKeys'][K]>> : never
 } & {
     AstNode?: ValidationRule<Specifics, Specifics['LanguageType']> | Array<ValidationRule<Specifics, Specifics['LanguageType']>>;
 }

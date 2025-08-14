@@ -116,7 +116,7 @@ export interface FunctionFactoryService<Specifics extends TypirSpecifics> {
     // some predefined valitions:
 
     /** Creates a validation rule which checks, that the function types are unique. */
-    createUniqueFunctionValidation(options: RegistrationOptions): ValidationRule<Specifics>;
+    createUniqueFunctionValidation(options: RegistrationOptions<Specifics>): ValidationRule<Specifics>;
 
     // benefits of this design decision: the returned rule is easier to exchange, users can use the known factory API with auto-completion (no need to remember the names of the validations)
 }
@@ -237,7 +237,7 @@ export class FunctionKind<Specifics extends TypirSpecifics> implements Kind, Fun
         return name !== undefined && name !== NO_PARAMETER_NAME;
     }
 
-    createUniqueFunctionValidation(options: RegistrationOptions): ValidationRule<Specifics> {
+    createUniqueFunctionValidation(options: RegistrationOptions<Specifics>): ValidationRule<Specifics> {
         const rule = new UniqueFunctionValidation(this.services);
         if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
