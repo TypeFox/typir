@@ -7,7 +7,7 @@
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
-import { TypeSelector } from '../../initialization/type-selector.js';
+import { TypeDescriptor } from '../../initialization/type-descriptor.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { ValidationRule } from '../../services/validation.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
@@ -34,16 +34,16 @@ export const ClassKindName = 'ClassKind';
 
 export interface CreateFieldDetails<Specifics extends TypirSpecifics> {
     name: string;
-    type: TypeSelector<Type, Specifics>;
+    type: TypeDescriptor<Type, Specifics>;
 }
 
 export interface CreateMethodDetails<Specifics extends TypirSpecifics> {
-    type: TypeSelector<FunctionType, Specifics>;
+    type: TypeDescriptor<FunctionType, Specifics>;
 }
 
 export interface ClassTypeDetails<Specifics extends TypirSpecifics> extends TypeDetails<Specifics> {
     className: string;
-    superClasses?: TypeSelector<ClassType, Specifics> | Array<TypeSelector<ClassType, Specifics>>;
+    superClasses?: TypeDescriptor<ClassType, Specifics> | Array<TypeDescriptor<ClassType, Specifics>>;
     fields: Array<CreateFieldDetails<Specifics>>;
     methods: Array<CreateMethodDetails<Specifics>>;
 }
@@ -183,8 +183,8 @@ export class ClassKind<Specifics extends TypirSpecifics> implements Kind, ClassF
                 .join(',');
             // super classes (TODO oder strukturell per getAllSuperClassX lösen?!)
             const superClasses: string = toArray(typeDetails.superClasses)
-                .map(selector => {
-                    const type = this.services.infrastructure.TypeResolver.resolve(selector);
+                .map(descriptor => {
+                    const type = this.services.infrastructure.TypeResolver.resolve(descriptor);
                     assertTypirType(type, isClassType);
                     return type.getIdentifier();
                 })

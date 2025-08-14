@@ -9,7 +9,7 @@ import { Type } from '../graph/type-node.js';
 import { TypeInferenceCollectorListener, TypeInferenceRule, TypeInferenceRuleOptions } from '../services/inference.js';
 import { TypirServices, TypirSpecifics } from '../typir.js';
 import { removeFromArray } from '../utils/utils.js';
-import { TypeSelector } from './type-selector.js';
+import { TypeDescriptor } from './type-descriptor.js';
 
 /**
  * A listener for TypeReferences, who will be informed about the resolved/found type of the current TypeReference.
@@ -47,15 +47,15 @@ export class TypeReference<
     T extends Type,
     Specifics extends TypirSpecifics = TypirSpecifics, // optional, otherwise Types would have to specify this generic, but they don't have the Specifics
 > implements TypeGraphListener, TypeInferenceCollectorListener<Specifics> {
-    protected readonly selector: TypeSelector<T, Specifics>;
+    protected readonly descriptor: TypeDescriptor<T, Specifics>;
     protected readonly services: TypirServices<Specifics>;
     protected resolvedType: T | undefined = undefined;
 
     /** These listeners will be informed, whenever the resolved state of this TypeReference switched from undefined to an actual type or from an actual type to undefined. */
     protected readonly listeners: Array<TypeReferenceListener<T, Specifics>> = [];
 
-    constructor(selector: TypeSelector<T, Specifics>, services: TypirServices<Specifics>) {
-        this.selector = selector;
+    constructor(descriptor: TypeDescriptor<T, Specifics>, services: TypirServices<Specifics>) {
+        this.descriptor = descriptor;
         this.services = services;
 
         this.startResolving();
@@ -74,7 +74,7 @@ export class TypeReference<
         this.services.infrastructure.Graph.addListener(this);
         // react on new inference rules
         this.services.Inference.addListener(this);
-        // don't react on state changes of already existing types which are not (yet) completed, since TypeSelectors don't care about the initialization state of types
+        // don't react on state changes of already existing types which are not (yet) completed, since TypeDescriptors don't care about the initialization state of types
 
         // try to resolve now
         this.resolve();
@@ -102,7 +102,7 @@ export class TypeReference<
         }
 
         // try to resolve the type
-        const resolvedType = this.services.infrastructure.TypeResolver.tryToResolve<T>(this.selector);
+        const resolvedType = this.services.infrastructure.TypeResolver.tryToResolve<T>(this.descriptor);
 
         if (resolvedType) {
             // the type is successfully resolved!

@@ -86,7 +86,7 @@ Nevertheless, it is possible to customize the calculation of identifiers (`calcu
 ### Circular dependencies
 
 Circular dependencies of the given types for type properties are handled by Typir.
-See some examples in `custom-cycles.test.ts` and `custom-selectors.test.ts`.
+See some examples in `custom-cycles.test.ts` and `custom-descriptors.test.ts`.
 Therefore `getTypeFinal()` needs to be called after finishing a new custom type, e.g. `const myCustomType = customKind.create({...}).finish().getTypeFinal();`.
 If the custom type is already available, you will get your `CustomType<Properties, TestingSpecifics>`, otherwise `undefined`.
 If the type is not yet available, you can register a callback, which is called, when the type is available:
@@ -111,8 +111,8 @@ See `custom-independent.test.ts` for an example.
 
 ## Limitations
 
-- You cannot use simple string values for `TypeSelector`s (in order to specify custom properties of type `Type`), since they cannot be distinguished from string values for primitive custom properties.
-  Therefore, only the restricted `TypeSelectorForCustomTypes` is supported by custom types instead of the usual `TypeSelector`.
+- You cannot use simple string values for `TypeDescriptor`s (in order to specify custom properties of type `Type`), since they cannot be distinguished from string values for primitive custom properties.
+  Therefore, only the restricted `TypeDescriptorForCustomTypes` is supported by custom types instead of the usual `TypeDescriptor`.
   As a workaround for the identifier `'MyIdentifier'`, use `() => 'MyIdentifier'` instead.
 - Even if your custom type does not depend on other types or if you know, that the types your custom type depends on are already available,
   you need to call `getTypeFinal()`, e.g. `const myCustomType = customKind.create({...}).finish().getTypeFinal()!;`.

@@ -8,7 +8,7 @@
 
 import { Type } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
-import { TypeSelector } from '../../initialization/type-selector.js';
+import { TypeDescriptor } from '../../initialization/type-descriptor.js';
 import { TypirSpecifics } from '../../typir.js';
 
 /* Base properties */
@@ -29,17 +29,17 @@ export type CustomTypePropertyTypes =
 /* Corresponding properties for specification during the initialization */
 
 /**
- * TypeSelectors for custom types don't support strings, since they shall by used as primitive properties (and uncertainty needs to be prevented!).
+ * TypeDescriptors for custom types don't support strings, since they shall by used as primitive properties (and uncertainty needs to be prevented!).
  * As a workaround, encode the string value as a function, e.g. "() => 'MyIndentifer'".
  */
-export type TypeSelectorForCustomTypes<T extends Type, Specifics extends TypirSpecifics> = Exclude<TypeSelector<T, Specifics>, string>;
+export type TypeDescriptorForCustomTypes<T extends Type, Specifics extends TypirSpecifics> = Exclude<TypeDescriptor<T, Specifics>, string>;
 
 export type CustomTypePropertyInitialization<T extends CustomTypePropertyTypes, Specifics extends TypirSpecifics> =
-    /* replace Type by a TypeSelector for it ...
-     * (Note this special case: If the LanguageType is set to "unknown", then the TypeSelector includes "unknown",
+    /* replace Type by a TypeDescriptor for it ...
+     * (Note this special case: If the LanguageType is set to "unknown", then the TypeDescriptor includes "unknown",
      * which makes the TypeScript type-checking "useless" here, i.e. the TypeScript compiler allows you to use any value here (e.g. 'true') which does not work in general!
      * Therefore "unknown" should not be used for LanguageType if possible.) */
-    T extends Type ? TypeSelectorForCustomTypes<T, Specifics> :
+    T extends Type ? TypeDescriptorForCustomTypes<T, Specifics> :
     // unchanged for the atomic cases:
     T extends (string | number | boolean | bigint | symbol) ? T :
     // ... in recursive way for the composites:

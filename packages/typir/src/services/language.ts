@@ -68,7 +68,7 @@ export class DefaultLanguageService<Specifics extends TypirSpecifics> implements
     }
 
     isLanguageNode(node: unknown): node is Specifics['LanguageType'] {
-        // explicitly check for some common TypeSelectors
+        // explicitly check for some common TypeDescriptors
         if (typeof node === 'function') {
             return false;
         }

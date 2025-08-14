@@ -24,7 +24,7 @@ export type TypeInitializerListener<T extends Type> = (type: T) => void;
  *
  * Design decision: While this class does not provide so many default implementations,
  * a common super class (or interface) of all type initializers is useful nevertheless,
- * since they all can be used as TypeSelector in an easy way.
+ * since they all can be used as TypeDescriptor in an easy way.
  */
 export abstract class TypeInitializer<T extends Type, Specifics extends TypirSpecifics> {
     protected readonly services: TypirServices<Specifics>;

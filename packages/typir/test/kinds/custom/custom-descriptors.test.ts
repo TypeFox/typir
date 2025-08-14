@@ -10,14 +10,14 @@ import { CustomType } from '../../../src/kinds/custom/custom-type.js';
 import { createTypirServicesForTesting, TestExpressionNode, TestingSpecifics, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 
-// These test cases test that all possible TypeSelectors work for custom types.
+// These test cases test that all possible TypeDescriptors work for custom types.
 
 export type MyCustomProperties = {
     dependsOnType?: CustomType<MyCustomProperties, TestingSpecifics>;
     myProperty: number;
 };
 
-describe('Test all possible TypeSelectors with custom types', () => {
+describe('Test all possible TypeDescriptors with custom types', () => {
     let typir: TypirServices<TestingSpecifics>;
     let customKind: CustomKind<MyCustomProperties, TestingSpecifics>;
 

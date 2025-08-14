@@ -57,6 +57,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 - Moved some utilities for testing, requiring to update their imports:
   - Moved utilities from `test-utils.ts` to `predefined-language-nodes.ts`
   - Moved `test-utils.ts` into the folder `packages/typir/src/test/`
+- The `TypeSelector` is renamed to `TypeDescriptor` (and `BasicTypeDescriptor`, `TypeDescriptorForCustomTypes` are renamed accordingly).
 
 ### Fixed bugs
 

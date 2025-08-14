@@ -12,7 +12,7 @@ import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy, ValueConflict } from '../../utils/utils-type-comparison.js';
 import { assertTrue } from '../../utils/utils.js';
-import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage, TypeSelectorForCustomTypes } from './custom-definitions.js';
+import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage, TypeDescriptorForCustomTypes } from './custom-definitions.js';
 import { CustomKind, CustomTypeDetails } from './custom-kind.js';
 import { TypirSpecifics } from '../../typir.js';
 
@@ -54,7 +54,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
     }
 
     protected replaceSingleProperty<T extends CustomTypePropertyTypes>(value: CustomTypePropertyInitialization<T, Specifics>, collectedReferences: Array<TypeReference<Type, Specifics>>): CustomTypePropertyStorage<T, Specifics> {
-        // TypeSelector --> TypeReference
+        // TypeDescriptor --> TypeReference
         //      function
         //      Type
         //      (string)                            forbidden/not supported, since it is not unique, treat it as content/primitive property!
@@ -74,9 +74,9 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         //      bigint
         //      symbol
 
-        // all possible TypeSelectors
+        // all possible TypeDescriptors
         if (typeof value === 'function') {
-            const result = new TypeReference<Type, Specifics>(value as TypeSelectorForCustomTypes<Type, Specifics>, this.kind.services);
+            const result = new TypeReference<Type, Specifics>(value as TypeDescriptorForCustomTypes<Type, Specifics>, this.kind.services);
             collectedReferences.push(result);
             return result as unknown as CustomTypePropertyStorage<T, Specifics>;
         } else if (value instanceof Type

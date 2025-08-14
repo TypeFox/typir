@@ -6,7 +6,7 @@
 
 import { DefaultGraphAlgorithms, GraphAlgorithms } from './graph/graph-algorithms.js';
 import { TypeGraph } from './graph/type-graph.js';
-import { DefaultTypeResolver, TypeResolvingService } from './initialization/type-selector.js';
+import { DefaultTypeResolver, TypeResolvingService } from './initialization/type-descriptor.js';
 import { BottomFactoryService, BottomKind, BottomKindName } from './kinds/bottom/bottom-kind.js';
 import { ClassFactoryService, ClassKind, ClassKindName } from './kinds/class/class-kind.js';
 import { FunctionFactoryService, FunctionKind, FunctionKindName } from './kinds/function/function-kind.js';

@@ -7,7 +7,7 @@
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
-import { TypeSelector } from '../../initialization/type-selector.js';
+import { TypeDescriptor } from '../../initialization/type-descriptor.js';
 import { ValidationRule } from '../../services/validation.js';
 import { TypirSpecifics, TypirServices } from '../../typir.js';
 import { InferCurrentTypeRule, NameTypePair, RegistrationOptions } from '../../utils/utils-definitions.js';
@@ -28,7 +28,7 @@ export interface FunctionKindOptions<Specifics extends TypirSpecifics> extends K
     identifierPrefix: string,
     /** If a function has no output type (e.g. "void" functions), this type is returned during the type inference of calls to these functions.
      * The default value "THROW_ERROR" indicates to throw an error, i.e. type inference for calls of such functions are not allowed. */
-    typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR' | TypeSelector<Type, Specifics>;
+    typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR' | TypeDescriptor<Type, Specifics>;
     subtypeParameterChecking: TypeCheckStrategy;
 }
 
@@ -37,7 +37,7 @@ export const FunctionKindName = 'FunctionKind';
 
 export interface CreateParameterDetails<Specifics extends TypirSpecifics> {
     name: string;
-    type: TypeSelector<Type, Specifics>;
+    type: TypeDescriptor<Type, Specifics>;
 }
 
 export interface FunctionTypeDetails<Specifics extends TypirSpecifics> extends TypeDetails<Specifics> {

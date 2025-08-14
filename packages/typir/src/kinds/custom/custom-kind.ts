@@ -12,7 +12,7 @@ import { ConversionMode } from '../../services/conversion.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
 import { Kind } from '../kind.js';
-import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyTypes, CustomTypeStorage, TypeSelectorForCustomTypes } from './custom-definitions.js';
+import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyTypes, CustomTypeStorage, TypeDescriptorForCustomTypes } from './custom-definitions.js';
 import { CustomTypeInitializer } from './custom-initializer.js';
 import { CustomType } from './custom-type.js';
 
@@ -52,7 +52,7 @@ export interface CustomKindOptions<Properties extends CustomTypeProperties, Spec
 }
 
 export interface CustomTypeDetails<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics> extends TypeDetails<Specifics> {
-    /** Values for all custom properties of the custom type. Note that TypeSelector<A> are supported to initialize type properties of Type A. */
+    /** Values for all custom properties of the custom type. Note that TypeDescriptor<A> are supported to initialize type properties of Type A. */
     properties: CustomTypeInitialization<Properties, Specifics>;
     /** If specified, overrides the kind-specific name for custom types. */
     typeName?: string;
@@ -116,9 +116,9 @@ export class CustomKind<Properties extends CustomTypeProperties, Specifics exten
             .join(',');
     }
     protected calculateIdentifierSingle<T extends CustomTypePropertyTypes>(value: CustomTypePropertyInitialization<T, Specifics>): string {
-        // all possible TypeSelectors
+        // all possible TypeDescriptors
         if (typeof value === 'function') {
-            return this.services.infrastructure.TypeResolver.resolve(value as TypeSelectorForCustomTypes<Type, Specifics>).getIdentifier();
+            return this.services.infrastructure.TypeResolver.resolve(value as TypeDescriptorForCustomTypes<Type, Specifics>).getIdentifier();
         } else if (value instanceof Type
             || value instanceof TypeInitializer
             || value instanceof TypeReference
