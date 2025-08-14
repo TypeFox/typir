@@ -14,27 +14,27 @@ import { TypirLangiumSpecifics } from '../typir-langium.js';
  */
 export class LangiumLanguageService<Specifics extends TypirLangiumSpecifics> extends DefaultLanguageService<Specifics> implements LanguageService<Specifics> {
     protected readonly reflection: AbstractAstReflection;
-    protected superKeys: Map<string, string[]> | undefined = undefined; // key => all its super-keys
+    protected superKeys: Map<keyof Specifics['LanguageKeys'], Array<keyof Specifics['LanguageKeys']>> | undefined = undefined; // key => all its super-keys
 
     constructor(reflection: AbstractAstReflection) {
         super();
         this.reflection = reflection;
     }
 
-    override getLanguageNodeKey(languageNode: Specifics['LanguageType']): string {
+    override getLanguageNodeKey(languageNode: Specifics['LanguageType']): keyof Specifics['LanguageKeys'] {
         return languageNode.$type;
     }
 
-    override getAllSubKeys(languageKey: string): string[] {
-        const result = this.reflection.getAllSubTypes(languageKey);
+    override getAllSubKeys(languageKey: keyof Specifics['LanguageKeys']): Array<keyof Specifics['LanguageKeys']> {
+        const result = this.reflection.getAllSubTypes(languageKey as string);
         removeFromArray(languageKey, result); // Langium adds the given type in the list of all sub-types, therefore it must be removed here
         return result;
     }
 
-    override getAllSuperKeys(languageKey: string): string[] {
+    override getAllSuperKeys(languageKey: keyof Specifics['LanguageKeys']): Array<keyof Specifics['LanguageKeys']> {
         if (this.superKeys === undefined) {
             // collect all super types (Sets ensure uniqueness of super-keys)
-            const map: Map<string, Set<string>> = new Map();
+            const map: Map<keyof Specifics['LanguageKeys'], Set<keyof Specifics['LanguageKeys']>> = new Map();
             for (const superKey of this.reflection.getAllTypes()) {
                 for (const subKey of this.getAllSubKeys(superKey)) {
                     let entries = map.get(subKey);

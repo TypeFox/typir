@@ -9,14 +9,14 @@ import { Type } from '../graph/type-node.js';
 import { TypirSpecifics, TypirServices } from '../typir.js';
 import { removeFromArray, toArray, toArrayWithValue } from './utils.js';
 
-export interface RuleOptions {
+export interface RuleOptions<Specifics extends TypirSpecifics> {
     /**
      * If a rule is associated with a language key, the rule will be executed only for language nodes, which have this language key,
      * in order to improve the runtime performance.
      * In case of multiple language keys, the rule will be applied to all language nodes having ones of these language keys.
      * Rules without a language key ('undefined') are executed for all language nodes.
      */
-    languageKey: string | string[] | undefined;
+    languageKey: (keyof Specifics['LanguageKeys']) | Array<keyof Specifics['LanguageKeys']> | undefined;
 
     /**
      * An optional type, if the new rule is dedicated for exactly this type.
@@ -28,15 +28,15 @@ export interface RuleOptions {
 }
 
 // corresponding information in a slightly different structure, which is easier to handle internally
-export interface InternalRuleOptions {
+export interface InternalRuleOptions<Specifics extends TypirSpecifics> {
     languageKeyUndefined: boolean;
-    languageKeys: string[];
+    languageKeys: Array<keyof Specifics['LanguageKeys']>;
     boundToTypes: Type[];
 }
 
-export interface RuleCollectorListener<RuleType> {
-    onAddedRule(rule: RuleType, diffOptions: RuleOptions): void;
-    onRemovedRule(rule: RuleType, diffOptions: RuleOptions): void;
+export interface RuleCollectorListener<Specifics extends TypirSpecifics, RuleType> {
+    onAddedRule(rule: RuleType, diffOptions: RuleOptions<Specifics>): void;
+    onRemovedRule(rule: RuleType, diffOptions: RuleOptions<Specifics>): void;
 }
 
 export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements TypeGraphListener {
@@ -44,7 +44,7 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
      * language node type --> rules
      * Improves the look-up of related rules, when doing type for a concrete language node.
      * All rules are registered at least once in this map, since rules without dedicated language key are registered to 'undefined'. */
-    protected readonly languageTypeToRules: Map<string|undefined, RuleType[]> = new Map();
+    protected readonly languageTypeToRules: Map<(keyof Specifics['LanguageKeys'])|undefined, RuleType[]> = new Map();
     /**
      * type identifier --> -> rules
      * Improves the look-up for rules which are bound to types, when these types are removed.
@@ -53,19 +53,19 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
     /**
      * rule --> its collected options
      * Contains the current set of all options for an rule. */
-    protected readonly ruleToOptions: Map<RuleType, InternalRuleOptions> = new Map();
+    protected readonly ruleToOptions: Map<RuleType, InternalRuleOptions<Specifics>> = new Map();
 
     /** Collects all unique rules, lazily managed. */
     protected readonly uniqueRules: Set<RuleType> = new Set();
 
-    protected readonly listeners: Array<RuleCollectorListener<RuleType>> = [];
+    protected readonly listeners: Array<RuleCollectorListener<Specifics, RuleType>> = [];
 
 
     constructor(services: TypirServices<Specifics>) {
         services.infrastructure.Graph.addListener(this);
     }
 
-    getRulesByLanguageKey(languageKey: string | undefined): RuleType[] {
+    getRulesByLanguageKey(languageKey: (keyof Specifics['LanguageKeys']) | undefined): RuleType[] {
         const store = this.languageTypeToRules.get(languageKey);
         if (store === undefined) {
             return [];
@@ -90,7 +90,7 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
         return this.getUniqueRules().size;
     }
 
-    protected getRuleOptions(options?: Partial<RuleOptions>): RuleOptions {
+    protected getRuleOptions(options?: Partial<RuleOptions<Specifics>>): RuleOptions<Specifics> {
         return {
             // default values ...
             languageKey: undefined,
@@ -100,13 +100,13 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
         };
     }
 
-    addRule(rule: RuleType, givenOptions?: Partial<RuleOptions>): void {
+    addRule(rule: RuleType, givenOptions?: Partial<RuleOptions<Specifics>>): void {
         const newOptions = this.getRuleOptions(givenOptions);
         const languageKeyUndefined: boolean = newOptions.languageKey === undefined;
-        const languageKeys: string[] = toArray(newOptions.languageKey, { newArray: true });
+        const languageKeys: Array<keyof Specifics['LanguageKeys']> = toArray(newOptions.languageKey, { newArray: true });
 
         const existingOptions = this.ruleToOptions.get(rule);
-        const diffOptions: RuleOptions = {
+        const diffOptions: RuleOptions<Specifics> = {
             ...newOptions,
             languageKey: [], // empty for now, added keys will be added later
             boundToType: [],
@@ -217,16 +217,16 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
         }
     }
 
-    removeRule(rule: RuleType, optionsToRemove?: Partial<RuleOptions>): void {
+    removeRule(rule: RuleType, optionsToRemove?: Partial<RuleOptions<Specifics>>): void {
         const existingOptions = this.ruleToOptions.get(rule);
         if (existingOptions === undefined) { // these options need to be updated (or completely removed at the end)
             return; // the rule is unknown here => nothing to do
         }
 
         const languageKeyUndefined: boolean = optionsToRemove ? (optionsToRemove.languageKey === undefined) : true;
-        const languageKeys: string[] = toArray(optionsToRemove?.languageKey, { newArray: true });
+        const languageKeys: Array<keyof Specifics['LanguageKeys']> = toArray(optionsToRemove?.languageKey, { newArray: true });
 
-        const diffOptions: RuleOptions = {
+        const diffOptions: RuleOptions<Specifics> = {
             // ... maybe more options in the future ...
             languageKey: [], // empty/nothing
             boundToType: [], // empty/nothing
@@ -298,7 +298,7 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
         }
     }
 
-    protected deregisterRuleForLanguageKey(rule: RuleType, languageKey: string | undefined): boolean {
+    protected deregisterRuleForLanguageKey(rule: RuleType, languageKey: (keyof Specifics['LanguageKeys']) | undefined): boolean {
         const rules = this.languageTypeToRules.get(languageKey);
         if (rules) {
             const result = removeFromArray(rule, rules);
@@ -350,11 +350,11 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
         }
     }
 
-    addListener(listener: RuleCollectorListener<RuleType>): void {
+    addListener(listener: RuleCollectorListener<Specifics, RuleType>): void {
         this.listeners.push(listener);
     }
 
-    removeListener(listener: RuleCollectorListener<RuleType>): void {
+    removeListener(listener: RuleCollectorListener<Specifics, RuleType>): void {
         removeFromArray(listener, this.listeners);
     }
 }

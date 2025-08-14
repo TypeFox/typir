@@ -148,11 +148,11 @@ export class TypeReference<
         }
     }
 
-    onAddedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions): void {
+    onAddedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions<Specifics>): void {
         // after adding a new inference rule, try to resolve the type
         this.resolve(); // possible performance optimization: use only the new inference rule to resolve the type
     }
-    onRemovedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions): void {
+    onRemovedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions<Specifics>): void {
         // empty, since removed inference rules don't help to resolve a type
     }
 }

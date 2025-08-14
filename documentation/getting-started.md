@@ -99,7 +99,7 @@ After creating the Langium services (which contain the Typir serivces now) and s
 
 ```typescript
 export interface MyDSLSpecifics extends TypirLangiumSpecifics {
-    AstTypes: MyDSLAstType; // all AST types from the generated `ast.ts`
+    LanguageKeys: MyDSLAstType; // all AST types from the generated `ast.ts`
     // ... more could be customized here ...
 }
 ```

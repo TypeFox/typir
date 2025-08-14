@@ -8,7 +8,7 @@ import { DefaultTypeInferenceCollector, TypeInferenceCollector, TypeInferenceRul
 import { TypirLangiumSpecifics } from '../typir-langium.js';
 
 export type LangiumTypeInferenceRules<Specifics extends TypirLangiumSpecifics> = {
-    [K in keyof Specifics['AstTypes']]?: Specifics['AstTypes'][K] extends Specifics['LanguageType'] ? TypeInferenceRule<Specifics, Specifics['AstTypes'][K]> | Array<TypeInferenceRule<Specifics, Specifics['AstTypes'][K]>> : never
+    [K in keyof Specifics['LanguageKeys']]?: Specifics['LanguageKeys'][K] extends Specifics['LanguageType'] ? TypeInferenceRule<Specifics, Specifics['LanguageKeys'][K]> | Array<TypeInferenceRule<Specifics, Specifics['LanguageKeys'][K]>> : never
 } & {
     AstNode?: TypeInferenceRule<Specifics, Specifics['LanguageType']> | Array<TypeInferenceRule<Specifics, Specifics['LanguageType']>>;
 }

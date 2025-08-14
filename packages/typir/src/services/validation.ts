@@ -205,11 +205,11 @@ export class DefaultValidationConstraints<Specifics extends TypirSpecifics> impl
 
 
 export interface ValidationCollectorListener<Specifics extends TypirSpecifics> {
-    onAddedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions): void;
-    onRemovedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions): void;
+    onAddedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions<Specifics>): void;
+    onRemovedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions<Specifics>): void;
 }
 
-export interface ValidationRuleOptions extends RuleOptions {
+export interface ValidationRuleOptions<Specifics extends TypirSpecifics> extends RuleOptions<Specifics> {
     // no additional properties so far
 }
 
@@ -223,19 +223,19 @@ export interface ValidationCollector<Specifics extends TypirSpecifics> {
      * @param rule a new validation rule
      * @param options some more options to control the handling of the added validation rule
      */
-    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions>): void;
+    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions<Specifics>>): void;
     /**
      * Removes a validation rule.
      * @param rule the validation rule to remove
      * @param options the same options as given for the registration of the validation rule must be given for the removal!
      */
-    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions>): void;
+    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions<Specifics>>): void;
 
     addListener(listener: ValidationCollectorListener<Specifics>): void;
     removeListener(listener: ValidationCollectorListener<Specifics>): void;
 }
 
-export class DefaultValidationCollector<Specifics extends TypirSpecifics> implements ValidationCollector<Specifics>, RuleCollectorListener<ValidationRule<Specifics>> {
+export class DefaultValidationCollector<Specifics extends TypirSpecifics> implements ValidationCollector<Specifics>, RuleCollectorListener<Specifics, ValidationRule<Specifics>> {
     protected readonly services: TypirServices<Specifics>;
     protected readonly listeners: Array<ValidationCollectorListener<Specifics>> = [];
 
@@ -272,7 +272,7 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
 
     validate(languageNode: Specifics['LanguageType']): Array<ValidationProblem<Specifics>> {
         // determine all keys to check
-        const keysToApply: Array<string|undefined> = [];
+        const keysToApply: Array<(keyof Specifics['LanguageKeys']) | undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
         if (languageKey === undefined) {
             keysToApply.push(undefined);
@@ -319,7 +319,7 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
         return problems;
     }
 
-    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
+    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions<Specifics>>): void {
         if (typeof rule === 'function') {
             this.ruleRegistryFunctional.addRule(rule as ValidationRuleFunctional<Specifics>, givenOptions);
         } else {
@@ -327,7 +327,7 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
         }
     }
 
-    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
+    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions<Specifics>>): void {
         if (typeof rule === 'function') {
             this.ruleRegistryFunctional.removeRule(rule as ValidationRuleFunctional<Specifics>, givenOptions);
         } else {
@@ -342,11 +342,11 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
         removeFromArray(listener, this.listeners);
     }
 
-    onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
+    onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // listeners of the composite will be notified about all added inner rules
         this.listeners.forEach(listener => listener.onAddedValidationRule(rule, diffOptions));
     }
-    onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
+    onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // listeners of the composite will be notified about all removed inner rules
         this.listeners.forEach(listener => listener.onRemovedValidationRule(rule, diffOptions));
     }
@@ -374,7 +374,7 @@ export class CompositeValidationRule<Specifics extends TypirSpecifics> extends D
         this.validateAfter(languageRoot).forEach(v => accept(v));
     }
 
-    override onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
+    override onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // an inner rule was added
         super.onAddedRule(rule, diffOptions);
 
@@ -385,7 +385,7 @@ export class CompositeValidationRule<Specifics extends TypirSpecifics> extends D
         });
     }
 
-    override onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
+    override onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // an inner rule was removed
         super.onRemovedRule(rule, diffOptions);
 

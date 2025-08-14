@@ -73,11 +73,11 @@ export interface ClassFactoryService<Specifics extends TypirSpecifics> {
 
     // some predefined valitions:
 
-    createUniqueClassValidation(options: RegistrationOptions): UniqueClassValidation<Specifics>;
+    createUniqueClassValidation(options: RegistrationOptions<Specifics>): UniqueClassValidation<Specifics>;
 
-    createUniqueMethodValidation<T extends Specifics['LanguageType']>(options: UniqueMethodValidationOptions<Specifics, T> & RegistrationOptions): ValidationRule<Specifics>;
+    createUniqueMethodValidation<T extends Specifics['LanguageType']>(options: UniqueMethodValidationOptions<Specifics, T> & RegistrationOptions<Specifics>): ValidationRule<Specifics>;
 
-    createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<Specifics> & RegistrationOptions): ValidationRule<Specifics>;
+    createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<Specifics> & RegistrationOptions<Specifics>): ValidationRule<Specifics>;
 
     // benefits of this design decision: the returned rule is easier to exchange, users can use the known factory API with auto-completion (no need to remember the names of the validations)
 }
@@ -217,7 +217,7 @@ export class ClassKind<Specifics extends TypirSpecifics> implements Kind, ClassF
         return this.services.infrastructure.Kinds.getOrCreateKind(TopClassKindName, services => new TopClassKind<Specifics>(services));
     }
 
-    createUniqueClassValidation(options: RegistrationOptions): UniqueClassValidation<Specifics> {
+    createUniqueClassValidation(options: RegistrationOptions<Specifics>): UniqueClassValidation<Specifics> {
         const rule = new UniqueClassValidation<Specifics>(this.services);
         if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
@@ -227,7 +227,7 @@ export class ClassKind<Specifics extends TypirSpecifics> implements Kind, ClassF
         return rule;
     }
 
-    createUniqueMethodValidation<T extends Specifics['LanguageType']>(options: UniqueMethodValidationOptions<Specifics, T> & RegistrationOptions): ValidationRule<Specifics> {
+    createUniqueMethodValidation<T extends Specifics['LanguageType']>(options: UniqueMethodValidationOptions<Specifics, T> & RegistrationOptions<Specifics>): ValidationRule<Specifics> {
         const rule = new UniqueMethodValidation<Specifics, T>(this.services, options);
         if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
@@ -237,7 +237,7 @@ export class ClassKind<Specifics extends TypirSpecifics> implements Kind, ClassF
         return rule;
     }
 
-    createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<Specifics> & RegistrationOptions): ValidationRule<Specifics> {
+    createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<Specifics> & RegistrationOptions<Specifics>): ValidationRule<Specifics> {
         const rule = new NoSuperClassCyclesValidation<Specifics>(this.services, options);
         if (options.registration === 'MYSELF') {
             // do nothing, the user is responsible to register the rule
