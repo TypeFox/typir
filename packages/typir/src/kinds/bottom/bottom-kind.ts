@@ -6,7 +6,7 @@
 
 import { TypeDetails } from '../../graph/type-node.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
-import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
+import { InferCurrentTypeRule, LanguageKeys, LanguageTypeOfLanguageKey, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
 import { Kind, KindOptions } from '../kind.js';
 import { BottomType } from './bottom-type.js';
@@ -30,7 +30,10 @@ export interface BottomFactoryService<Specifics extends TypirSpecifics> {
 }
 
 export interface BottomConfigurationChain<Specifics extends TypirSpecifics> {
-    inferenceRule<T extends Specifics>(rule: InferCurrentTypeRule<BottomType, Specifics, T>): BottomConfigurationChain<Specifics>;
+    inferenceRule<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<BottomType, Specifics, LanguageKey, LanguageType>): BottomConfigurationChain<Specifics>;
     finish(): BottomType;
 }
 
@@ -91,7 +94,10 @@ class BottomConfigurationChainImpl<Specifics extends TypirSpecifics> implements 
         };
     }
 
-    inferenceRule<T extends Specifics>(rule: InferCurrentTypeRule<BottomType, Specifics, T>): BottomConfigurationChain<Specifics> {
+    inferenceRule<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<BottomType, Specifics, LanguageKey, LanguageType>): BottomConfigurationChain<Specifics> {
         this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<BottomType, Specifics>);
         return this;
     }

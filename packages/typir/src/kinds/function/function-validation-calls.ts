@@ -18,9 +18,9 @@ import { FunctionType } from './function-type.js';
 
 /**
  * This validation uses the inference rules for all available function calls to check, whether ...
- * - the given arguments for a function call fit to one of the defined function signature
+ * - the given arguments for a function call fit to one of the defined function signatures
  * - and validates this call according to the specific validation rules for this function call.
- * There is only one instance of this class for each function kind/manager.
+ * There is only one instance of this class for each function kind/factory/manager.
  */
 export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> implements ValidationRuleLifecycle<Specifics>, RuleCollectorListener<Specifics, SingleFunctionDetails<Specifics>> {
     protected readonly services: TypirServices<Specifics>;
@@ -31,7 +31,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         this.functions = functions;
     }
 
-    onAddedRule(_rule: SingleFunctionDetails<Specifics, Specifics['LanguageType']>, diffOptions: RuleOptions<Specifics>): void {
+    onAddedRule(_rule: SingleFunctionDetails<Specifics, undefined, Specifics['LanguageType']>, diffOptions: RuleOptions<Specifics>): void {
         // this rule needs to be registered also for all the language keys of the new inner function call rule
         this.services.validation.Collector.addValidationRule(this, {
             ...diffOptions,
@@ -39,7 +39,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         });
     }
 
-    onRemovedRule(_rule: SingleFunctionDetails<Specifics, Specifics['LanguageType']>, diffOptions: RuleOptions<Specifics>): void {
+    onRemovedRule(_rule: SingleFunctionDetails<Specifics, undefined, Specifics['LanguageType']>, diffOptions: RuleOptions<Specifics>): void {
         // remove this "composite" rule for all language keys for which no function call rules are registered anymore
         if (diffOptions.languageKey === undefined) {
             if (this.noFunctionCallRulesForThisLanguageKey(undefined)) {
@@ -176,7 +176,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         }
     }
 
-    protected validateArgumentsOfFunctionCalls(rule: InferFunctionCall<Specifics, Specifics['LanguageType']>, languageNode: Specifics['LanguageType']): boolean {
+    protected validateArgumentsOfFunctionCalls(rule: InferFunctionCall<Specifics, undefined, Specifics['LanguageType']>, languageNode: Specifics['LanguageType']): boolean {
         if (rule.validateArgumentsOfFunctionCalls === undefined) {
             return false; // the default value
         } else if (typeof rule.validateArgumentsOfFunctionCalls === 'boolean') {

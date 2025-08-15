@@ -11,7 +11,7 @@ import { TypeDescriptor } from '../../initialization/type-descriptor.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { ValidationRule } from '../../services/validation.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
-import { InferCurrentTypeRule, RegistrationOptions } from '../../utils/utils-definitions.js';
+import { InferCurrentTypeRule, LanguageKeys, LanguageTypeOfLanguageKey, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertTypirType, assertUnreachable, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
@@ -59,12 +59,20 @@ export interface CreateClassTypeDetails<Specifics extends TypirSpecifics> extend
  * Depending on whether the class is structurally or nominally typed,
  * different values might be specified, e.g. 'inputValuesForFields' could be empty for nominal classes.
  */
-export interface InferClassLiteral<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> extends InferCurrentTypeRule<ClassType, Specifics, T> {
-    inputValuesForFields: (languageNode: T) => Map<string, Specifics>; // simple field name (including inherited fields) => value for this field!
+export interface InferClassLiteral<
+    Specifics extends TypirSpecifics,
+    LanguageKey extends LanguageKeys<Specifics> = undefined,
+    LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+> extends InferCurrentTypeRule<ClassType, Specifics, LanguageKey, LanguageType> {
+    inputValuesForFields: (languageNode: LanguageType) => Map<string, Specifics>; // simple field name (including inherited fields) => value for this field!
 }
 
-export interface InferClassFieldAccess<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> extends InferCurrentTypeRule<ClassType, Specifics, T> {
-    field: (languageNode: T) => string | Specifics | InferenceRuleNotApplicable; // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
+export interface InferClassFieldAccess<
+    Specifics extends TypirSpecifics,
+    LanguageKey extends LanguageKeys<Specifics> = undefined,
+    LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+> extends InferCurrentTypeRule<ClassType, Specifics, LanguageKey, LanguageType> {
+    field: (languageNode: LanguageType) => string | Specifics | InferenceRuleNotApplicable; // name of the field | language node to infer the type of the field (e.g. the type) | rule not applicable
 }
 
 export interface ClassFactoryService<Specifics extends TypirSpecifics> {
@@ -83,10 +91,20 @@ export interface ClassFactoryService<Specifics extends TypirSpecifics> {
 }
 
 export interface ClassConfigurationChain<Specifics extends TypirSpecifics> {
-    inferenceRuleForClassDeclaration<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<ClassType, Specifics, T>): ClassConfigurationChain<Specifics>;
-    inferenceRuleForClassLiterals<T extends Specifics['LanguageType']>(rule: InferClassLiteral<Specifics, T>): ClassConfigurationChain<Specifics>;
+    inferenceRuleForClassDeclaration<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<ClassType, Specifics, LanguageKey, LanguageType>): ClassConfigurationChain<Specifics>;
 
-    inferenceRuleForFieldAccess<T extends Specifics['LanguageType']>(rule: InferClassFieldAccess<Specifics, T>): ClassConfigurationChain<Specifics>;
+    inferenceRuleForClassLiterals<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferClassLiteral<Specifics, LanguageKey, LanguageType>): ClassConfigurationChain<Specifics>;
+
+    inferenceRuleForFieldAccess<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferClassFieldAccess<Specifics, LanguageKey, LanguageType>): ClassConfigurationChain<Specifics>;
 
     finish(): TypeInitializer<ClassType, Specifics>;
 }
@@ -269,17 +287,26 @@ class ClassConfigurationChainImpl<Specifics extends TypirSpecifics> implements C
         };
     }
 
-    inferenceRuleForClassDeclaration<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<ClassType, Specifics, T>): ClassConfigurationChain<Specifics> {
+    inferenceRuleForClassDeclaration<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<ClassType, Specifics, LanguageKey, LanguageType>): ClassConfigurationChain<Specifics> {
         this.typeDetails.inferenceRulesForClassDeclaration.push(rule as unknown as InferCurrentTypeRule<ClassType, Specifics>);
         return this;
     }
 
-    inferenceRuleForClassLiterals<T extends Specifics['LanguageType']>(rule: InferClassLiteral<Specifics, T>): ClassConfigurationChain<Specifics> {
+    inferenceRuleForClassLiterals<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferClassLiteral<Specifics, LanguageKey, LanguageType>): ClassConfigurationChain<Specifics> {
         this.typeDetails.inferenceRulesForClassLiterals.push(rule as unknown as InferClassLiteral<Specifics>);
         return this;
     }
 
-    inferenceRuleForFieldAccess<T extends Specifics['LanguageType']>(rule: InferClassFieldAccess<Specifics, T>): ClassConfigurationChain<Specifics> {
+    inferenceRuleForFieldAccess<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferClassFieldAccess<Specifics, LanguageKey, LanguageType>): ClassConfigurationChain<Specifics> {
         this.typeDetails.inferenceRulesForFieldAccess.push(rule as unknown as InferClassFieldAccess<Specifics>);
         return this;
     }
