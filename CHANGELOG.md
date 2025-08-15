@@ -5,7 +5,7 @@ Note that the versions "0.x.0" probably will include breaking changes.
 For each minor and major version, there is a corresponding [milestone on GitHub](https://github.com/TypeFox/typir/milestones).
 
 
-## v0.3.0 (2025-??-??)
+## v0.3.0 (2025-08-15)
 
 [Linked issues and PRs for v0.3.0](https://github.com/TypeFox/typir/milestone/4)
 
@@ -28,7 +28,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
   - Internal testing in Typir (core): `createTypirServicesForTestingWithAdditionalServices<AdditionalServices>(Module<AdditionalServices>, ...)`
 - The `$name`s of kinds/factories are configurable now (#78).
 - Typir-Langium: The Langium services are stored in the `TypirLangiumAddedServices` now as `services.langium.LangiumServices` in order to make them available for all Typir services (#78).
-- The `<LanguageType>` generic is replaced by `<Specifics extends TypirSpecifics>` (in Typir-Langium: `<Specifics extends TypirLangiumSpecifics>`) everywhere in order to support multiple, customizable TypeScript types in the Typir API:
+- The `<LanguageType>` generic is replaced by `<Specifics extends TypirSpecifics>` (in Typir-Langium: `<Specifics extends TypirLangiumSpecifics>`) everywhere in order to support multiple, customizable TypeScript types in the Typir API (#90):
   - `LanguageType` is now part of `TypirSpecifics` and is usable with `<TypirSpecifics['LanguageType']>`:
 
     ```typescript
@@ -47,17 +47,17 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
     ```
 
   - It is possible to customize the `ValidationMessageProperties` now, which is used to provide the Langium-specific validation properties in Typir-Langium, e.g. to support code actions for validation issues reported by Typir (see `lox-type-checking-operators.test.ts` for LOX).
-- Inside the predefined validations for classes and functions, protected methods are extracted which create the actual validation hints in order to ease their customization by overriding.
-- Updated Typir-Langium to Langium v4.0
+- Inside the predefined validations for classes and functions, protected methods are extracted which create the actual validation hints in order to ease their customization by overriding (#90).
+- Updated Typir-Langium to Langium v4.0 (#90)
 
 ### Breaking changes
 
 - Typir-Langium: `LangiumLanguageNodeInferenceCaching` and `DefaultLangiumTypeCreator` use the `TypirLangiumServices` parameter to retrieve the `LangiumSharedCoreServices` now (#78).
-- The `<LanguageType>` generic is replaced by `<Specifics extends TypirSpecifics>` (in Typir-Langium: `<Specifics extends TypirLangiumSpecifics>`) everywhere (see details above).
-- Moved some utilities for testing, requiring to update their imports:
+- The `<LanguageType>` generic is replaced by `<Specifics extends TypirSpecifics>` (in Typir-Langium: `<Specifics extends TypirLangiumSpecifics>`) everywhere (see details above) (#90).
+- Moved some utilities for testing, requiring to update their imports (#90):
   - Moved utilities from `test-utils.ts` to `predefined-language-nodes.ts`
   - Moved `test-utils.ts` into the folder `packages/typir/src/test/`
-- The `TypeSelector` is renamed to `TypeDescriptor` (and `BasicTypeDescriptor`, `TypeDescriptorForCustomTypes` are renamed accordingly).
+- The `TypeSelector` is renamed to `TypeDescriptor` (and `BasicTypeDescriptor`, `TypeDescriptorForCustomTypes` are renamed accordingly) (#90).
 
 ### Fixed bugs
 
