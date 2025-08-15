@@ -52,17 +52,25 @@ export type TypeInferenceResultWithInferringChildren<Specifics extends TypirSpec
  * Within inference rules, don't take the initialization state of the inferred type into account,
  * since such inferrence rules might not work for cyclic type definitions.
  */
-export type TypeInferenceRule<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> = TypeInferenceRuleWithoutInferringChildren<Specifics, InputType> | TypeInferenceRuleWithInferringChildren<Specifics, InputType>;
+export type TypeInferenceRule<
+    Specifics extends TypirSpecifics,
+    InputType extends Specifics['LanguageType'] = Specifics['LanguageType']
+> = TypeInferenceRuleWithoutInferringChildren<Specifics, InputType> | TypeInferenceRuleWithInferringChildren<Specifics, InputType>;
 
 /** Usual inference rule which don't depend on children's types. */
-export type TypeInferenceRuleWithoutInferringChildren<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> =
-    (languageNode: InputType, typir: TypirServices<Specifics>) => TypeInferenceResultWithoutInferringChildren<Specifics>;
+export type TypeInferenceRuleWithoutInferringChildren<
+    Specifics extends TypirSpecifics,
+    InputType extends Specifics['LanguageType'] = Specifics['LanguageType']
+> = (languageNode: InputType, typir: TypirServices<Specifics>) => TypeInferenceResultWithoutInferringChildren<Specifics>;
 
 /**
  * Inference rule which requires for the type inference of the given parent to take the types of its children into account.
  * Therefore, the types of the children need to be inferred first.
  */
-export interface TypeInferenceRuleWithInferringChildren<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> {
+export interface TypeInferenceRuleWithInferringChildren<
+    Specifics extends TypirSpecifics,
+    InputType extends Specifics['LanguageType'] = Specifics['LanguageType']
+> {
     /**
      * 1st step is to check, whether this inference rule is applicable to the given language node.
      * @param languageNode the language node whose type shall be inferred

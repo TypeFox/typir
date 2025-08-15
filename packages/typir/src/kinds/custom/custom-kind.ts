@@ -9,7 +9,7 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { ConversionMode } from '../../services/conversion.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
-import { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
+import { InferCurrentTypeRule, LanguageKeys, LanguageTypeOfLanguageKey } from '../../utils/utils-definitions.js';
 import { isMap, isSet } from '../../utils/utils.js';
 import { Kind } from '../kind.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyTypes, CustomTypeStorage, TypeDescriptorForCustomTypes } from './custom-definitions.js';
@@ -70,7 +70,11 @@ export interface CustomFactoryService<Properties extends CustomTypeProperties, S
 }
 
 export interface CustomTypeConfigurationChain<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics> {
-    inferenceRule<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<CustomType<Properties, Specifics>, Specifics, T>): CustomTypeConfigurationChain<Properties, Specifics>;
+    inferenceRule<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<CustomType<Properties, Specifics>, Specifics, LanguageKey, LanguageType>): CustomTypeConfigurationChain<Properties, Specifics>;
+
     finish(): TypeInitializer<CustomType<Properties, Specifics>, Specifics>;
 }
 
@@ -168,7 +172,10 @@ class CustomConfigurationChainImpl<Properties extends CustomTypeProperties, Spec
         };
     }
 
-    inferenceRule<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<CustomType<Properties, Specifics>, Specifics, T>): CustomConfigurationChainImpl<Properties, Specifics> {
+    inferenceRule<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<CustomType<Properties, Specifics>, Specifics, LanguageKey, LanguageType>): CustomConfigurationChainImpl<Properties, Specifics> {
         this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<CustomType<Properties, Specifics>, Specifics>);
         return this;
     }
