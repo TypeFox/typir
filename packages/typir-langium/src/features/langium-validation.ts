@@ -4,12 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, LangiumDefaultCoreServices, ValidationAcceptor, ValidationChecks } from 'langium';
+import { LangiumDefaultCoreServices, Properties, ValidationAcceptor, ValidationChecks } from 'langium';
 import { DefaultValidationCollector, TypirServices, ValidationCollector, ValidationProblem, ValidationRule } from 'typir';
-import { TypirLangiumServices } from '../typir-langium.js';
-import { LangiumAstTypes } from '../utils/typir-langium-utils.js';
+import { TypirLangiumServices, TypirLangiumSpecifics } from '../typir-langium.js';
 
-export function registerTypirValidationChecks<AstTypes extends LangiumAstTypes>(langiumServices: LangiumDefaultCoreServices, typirServices: TypirLangiumServices<AstTypes>) {
+export function registerTypirValidationChecks<Specifics extends TypirLangiumSpecifics>(langiumServices: LangiumDefaultCoreServices, typirServices: TypirLangiumServices<Specifics>) {
     const registry = langiumServices.validation.ValidationRegistry;
     const validator = typirServices.validation.TypeValidation;
     registry.registerBeforeDocument(validator.checkTypingProblemsWithTypirBeforeDocument, validator);
@@ -30,11 +29,6 @@ export function registerTypirValidationChecks<AstTypes extends LangiumAstTypes>(
 *     - for wrong type of variable declaration
 *     - to add missing explicit type conversion
 * - no validation of parents, when their children already have some problems/warnings
-*
-* Improved Validation API for Langium:
-* - const ref: (kind: unknown) => kind is FunctionKind = isFunctionKind; // use this signature for Langium?
-* - [<VariableDeclaration>{ selector: isVariableDeclaration, result: languageNode => languageNode.type }, <BinaryExpression>{}]      Array<InferenceRule<T>>
-* Apply the same ideas for InferenceRules as well!
 */
 
 
@@ -42,13 +36,13 @@ export function registerTypirValidationChecks<AstTypes extends LangiumAstTypes>(
  * This service is a technical adapter service,
  * which helps to call the Typir validations, triggered by the Langium validation mechanisms.
  */
-export interface LangiumTypirValidator {
+export interface LangiumTypirValidator<Specifics extends TypirLangiumSpecifics> {
     /**
      * Will be called once before starting the validation of a LangiumDocument.
      * @param rootNode the root node of the current document
      * @param accept receives the found validation issues
      */
-    checkTypingProblemsWithTypirBeforeDocument(rootNode: AstNode, accept: ValidationAcceptor): void;
+    checkTypingProblemsWithTypirBeforeDocument(rootNode: Specifics['LanguageType'], accept: ValidationAcceptor): void;
 
     /**
      * Executes all checks, which are directly derived from the current Typir configuration,
@@ -56,40 +50,47 @@ export interface LangiumTypirValidator {
      * @param node the current AST node to check regarding typing issues
      * @param accept receives the found validation issues
      */
-    checkTypingProblemsWithTypir(node: AstNode, accept: ValidationAcceptor): void;
+    checkTypingProblemsWithTypir(node: Specifics['LanguageType'], accept: ValidationAcceptor): void;
 
     /**
      * Will be called once after finishing the validation of a LangiumDocument.
      * @param rootNode the root node of the current document
      * @param accept receives the found validation issues
      */
-    checkTypingProblemsWithTypirAfterDocument(rootNode: AstNode, accept: ValidationAcceptor): void;
+    checkTypingProblemsWithTypirAfterDocument(rootNode: Specifics['LanguageType'], accept: ValidationAcceptor): void;
 }
 
-export class DefaultLangiumTypirValidator<AstTypes extends LangiumAstTypes> implements LangiumTypirValidator {
-    protected readonly services: TypirServices<AstNode>;
+export class DefaultLangiumTypirValidator<Specifics extends TypirLangiumSpecifics> implements LangiumTypirValidator<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
 
-    constructor(services: TypirLangiumServices<AstTypes>) {
+    constructor(services: TypirLangiumServices<Specifics>) {
         this.services = services;
     }
 
-    checkTypingProblemsWithTypirBeforeDocument(rootNode: AstNode, accept: ValidationAcceptor): void {
+    checkTypingProblemsWithTypirBeforeDocument(rootNode: Specifics['LanguageType'], accept: ValidationAcceptor): void {
         this.report(this.services.validation.Collector.validateBefore(rootNode), rootNode, accept);
     }
 
-    checkTypingProblemsWithTypir(node: AstNode, accept: ValidationAcceptor) {
+    checkTypingProblemsWithTypir(node: Specifics['LanguageType'], accept: ValidationAcceptor) {
         this.report(this.services.validation.Collector.validate(node), node, accept);
     }
 
-    checkTypingProblemsWithTypirAfterDocument(rootNode: AstNode, accept: ValidationAcceptor): void {
+    checkTypingProblemsWithTypirAfterDocument(rootNode: Specifics['LanguageType'], accept: ValidationAcceptor): void {
         this.report(this.services.validation.Collector.validateAfter(rootNode), rootNode, accept);
     }
 
-    protected report(problems: Array<ValidationProblem<AstNode>>, node: AstNode, accept: ValidationAcceptor): void {
+    protected report(problems: Array<ValidationProblem<Specifics>>, node: Specifics['LanguageType'], accept: ValidationAcceptor): void {
         // print all found problems for the given AST node
         for (const problem of problems) {
-            const message = this.services.Printer.printValidationProblem(problem);
-            accept(problem.severity, message, { node, property: problem.languageProperty, index: problem.languageIndex });
+            const message = this.services.Printer.printValidationProblem(problem); // includes the subProblems into the message
+            accept(problem.severity, message, {
+                // these properties are named differently in Langium and Typir:
+                node: problem.languageNode,
+                property: problem.languageProperty as Properties<Specifics['LanguageType']>,
+                index: problem.languageIndex,
+                // copy all other DiagnosticInfo properties:
+                ...problem,
+            });
         }
     }
 }
@@ -101,31 +102,31 @@ export class DefaultLangiumTypirValidator<AstTypes extends LangiumAstTypes> impl
  * A utility type for associating non-primitive AST types to corresponding validation rules. For example:
  *
  * ```ts
- *   addValidationsRulesForAstNodes<LoxAstType>({
+ *   addValidationRulesForAstNodes({
  *      VariableDeclaration: (node, typir) => { return [...]; },
  *   });
  * ```
  *
  * @param T a type definition mapping language specific type names (keys) to the corresponding types (values)
  */
-export type LangiumValidationRules<T extends LangiumAstTypes> = {
-    [K in keyof T]?: T[K] extends AstNode ? ValidationRule<AstNode, T[K]> | Array<ValidationRule<AstNode, T[K]>> : never
+export type LangiumValidationRules<Specifics extends TypirLangiumSpecifics> = {
+    [K in keyof Specifics['AstTypes']]?: Specifics['AstTypes'][K] extends Specifics['LanguageType'] ? ValidationRule<Specifics, Specifics['AstTypes'][K]> | Array<ValidationRule<Specifics, Specifics['AstTypes'][K]>> : never
 } & {
-    AstNode?: ValidationRule<AstNode> | Array<ValidationRule<AstNode>>;
+    AstNode?: ValidationRule<Specifics, Specifics['LanguageType']> | Array<ValidationRule<Specifics, Specifics['LanguageType']>>;
 }
 
 
-export interface LangiumValidationCollector<AstTypes extends LangiumAstTypes> extends ValidationCollector<AstNode> {
-    addValidationRulesForAstNodes(rules: LangiumValidationRules<AstTypes>): void;
+export interface LangiumValidationCollector<Specifics extends TypirLangiumSpecifics> extends ValidationCollector<Specifics> {
+    addValidationRulesForAstNodes(rules: LangiumValidationRules<Specifics>): void;
 }
 
-export class DefaultLangiumValidationCollector<AstTypes extends LangiumAstTypes> extends DefaultValidationCollector<AstNode> implements LangiumValidationCollector<AstTypes> {
+export class DefaultLangiumValidationCollector<Specifics extends TypirLangiumSpecifics> extends DefaultValidationCollector<Specifics> implements LangiumValidationCollector<Specifics> {
 
-    addValidationRulesForAstNodes(rules: LangiumValidationRules<AstTypes>): void {
+    addValidationRulesForAstNodes(rules: LangiumValidationRules<Specifics>): void {
         // map this approach for registering validation rules to the key-value approach from core Typir
         for (const [type, ruleCallbacks] of Object.entries(rules)) {
             const languageKey = type === 'AstNode' ? undefined : type; // using 'AstNode' as key is equivalent to specifying no key
-            const callbacks = ruleCallbacks as ValidationRule<AstNode> | Array<ValidationRule<AstNode>>;
+            const callbacks = ruleCallbacks as ValidationRule<Specifics> | Array<ValidationRule<Specifics>>;
             if (Array.isArray(callbacks)) {
                 for (const callback of callbacks) {
                     this.addValidationRule(callback, { languageKey });

@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 
 export type TypeInitializerListener<T extends Type> = (type: T) => void;
 
@@ -24,14 +24,14 @@ export type TypeInitializerListener<T extends Type> = (type: T) => void;
  *
  * Design decision: While this class does not provide so many default implementations,
  * a common super class (or interface) of all type initializers is useful nevertheless,
- * since they all can be used as TypeSelector in an easy way.
+ * since they all can be used as TypeDescriptor in an easy way.
  */
-export abstract class TypeInitializer<T extends Type, LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
+export abstract class TypeInitializer<T extends Type, Specifics extends TypirSpecifics> {
+    protected readonly services: TypirServices<Specifics>;
     protected typeToReturn: T | undefined;
     protected listeners: Array<TypeInitializerListener<T>> = [];
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.services = services;
     }
 

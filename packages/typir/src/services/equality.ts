@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type } from '../graph/type-node.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
 import { TypeEdge, isTypeEdge } from '../graph/type-edge.js';
@@ -33,10 +33,10 @@ export interface TypeEquality {
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined;
 }
 
-export class DefaultTypeEquality<LanguageType> implements TypeEquality {
+export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements TypeEquality {
     protected readonly typeRelationships: TypeRelationshipCaching;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.typeRelationships = services.caching.TypeRelationships;
     }
 

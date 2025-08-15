@@ -4,14 +4,15 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { LangiumSharedCoreServices, Module, PartialLangiumCoreServices, createDefaultCoreModule, inject } from 'langium';
-import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, createDefaultSharedModule } from 'langium/lsp';
+import { LangiumSharedCoreServices, Module, createDefaultCoreModule, inject } from 'langium';
+import { DefaultSharedModuleContext, LangiumServices, LangiumSharedServices, PartialLangiumServices, createDefaultSharedModule } from 'langium/lsp';
 import { TypirLangiumServices, createTypirLangiumServices, initializeLangiumTypirServices } from 'typir-langium';
-import { LoxAstType, reflection } from './generated/ast.js';
+import { reflection } from './generated/ast.js';
 import { LoxGeneratedModule, LoxGeneratedSharedModule } from './generated/module.js';
+import { LoxCodeActionProvider } from './lox-code-actions.js';
 import { LoxLinker } from './lox-linker.js';
 import { LoxScopeProvider } from './lox-scope.js';
-import { LoxTypeSystem } from './lox-type-checking.js';
+import { LoxSpecifics, LoxTypeSystem } from './lox-type-checking.js';
 import { LoxValidationRegistry, LoxValidator } from './lox-validator.js';
 
 /**
@@ -21,7 +22,7 @@ export type LoxAddedServices = {
     validation: {
         LoxValidator: LoxValidator,
     },
-    typir: TypirLangiumServices<LoxAstType>, // all Langium services are able to access these Typir services for type-checking
+    typir: TypirLangiumServices<LoxSpecifics>, // all Langium services are able to access these Typir services for type-checking
 }
 
 /**
@@ -35,11 +36,14 @@ export type LoxServices = LangiumServices & LoxAddedServices
  * declared custom services. The Langium defaults can be partially specified to override only
  * selected services, while the custom services must be fully specified.
  */
-export function createLoxModule(shared: LangiumSharedCoreServices): Module<LoxServices, PartialLangiumCoreServices & LoxAddedServices> {
+export function createLoxModule(shared: LangiumSharedCoreServices): Module<LoxServices, PartialLangiumServices & LoxAddedServices> {
     return {
         validation: {
             ValidationRegistry: (services) => new LoxValidationRegistry(services),
             LoxValidator: () => new LoxValidator(),
+        },
+        lsp: {
+            CodeActionProvider: () => new LoxCodeActionProvider(),
         },
         // For type checking with Typir, configure the Typir & Typir-Langium services in this way:
         typir: () => createTypirLangiumServices(shared, reflection, new LoxTypeSystem(), { /* customize Typir services here */ }),

@@ -6,12 +6,16 @@
 
 import { AstNode, AstUtils, assertUnreachable } from 'langium';
 import { CreateParameterDetails, InferOperatorWithMultipleOperands, InferOperatorWithSingleOperand, InferenceRuleNotApplicable, NO_PARAMETER_NAME, TypirServices, ValidationProblemAcceptor } from 'typir';
-import { LangiumTypeSystemDefinition, TypirLangiumServices } from 'typir-langium';
+import { LangiumTypeSystemDefinition, TypirLangiumServices, TypirLangiumSpecifics } from 'typir-langium';
 import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 
-export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
+export interface OxSpecifics extends TypirLangiumSpecifics { // concretize some OX-specifics here
+    AstTypes: OxAstType; // all AST types from the generated `ast.ts`
+}
 
-    onInitialize(typir: TypirLangiumServices<OxAstType>): void {
+export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
+
+    onInitialize(typir: TypirLangiumServices<OxSpecifics>): void {
         // define primitive types
         // typeBool, typeNumber and typeVoid are specific types for OX, ...
         const typeBool = typir.factory.Primitives.create({ primitiveName: 'boolean' })
@@ -20,21 +24,21 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
             .finish();
         // ... but their primitive kind is provided/preset by Typir
         const typeNumber = typir.factory.Primitives.create({ primitiveName: 'number' })
-            .inferenceRule({ languageKey: NumberLiteral })
-            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'number' })
+            .inferenceRule({ languageKey: NumberLiteral.$type })
+            .inferenceRule({ languageKey: TypeReference.$type, matching: (node: TypeReference) => node.primitive === 'number' })
             .finish();
         const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' })
-            .inferenceRule({ languageKey: TypeReference, matching: (node: TypeReference) => node.primitive === 'void' })
+            .inferenceRule({ languageKey: TypeReference.$type, matching: (node: TypeReference) => node.primitive === 'void' })
             .finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
-        const binaryInferenceRule: InferOperatorWithMultipleOperands<AstNode, BinaryExpression> = {
+        const binaryInferenceRule: InferOperatorWithMultipleOperands<OxSpecifics, BinaryExpression> = {
             filter: isBinaryExpression,
             matching: (node: BinaryExpression, name: string) => node.operator === name,
             operands: (node: BinaryExpression, _name: string) => [node.left, node.right],
             validateArgumentsOfCalls: true,
         };
-        const unaryInferenceRule: InferOperatorWithSingleOperand<AstNode, UnaryExpression> = {
+        const unaryInferenceRule: InferOperatorWithSingleOperand<OxSpecifics, UnaryExpression> = {
             filter: isUnaryExpression,
             matching: (node: UnaryExpression, name: string) => node.operator === name,
             operand: (node: UnaryExpression, _name: string) => node.value,
@@ -140,13 +144,13 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
             },
             WhileStatement: validateCondition,
         });
-        function validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<AstNode>, typir: TypirServices<AstNode>): void {
+        function validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<OxSpecifics>, typir: TypirServices<OxSpecifics>): void {
             typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool, accept,
                 () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' }));
         }
     }
 
-    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<OxAstType>): void {
+    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<OxSpecifics>): void {
         // define function types
         // they have to be updated after each change of the Langium document, since they are derived from the user-defined FunctionDeclarations!
         if (isFunctionDeclaration(languageNode)) {
@@ -156,12 +160,12 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                 functionName,
                 // note that the following two lines internally use type inference here in order to map language types to Typir types
                 outputParameter: { name: NO_PARAMETER_NAME, type: languageNode.returnType },
-                inputParameters: languageNode.parameters.map(p => (<CreateParameterDetails<AstNode>>{ name: p.name, type: p.type })),
+                inputParameters: languageNode.parameters.map(p => (<CreateParameterDetails<OxSpecifics>>{ name: p.name, type: p.type })),
                 associatedLanguageNode: languageNode,
             })
                 // inference rule for function declaration:
                 .inferenceRuleForDeclaration({
-                    languageKey: FunctionDeclaration,
+                    languageKey: FunctionDeclaration.$type,
                     matching: (node: FunctionDeclaration) => node === languageNode // only the current function declaration matches!
                 })
                 /** inference rule for funtion calls:
@@ -169,7 +173,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxAstType> {
                  * - (inferring calls to non-overloaded functions works independently from the types of the given parameters)
                  * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
                 .inferenceRuleForCalls({
-                    languageKey: MemberCall,
+                    languageKey: MemberCall.$type,
                     matching: (call: MemberCall) => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
                     inputArguments: (call: MemberCall) => call.arguments, // they are needed to check, that the given arguments are assignable to the parameters
                     // Note that OX does not support overloaded function declarations for simplicity: Look into LOX to see how to handle overloaded functions and methods!

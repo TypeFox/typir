@@ -10,10 +10,10 @@ import { CustomType, isCustomType } from '../../../src/kinds/custom/custom-type.
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { DefaultTypeInferenceCollector, InferenceRuleNotApplicable, TypeInferenceRule } from '../../../src/services/inference.js';
 import { ValidationProblemAcceptor } from '../../../src/services/validation.js';
-import { IntegerLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { createTypirServicesForTesting, createTypirServicesForTestingWithAdditionalServices, IntegerLiteral, TestExpressionNode, TestingSpecifics } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
 import { RuleRegistry } from '../../../src/utils/rule-registration.js';
-import { createTypirServicesForTesting, createTypirServicesForTestingWithAdditionalServices, expectToBeType, expectTypirTypes, expectValidationIssuesNone, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
+import { expectToBeType, expectTypirTypes, expectValidationIssuesNone, expectValidationIssuesStrict } from '../../../src/test/test-utils.js';
 import { assertTypirType } from '../../../src/utils/utils.js';
 
 /**
@@ -33,13 +33,13 @@ describe('Tests simple custom types for Matrix types', () => {
     test('Matrix type with exposed factory', () => {
         type AdditionalMatrixTypirServices = {
             readonly factory: {
-                readonly Matrix: CustomKind<MatrixType, TestLanguageNode>;
+                readonly Matrix: CustomKind<MatrixType, TestingSpecifics>;
             },
         };
         const typir = createTypirServicesForTestingWithAdditionalServices<AdditionalMatrixTypirServices>({
             factory: {
                 // create a custom kind to create custom types with dedicated properties (as defined in <MatrixType>) and provide it as additional Typir service
-                Matrix: services => new CustomKind<MatrixType, TestLanguageNode>(services, {
+                Matrix: services => new CustomKind<MatrixType, TestingSpecifics>(services, {
                     name: 'Matrix',
                     // determine which identifier is used to store and retrieve a custom type in the type graph
                     calculateTypeName: properties => `My${properties.width}x${properties.height}Matrix`,
@@ -76,7 +76,7 @@ describe('Tests simple custom types for Matrix types', () => {
     test('Matrix type with very simple inference rules', () => {
         const typir = createTypirServicesForTesting();
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
-        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+        const customKind = new CustomKind<MatrixType, TestingSpecifics>(typir, {
             name: 'Matrix',
             calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
@@ -100,13 +100,13 @@ describe('Tests simple custom types for Matrix types', () => {
     test('Matrix type with very simple inference rules (+ validation rule)', () => {
         const typir = createTypirServicesForTesting();
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
-        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+        const customKind = new CustomKind<MatrixType, TestingSpecifics>(typir, {
             name: 'Matrix',
             calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
         });
 
-        function checkCompleteness(node: MatrixLiteral, matrixType: CustomType<MatrixType, TestLanguageNode>, accept: ValidationProblemAcceptor<TestLanguageNode>): void {
+        function checkCompleteness(node: MatrixLiteral, matrixType: CustomType<MatrixType, TestingSpecifics>, accept: ValidationProblemAcceptor<TestingSpecifics>): void {
             const height = matrixType.properties.height;
             if (node.elements.some(column => column.length !== height)) {
                 accept({ languageNode: node, severity: 'error', message: 'Incomplete content in matrix literal found' });
@@ -140,7 +140,7 @@ describe('Tests simple custom types for Matrix types', () => {
     test('Matrix type with generic inference rule: only get', () => {
         const typir = createTypirServicesForTesting();
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
-        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+        const customKind = new CustomKind<MatrixType, TestingSpecifics>(typir, {
             name: 'Matrix',
             calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
@@ -181,7 +181,7 @@ describe('Tests simple custom types for Matrix types', () => {
     test('Matrix type with generic inference rule: get or create', () => {
         const typir = createTypirServicesForTesting();
         const integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
-        const customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+        const customKind = new CustomKind<MatrixType, TestingSpecifics>(typir, {
             name: 'Matrix',
             calculateTypeIdentifier: properties =>
                 `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
@@ -227,13 +227,13 @@ describe('Tests simple custom types for Matrix types', () => {
     });
 
     describe('Matrix type with type-specific inference rules', () => {
-        let typir: TypirServices<TestLanguageNode>;
+        let typir: TypirServices<TestingSpecifics>;
         let integerType: PrimitiveType;
-        let customKind: CustomKind<MatrixType, TestLanguageNode>;
+        let customKind: CustomKind<MatrixType, TestingSpecifics>;
 
         // customize Typir in order to count the number of registered inference rules
-        class TestInferenceImpl extends DefaultTypeInferenceCollector<TestLanguageNode> {
-            override readonly ruleRegistry: RuleRegistry<TypeInferenceRule<TestLanguageNode>, TestLanguageNode>;
+        class TestInferenceImpl extends DefaultTypeInferenceCollector<TestingSpecifics> {
+            override readonly ruleRegistry: RuleRegistry<TypeInferenceRule<TestingSpecifics>, TestingSpecifics>;
         }
 
         beforeEach(() => {
@@ -243,7 +243,7 @@ describe('Tests simple custom types for Matrix types', () => {
 
             integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
 
-            customKind = new CustomKind<MatrixType, TestLanguageNode>(typir, {
+            customKind = new CustomKind<MatrixType, TestingSpecifics>(typir, {
                 name: 'Matrix',
                 calculateTypeIdentifier: properties =>
                     `custom-matrix-${typir.infrastructure.TypeResolver.resolve(properties.baseType).getIdentifier()}-${properties.width}-${properties.height}`,
@@ -256,7 +256,7 @@ describe('Tests simple custom types for Matrix types', () => {
             return (typir.Inference as TestInferenceImpl).ruleRegistry.getNumberUniqueRules();
         }
 
-        function getOrCreateMatrixType(width: number, height: number, skipThisRuleIfThisTypeAlreadyExists: boolean): CustomType<MatrixType, TestLanguageNode> {
+        function getOrCreateMatrixType(width: number, height: number, skipThisRuleIfThisTypeAlreadyExists: boolean): CustomType<MatrixType, TestingSpecifics> {
             return customKind
                 .create({ properties: { baseType: integerType, width, height } })
                 // each matrix type has its own custom inference rule

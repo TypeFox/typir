@@ -7,14 +7,15 @@
 import { AstUtils, DefaultScopeProvider, EMPTY_SCOPE, ReferenceInfo, Scope } from 'langium';
 import { isClassType } from 'typir';
 import { TypirLangiumServices } from 'typir-langium';
-import { Class, isClass, isMemberCall, LoxAstType, MemberCall } from './generated/ast.js';
+import { Class, isClass, isMemberCall, MemberCall } from './generated/ast.js';
 import { LoxServices } from './lox-module.js';
+import { LoxSpecifics } from './lox-type-checking.js';
 import { getClassChain } from './lox-utils.js';
 // import { isClassType } from './type-system/descriptions.js';
 // import { getClassChain, inferType } from './type-system/infer.js';
 
 export class LoxScopeProvider extends DefaultScopeProvider {
-    protected readonly typir: TypirLangiumServices<LoxAstType>;
+    protected readonly typir: TypirLangiumServices<LoxSpecifics>;
 
     constructor(services: LoxServices) {
         super(services);
@@ -23,7 +24,7 @@ export class LoxScopeProvider extends DefaultScopeProvider {
 
     override getScope(context: ReferenceInfo): Scope {
         // target element of member calls
-        if (context.property === 'element' && isMemberCall(context.container)) {
+        if (isMemberCall(context.container) && context.property === MemberCall.element) {
             // for now, `this` and `super` simply target the container class type
             if (context.reference.$refText === 'this' || context.reference.$refText === 'super') {
                 const classItem = AstUtils.getContainerOfType(context.container, isClass);

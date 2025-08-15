@@ -4,13 +4,14 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AstNode, isAstNode } from 'langium';
+import { isAstNode } from 'langium';
 import { DefaultTypeConflictPrinter } from 'typir';
+import { TypirLangiumSpecifics } from '../typir-langium.js';
 
-export class LangiumProblemPrinter extends DefaultTypeConflictPrinter<AstNode> {
+export class LangiumProblemPrinter<Specifics extends TypirLangiumSpecifics> extends DefaultTypeConflictPrinter<Specifics> {
 
     /** When printing a language node, i.e. an AstNode, print the text of the corresponding CstNode. */
-    override printLanguageNode(languageNode: AstNode, sentenceBegin?: boolean | undefined): string {
+    override printLanguageNode(languageNode: Specifics['LanguageType'], sentenceBegin?: boolean | undefined): string {
         if (isAstNode(languageNode)) {
             return `${sentenceBegin ? 'T' : 't'}he AstNode '${languageNode.$cstNode?.text}'`;
         }

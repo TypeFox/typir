@@ -28,10 +28,36 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
   - Internal testing in Typir (core): `createTypirServicesForTestingWithAdditionalServices<AdditionalServices>(Module<AdditionalServices>, ...)`
 - The `$name`s of kinds/factories are configurable now (#78).
 - Typir-Langium: The Langium services are stored in the `TypirLangiumAddedServices` now as `services.langium.LangiumServices` in order to make them available for all Typir services (#78).
+- The `<LanguageType>` generic is replaced by `<Specifics extends TypirSpecifics>` (in Typir-Langium: `<Specifics extends TypirLangiumSpecifics>`) everywhere in order to support multiple, customizable TypeScript types in the Typir API:
+  - `LanguageType` is now part of `TypirSpecifics` and is usable with `<TypirSpecifics['LanguageType']>`:
+
+    ```typescript
+    export interface TypirSpecifics {
+       LanguageType: unknown;
+    }
+    ```
+
+  - `TypirLangiumSpecifics` extends the Typir specifics for Langium, concretizes the language type and enables to register the available AST types of the current Langium grammar as `AstTypes`:
+
+    ```typescript
+    export interface TypirLangiumSpecifics extends TypirSpecifics {
+        LanguageType: AstNode;
+        AstTypes: LangiumAstTypes;
+    }
+    ```
+
+  - It is possible to customize the `ValidationMessageProperties` now, which is used to provide the Langium-specific validation properties in Typir-Langium, e.g. to support code actions for validation issues reported by Typir (see `lox-type-checking-operators.test.ts` for LOX).
+- Inside the predefined validations for classes and functions, protected methods are extracted which create the actual validation hints in order to ease their customization by overriding.
+- Updated Typir-Langium to Langium v4.0
 
 ### Breaking changes
 
 - Typir-Langium: `LangiumLanguageNodeInferenceCaching` and `DefaultLangiumTypeCreator` use the `TypirLangiumServices` parameter to retrieve the `LangiumSharedCoreServices` now (#78).
+- The `<LanguageType>` generic is replaced by `<Specifics extends TypirSpecifics>` (in Typir-Langium: `<Specifics extends TypirLangiumSpecifics>`) everywhere (see details above).
+- Moved some utilities for testing, requiring to update their imports:
+  - Moved utilities from `test-utils.ts` to `predefined-language-nodes.ts`
+  - Moved `test-utils.ts` into the folder `packages/typir/src/test/`
+- The `TypeSelector` is renamed to `TypeDescriptor` (and `BasicTypeDescriptor`, `TypeDescriptorForCustomTypes` are renamed accordingly).
 
 ### Fixed bugs
 

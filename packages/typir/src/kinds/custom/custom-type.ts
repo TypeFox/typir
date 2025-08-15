@@ -12,24 +12,25 @@ import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy, ValueConflict } from '../../utils/utils-type-comparison.js';
 import { assertTrue } from '../../utils/utils.js';
-import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage, TypeSelectorForCustomTypes } from './custom-definitions.js';
+import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage, TypeDescriptorForCustomTypes } from './custom-definitions.js';
 import { CustomKind, CustomTypeDetails } from './custom-kind.js';
+import { TypirSpecifics } from '../../typir.js';
 
-export class CustomType<Properties extends CustomTypeProperties, LanguageType> extends Type {
-    override readonly kind: CustomKind<Properties, LanguageType>;
+export class CustomType<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics> extends Type {
+    override readonly kind: CustomKind<Properties, Specifics>;
     protected readonly typeName: string | undefined;
     protected readonly typeUserRepresentation?: string;
-    readonly properties: CustomTypeStorage<Properties, LanguageType>;
+    readonly properties: CustomTypeStorage<Properties, Specifics>;
 
-    constructor(kind: CustomKind<Properties, LanguageType>, typeDetails: CustomTypeDetails<Properties, LanguageType>) {
+    constructor(kind: CustomKind<Properties, Specifics>, typeDetails: CustomTypeDetails<Properties, Specifics>) {
         super(undefined, typeDetails);
         this.kind = kind;
         this.typeName = typeDetails.typeName;
         this.typeUserRepresentation = typeDetails.typeUserRepresentation;
 
-        const collectedReferences: Array<TypeReference<Type, LanguageType>> = [];
-        this.properties = this.replaceAllProperties(typeDetails.properties, collectedReferences) as CustomTypeStorage<Properties, LanguageType>;
-        const allReferences: Array<TypeReference<Type, unknown>> = collectedReferences as Array<TypeReference<Type, unknown>>; // type-node.ts does not use <LanguageType>
+        const collectedReferences: Array<TypeReference<Type, Specifics>> = [];
+        this.properties = this.replaceAllProperties(typeDetails.properties, collectedReferences) as CustomTypeStorage<Properties, Specifics>;
+        const allReferences = collectedReferences as unknown as Array<TypeReference<Type, TypirSpecifics>>; // type-node.ts does not use <TypirSpecifics>
 
         this.defineTheInitializationProcessOfThisType({
             preconditionsForIdentifiable: {
@@ -42,24 +43,24 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         });
     }
 
-    protected replaceAllProperties(properties: CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypeStorage<CustomTypeProperties, LanguageType> {
-        // const result: CustomTypeStorage<CustomTypeProperties, LanguageType> = {}; // does not work, since the properties of CustomTypeStorage are defined as "readonly"!
+    protected replaceAllProperties(properties: CustomTypeInitialization<CustomTypeProperties, Specifics>, collectedReferences: Array<TypeReference<Type, Specifics>>): CustomTypeStorage<CustomTypeProperties, Specifics> {
+        // const result: CustomTypeStorage<CustomTypeProperties, Specifics> = {}; // does not work, since the properties of CustomTypeStorage are defined as "readonly"!
         const result: Record<string, unknown> = {};
         for (const [key, value] of Object.entries(properties)) {
-            const transformed: CustomTypePropertyStorage<CustomTypePropertyTypes, LanguageType> = this.replaceSingleProperty(value, collectedReferences);
+            const transformed: CustomTypePropertyStorage<CustomTypePropertyTypes, Specifics> = this.replaceSingleProperty(value, collectedReferences);
             result[key] = transformed;
         }
-        return result as CustomTypeStorage<CustomTypeProperties, LanguageType>;
+        return result as CustomTypeStorage<CustomTypeProperties, Specifics>;
     }
 
-    protected replaceSingleProperty<T extends CustomTypePropertyTypes>(value: CustomTypePropertyInitialization<T, LanguageType>, collectedReferences: Array<TypeReference<Type, LanguageType>>): CustomTypePropertyStorage<T, LanguageType> {
-        // TypeSelector --> TypeReference
+    protected replaceSingleProperty<T extends CustomTypePropertyTypes>(value: CustomTypePropertyInitialization<T, Specifics>, collectedReferences: Array<TypeReference<Type, Specifics>>): CustomTypePropertyStorage<T, Specifics> {
+        // TypeDescriptor --> TypeReference
         //      function
         //      Type
         //      (string)                            forbidden/not supported, since it is not unique, treat it as content/primitive property!
         //      TypeInitializer
         //      TypeReference
-        //      LanguageType                        additional "Language"-Service required to distinguish it from object with index signature
+        //      Specifics['LanguageType']           additional "Language"-Service required to distinguish it from object with index signature
         // Array --> Array
         //      values: recursive transformation
         // Map --> Map
@@ -73,41 +74,41 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         //      bigint
         //      symbol
 
-        // all possible TypeSelectors
+        // all possible TypeDescriptors
         if (typeof value === 'function') {
-            const result = new TypeReference<Type, LanguageType>(value as TypeSelectorForCustomTypes<Type, LanguageType>, this.kind.services);
+            const result = new TypeReference<Type, Specifics>(value as TypeDescriptorForCustomTypes<Type, Specifics>, this.kind.services);
             collectedReferences.push(result);
-            return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
+            return result as unknown as CustomTypePropertyStorage<T, Specifics>;
         } else if (value instanceof Type
             || value instanceof TypeInitializer
             || value instanceof TypeReference
             || this.kind.services.Language.isLanguageNode(value)
         ) {
-            const result = new TypeReference<Type, LanguageType>(value, this.kind.services);
+            const result = new TypeReference<Type, Specifics>(value, this.kind.services);
             collectedReferences.push(result);
-            return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
+            return result as unknown as CustomTypePropertyStorage<T, Specifics>;
         }
         // grouping with Array, Set, Map
         else if (Array.isArray(value)) {
-            return value.map(content => this.replaceSingleProperty(content, collectedReferences)) as unknown as CustomTypePropertyStorage<T, LanguageType>;
+            return value.map(content => this.replaceSingleProperty(content, collectedReferences)) as unknown as CustomTypePropertyStorage<T, Specifics>;
         } else if (isSet(value)) {
-            const result = new Set<CustomTypePropertyStorage<T, LanguageType>>();
+            const result = new Set<CustomTypePropertyStorage<T, Specifics>>();
             for (const entry of value) {
                 result.add(this.replaceSingleProperty(entry, collectedReferences));
             }
-            return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
+            return result as unknown as CustomTypePropertyStorage<T, Specifics>;
         } else if (isMap(value)) {
-            const result: Map<string, CustomTypePropertyStorage<T, LanguageType>> = new Map();
+            const result: Map<string, CustomTypePropertyStorage<T, Specifics>> = new Map();
             value.forEach((content, key) => result.set(key, this.replaceSingleProperty(content, collectedReferences)));
-            return result as unknown as CustomTypePropertyStorage<T, LanguageType>;
+            return result as unknown as CustomTypePropertyStorage<T, Specifics>;
         }
         // primitives
         else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint' || typeof value === 'symbol') {
-            return value as unknown as CustomTypePropertyStorage<T, LanguageType>;
+            return value as unknown as CustomTypePropertyStorage<T, Specifics>;
         }
         // composite with recursive object / index signature
         else if (typeof value === 'object' && value !== null) {
-            return this.replaceAllProperties(value as CustomTypeInitialization<CustomTypeProperties, LanguageType>, collectedReferences) as CustomTypePropertyStorage<T, LanguageType>;
+            return this.replaceAllProperties(value as CustomTypeInitialization<CustomTypeProperties, Specifics>, collectedReferences) as CustomTypePropertyStorage<T, Specifics>;
         } else {
             throw new Error(`missing implementation for ${value}`);
         }
@@ -148,7 +149,7 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         }
     }
 
-    protected analyzeTypeEqualityProblemsAll(properties1: CustomTypeStorage<Properties, LanguageType>, properties2: CustomTypeStorage<Properties, LanguageType>): TypirProblem[] {
+    protected analyzeTypeEqualityProblemsAll(properties1: CustomTypeStorage<Properties, Specifics>, properties2: CustomTypeStorage<Properties, Specifics>): TypirProblem[] {
         const result: TypirProblem[] = [];
         for (const [key, value1] of Object.entries(properties1)) {
             const value2 = properties2[key];
@@ -165,11 +166,11 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         }
         return result;
     }
-    protected analyzeTypeEqualityProblemsSingle<T extends CustomTypePropertyTypes>(value1: CustomTypePropertyStorage<T, LanguageType>, value2: CustomTypePropertyStorage<T, LanguageType>): TypirProblem[] {
+    protected analyzeTypeEqualityProblemsSingle<T extends CustomTypePropertyTypes>(value1: CustomTypePropertyStorage<T, Specifics>, value2: CustomTypePropertyStorage<T, Specifics>): TypirProblem[] {
         assertTrue(typeof value1 === typeof value2);
         // a type is stored in a TypeReference!
         if (value1 instanceof TypeReference) {
-            return checkTypes(value1.getType(), (value2 as TypeReference<Type, LanguageType>).getType(), createTypeCheckStrategy('EQUAL_TYPE', this.kind.services), false);
+            return checkTypes(value1.getType(), (value2 as TypeReference<Type, Specifics>).getType(), createTypeCheckStrategy('EQUAL_TYPE', this.kind.services), false);
         }
         // grouping with Array, Set, Map
         else if (Array.isArray(value1)) {
@@ -228,13 +229,13 @@ export class CustomType<Properties extends CustomTypeProperties, LanguageType> e
         }
         // composite with recursive object / index signature
         else if (typeof value1 === 'object' && value1 !== null) {
-            return this.analyzeTypeEqualityProblemsAll(value1 as CustomTypeStorage<Properties, LanguageType>, value2 as CustomTypeStorage<Properties, LanguageType>);
+            return this.analyzeTypeEqualityProblemsAll(value1 as CustomTypeStorage<Properties, Specifics>, value2 as CustomTypeStorage<Properties, Specifics>);
         } else {
             throw new Error('missing implementation');
         }
     }
 }
 
-export function isCustomType<Properties extends CustomTypeProperties, LanguageType>(type: unknown, kind: string | CustomKind<Properties, LanguageType>): type is CustomType<Properties, LanguageType> {
+export function isCustomType<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics>(type: unknown, kind: string | CustomKind<Properties, Specifics>): type is CustomType<Properties, Specifics> {
     return type instanceof CustomType && (typeof kind === 'string' ? type.kind.options.name === kind : type.kind === kind);
 }

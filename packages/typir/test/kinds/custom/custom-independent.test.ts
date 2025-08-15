@@ -7,9 +7,9 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { isCustomType } from '../../../src/kinds/custom/custom-type.js';
-import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { TestingSpecifics, createTypirServicesForTesting } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectTypirTypes } from '../../../src/utils/test-utils.js';
+import { expectTypirTypes } from '../../../src/test/test-utils.js';
 
 // These test cases test that it is possible to work with two different kinds of custom types independent from each other in the same Typir instance,
 // even when these custom types/kinds have the same properties!
@@ -22,19 +22,19 @@ export type MyCustomType2 = MyCustomType1;
 
 
 describe('Check that different custom types can be used in parallel', () => {
-    let typir: TypirServices<TestLanguageNode>;
-    let customKind1: CustomKind<MyCustomType1, TestLanguageNode>;
-    let customKind2: CustomKind<MyCustomType2, TestLanguageNode>;
+    let typir: TypirServices<TestingSpecifics>;
+    let customKind1: CustomKind<MyCustomType1, TestingSpecifics>;
+    let customKind2: CustomKind<MyCustomType2, TestingSpecifics>;
 
     beforeEach(() => {
         typir = createTypirServicesForTesting();
 
-        customKind1 = new CustomKind<MyCustomType1, TestLanguageNode>(typir, {
+        customKind1 = new CustomKind<MyCustomType1, TestingSpecifics>(typir, {
             name: 'MyCustom1',
             // use the default 'calculateTypeIdentifier' implementation here
             calculateTypeName: properties => `Custom1-${properties.myNumber}`,
         });
-        customKind2 = new CustomKind<MyCustomType2, TestLanguageNode>(typir, {
+        customKind2 = new CustomKind<MyCustomType2, TestingSpecifics>(typir, {
             name: 'MyCustom2',
             // use the default 'calculateTypeIdentifier' implementation here
             calculateTypeName: properties => `Custom1-${properties.myNumber}`, // same names! but different identifiers!
@@ -42,21 +42,21 @@ describe('Check that different custom types can be used in parallel', () => {
     });
 
     test('The name of CustomKinds needs to be unique', () => {
-        expect(() => new CustomKind<MyCustomType1, TestLanguageNode>(typir, {
+        expect(() => new CustomKind<MyCustomType1, TestingSpecifics>(typir, {
             name: 'MyCustom1',
             calculateTypeIdentifier: () => 'does not matter',
         })).toThrowError("duplicate kind named 'CustomKind-MyCustom1'");
     });
 
     test('The name of CustomKinds needs to be unique: a different <GenericType> is not enough', () => {
-        expect(() => new CustomKind<MyCustomType1, TestLanguageNode>(typir, {
+        expect(() => new CustomKind<MyCustomType1, TestingSpecifics>(typir, {
             name: 'MyCustom2',
             calculateTypeIdentifier: () => 'does not matter',
         })).toThrowError("duplicate kind named 'CustomKind-MyCustom2'");
     });
 
     test('The name of CustomKinds needs to be unique: it needs to be a different name', () => {
-        new CustomKind<MyCustomType1, TestLanguageNode>(typir, {
+        new CustomKind<MyCustomType1, TestingSpecifics>(typir, {
             name: 'MyCustom',
             calculateTypeIdentifier: () => 'does not matter',
         });

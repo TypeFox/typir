@@ -6,6 +6,7 @@
 
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
+import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkTypeArrays, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
@@ -22,10 +23,10 @@ export class ParameterValue {
 }
 
 export class FixedParameterType extends Type {
-    override readonly kind: FixedParameterKind<unknown>;
+    override readonly kind: FixedParameterKind<TypirSpecifics>;
     readonly parameterValues: ParameterValue[] = [];
 
-    constructor(kind: FixedParameterKind<unknown>, identifier: string, typeDetails: FixedParameterTypeDetails<unknown>) {
+    constructor(kind: FixedParameterKind<TypirSpecifics>, identifier: string, typeDetails: FixedParameterTypeDetails<TypirSpecifics>) {
         super(identifier, typeDetails);
         this.kind = kind;
 

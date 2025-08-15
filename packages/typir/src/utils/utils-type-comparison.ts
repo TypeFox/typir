@@ -7,7 +7,7 @@
 import { isType, Type } from '../graph/type-node.js';
 import { Kind } from '../kinds/kind.js';
 import { InferenceProblem } from '../services/inference.js';
-import { TypirServices } from '../typir.js';
+import { TypirServices, TypirSpecifics } from '../typir.js';
 import { assertTrue, assertUnreachable } from '../utils/utils.js';
 import { isNameTypePair, isSpecificTypirProblem, NameTypePair, TypirProblem } from './utils-definitions.js';
 
@@ -16,7 +16,7 @@ export type TypeCheckStrategy =
     'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
     'SUB_TYPE'; // more relaxed checking
 
-export function createTypeCheckStrategy<LanguageType>(strategy: TypeCheckStrategy, typir: TypirServices<LanguageType>): (t1: Type, t2: Type) => TypirProblem | undefined {
+export function createTypeCheckStrategy<Specifics extends TypirSpecifics>(strategy: TypeCheckStrategy, typir: TypirServices<Specifics>): (t1: Type, t2: Type) => TypirProblem | undefined {
     switch (strategy) {
         case 'ASSIGNABLE_TYPE':
             return typir.Assignability.getAssignabilityProblem // t1 === source, t2 === target
@@ -91,10 +91,12 @@ export function isIndexedTypeConflict(problem: unknown): problem is IndexedTypeC
     return isSpecificTypirProblem(problem, IndexedTypeConflict);
 }
 
-export type TypeToCheck<LanguageType> = Type | NameTypePair | undefined | Array<InferenceProblem<LanguageType>>;
+export type TypeToCheck<Specifics extends TypirSpecifics> = Type | NameTypePair | undefined | Array<InferenceProblem<Specifics>>;
 
-export function checkTypes<LanguageType>(left: TypeToCheck<LanguageType>, right: TypeToCheck<LanguageType>,
-    relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
+export function checkTypes<Specifics extends TypirSpecifics>(
+    left: TypeToCheck<Specifics>, right: TypeToCheck<Specifics>,
+    relationToCheck: (l: Type, r: Type) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean,
+): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
     const leftInferenceProblems = Array.isArray(left);
@@ -163,8 +165,10 @@ export function checkTypes<LanguageType>(left: TypeToCheck<LanguageType>, right:
     return conflicts;
 }
 
-export function checkTypeArrays<LanguageType>(leftTypes: Array<TypeToCheck<LanguageType>>, rightTypes: Array<TypeToCheck<LanguageType>>,
-    relationToCheck: (l: Type, r: Type, index: number) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean): IndexedTypeConflict[] {
+export function checkTypeArrays<Specifics extends TypirSpecifics>(
+    leftTypes: Array<TypeToCheck<Specifics>>, rightTypes: Array<TypeToCheck<Specifics>>,
+    relationToCheck: (l: Type, r: Type, index: number) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean,
+): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
     for (let i = 0; i < Math.min(leftTypes.length, rightTypes.length); i++) {

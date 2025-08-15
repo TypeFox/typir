@@ -7,6 +7,7 @@
 import { isType, Type } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
+import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy, IndexedTypeConflict } from '../../utils/utils-type-comparison.js';
 import { assertUnreachable, removeFromArray, toArray } from '../../utils/utils.js';
@@ -30,7 +31,7 @@ export interface MethodDetails {
 }
 
 export class ClassType extends Type {
-    override readonly kind: ClassKind<unknown>;
+    override readonly kind: ClassKind<TypirSpecifics>;
     readonly className: string;
     /** The super classes are readonly, since they might be used to calculate the identifier of the current class, which must be stable. */
     protected superClasses: Array<TypeReference<ClassType>>; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
@@ -38,7 +39,7 @@ export class ClassType extends Type {
     protected readonly fields: Map<string, FieldDetails> = new Map(); // unordered
     protected readonly methods: MethodDetails[]; // unordered
 
-    constructor(kind: ClassKind<unknown>, typeDetails: ClassTypeDetails<unknown>) {
+    constructor(kind: ClassKind<TypirSpecifics>, typeDetails: ClassTypeDetails<TypirSpecifics>) {
         super(kind.options.typing === 'Nominal'
             ? kind.calculateIdentifierWithClassNameOnly(typeDetails) // use the name of the class as identifier already now
             : undefined, // the identifier for structurally typed classes will be set later after resolving all fields and methods

@@ -7,25 +7,24 @@
 import { beforeEach, describe, expect, test } from 'vitest';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { CustomType } from '../../../src/kinds/custom/custom-type.js';
-import { TestExpressionNode, TestLanguageNode, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
+import { createTypirServicesForTesting, TestExpressionNode, TestingSpecifics, TestLanguageService } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting } from '../../../src/utils/test-utils.js';
 
-// These test cases test that all possible TypeSelectors work for custom types.
+// These test cases test that all possible TypeDescriptors work for custom types.
 
 export type MyCustomProperties = {
-    dependsOnType?: CustomType<MyCustomProperties, TestLanguageNode>;
+    dependsOnType?: CustomType<MyCustomProperties, TestingSpecifics>;
     myProperty: number;
 };
 
-describe('Test all possible TypeSelectors with custom types', () => {
-    let typir: TypirServices<TestLanguageNode>;
-    let customKind: CustomKind<MyCustomProperties, TestLanguageNode>;
+describe('Test all possible TypeDescriptors with custom types', () => {
+    let typir: TypirServices<TestingSpecifics>;
+    let customKind: CustomKind<MyCustomProperties, TestingSpecifics>;
 
     beforeEach(() => {
         typir = createTypirServicesForTesting({ Language: () => new TestLanguageService([{ superKey: 'TestExpressionNode', subKey: 'CustomLiteral' }])});
 
-        customKind = new CustomKind<MyCustomProperties, TestLanguageNode>(typir, {
+        customKind = new CustomKind<MyCustomProperties, TestingSpecifics>(typir, {
             name: 'MyCustom',
             calculateTypeIdentifier: properties =>
                 `custom-${properties.myProperty}-(${properties.dependsOnType ? typir.infrastructure.TypeResolver.resolve(properties.dependsOnType).getIdentifier() : ''})`,

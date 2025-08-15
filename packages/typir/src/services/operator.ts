@@ -8,30 +8,30 @@ import { Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { FunctionFactoryService, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
 import { FunctionType } from '../kinds/function/function-type.js';
-import { TypirServices } from '../typir.js';
+import { TypirSpecifics, TypirServices } from '../typir.js';
 import { NameTypePair } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
 import { ValidationProblemAcceptor } from './validation.js';
 
-export interface InferOperatorWithSingleOperand<LanguageType, T extends LanguageType = LanguageType> {
+export interface InferOperatorWithSingleOperand<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> {
     languageKey?: string | string[];
-    filter?: (languageNode: LanguageType, operatorName: string) => languageNode is T;
+    filter?: (languageNode: Specifics['LanguageType'], operatorName: string) => languageNode is T;
     matching: (languageNode: T, operatorName: string) => boolean;
-    operand: (languageNode: T, operatorName: string) => LanguageType;
-    validation?: OperatorValidationRule<FunctionType, LanguageType, T> | Array<OperatorValidationRule<FunctionType, LanguageType, T>>;
+    operand: (languageNode: T, operatorName: string) => Specifics['LanguageType'];
+    validation?: OperatorValidationRule<FunctionType, Specifics, T> | Array<OperatorValidationRule<FunctionType, Specifics, T>>;
     validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 }
-export interface InferOperatorWithMultipleOperands<LanguageType, T extends LanguageType = LanguageType> {
+export interface InferOperatorWithMultipleOperands<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> {
     languageKey?: string | string[];
-    filter?: (languageNode: LanguageType, operatorName: string) => languageNode is T;
+    filter?: (languageNode: Specifics['LanguageType'], operatorName: string) => languageNode is T;
     matching: (languageNode: T, operatorName: string) => boolean;
-    operands: (languageNode: T, operatorName: string) => LanguageType[];
-    validation?: OperatorValidationRule<FunctionType, LanguageType, T> | Array<OperatorValidationRule<FunctionType, LanguageType, T>>;
+    operands: (languageNode: T, operatorName: string) => Array<Specifics['LanguageType']>;
+    validation?: OperatorValidationRule<FunctionType, Specifics, T> | Array<OperatorValidationRule<FunctionType, Specifics, T>>;
     validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 }
 
-export type OperatorValidationRule<TypeType extends Type, LanguageType, T extends LanguageType = LanguageType> =
-    (operatorCall: T, operatorName: string, operatorType: TypeType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => void;
+export type OperatorValidationRule<TypeType extends Type, Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
+    (operatorCall: T, operatorName: string, operatorType: TypeType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
 
 export interface AnyOperatorDetails {
     name: string;
@@ -45,8 +45,8 @@ export interface UnaryOperatorSignature {
     operand: Type;
     return: Type;
 }
-interface CreateUnaryOperatorDetails<LanguageType> extends UnaryOperatorDetails { // only internally used for collecting all information with the chaining API
-    inferenceRules: Array<InferOperatorWithSingleOperand<LanguageType>>;
+interface CreateUnaryOperatorDetails<Specifics extends TypirSpecifics> extends UnaryOperatorDetails { // only internally used for collecting all information with the chaining API
+    inferenceRules: Array<InferOperatorWithSingleOperand<Specifics>>;
 }
 
 export interface BinaryOperatorDetails extends AnyOperatorDetails {
@@ -58,8 +58,8 @@ export interface BinaryOperatorSignature {
     right: Type;
     return: Type;
 }
-interface CreateBinaryOperatorDetails<LanguageType> extends BinaryOperatorDetails { // only internally used for collecting all information with the chaining API
-    inferenceRules: Array<InferOperatorWithMultipleOperands<LanguageType>>;
+interface CreateBinaryOperatorDetails<Specifics extends TypirSpecifics> extends BinaryOperatorDetails { // only internally used for collecting all information with the chaining API
+    inferenceRules: Array<InferOperatorWithMultipleOperands<Specifics>>;
 }
 
 export interface TernaryOperatorDetails extends AnyOperatorDetails {
@@ -72,42 +72,42 @@ export interface TernaryOperatorSignature {
     third: Type;
     return: Type;
 }
-interface CreateTernaryOperatorDetails<LanguageType> extends TernaryOperatorDetails { // only internally used for collecting all information with the chaining API
-    inferenceRules: Array<InferOperatorWithMultipleOperands<LanguageType>>;
+interface CreateTernaryOperatorDetails<Specifics extends TypirSpecifics> extends TernaryOperatorDetails { // only internally used for collecting all information with the chaining API
+    inferenceRules: Array<InferOperatorWithMultipleOperands<Specifics>>;
 }
 
 export interface GenericOperatorDetails extends AnyOperatorDetails {
     outputType: Type;
     inputParameter: NameTypePair[];
 }
-interface CreateGenericOperatorDetails<LanguageType> extends GenericOperatorDetails { // only internally used for collecting all information with the chaining API
-    inferenceRules: Array<InferOperatorWithSingleOperand<LanguageType> | InferOperatorWithMultipleOperands<LanguageType>>;
+interface CreateGenericOperatorDetails<Specifics extends TypirSpecifics> extends GenericOperatorDetails { // only internally used for collecting all information with the chaining API
+    inferenceRules: Array<InferOperatorWithSingleOperand<Specifics> | InferOperatorWithMultipleOperands<Specifics>>;
 }
 
-export interface OperatorFactoryService<LanguageType> {
-    createUnary(typeDetails: UnaryOperatorDetails): OperatorConfigurationUnaryChain<LanguageType>;
-    createBinary(typeDetails: BinaryOperatorDetails): OperatorConfigurationBinaryChain<LanguageType>;
-    createTernary(typeDetails: TernaryOperatorDetails): OperatorConfigurationTernaryChain<LanguageType>;
+export interface OperatorFactoryService<Specifics extends TypirSpecifics> {
+    createUnary(typeDetails: UnaryOperatorDetails): OperatorConfigurationUnaryChain<Specifics>;
+    createBinary(typeDetails: BinaryOperatorDetails): OperatorConfigurationBinaryChain<Specifics>;
+    createTernary(typeDetails: TernaryOperatorDetails): OperatorConfigurationTernaryChain<Specifics>;
 
     /** This function allows to create a single operator with arbitrary input operands. */
-    createGeneric(typeDetails: GenericOperatorDetails): OperatorConfigurationGenericChain<LanguageType>;
+    createGeneric(typeDetails: GenericOperatorDetails): OperatorConfigurationGenericChain<Specifics>;
 }
 
-export interface OperatorConfigurationUnaryChain<LanguageType> {
-    inferenceRule<T extends LanguageType>(rule: InferOperatorWithSingleOperand<LanguageType, T>): OperatorConfigurationUnaryChain<LanguageType>;
-    finish(): Array<TypeInitializer<Type, LanguageType>>;
+export interface OperatorConfigurationUnaryChain<Specifics extends TypirSpecifics> {
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferOperatorWithSingleOperand<Specifics, T>): OperatorConfigurationUnaryChain<Specifics>;
+    finish(): Array<TypeInitializer<Type, Specifics>>;
 }
-export interface OperatorConfigurationBinaryChain<LanguageType> {
-    inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationBinaryChain<LanguageType>;
-    finish(): Array<TypeInitializer<Type, LanguageType>>;
+export interface OperatorConfigurationBinaryChain<Specifics extends TypirSpecifics> {
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferOperatorWithMultipleOperands<Specifics, T>): OperatorConfigurationBinaryChain<Specifics>;
+    finish(): Array<TypeInitializer<Type, Specifics>>;
 }
-export interface OperatorConfigurationTernaryChain<LanguageType> {
-    inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationTernaryChain<LanguageType>;
-    finish(): Array<TypeInitializer<Type, LanguageType>>;
+export interface OperatorConfigurationTernaryChain<Specifics extends TypirSpecifics> {
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferOperatorWithMultipleOperands<Specifics, T>): OperatorConfigurationTernaryChain<Specifics>;
+    finish(): Array<TypeInitializer<Type, Specifics>>;
 }
-export interface OperatorConfigurationGenericChain<LanguageType> {
-    inferenceRule<T extends LanguageType>(rule: InferOperatorWithSingleOperand<LanguageType, T> | InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationGenericChain<LanguageType>;
-    finish(): TypeInitializer<Type, LanguageType>;
+export interface OperatorConfigurationGenericChain<Specifics extends TypirSpecifics> {
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferOperatorWithSingleOperand<Specifics, T> | InferOperatorWithMultipleOperands<Specifics, T>): OperatorConfigurationGenericChain<Specifics>;
+    finish(): TypeInitializer<Type, Specifics>;
 }
 
 
@@ -125,36 +125,36 @@ export interface OperatorConfigurationGenericChain<LanguageType> {
  *
  * All operands are mandatory.
  */
-export class DefaultOperatorFactory<LanguageType> implements OperatorFactoryService<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
+export class DefaultOperatorFactory<Specifics extends TypirSpecifics> implements OperatorFactoryService<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.services = services;
     }
 
-    createUnary(typeDetails: UnaryOperatorDetails): OperatorConfigurationUnaryChain<LanguageType> {
+    createUnary(typeDetails: UnaryOperatorDetails): OperatorConfigurationUnaryChain<Specifics> {
         return new OperatorConfigurationUnaryChainImpl(this.services, typeDetails);
     }
 
-    createBinary(typeDetails: BinaryOperatorDetails): OperatorConfigurationBinaryChain<LanguageType> {
+    createBinary(typeDetails: BinaryOperatorDetails): OperatorConfigurationBinaryChain<Specifics> {
         return new OperatorConfigurationBinaryChainImpl(this.services, typeDetails);
     }
 
-    createTernary(typeDetails: TernaryOperatorDetails): OperatorConfigurationTernaryChain<LanguageType> {
+    createTernary(typeDetails: TernaryOperatorDetails): OperatorConfigurationTernaryChain<Specifics> {
         return new OperatorConfigurationTernaryChainImpl(this.services, typeDetails);
     }
 
-    createGeneric(typeDetails: GenericOperatorDetails): OperatorConfigurationGenericChain<LanguageType> {
+    createGeneric(typeDetails: GenericOperatorDetails): OperatorConfigurationGenericChain<Specifics> {
         return new OperatorConfigurationGenericChainImpl(this.services, typeDetails);
     }
 }
 
 
-class OperatorConfigurationUnaryChainImpl<LanguageType> implements OperatorConfigurationUnaryChain<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly typeDetails: CreateUnaryOperatorDetails<LanguageType>;
+class OperatorConfigurationUnaryChainImpl<Specifics extends TypirSpecifics> implements OperatorConfigurationUnaryChain<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly typeDetails: CreateUnaryOperatorDetails<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, typeDetails: UnaryOperatorDetails) {
+    constructor(services: TypirServices<Specifics>, typeDetails: UnaryOperatorDetails) {
         this.services = services;
         this.typeDetails = {
             ...typeDetails,
@@ -162,14 +162,14 @@ class OperatorConfigurationUnaryChainImpl<LanguageType> implements OperatorConfi
         };
     }
 
-    inferenceRule<T extends LanguageType>(rule: InferOperatorWithSingleOperand<LanguageType, T>): OperatorConfigurationUnaryChain<LanguageType> {
-        this.typeDetails.inferenceRules.push(rule as unknown as InferOperatorWithSingleOperand<LanguageType>);
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferOperatorWithSingleOperand<Specifics, T>): OperatorConfigurationUnaryChain<Specifics> {
+        this.typeDetails.inferenceRules.push(rule as unknown as InferOperatorWithSingleOperand<Specifics>);
         return this;
     }
 
-    finish(): Array<TypeInitializer<Type, LanguageType>> {
+    finish(): Array<TypeInitializer<Type, Specifics>> {
         const signatures = toSignatureArray(this.typeDetails);
-        const result: Array<TypeInitializer<Type, LanguageType>> = [];
+        const result: Array<TypeInitializer<Type, Specifics>> = [];
         for (const signature of signatures) {
             const generic = new OperatorConfigurationGenericChainImpl(this.services, {
                 name: this.typeDetails.name,
@@ -186,11 +186,11 @@ class OperatorConfigurationUnaryChainImpl<LanguageType> implements OperatorConfi
     }
 }
 
-class OperatorConfigurationBinaryChainImpl<LanguageType> implements OperatorConfigurationBinaryChain<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly typeDetails: CreateBinaryOperatorDetails<LanguageType>;
+class OperatorConfigurationBinaryChainImpl<Specifics extends TypirSpecifics> implements OperatorConfigurationBinaryChain<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly typeDetails: CreateBinaryOperatorDetails<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, typeDetails: BinaryOperatorDetails) {
+    constructor(services: TypirServices<Specifics>, typeDetails: BinaryOperatorDetails) {
         this.services = services;
         this.typeDetails = {
             ...typeDetails,
@@ -198,14 +198,14 @@ class OperatorConfigurationBinaryChainImpl<LanguageType> implements OperatorConf
         };
     }
 
-    inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationBinaryChain<LanguageType> {
-        this.typeDetails.inferenceRules.push(rule as unknown as InferOperatorWithMultipleOperands<LanguageType>);
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferOperatorWithMultipleOperands<Specifics, T>): OperatorConfigurationBinaryChain<Specifics> {
+        this.typeDetails.inferenceRules.push(rule as unknown as InferOperatorWithMultipleOperands<Specifics>);
         return this;
     }
 
-    finish(): Array<TypeInitializer<Type, LanguageType>> {
+    finish(): Array<TypeInitializer<Type, Specifics>> {
         const signatures = toSignatureArray(this.typeDetails);
-        const result: Array<TypeInitializer<Type, LanguageType>> = [];
+        const result: Array<TypeInitializer<Type, Specifics>> = [];
         for (const signature of signatures) {
             const generic = new OperatorConfigurationGenericChainImpl(this.services, {
                 name: this.typeDetails.name,
@@ -223,11 +223,11 @@ class OperatorConfigurationBinaryChainImpl<LanguageType> implements OperatorConf
     }
 }
 
-class OperatorConfigurationTernaryChainImpl<LanguageType> implements OperatorConfigurationTernaryChain<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly typeDetails: CreateTernaryOperatorDetails<LanguageType>;
+class OperatorConfigurationTernaryChainImpl<Specifics extends TypirSpecifics> implements OperatorConfigurationTernaryChain<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly typeDetails: CreateTernaryOperatorDetails<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, typeDetails: TernaryOperatorDetails) {
+    constructor(services: TypirServices<Specifics>, typeDetails: TernaryOperatorDetails) {
         this.services = services;
         this.typeDetails = {
             ...typeDetails,
@@ -235,14 +235,14 @@ class OperatorConfigurationTernaryChainImpl<LanguageType> implements OperatorCon
         };
     }
 
-    inferenceRule<T extends LanguageType>(rule: InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationTernaryChain<LanguageType> {
-        this.typeDetails.inferenceRules.push(rule as unknown as InferOperatorWithMultipleOperands<LanguageType>);
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferOperatorWithMultipleOperands<Specifics, T>): OperatorConfigurationTernaryChain<Specifics> {
+        this.typeDetails.inferenceRules.push(rule as unknown as InferOperatorWithMultipleOperands<Specifics>);
         return this;
     }
 
-    finish(): Array<TypeInitializer<Type, LanguageType>> {
+    finish(): Array<TypeInitializer<Type, Specifics>> {
         const signatures = toSignatureArray(this.typeDetails);
-        const result: Array<TypeInitializer<Type, LanguageType>> = [];
+        const result: Array<TypeInitializer<Type, Specifics>> = [];
         for (const signature of signatures) {
             const generic = new OperatorConfigurationGenericChainImpl(this.services, {
                 name: this.typeDetails.name,
@@ -261,11 +261,11 @@ class OperatorConfigurationTernaryChainImpl<LanguageType> implements OperatorCon
     }
 }
 
-class OperatorConfigurationGenericChainImpl<LanguageType> implements OperatorConfigurationGenericChain<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly typeDetails: CreateGenericOperatorDetails<LanguageType>;
+class OperatorConfigurationGenericChainImpl<Specifics extends TypirSpecifics> implements OperatorConfigurationGenericChain<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly typeDetails: CreateGenericOperatorDetails<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, typeDetails: GenericOperatorDetails) {
+    constructor(services: TypirServices<Specifics>, typeDetails: GenericOperatorDetails) {
         this.services = services;
         this.typeDetails = {
             ...typeDetails,
@@ -273,12 +273,12 @@ class OperatorConfigurationGenericChainImpl<LanguageType> implements OperatorCon
         };
     }
 
-    inferenceRule<T extends LanguageType>(rule: InferOperatorWithSingleOperand<LanguageType, T> | InferOperatorWithMultipleOperands<LanguageType, T>): OperatorConfigurationGenericChain<LanguageType> {
-        this.typeDetails.inferenceRules.push(rule as unknown as (InferOperatorWithSingleOperand<LanguageType> | InferOperatorWithMultipleOperands<LanguageType>));
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferOperatorWithSingleOperand<Specifics, T> | InferOperatorWithMultipleOperands<Specifics, T>): OperatorConfigurationGenericChain<Specifics> {
+        this.typeDetails.inferenceRules.push(rule as unknown as (InferOperatorWithSingleOperand<Specifics> | InferOperatorWithMultipleOperands<Specifics>));
         return this;
     }
 
-    finish(): TypeInitializer<Type, LanguageType> {
+    finish(): TypeInitializer<Type, Specifics> {
         // define/register the wanted operator as "special" function
         const functionFactory = this.getFunctionFactory();
         const operatorName = this.typeDetails.name;
@@ -293,26 +293,26 @@ class OperatorConfigurationGenericChainImpl<LanguageType> implements OperatorCon
         for (const inferenceRule of this.typeDetails.inferenceRules) {
             newOperatorType.inferenceRuleForCalls({
                 languageKey: inferenceRule.languageKey,
-                filter: inferenceRule.filter ? ((languageNode: LanguageType): languageNode is LanguageType => inferenceRule.filter!(languageNode, this.typeDetails.name)) : undefined,
-                matching: (languageNode: LanguageType) => inferenceRule.matching(languageNode, this.typeDetails.name),
-                inputArguments: (languageNode: LanguageType) => this.getInputArguments(inferenceRule, languageNode),
+                filter: inferenceRule.filter ? ((languageNode: Specifics['LanguageType']): languageNode is Specifics['LanguageType'] => inferenceRule.filter!(languageNode, this.typeDetails.name)) : undefined,
+                matching: (languageNode: Specifics['LanguageType']) => inferenceRule.matching(languageNode, this.typeDetails.name),
+                inputArguments: (languageNode: Specifics['LanguageType']) => this.getInputArguments(inferenceRule, languageNode),
                 validation: toArray(inferenceRule.validation).map(validationRule =>
-                    (functionCall: LanguageType, functionType: FunctionType, accept: ValidationProblemAcceptor<LanguageType>, typir: TypirServices<LanguageType>) => validationRule(functionCall, operatorName, functionType, accept, typir)),
+                    (functionCall: Specifics['LanguageType'], functionType: FunctionType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => validationRule(functionCall, operatorName, functionType, accept, typir)),
                 validateArgumentsOfFunctionCalls: inferenceRule.validateArgumentsOfCalls,
             });
         }
         // operators have no declaration in the code => no inference rule for the operator declaration!
 
-        return newOperatorType.finish() as unknown as TypeInitializer<Type, LanguageType>;
+        return newOperatorType.finish() as unknown as TypeInitializer<Type, Specifics>;
     }
 
-    protected getInputArguments(inferenceRule: InferOperatorWithSingleOperand<LanguageType> | InferOperatorWithMultipleOperands<LanguageType>, languageNode: LanguageType): LanguageType[] {
+    protected getInputArguments(inferenceRule: InferOperatorWithSingleOperand<Specifics> | InferOperatorWithMultipleOperands<Specifics>, languageNode: Specifics['LanguageType']): Array<Specifics['LanguageType']> {
         return 'operands' in inferenceRule
-            ? (inferenceRule as InferOperatorWithMultipleOperands<LanguageType>).operands(languageNode, this.typeDetails.name)
-            : [(inferenceRule as InferOperatorWithSingleOperand<LanguageType>).operand(languageNode, this.typeDetails.name)];
+            ? (inferenceRule as InferOperatorWithMultipleOperands<Specifics>).operands(languageNode, this.typeDetails.name)
+            : [(inferenceRule as InferOperatorWithSingleOperand<Specifics>).operand(languageNode, this.typeDetails.name)];
     }
 
-    protected getFunctionFactory(): FunctionFactoryService<LanguageType> {
+    protected getFunctionFactory(): FunctionFactoryService<Specifics> {
         return this.services.factory.Functions;
     }
 }

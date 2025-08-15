@@ -7,7 +7,7 @@
 import { Type } from '../../graph/type-node.js';
 import { AssignabilitySuccess, isAssignabilityProblem } from '../../services/assignability.js';
 import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceResultWithInferringChildren, TypeInferenceRuleWithInferringChildren } from '../../services/inference.js';
-import { TypirServices } from '../../typir.js';
+import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
 import { FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
 import { AvailableFunctionsManager } from './function-overloading.js';
@@ -25,14 +25,14 @@ import { FunctionType } from './function-type.js';
  * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
  *   (exception: the options contain a type to return in this special case)
  */
-export class FunctionCallInferenceRule<LanguageType, T extends LanguageType = LanguageType> implements TypeInferenceRuleWithInferringChildren<LanguageType> {
-    protected readonly typeDetails: FunctionTypeDetails<LanguageType>;
-    protected readonly inferenceRuleForCalls: InferFunctionCall<LanguageType, T>;
+export class FunctionCallInferenceRule<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> implements TypeInferenceRuleWithInferringChildren<Specifics> {
+    protected readonly typeDetails: FunctionTypeDetails<Specifics>;
+    protected readonly inferenceRuleForCalls: InferFunctionCall<Specifics, T>;
     protected readonly functionType: FunctionType;
-    protected readonly functions: AvailableFunctionsManager<LanguageType>;
+    protected readonly functions: AvailableFunctionsManager<Specifics>;
     assignabilitySuccess: Array<AssignabilitySuccess | undefined>; // public, since this information is exploited to determine the best overloaded match in case of multiple matches
 
-    constructor(typeDetails: FunctionTypeDetails<LanguageType>, inferenceRuleForCalls: InferFunctionCall<LanguageType, T>, functionType: FunctionType, functions: AvailableFunctionsManager<LanguageType>) {
+    constructor(typeDetails: FunctionTypeDetails<Specifics>, inferenceRuleForCalls: InferFunctionCall<Specifics, T>, functionType: FunctionType, functions: AvailableFunctionsManager<Specifics>) {
         this.typeDetails = typeDetails;
         this.inferenceRuleForCalls = inferenceRuleForCalls;
         this.functionType = functionType;
@@ -40,7 +40,7 @@ export class FunctionCallInferenceRule<LanguageType, T extends LanguageType = La
         this.assignabilitySuccess = new Array(typeDetails.inputParameters.length);
     }
 
-    inferTypeWithoutChildren(languageNode: LanguageType, _typir: TypirServices<LanguageType>): TypeInferenceResultWithInferringChildren<LanguageType> {
+    inferTypeWithoutChildren(languageNode: Specifics['LanguageType'], _typir: TypirServices<Specifics>): TypeInferenceResultWithInferringChildren<Specifics> {
         this.assignabilitySuccess.fill(undefined); // reset the entries
         // 0. The LanguageKeys are already checked by OverloadedFunctionsTypeInferenceRule, nothing to do here
         // 1. Does the filter of the inference rule accept the current language node?
@@ -72,7 +72,7 @@ export class FunctionCallInferenceRule<LanguageType, T extends LanguageType = La
         return inputArguments;
     }
 
-    inferTypeWithChildrensTypes(languageNode: LanguageType, actualInputTypes: Array<Type | undefined>, typir: TypirServices<LanguageType>): Type | InferenceProblem<LanguageType> {
+    inferTypeWithChildrensTypes(languageNode: Specifics['LanguageType'], actualInputTypes: Array<Type | undefined>, typir: TypirServices<Specifics>): Type | InferenceProblem<Specifics> {
         const expectedInputTypes = this.typeDetails.inputParameters.map(p => typir.infrastructure.TypeResolver.resolve(p.type));
         // all operands need to be assignable(! not equal) to the required types
         const comparisonConflicts = checkTypeArrays(

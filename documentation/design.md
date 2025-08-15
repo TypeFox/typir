@@ -47,4 +47,4 @@ Each type system, i.e. each instance of the `TypirServices`, has one type graph:
 
 - inference: inference rule, type inference
 - language node, language key
--
+- ...

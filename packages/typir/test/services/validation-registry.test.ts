@@ -8,18 +8,18 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { Type } from '../../src/graph/type-node.js';
 import { PrimitiveType } from '../../src/kinds/primitive/primitive-type.js';
 import { DefaultValidationCollector, ValidationRule, ValidationRuleFunctional, ValidationRuleLifecycle, ValidationRuleOptions } from '../../src/services/validation.js';
-import { booleanTrue, integer123, IntegerLiteral, stringHello, StringLiteral, TestLanguageNode } from '../../src/test/predefined-language-nodes.js';
+import { booleanTrue, createTypirServicesForTesting, integer123, IntegerLiteral, stringHello, StringLiteral, TestingSpecifics } from '../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../src/typir.js';
 import { RuleRegistry } from '../../src/utils/rule-registration.js';
-import { createTypirServicesForTesting, expectValidationIssuesStrict } from '../../src/utils/test-utils.js';
+import { expectValidationIssuesStrict } from '../../src/test/test-utils.js';
 
 describe('Tests the logic for registering rules (applied to state-less validation rules)', () => {
-    let typir: TypirServices<TestLanguageNode>;
+    let typir: TypirServices<TestingSpecifics>;
     let integerType: PrimitiveType;
     let stringType: PrimitiveType;
-    let ruleString: ValidationRuleFunctional<TestLanguageNode>;
-    let ruleInteger: ValidationRuleFunctional<TestLanguageNode>;
-    let ruleStringInteger: ValidationRuleFunctional<TestLanguageNode>;
+    let ruleString: ValidationRuleFunctional<TestingSpecifics>;
+    let ruleInteger: ValidationRuleFunctional<TestingSpecifics>;
+    let ruleStringInteger: ValidationRuleFunctional<TestingSpecifics>;
 
     beforeEach(() => {
         // Typir services
@@ -289,10 +289,10 @@ describe('Tests the logic for registering rules (applied to state-less validatio
     function removeType(type: Type): void {
         typir.infrastructure.Graph.removeNode(type);
     }
-    function addValidationRule(rule: ValidationRule<TestLanguageNode>, options?: Partial<ValidationRuleOptions>) {
+    function addValidationRule(rule: ValidationRule<TestingSpecifics>, options?: Partial<ValidationRuleOptions>) {
         typir.validation.Collector.addValidationRule(rule, options);
     }
-    function removeValidationRule(rule: ValidationRule<TestLanguageNode>, options?: Partial<ValidationRuleOptions>) {
+    function removeValidationRule(rule: ValidationRule<TestingSpecifics>, options?: Partial<ValidationRuleOptions>) {
         typir.validation.Collector.removeValidationRule(rule, options);
     }
 
@@ -302,8 +302,8 @@ describe('Tests the logic for registering rules (applied to state-less validatio
     }
 });
 
-class TestValidatorImpl extends DefaultValidationCollector<TestLanguageNode> {
+class TestValidatorImpl extends DefaultValidationCollector<TestingSpecifics> {
     // make the public to access their details
-    override readonly ruleRegistryFunctional: RuleRegistry<ValidationRuleFunctional<TestLanguageNode>, TestLanguageNode>;
-    override readonly ruleRegistryLifecycle: RuleRegistry<ValidationRuleLifecycle<TestLanguageNode>, TestLanguageNode>;
+    override readonly ruleRegistryFunctional: RuleRegistry<ValidationRuleFunctional<TestingSpecifics>, TestingSpecifics>;
+    override readonly ruleRegistryLifecycle: RuleRegistry<ValidationRuleLifecycle<TestingSpecifics>, TestingSpecifics>;
 }

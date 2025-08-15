@@ -6,21 +6,21 @@
 
 import { AstNode, AstUtils, DocumentState, interruptAndCheck, LangiumDocument } from 'langium';
 import { Type, TypeGraph, TypeGraphListener } from 'typir';
-import { TypirLangiumServices } from '../typir-langium.js';
-import { getDocumentKeyForDocument, getDocumentKeyForURI, LangiumAstTypes } from '../utils/typir-langium-utils.js';
+import { TypirLangiumServices, TypirLangiumSpecifics } from '../typir-langium.js';
+import { getDocumentKeyForDocument, getDocumentKeyForURI } from '../utils/typir-langium-utils.js';
 
 /**
  * This service provides the API to define the actual types, inference rules and validation rules
  * for a textual DSL developed with Langium.
  */
-export interface LangiumTypeSystemDefinition<AstTypes extends LangiumAstTypes> {
+export interface LangiumTypeSystemDefinition<Specifics extends TypirLangiumSpecifics> {
     /**
      * For the initialization of the type system, e.g. to register primitive types and operators, inference rules and validation rules,
      * which are constant and don't depend on the actual language nodes.
      * This method will be executed once before the first added/updated/removed language node.
      * @param typir the current Typir services, just for convenience
      */
-    onInitialize(typir: TypirLangiumServices<AstTypes>): void;
+    onInitialize(typir: TypirLangiumServices<Specifics>): void;
 
     /**
      * React on updates of the AST in order to add/remove corresponding types from the type system,
@@ -31,7 +31,7 @@ export interface LangiumTypeSystemDefinition<AstTypes extends LangiumAstTypes> {
      * @param languageNode an AstNode of the current AST, as this method is called for each
      * @param typir the current Typir services, just for convenience, these services are the same as for 'onInitialize'
      */
-    onNewAstNode(languageNode: AstNode, typir: TypirLangiumServices<AstTypes>): void;
+    onNewAstNode(languageNode: Specifics['LanguageType'], typir: TypirLangiumServices<Specifics>): void;
 }
 
 
@@ -47,15 +47,15 @@ export interface LangiumTypeCreator {
     triggerInitialization(): void;
 }
 
-export class DefaultLangiumTypeCreator<AstTypes extends LangiumAstTypes> implements LangiumTypeCreator, TypeGraphListener {
+export class DefaultLangiumTypeCreator<Specifics extends TypirLangiumSpecifics> implements LangiumTypeCreator, TypeGraphListener {
     protected initialized: boolean = false;
     protected currentDocumentKey: string = '';
     protected readonly documentTypesMap: Map<string, Type[]> = new Map();
-    protected readonly typir: TypirLangiumServices<AstTypes>;
+    protected readonly typir: TypirLangiumServices<Specifics>;
     protected readonly typeGraph: TypeGraph;
-    protected readonly typeSystemDefinition: LangiumTypeSystemDefinition<AstTypes>;
+    protected readonly typeSystemDefinition: LangiumTypeSystemDefinition<Specifics>;
 
-    constructor(typirServices: TypirLangiumServices<AstTypes>) {
+    constructor(typirServices: TypirLangiumServices<Specifics>) {
         this.typir = typirServices;
         this.typeGraph = typirServices.infrastructure.Graph;
         this.typeSystemDefinition = typirServices.langium.TypeSystemDefinition;

@@ -4,13 +4,17 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
+import { Type } from '../../graph/type-node.js';
+import { InferenceProblem } from '../../services/inference.js';
 import { ValidationProblem, ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
-import { TypirServices } from '../../typir.js';
+import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { RuleCollectorListener, RuleOptions } from '../../utils/rule-registration.js';
-import { checkTypes, checkValueForConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
+import { NameTypePair, TypirProblem } from '../../utils/utils-definitions.js';
+import { checkTypes, checkValueForConflict, createTypeCheckStrategy, IndexedTypeConflict, ValueConflict } from '../../utils/utils-type-comparison.js';
 import { assertUnreachable, toArray } from '../../utils/utils.js';
 import { InferFunctionCall } from './function-kind.js';
-import { AvailableFunctionsManager, SingleFunctionDetails } from './function-overloading.js';
+import { AvailableFunctionsManager, OverloadedFunctionDetails, SingleFunctionDetails } from './function-overloading.js';
+import { FunctionType } from './function-type.js';
 
 /**
  * This validation uses the inference rules for all available function calls to check, whether ...
@@ -18,16 +22,16 @@ import { AvailableFunctionsManager, SingleFunctionDetails } from './function-ove
  * - and validates this call according to the specific validation rules for this function call.
  * There is only one instance of this class for each function kind/manager.
  */
-export class FunctionCallArgumentsValidation<LanguageType> implements ValidationRuleLifecycle<LanguageType>, RuleCollectorListener<SingleFunctionDetails<LanguageType>> {
-    protected readonly services: TypirServices<LanguageType>;
-    readonly functions: AvailableFunctionsManager<LanguageType>;
+export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> implements ValidationRuleLifecycle<Specifics>, RuleCollectorListener<SingleFunctionDetails<Specifics>> {
+    protected readonly services: TypirServices<Specifics>;
+    readonly functions: AvailableFunctionsManager<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, functions: AvailableFunctionsManager<LanguageType>) {
+    constructor(services: TypirServices<Specifics>, functions: AvailableFunctionsManager<Specifics>) {
         this.services = services;
         this.functions = functions;
     }
 
-    onAddedRule(_rule: SingleFunctionDetails<LanguageType, LanguageType>, diffOptions: RuleOptions): void {
+    onAddedRule(_rule: SingleFunctionDetails<Specifics, Specifics['LanguageType']>, diffOptions: RuleOptions): void {
         // this rule needs to be registered also for all the language keys of the new inner function call rule
         this.services.validation.Collector.addValidationRule(this, {
             ...diffOptions,
@@ -35,7 +39,7 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
         });
     }
 
-    onRemovedRule(_rule: SingleFunctionDetails<LanguageType, LanguageType>, diffOptions: RuleOptions): void {
+    onRemovedRule(_rule: SingleFunctionDetails<Specifics, Specifics['LanguageType']>, diffOptions: RuleOptions): void {
         // remove this "composite" rule for all language keys for which no function call rules are registered anymore
         if (diffOptions.languageKey === undefined) {
             if (this.noFunctionCallRulesForThisLanguageKey(undefined)) {
@@ -64,7 +68,7 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
         return true;
     }
 
-    validation(languageNode: LanguageType, accept: ValidationProblemAcceptor<LanguageType>, _typir: TypirServices<LanguageType>): void {
+    validation(languageNode: Specifics['LanguageType'], accept: ValidationProblemAcceptor<Specifics>, _typir: TypirServices<Specifics>): void {
         // determine all keys to check
         const keysToApply: Array<string|undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
@@ -77,10 +81,10 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
         }
 
         // execute all rules wich are associated to the relevant language keys
-        const alreadyExecutedRules: Set<InferFunctionCall<LanguageType>> = new Set();
+        const alreadyExecutedRules: Set<InferFunctionCall<Specifics>> = new Set();
         // for each (overloaded) function
         for (const [overloadedName, overloadedFunctions] of this.functions.getAllOverloads()) { // this grouping is not required here (but for other use cases) and does not hurt here
-            const resultOverloaded: Array<ValidationProblem<LanguageType>> = [];
+            const resultOverloaded: Array<ValidationProblem<Specifics>> = [];
             // for each language key
             for (const key of keysToApply) {
                 for (const singleFunction of overloadedFunctions.details.getRulesByLanguageKey(key)) {
@@ -101,14 +105,18 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
             }
             // Since none of the function signatures match, report one validation issue (with sub-problems) for each function signature (and for each language key)
             if (resultOverloaded.length >= 1) {
-                accept({
-                    languageNode: languageNode,
-                    severity: 'error',
-                    message: `The given operands for the call of ${overloadedFunctions.overloadedFunctions.length >= 2 ? 'the overload ' : ''}'${overloadedName}' don't match.`,
-                    subProblems: resultOverloaded,
-                });
+                this.reportOperandsMismatch(languageNode, overloadedName, overloadedFunctions, resultOverloaded, accept);
             }
         }
+    }
+
+    protected reportOperandsMismatch(languageNode: Specifics['LanguageType'], overloadedName: string, overloadedFunctions: OverloadedFunctionDetails<Specifics>, resultOverloaded: Array<ValidationProblem<Specifics>>, accept: ValidationProblemAcceptor<Specifics>): void {
+        accept({
+            languageNode: languageNode,
+            severity: 'error',
+            message: `The given operands for the call of ${overloadedFunctions.overloadedFunctions.length >= 2 ? 'the overload ' : ''}'${overloadedName}' don't match.`,
+            subProblems: resultOverloaded as TypirProblem[],
+        });
     }
 
     /**
@@ -118,7 +126,7 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
      * @param resultOverloaded receives a validation issue, if there is at least one conflict between given arguments and expected parameters
      * @returns true, if the given function signature exactly matches the current function call, false otherwise
     */
-    protected executeSingleRule(singleFunction: SingleFunctionDetails<LanguageType>, languageNode: LanguageType, resultOverloaded: Array<ValidationProblem<LanguageType>>): boolean {
+    protected executeSingleRule(singleFunction: SingleFunctionDetails<Specifics>, languageNode: Specifics['LanguageType'], resultOverloaded: Array<ValidationProblem<Specifics>>): boolean {
         const inferenceRule = singleFunction.inferenceRuleForCalls;
         const functionType = singleFunction.functionType;
         if (inferenceRule.filter !== undefined && inferenceRule.filter(languageNode) === false) {
@@ -130,19 +138,13 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
 
         // Now, check that the given arguments fit to the expected parameters and collect all problems
         // (Since the arguments should be validated, it is no option to skip the inference of arguments, as it is done as shortcut for the inference!)
-        const currentProblems: Array<ValidationProblem<LanguageType>> = [];
+        const currentProblems: Array<ValidationProblem<Specifics>> = [];
         const inputArguments = inferenceRule.inputArguments(languageNode);
         const expectedParameterTypes = functionType.getInputs();
         // check, that the given number of parameters is the same as the expected number of input parameters
         const parameterLength = checkValueForConflict(expectedParameterTypes.length, inputArguments.length, 'number of input parameter values');
         if (parameterLength.length >= 1) {
-            currentProblems.push({
-                $problem: ValidationProblem,
-                languageNode: languageNode,
-                severity: 'error',
-                message: 'The number of given parameter values does not match the expected number of input parameters.',
-                subProblems: parameterLength,
-            });
+            this.reportWrongNumberOfArguments(languageNode, parameterLength, currentProblems);
         } else {
             // compare arguments with their corresponding parameters
             const inferredParameterTypes = inputArguments.map(p => this.services.Inference.inferType(p));
@@ -153,13 +155,7 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
                 if (parameterProblems.length >= 1) {
                     // the value is not assignable to the type of the input parameter
                     // create one ValidationProblem for each problematic parameter!
-                    currentProblems.push({
-                        $problem: ValidationProblem,
-                        languageNode: inputArguments[i],
-                        severity: 'error',
-                        message: `The parameter '${expectedType.name}' at index ${i} got a value with a wrong type.`,
-                        subProblems: parameterProblems,
-                    });
+                    this.reportWrongArgument(languageNode, inputArguments[i], i, inferredType, expectedType, parameterProblems, currentProblems);
                 } else {
                     // this parameter value is fine
                 }
@@ -170,13 +166,7 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
         if (currentProblems.length >= 1) {
             // some problems with parameters => this signature does not match
             if (this.validateArgumentsOfFunctionCalls(inferenceRule, languageNode)) {
-                resultOverloaded.push({
-                    $problem: ValidationProblem,
-                    languageNode: languageNode,
-                    severity: 'error',
-                    message: `The given arguments don't match the parameters of '${this.services.Printer.printTypeUserRepresentation(functionType)}'.`,
-                    subProblems: currentProblems,
-                });
+                this.reportMismatchingSignature(languageNode, functionType, currentProblems, resultOverloaded);
             } else {
                 // ignore this variant for validation
             }
@@ -186,7 +176,7 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
         }
     }
 
-    protected validateArgumentsOfFunctionCalls<LanguageType>(rule: InferFunctionCall<LanguageType>, languageNode: LanguageType): boolean {
+    protected validateArgumentsOfFunctionCalls(rule: InferFunctionCall<Specifics, Specifics['LanguageType']>, languageNode: Specifics['LanguageType']): boolean {
         if (rule.validateArgumentsOfFunctionCalls === undefined) {
             return false; // the default value
         } else if (typeof rule.validateArgumentsOfFunctionCalls === 'boolean') {
@@ -198,4 +188,33 @@ export class FunctionCallArgumentsValidation<LanguageType> implements Validation
         }
     }
 
+    protected reportWrongNumberOfArguments(languageNode: Specifics['LanguageType'], parameterLength: ValueConflict[], currentProblems: Array<ValidationProblem<Specifics>>): void {
+        currentProblems.push({
+            $problem: ValidationProblem,
+            languageNode: languageNode,
+            severity: 'error',
+            message: 'The number of given parameter values does not match the expected number of input parameters.',
+            subProblems: parameterLength,
+        });
+    }
+
+    protected reportWrongArgument(languageNode: Specifics['LanguageType'], inputArgument: Specifics['LanguageType'], index: number, inferredType: Type | Array<InferenceProblem<Specifics>>, expectedType: NameTypePair, parameterProblems: IndexedTypeConflict[], currentProblems: Array<ValidationProblem<Specifics>>): void {
+        currentProblems.push({
+            $problem: ValidationProblem,
+            languageNode: inputArgument,
+            severity: 'error',
+            message: `The parameter '${expectedType.name}' at index ${index} got a value with a wrong type.`,
+            subProblems: parameterProblems,
+        });
+    }
+
+    protected reportMismatchingSignature(languageNode: Specifics['LanguageType'], functionType: FunctionType, currentProblems: Array<ValidationProblem<Specifics>>, resultOverloaded: Array<ValidationProblem<Specifics>>): void {
+        resultOverloaded.push({
+            $problem: ValidationProblem,
+            languageNode: languageNode,
+            severity: 'error',
+            message: `The given arguments don't match the parameters of '${this.services.Printer.printTypeUserRepresentation(functionType)}'.`,
+            subProblems: currentProblems,
+        });
+    }
 }

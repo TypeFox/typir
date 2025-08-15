@@ -7,6 +7,7 @@
 import { Type, isType } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
+import { TypirSpecifics } from '../../typir.js';
 import { NameTypePair, TypirProblem } from '../../utils/utils-definitions.js';
 import { checkTypeArrays, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertUnreachable } from '../../utils/utils.js';
@@ -18,13 +19,13 @@ export interface ParameterDetails {
 }
 
 export class FunctionType extends Type {
-    override readonly kind: FunctionKind<unknown>;
+    override readonly kind: FunctionKind<TypirSpecifics>;
 
     readonly functionName: string;
     readonly outputParameter: ParameterDetails | undefined;
     readonly inputParameters: ParameterDetails[];
 
-    constructor(kind: FunctionKind<unknown>, typeDetails: FunctionTypeDetails<unknown>) {
+    constructor(kind: FunctionKind<TypirSpecifics>, typeDetails: FunctionTypeDetails<TypirSpecifics>) {
         super(undefined, typeDetails);
         this.kind = kind;
         this.functionName = typeDetails.functionName;

@@ -5,17 +5,17 @@
  ******************************************************************************/
 
 import { TypeDetails } from '../../graph/type-node.js';
-import { TypirServices } from '../../typir.js';
+import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
 import { Kind, KindOptions } from '../kind.js';
 import { TopType } from './top-type.js';
 
-export interface TopTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
+export interface TopTypeDetails<Specifics extends TypirSpecifics> extends TypeDetails<Specifics> {
     // empty
 }
-interface CreateTopTypeDetails<LanguageType> extends TopTypeDetails<LanguageType> {
-    inferenceRules: Array<InferCurrentTypeRule<TopType, LanguageType>>;
+interface CreateTopTypeDetails<Specifics extends TypirSpecifics> extends TopTypeDetails<Specifics> {
+    inferenceRules: Array<InferCurrentTypeRule<TopType, Specifics>>;
 }
 
 export interface TopKindOptions extends KindOptions {
@@ -24,22 +24,22 @@ export interface TopKindOptions extends KindOptions {
 
 export const TopKindName = 'TopKind';
 
-export interface TopFactoryService<LanguageType> {
-    create(typeDetails: TopTypeDetails<LanguageType>): TopConfigurationChain<LanguageType>;
-    get(typeDetails: TopTypeDetails<LanguageType>): TopType | undefined;
+export interface TopFactoryService<Specifics extends TypirSpecifics> {
+    create(typeDetails: TopTypeDetails<Specifics>): TopConfigurationChain<Specifics>;
+    get(typeDetails: TopTypeDetails<Specifics>): TopType | undefined;
 }
 
-export interface TopConfigurationChain<LanguageType> {
-    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<TopType, LanguageType, T>): TopConfigurationChain<LanguageType>;
+export interface TopConfigurationChain<Specifics extends TypirSpecifics> {
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<TopType, Specifics, T>): TopConfigurationChain<Specifics>;
     finish(): TopType;
 }
 
-export class TopKind<LanguageType> implements Kind, TopFactoryService<LanguageType> {
+export class TopKind<Specifics extends TypirSpecifics> implements Kind, TopFactoryService<Specifics> {
     readonly $name: string;
-    readonly services: TypirServices<LanguageType>;
+    readonly services: TypirServices<Specifics>;
     readonly options: Readonly<TopKindOptions>;
 
-    constructor(services: TypirServices<LanguageType>, options?: Partial<TopKindOptions>) {
+    constructor(services: TypirServices<Specifics>, options?: Partial<TopKindOptions>) {
         this.options = this.collectOptions(options);
         this.$name = this.options.$name;
         this.services = services;
@@ -56,33 +56,33 @@ export class TopKind<LanguageType> implements Kind, TopFactoryService<LanguageTy
         };
     }
 
-    get(typeDetails: TopTypeDetails<LanguageType>): TopType | undefined {
+    get(typeDetails: TopTypeDetails<Specifics>): TopType | undefined {
         const key = this.calculateIdentifier(typeDetails);
         return this.services.infrastructure.Graph.getType(key) as TopType;
     }
 
-    create(typeDetails: TopTypeDetails<LanguageType>): TopConfigurationChain<LanguageType> {
+    create(typeDetails: TopTypeDetails<Specifics>): TopConfigurationChain<Specifics> {
         assertTrue(this.get(typeDetails) === undefined, 'The top type already exists.'); // ensure that the type is not created twice
         return new TopConfigurationChainImpl(this.services, this, typeDetails);
     }
 
-    calculateIdentifier(_typeDetails: TopTypeDetails<LanguageType>): string {
+    calculateIdentifier(_typeDetails: TopTypeDetails<Specifics>): string {
         return this.options.name;
     }
 
 }
 
-export function isTopKind<LanguageType>(kind: unknown): kind is TopKind<LanguageType> {
+export function isTopKind<Specifics extends TypirSpecifics>(kind: unknown): kind is TopKind<Specifics> {
     return kind instanceof TopKind;
 }
 
 
-class TopConfigurationChainImpl<LanguageType> implements TopConfigurationChain<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly kind: TopKind<LanguageType>;
-    protected readonly typeDetails: CreateTopTypeDetails<LanguageType>;
+class TopConfigurationChainImpl<Specifics extends TypirSpecifics> implements TopConfigurationChain<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly kind: TopKind<Specifics>;
+    protected readonly typeDetails: CreateTopTypeDetails<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, kind: TopKind<LanguageType>, typeDetails: TopTypeDetails<LanguageType>) {
+    constructor(services: TypirServices<Specifics>, kind: TopKind<Specifics>, typeDetails: TopTypeDetails<Specifics>) {
         this.services = services;
         this.kind = kind;
         this.typeDetails = {
@@ -91,13 +91,13 @@ class TopConfigurationChainImpl<LanguageType> implements TopConfigurationChain<L
         };
     }
 
-    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<TopType, LanguageType, T>): TopConfigurationChain<LanguageType> {
-        this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<TopType, LanguageType>);
+    inferenceRule<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<TopType, Specifics, T>): TopConfigurationChain<Specifics> {
+        this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<TopType, Specifics>);
         return this;
     }
 
     finish(): TopType {
-        const topType = new TopType(this.kind as TopKind<unknown>, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
+        const topType = new TopType(this.kind as unknown as TopKind<TypirSpecifics>, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
         this.services.infrastructure.Graph.addNode(topType);
 
         registerInferCurrentTypeRules(this.typeDetails.inferenceRules, topType, this.services);

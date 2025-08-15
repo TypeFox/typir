@@ -7,14 +7,14 @@
 import { beforeAll, describe, expect, test } from 'vitest';
 import { isType } from '../../../src/graph/type-node.js';
 import { isPrimitiveType, PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { BinaryExpression, InferenceRuleBinaryExpression, integer123, integer456, IntegerLiteral, string123, string456, StringLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { BinaryExpression, createTypirServicesForTesting, InferenceRuleBinaryExpression, integer123, integer456, IntegerLiteral, string123, string456, StringLiteral, TestExpressionNode, TestingSpecifics } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectToBeType, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
+import { expectToBeType, expectValidationIssuesStrict } from '../../../src/test/test-utils.js';
 
 describe('Tests some special cases for (overloaded) operator calls', () => {
 
     describe('Overloaded operators, one signature has no arguments at all (this is tests explicitly cover a found bug)', () => {
-        let typir: TypirServices<TestLanguageNode>;
+        let typir: TypirServices<TestingSpecifics>;
         let integerType: PrimitiveType;
         let stringType: PrimitiveType;
 
@@ -97,7 +97,7 @@ describe('Tests some special cases for (overloaded) operator calls', () => {
 
 });
 
-function expectInferredType(typir: TypirServices<TestLanguageNode>, left: TestExpressionNode, operator: '+', right: TestExpressionNode, expectedType: 'integer'|'string'): void {
+function expectInferredType(typir: TypirServices<TestingSpecifics>, left: TestExpressionNode, operator: '+', right: TestExpressionNode, expectedType: 'integer'|'string'): void {
     const expr = new BinaryExpression(left, operator, right);
     const result = typir.Inference.inferType(expr);
     if (isType(result)) {
@@ -107,7 +107,7 @@ function expectInferredType(typir: TypirServices<TestLanguageNode>, left: TestEx
     }
 }
 
-function expectInferenceProblem(typir: TypirServices<TestLanguageNode>, left: TestExpressionNode, operator: '+', right: TestExpressionNode): void {
+function expectInferenceProblem(typir: TypirServices<TestingSpecifics>, left: TestExpressionNode, operator: '+', right: TestExpressionNode): void {
     const expr = new BinaryExpression(left, operator, right);
     const result = typir.Inference.inferType(expr);
     if (isType(result)) {

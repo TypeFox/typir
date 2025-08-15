@@ -6,12 +6,11 @@
 
 import { beforeAll, describe, expect, test } from 'vitest';
 import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, InferenceRuleBinaryExpression, integer123, integer456, IntegerLiteral, TestExpressionNode, TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { BinaryExpression, booleanFalse, BooleanLiteral, booleanTrue, createTypirServicesForTesting, InferenceRuleBinaryExpression, integer123, integer456, IntegerLiteral, TestExpressionNode, TestingSpecifics } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting } from '../../../src/utils/test-utils.js';
 
 describe('Tests the "validateArgumentsOfCalls" option to check the given arguments in (overloaded) operator calls', () => {
-    let typir: TypirServices<TestLanguageNode>;
+    let typir: TypirServices<TestingSpecifics>;
     let integerType: PrimitiveType;
     let booleanType: PrimitiveType;
 

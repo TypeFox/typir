@@ -10,7 +10,7 @@ export * from './graph/type-graph.js';
 export * from './graph/type-node.js';
 export * from './initialization/type-initializer.js';
 export * from './initialization/type-reference.js';
-export * from './initialization/type-selector.js';
+export * from './initialization/type-descriptor.js';
 export * from './initialization/type-waiting.js';
 export * from './kinds/bottom/bottom-kind.js';
 export * from './kinds/bottom/bottom-type.js';

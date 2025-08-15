@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypirServices } from '../typir.js';
+import { TypirServices, TypirSpecifics } from '../typir.js';
 import { TypeEdge } from './type-edge.js';
 import { TypeGraph } from './type-graph.js';
 import { Type } from './type-node.js';
@@ -19,10 +19,10 @@ export interface GraphAlgorithms {
     getEdgePath(from: Type, to: Type, $relations: Array<TypeEdge['$relation']>, filterEdges?: (edgr: TypeEdge) => boolean): TypeEdge[];
 }
 
-export class DefaultGraphAlgorithms<LanguageType> implements GraphAlgorithms {
+export class DefaultGraphAlgorithms<Specifics extends TypirSpecifics> implements GraphAlgorithms {
     protected readonly graph: TypeGraph;
 
-    constructor(services: TypirServices<LanguageType>) {
+    constructor(services: TypirServices<Specifics>) {
         this.graph = services.infrastructure.Graph;
     }
 

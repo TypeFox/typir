@@ -8,9 +8,8 @@ import { beforeEach, describe, expect, test } from 'vitest';
 import { CustomTypeInitialization, CustomTypeStorage } from '../../../src/kinds/custom/custom-definitions.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { TestingSpecifics, createTypirServicesForTesting } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting } from '../../../src/utils/test-utils.js';
 
 // These test cases test that nesting of properties for custom types is possible (including recursion).
 
@@ -21,7 +20,7 @@ export type NestedProperty = {
 
 
 describe('Check that nested properties for custom types work', () => {
-    let typir: TypirServices<TestLanguageNode>;
+    let typir: TypirServices<TestingSpecifics>;
     let integerType: PrimitiveType;
 
     beforeEach(() => {
@@ -34,7 +33,7 @@ describe('Check that nested properties for custom types work', () => {
             nested: NestedProperty,
         }
 
-        const customKind = new CustomKind<Properties, TestLanguageNode>(typir, {
+        const customKind = new CustomKind<Properties, TestingSpecifics>(typir, {
             name: 'MyCustom',
             calculateTypeIdentifier: properties => `mycustom-${properties.nested.myBool}-${typir.infrastructure.TypeResolver.resolve(properties.nested.myType).getIdentifier()}`,
             calculateTypeName: properties => `Custom-${typir.infrastructure.TypeResolver.resolve(properties.nested.myType).getName()}`,
@@ -55,7 +54,7 @@ describe('Check that nested properties for custom types work', () => {
             },
         }
 
-        const customKind = new CustomKind<Properties, TestLanguageNode>(typir, {
+        const customKind = new CustomKind<Properties, TestingSpecifics>(typir, {
             name: 'MyCustom',
             /** Compared with the test case above, this calculation creates the same identifiers, since it does not take the deeper nesting into account.
              * For these independent test cases, this is no problem.
@@ -80,7 +79,7 @@ describe('Check that nested properties for custom types work', () => {
             myMap: Map<string, NestedProperty>,
         }
 
-        const customKind = new CustomKind<Properties, TestLanguageNode>(typir, {
+        const customKind = new CustomKind<Properties, TestingSpecifics>(typir, {
             name: 'MyCustom',
             calculateTypeIdentifier: properties => `mycustom-${properties.myArray.map(entry => `${entry.myBool}#${typir.infrastructure.TypeResolver.resolve(entry.myType).getIdentifier()}`).join(',')}`,
             calculateTypeName: properties => `Custom-${properties.myArray.map(entry => `${entry.myBool}#${typir.infrastructure.TypeResolver.resolve(entry.myType).getName()}`).join(',')}`,
@@ -130,7 +129,7 @@ describe('Check that nested properties for custom types work', () => {
             },
         }
 
-        const customKind = new CustomKind<Properties, TestLanguageNode>(typir, {
+        const customKind = new CustomKind<Properties, TestingSpecifics>(typir, {
             name: 'MyCustom',
             calculateTypeIdentifier: properties => `mycustom-${properties.nested.deepArray.map(entry => typir.infrastructure.TypeResolver.resolve(entry.myType).getIdentifier()).join(',')}`,
             calculateTypeName: properties => `Custom-${properties.nested.deepArray.map(entry => typir.infrastructure.TypeResolver.resolve(entry.myType).getName()).join(',')}`,
@@ -158,7 +157,7 @@ describe('Check that nested properties for custom types work', () => {
             myRecursion?: Properties,
         }
 
-        function calculate(properties: CustomTypeInitialization<Properties, TestLanguageNode>, desired: 'Identifier'|'Name'): string {
+        function calculate(properties: CustomTypeInitialization<Properties, TestingSpecifics>, desired: 'Identifier'|'Name'): string {
             const own = desired === 'Identifier'
                 ? typir.infrastructure.TypeResolver.resolve(properties.myContent.myType).getIdentifier()
                 : typir.infrastructure.TypeResolver.resolve(properties.myContent.myType).getName();
@@ -169,7 +168,7 @@ describe('Check that nested properties for custom types work', () => {
             }
         }
 
-        const customKind = new CustomKind<Properties, TestLanguageNode>(typir, {
+        const customKind = new CustomKind<Properties, TestingSpecifics>(typir, {
             name: 'MyCustom',
             calculateTypeIdentifier: properties => `mycustom-${calculate(properties, 'Identifier')}`,
             calculateTypeName: properties => `Custom-${calculate(properties, 'Name')}`,
@@ -188,7 +187,7 @@ describe('Check that nested properties for custom types work', () => {
 
         expect(customType.getIdentifier()).toBe('mycustom-Integer-Integer-Integer');
         expect(customType.getName()).toBe('Custom-Integer-Integer-Integer');
-        let current: CustomTypeStorage<Properties, TestLanguageNode> | undefined = customType.properties;
+        let current: CustomTypeStorage<Properties, TestingSpecifics> | undefined = customType.properties;
         while (current) {
             expect(current.myContent.myType.getType()).toBe(integerType);
             current = current.myRecursion;

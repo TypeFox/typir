@@ -5,17 +5,17 @@
  ******************************************************************************/
 
 import { TypeDetails } from '../../graph/type-node.js';
-import { TypirServices } from '../../typir.js';
+import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
 import { Kind, KindOptions } from '../kind.js';
 import { BottomType } from './bottom-type.js';
 
-export interface BottomTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
+export interface BottomTypeDetails<Specifics extends TypirSpecifics> extends TypeDetails<Specifics> {
     // empty
 }
-export interface CreateBottomTypeDetails<LanguageType> extends BottomTypeDetails<LanguageType> {
-    inferenceRules: Array<InferCurrentTypeRule<BottomType, LanguageType>>;
+export interface CreateBottomTypeDetails<Specifics extends TypirSpecifics> extends BottomTypeDetails<Specifics> {
+    inferenceRules: Array<InferCurrentTypeRule<BottomType, Specifics>>;
 }
 
 export interface BottomKindOptions extends KindOptions {
@@ -24,22 +24,22 @@ export interface BottomKindOptions extends KindOptions {
 
 export const BottomKindName = 'BottomKind';
 
-export interface BottomFactoryService<LanguageType> {
-    create(typeDetails: BottomTypeDetails<LanguageType>): BottomConfigurationChain<LanguageType>;
-    get(typeDetails: BottomTypeDetails<LanguageType>): BottomType | undefined;
+export interface BottomFactoryService<Specifics extends TypirSpecifics> {
+    create(typeDetails: BottomTypeDetails<Specifics>): BottomConfigurationChain<Specifics>;
+    get(typeDetails: BottomTypeDetails<Specifics>): BottomType | undefined;
 }
 
-interface BottomConfigurationChain<LanguageType> {
-    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<BottomType, LanguageType, T>): BottomConfigurationChain<LanguageType>;
+interface BottomConfigurationChain<Specifics extends TypirSpecifics> {
+    inferenceRule<T extends Specifics>(rule: InferCurrentTypeRule<BottomType, Specifics, T>): BottomConfigurationChain<Specifics>;
     finish(): BottomType;
 }
 
-export class BottomKind<LanguageType> implements Kind, BottomFactoryService<LanguageType> {
+export class BottomKind<Specifics extends TypirSpecifics> implements Kind, BottomFactoryService<Specifics> {
     readonly $name: string;
-    readonly services: TypirServices<LanguageType>;
+    readonly services: TypirServices<Specifics>;
     readonly options: Readonly<BottomKindOptions>;
 
-    constructor(services: TypirServices<LanguageType>, options?: Partial<BottomKindOptions>) {
+    constructor(services: TypirServices<Specifics>, options?: Partial<BottomKindOptions>) {
         this.options = this.collectOptions(options);
         this.$name = this.options.$name;
         this.services = services;
@@ -56,33 +56,33 @@ export class BottomKind<LanguageType> implements Kind, BottomFactoryService<Lang
         };
     }
 
-    get(typeDetails: BottomTypeDetails<LanguageType>): BottomType | undefined {
+    get(typeDetails: BottomTypeDetails<Specifics>): BottomType | undefined {
         const key = this.calculateIdentifier(typeDetails);
         return this.services.infrastructure.Graph.getType(key) as BottomType;
     }
 
-    create(typeDetails: BottomTypeDetails<LanguageType>): BottomConfigurationChain<LanguageType> {
+    create(typeDetails: BottomTypeDetails<Specifics>): BottomConfigurationChain<Specifics> {
         assertTrue(this.get(typeDetails) === undefined, 'The bottom type already exists.');
         return new BottomConfigurationChainImpl(this.services, this, typeDetails);
     }
 
-    calculateIdentifier(_typeDetails: BottomTypeDetails<LanguageType>): string {
+    calculateIdentifier(_typeDetails: BottomTypeDetails<Specifics>): string {
         return this.options.name;
     }
 
 }
 
-export function isBottomKind<LanguageType>(kind: unknown): kind is BottomKind<LanguageType> {
+export function isBottomKind<Specifics extends TypirSpecifics>(kind: unknown): kind is BottomKind<Specifics> {
     return kind instanceof BottomKind;
 }
 
 
-class BottomConfigurationChainImpl<LanguageType> implements BottomConfigurationChain<LanguageType> {
-    protected readonly services: TypirServices<LanguageType>;
-    protected readonly kind: BottomKind<LanguageType>;
-    protected readonly typeDetails: CreateBottomTypeDetails<LanguageType>;
+class BottomConfigurationChainImpl<Specifics extends TypirSpecifics> implements BottomConfigurationChain<Specifics> {
+    protected readonly services: TypirServices<Specifics>;
+    protected readonly kind: BottomKind<Specifics>;
+    protected readonly typeDetails: CreateBottomTypeDetails<Specifics>;
 
-    constructor(services: TypirServices<LanguageType>, kind: BottomKind<LanguageType>, typeDetails: BottomTypeDetails<LanguageType>) {
+    constructor(services: TypirServices<Specifics>, kind: BottomKind<Specifics>, typeDetails: BottomTypeDetails<Specifics>) {
         this.services = services;
         this.kind = kind;
         this.typeDetails = {
@@ -91,13 +91,13 @@ class BottomConfigurationChainImpl<LanguageType> implements BottomConfigurationC
         };
     }
 
-    inferenceRule<T extends LanguageType>(rule: InferCurrentTypeRule<BottomType, LanguageType, T>): BottomConfigurationChain<LanguageType> {
-        this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<BottomType, LanguageType>);
+    inferenceRule<T extends Specifics>(rule: InferCurrentTypeRule<BottomType, Specifics, T>): BottomConfigurationChain<Specifics> {
+        this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<BottomType, Specifics>);
         return this;
     }
 
     finish(): BottomType {
-        const bottomType = new BottomType(this.kind as BottomKind<unknown>, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
+        const bottomType = new BottomType(this.kind as unknown as BottomKind<TypirSpecifics>, this.kind.calculateIdentifier(this.typeDetails), this.typeDetails);
         this.services.infrastructure.Graph.addNode(bottomType);
 
         registerInferCurrentTypeRules(this.typeDetails.inferenceRules, bottomType, this.services);

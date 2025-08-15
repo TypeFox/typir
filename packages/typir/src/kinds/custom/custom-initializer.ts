@@ -8,24 +8,25 @@ import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { MarkSubTypeOptions } from '../../services/subtype.js';
+import { TypirSpecifics } from '../../typir.js';
 import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
 import { assertTrue, assertTypirType } from '../../utils/utils.js';
 import { CustomTypeProperties } from './custom-definitions.js';
 import { CreateCustomTypeDetails, CustomKind } from './custom-kind.js';
 import { CustomType, isCustomType } from './custom-type.js';
 
-export class CustomTypeInitializer<Properties extends CustomTypeProperties, LanguageType>
-    extends TypeInitializer<CustomType<Properties, LanguageType>, LanguageType>
+export class CustomTypeInitializer<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics>
+    extends TypeInitializer<CustomType<Properties, Specifics>, Specifics>
     implements TypeStateListener, TypeGraphListener
 {
-    protected readonly kind: CustomKind<Properties, LanguageType>;
-    protected readonly typeDetails: CreateCustomTypeDetails<Properties, LanguageType>;
-    protected readonly initialCustomType: CustomType<Properties, LanguageType>;
+    protected readonly kind: CustomKind<Properties, Specifics>;
+    protected readonly typeDetails: CreateCustomTypeDetails<Properties, Specifics>;
+    protected readonly initialCustomType: CustomType<Properties, Specifics>;
 
-    protected inferenceRules: Array<InferenceRuleWithOptions<LanguageType>> = [];
-    protected validationRules: Array<ValidationRuleWithOptions<LanguageType>> = [];
+    protected inferenceRules: Array<InferenceRuleWithOptions<Specifics>> = [];
+    protected validationRules: Array<ValidationRuleWithOptions<Specifics>> = [];
 
-    constructor(kind: CustomKind<Properties, LanguageType>, typeDetails: CreateCustomTypeDetails<Properties, LanguageType>) {
+    constructor(kind: CustomKind<Properties, Specifics>, typeDetails: CreateCustomTypeDetails<Properties, Specifics>) {
         super(kind.services);
         this.kind = kind;
         this.typeDetails = typeDetails;
@@ -41,12 +42,12 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
         this.initialCustomType.addListener(this, true);
     }
 
-    override getTypeInitial(): CustomType<Properties, LanguageType> {
+    override getTypeInitial(): CustomType<Properties, Specifics> {
         return this.initialCustomType;
     }
 
     onSwitchedToIdentifiable(customType: Type): void {
-        assertTypirType(customType, type => isCustomType<Properties, LanguageType>(type, this.initialCustomType.kind));
+        assertTypirType(customType, type => isCustomType<Properties, Specifics>(type, this.initialCustomType.kind));
         assertTrue(customType === this.initialCustomType);
         const readyCustomType = this.producedType(customType);
         if (readyCustomType !== customType) {
@@ -135,7 +136,7 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
         }
     }
 
-    protected createRules(customType: CustomType<Properties, LanguageType>): void {
+    protected createRules(customType: CustomType<Properties, Specifics>): void {
         // clear the current list ...
         this.inferenceRules.splice(0, this.inferenceRules.length);
         this.validationRules.splice(0, this.validationRules.length);
@@ -154,12 +155,12 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Lang
         }
     }
 
-    protected registerRules(customType: CustomType<Properties, LanguageType> | undefined): void {
+    protected registerRules(customType: CustomType<Properties, Specifics> | undefined): void {
         this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, customType)));
         this.validationRules.forEach(rule => this.services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, customType)));
     }
 
-    protected deregisterRules(customType: CustomType<Properties, LanguageType> | undefined): void {
+    protected deregisterRules(customType: CustomType<Properties, Specifics> | undefined): void {
         this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, customType)));
         this.validationRules.forEach(rule => this.services.validation.Collector.removeValidationRule(rule.rule, optionsBoundToType(rule.options, customType)));
     }

@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type, TypeDetails } from '../../graph/type-node.js';
-import { TypirServices } from '../../typir.js';
+import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, toArray } from '../../utils/utils.js';
 import { Kind, KindOptions } from '../kind.js';
@@ -21,7 +21,7 @@ export class Parameter {
     }
 }
 
-export interface FixedParameterTypeDetails<LanguageType> extends TypeDetails<LanguageType> {
+export interface FixedParameterTypeDetails<Specifics extends TypirSpecifics> extends TypeDetails<Specifics> {
     parameterTypes: Type | Type[]
 }
 
@@ -34,14 +34,14 @@ export const FixedParameterKindName = 'FixedParameterKind';
 /**
  * Suitable for kinds like Collection<T>, List<T>, Array<T>, Map<K, V>, ..., i.e. types with a fixed number of arbitrary parameter types
  */
-export class FixedParameterKind<LanguageType> implements Kind {
+export class FixedParameterKind<Specifics extends TypirSpecifics> implements Kind {
     readonly $name: string;
-    readonly services: TypirServices<LanguageType>;
+    readonly services: TypirServices<Specifics>;
     readonly baseName: string;
     readonly options: Readonly<FixedParameterKindOptions>;
     readonly parameters: Parameter[]; // assumption: the parameters are in the correct order!
 
-    constructor(typir: TypirServices<LanguageType>, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
+    constructor(typir: TypirServices<Specifics>, baseName: string, options?: Partial<FixedParameterKindOptions>, ...parameterNames: string[]) {
         this.options = this.collectOptions(options);
         this.$name = `${this.options.$name}-${baseName}`;
         this.services = typir;
@@ -63,17 +63,17 @@ export class FixedParameterKind<LanguageType> implements Kind {
         };
     }
 
-    getFixedParameterType(typeDetails: FixedParameterTypeDetails<LanguageType>): FixedParameterType | undefined {
+    getFixedParameterType(typeDetails: FixedParameterTypeDetails<Specifics>): FixedParameterType | undefined {
         const key = this.calculateIdentifier(typeDetails);
         return this.services.infrastructure.Graph.getType(key) as FixedParameterType;
     }
 
     // the order of parameters matters!
-    createFixedParameterType(typeDetails: FixedParameterTypeDetails<LanguageType>): FixedParameterType {
+    createFixedParameterType(typeDetails: FixedParameterTypeDetails<Specifics>): FixedParameterType {
         assertTrue(this.getFixedParameterType(typeDetails) === undefined);
 
         // create the class type
-        const typeWithParameters = new FixedParameterType(this as FixedParameterKind<unknown>, this.calculateIdentifier(typeDetails), typeDetails);
+        const typeWithParameters = new FixedParameterType(this as unknown as FixedParameterKind<TypirSpecifics>, this.calculateIdentifier(typeDetails), typeDetails);
         this.services.infrastructure.Graph.addNode(typeWithParameters);
 
         this.registerInferenceRules(typeDetails, typeWithParameters);
@@ -81,11 +81,11 @@ export class FixedParameterKind<LanguageType> implements Kind {
         return typeWithParameters;
     }
 
-    protected registerInferenceRules(_typeDetails: FixedParameterTypeDetails<LanguageType>, _typeWithParameters: FixedParameterType): void {
+    protected registerInferenceRules(_typeDetails: FixedParameterTypeDetails<Specifics>, _typeWithParameters: FixedParameterType): void {
         // TODO
     }
 
-    calculateIdentifier(typeDetails: FixedParameterTypeDetails<LanguageType>): string {
+    calculateIdentifier(typeDetails: FixedParameterTypeDetails<Specifics>): string {
         return this.printSignature(this.baseName, toArray(typeDetails.parameterTypes), ','); // use the signature for a unique name
     }
 
@@ -95,6 +95,6 @@ export class FixedParameterKind<LanguageType> implements Kind {
 
 }
 
-export function isFixedParametersKind<LanguageType>(kind: unknown): kind is FixedParameterKind<LanguageType> {
+export function isFixedParametersKind<Specifics extends TypirSpecifics>(kind: unknown): kind is FixedParameterKind<Specifics> {
     return kind instanceof FixedParameterKind;
 }

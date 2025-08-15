@@ -7,8 +7,8 @@
 import { describe, test } from 'vitest';
 import { isClassType } from '../../../src/kinds/class/class-type.js';
 import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { BooleanLiteral, ClassConstructorCall, ClassFieldAccess, IntegerLiteral, Variable } from '../../../src/test/predefined-language-nodes.js';
-import { createTypirServicesForTesting, expectToBeType, expectTypirTypes, expectValidationIssuesStrict } from '../../../src/utils/test-utils.js';
+import { BooleanLiteral, ClassConstructorCall, ClassFieldAccess, createTypirServicesForTesting, IntegerLiteral, Variable } from '../../../src/test/predefined-language-nodes.js';
+import { expectToBeType, expectTypirTypes, expectValidationIssuesStrict } from '../../../src/test/test-utils.js';
 import { assertTypirType } from '../../../src/utils/utils.js';
 
 describe('Tests some details for class types', () => {

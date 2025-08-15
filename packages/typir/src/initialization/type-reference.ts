@@ -7,21 +7,21 @@
 import { TypeGraphListener } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
 import { TypeInferenceCollectorListener, TypeInferenceRule, TypeInferenceRuleOptions } from '../services/inference.js';
-import { TypirServices } from '../typir.js';
+import { TypirServices, TypirSpecifics } from '../typir.js';
 import { removeFromArray } from '../utils/utils.js';
-import { TypeSelector } from './type-selector.js';
+import { TypeDescriptor } from './type-descriptor.js';
 
 /**
  * A listener for TypeReferences, who will be informed about the resolved/found type of the current TypeReference.
  */
-export interface TypeReferenceListener<T extends Type, LanguageType = unknown> {
+export interface TypeReferenceListener<T extends Type, Specifics extends TypirSpecifics = TypirSpecifics> {
     /**
      * Informs when the type of the reference is resolved/found.
      * @param reference the currently resolved TypeReference
      * @param resolvedType Usually the resolved type is either 'Identifiable' or 'Completed',
      * in rare cases this type might be 'Invalid', e.g. if there are corresponding inference rules or TypeInitializers.
      */
-    onTypeReferenceResolved(reference: TypeReference<T, LanguageType>, resolvedType: T): void;
+    onTypeReferenceResolved(reference: TypeReference<T, Specifics>, resolvedType: T): void;
 
     /**
      * Informs when the type of the reference is invalidated/removed.
@@ -29,7 +29,7 @@ export interface TypeReferenceListener<T extends Type, LanguageType = unknown> {
      * @param previousType undefined occurs in the special case, that the TypeReference never resolved a type so far,
      * but new listeners already want to be informed about the (current) type.
      */
-    onTypeReferenceInvalidated(reference: TypeReference<T, LanguageType>, previousType: T | undefined): void;
+    onTypeReferenceInvalidated(reference: TypeReference<T, Specifics>, previousType: T | undefined): void;
 }
 
 /**
@@ -43,16 +43,19 @@ export interface TypeReferenceListener<T extends Type, LanguageType = unknown> {
  *
  * Once the type is resolved, listeners are notified about this and all following changes of its state.
  */
-export class TypeReference<T extends Type, LanguageType = unknown> implements TypeGraphListener, TypeInferenceCollectorListener<LanguageType> {
-    protected readonly selector: TypeSelector<T, LanguageType>;
-    protected readonly services: TypirServices<LanguageType>;
+export class TypeReference<
+    T extends Type,
+    Specifics extends TypirSpecifics = TypirSpecifics, // optional, otherwise Types would have to specify this generic, but they don't have the Specifics
+> implements TypeGraphListener, TypeInferenceCollectorListener<Specifics> {
+    protected readonly descriptor: TypeDescriptor<T, Specifics>;
+    protected readonly services: TypirServices<Specifics>;
     protected resolvedType: T | undefined = undefined;
 
     /** These listeners will be informed, whenever the resolved state of this TypeReference switched from undefined to an actual type or from an actual type to undefined. */
-    protected readonly listeners: Array<TypeReferenceListener<T, LanguageType>> = [];
+    protected readonly listeners: Array<TypeReferenceListener<T, Specifics>> = [];
 
-    constructor(selector: TypeSelector<T, LanguageType>, services: TypirServices<LanguageType>) {
-        this.selector = selector;
+    constructor(descriptor: TypeDescriptor<T, Specifics>, services: TypirServices<Specifics>) {
+        this.descriptor = descriptor;
         this.services = services;
 
         this.startResolving();
@@ -71,7 +74,7 @@ export class TypeReference<T extends Type, LanguageType = unknown> implements Ty
         this.services.infrastructure.Graph.addListener(this);
         // react on new inference rules
         this.services.Inference.addListener(this);
-        // don't react on state changes of already existing types which are not (yet) completed, since TypeSelectors don't care about the initialization state of types
+        // don't react on state changes of already existing types which are not (yet) completed, since TypeDescriptors don't care about the initialization state of types
 
         // try to resolve now
         this.resolve();
@@ -99,7 +102,7 @@ export class TypeReference<T extends Type, LanguageType = unknown> implements Ty
         }
 
         // try to resolve the type
-        const resolvedType = this.services.infrastructure.TypeResolver.tryToResolve<T>(this.selector);
+        const resolvedType = this.services.infrastructure.TypeResolver.tryToResolve<T>(this.descriptor);
 
         if (resolvedType) {
             // the type is successfully resolved!
@@ -114,7 +117,7 @@ export class TypeReference<T extends Type, LanguageType = unknown> implements Ty
         }
     }
 
-    addListener(listener: TypeReferenceListener<T, LanguageType>, informAboutCurrentState: boolean): void {
+    addListener(listener: TypeReferenceListener<T, Specifics>, informAboutCurrentState: boolean): void {
         this.listeners.push(listener);
         if (informAboutCurrentState) {
             if (this.resolvedType) {
@@ -125,7 +128,7 @@ export class TypeReference<T extends Type, LanguageType = unknown> implements Ty
         }
     }
 
-    removeListener(listener: TypeReferenceListener<T, LanguageType>): void {
+    removeListener(listener: TypeReferenceListener<T, Specifics>): void {
         removeFromArray(listener, this.listeners);
     }
 
@@ -145,11 +148,11 @@ export class TypeReference<T extends Type, LanguageType = unknown> implements Ty
         }
     }
 
-    onAddedInferenceRule(_rule: TypeInferenceRule<LanguageType>, _options: TypeInferenceRuleOptions): void {
+    onAddedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions): void {
         // after adding a new inference rule, try to resolve the type
         this.resolve(); // possible performance optimization: use only the new inference rule to resolve the type
     }
-    onRemovedInferenceRule(_rule: TypeInferenceRule<LanguageType>, _options: TypeInferenceRuleOptions): void {
+    onRemovedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions): void {
         // empty, since removed inference rules don't help to resolve a type
     }
 }

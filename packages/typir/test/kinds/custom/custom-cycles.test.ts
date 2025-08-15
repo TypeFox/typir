@@ -11,9 +11,9 @@ import { TypeReference } from '../../../src/initialization/type-reference.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { isCustomType } from '../../../src/kinds/custom/custom-type.js';
 import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
-import { TestLanguageNode } from '../../../src/test/predefined-language-nodes.js';
+import { TestingSpecifics, createTypirServicesForTesting } from '../../../src/test/predefined-language-nodes.js';
 import { TypirServices } from '../../../src/typir.js';
-import { createTypirServicesForTesting, expectToBeType } from '../../../src/utils/test-utils.js';
+import { expectToBeType } from '../../../src/test/test-utils.js';
 
 // These test cases test, that custom types might depend on other types including custom types
 // and the creation of custom types is delayed, when those types are not yet existing.
@@ -25,16 +25,16 @@ export type MyCustomType = {
 
 
 describe('Check custom types depending on other types', () => {
-    let typir: TypirServices<TestLanguageNode>;
+    let typir: TypirServices<TestingSpecifics>;
     let integerType: PrimitiveType;
-    let customKind: CustomKind<MyCustomType, TestLanguageNode>;
+    let customKind: CustomKind<MyCustomType, TestingSpecifics>;
 
     beforeEach(() => {
         typir = createTypirServicesForTesting();
 
         integerType = typir.factory.Primitives.create({ primitiveName: 'Integer' }).finish();
 
-        customKind = new CustomKind<MyCustomType, TestLanguageNode>(typir, {
+        customKind = new CustomKind<MyCustomType, TestingSpecifics>(typir, {
             name: 'MyCustom',
             // determine which identifier is used to store and retrieve a custom type in the type graph (and to check its uniqueness)
             calculateTypeIdentifier: properties =>
@@ -62,7 +62,7 @@ describe('Check custom types depending on other types', () => {
     test('Custom types depend on other custom types: in difficult order', () => {
         // custom2 depends on custom1, which is not defined yet
         const config2 = customKind.create({ typeName: 'C2', properties: {
-            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 }) as unknown as TypeReference<Type, TestLanguageNode>,
+            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 }) as unknown as TypeReference<Type, TestingSpecifics>,
             myProperty: 2 } }).finish();
         let custom2 = config2.getTypeFinal();
         expect(custom2).toBeUndefined();
@@ -85,13 +85,13 @@ describe('Check custom types depending on other types', () => {
     test('Custom types depend on other custom types: in difficult order, transitive', () => {
         // custom2 depends on custom1, which is not defined yet
         const config2 = customKind.create({ typeName: 'C2', properties: {
-            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 })  as unknown as TypeReference<Type, TestLanguageNode>,
+            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 })  as unknown as TypeReference<Type, TestingSpecifics>,
             myProperty: 2 } }).finish();
         let custom2 = config2.getTypeFinal();
         expect(custom2).toBeUndefined();
 
         // custom3 depends on custom2
-        const config3 = customKind.create({ typeName: 'C3', properties: { dependsOnType: config2 as unknown as TypeInitializer<Type, TestLanguageNode>, myProperty: 3 } }).finish();
+        const config3 = customKind.create({ typeName: 'C3', properties: { dependsOnType: config2 as unknown as TypeInitializer<Type, TestingSpecifics>, myProperty: 3 } }).finish();
         let custom3 = config3.getTypeFinal();
         expect(custom3).toBeUndefined();
 
