@@ -25,10 +25,10 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
         // ... but their primitive kind is provided/preset by Typir
         const typeNumber = typir.factory.Primitives.create({ primitiveName: 'number' })
             .inferenceRule({ languageKey: NumberLiteral.$type })
-            .inferenceRule({ languageKey: TypeReference.$type, matching: (node: TypeReference) => node.primitive === 'number' })
+            .inferenceRule({ languageKey: TypeReference.$type, matching: node => node.primitive === 'number' })
             .finish();
         const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' })
-            .inferenceRule({ languageKey: TypeReference.$type, matching: (node: TypeReference) => node.primitive === 'void' })
+            .inferenceRule({ languageKey: TypeReference.$type, matching: node => node.primitive === 'void' })
             .finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
@@ -166,7 +166,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
                 // inference rule for function declaration:
                 .inferenceRuleForDeclaration({
                     languageKey: FunctionDeclaration.$type,
-                    matching: (node: FunctionDeclaration) => node === languageNode // only the current function declaration matches!
+                    matching: node => node === languageNode, // only the current function declaration matches!
                 })
                 /** inference rule for funtion calls:
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
@@ -174,7 +174,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
                  * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
                 .inferenceRuleForCalls({
                     languageKey: MemberCall.$type,
-                    matching: (call: MemberCall) => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
+                    matching: call => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
                     inputArguments: (call: MemberCall) => call.arguments, // they are needed to check, that the given arguments are assignable to the parameters
                     // Note that OX does not support overloaded function declarations for simplicity: Look into LOX to see how to handle overloaded functions and methods!
                     validateArgumentsOfFunctionCalls: true,

@@ -10,7 +10,7 @@ import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeDescriptor } from '../../initialization/type-descriptor.js';
 import { ValidationRule } from '../../services/validation.js';
 import { TypirSpecifics, TypirServices } from '../../typir.js';
-import { InferCurrentTypeRule, NameTypePair, RegistrationOptions } from '../../utils/utils-definitions.js';
+import { InferCurrentTypeRule, LanguageKeys, LanguageTypeOfLanguageKey, NameTypePair, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { Kind, KindOptions } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';
@@ -49,17 +49,19 @@ export interface FunctionTypeDetails<Specifics extends TypirSpecifics> extends T
 
 export interface CreateFunctionTypeDetails<Specifics extends TypirSpecifics> extends FunctionTypeDetails<Specifics> {
     inferenceRulesForDeclaration: Array<InferCurrentTypeRule<FunctionType, Specifics>>,
-    inferenceRulesForCalls: Array<InferFunctionCall<Specifics, Specifics['LanguageType']>>,
+    inferenceRulesForCalls: Array<InferFunctionCall<Specifics, undefined, Specifics['LanguageType']>>,
 }
 
 export interface InferFunctionCall<
-    Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
-> extends InferCurrentTypeRule<FunctionType, Specifics, T> {
+    Specifics extends TypirSpecifics,
+    LanguageKey extends LanguageKeys<Specifics> = undefined,
+    LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+> extends InferCurrentTypeRule<FunctionType, Specifics, LanguageKey, LanguageType> {
     /**
      * In case of overloaded functions, these input arguments are used to determine the actual function
      * by comparing the types of the given arguments with the expected types of the input parameters of the function.
      */
-    inputArguments: (languageNode: T) => Array<Specifics['LanguageType']>;
+    inputArguments: (languageNode: LanguageType) => Array<Specifics['LanguageType']>;
 
     /**
      * This property controls the builtin validation which checks, whether the types of the given arguments of the function call
@@ -83,7 +85,7 @@ export interface InferFunctionCall<
      * While different values for this property for different overloads are possible in theory with the defined behaviour,
      * in practise this seems to be rarely useful.
      */
-    validateArgumentsOfFunctionCalls?: boolean | ((languageNode: T) => boolean);
+    validateArgumentsOfFunctionCalls?: boolean | ((languageNode: LanguageType) => boolean);
 }
 
 /**
@@ -123,9 +125,16 @@ export interface FunctionFactoryService<Specifics extends TypirSpecifics> {
 
 export interface FunctionConfigurationChain<Specifics extends TypirSpecifics> {
     /** for function declarations => returns the funtion type (the whole signature including all names) */
-    inferenceRuleForDeclaration<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<FunctionType, Specifics, T>): FunctionConfigurationChain<Specifics>;
+    inferenceRuleForDeclaration<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<FunctionType, Specifics, LanguageKey, LanguageType>): FunctionConfigurationChain<Specifics>;
+
     /** for function calls => returns the return type of the function */
-    inferenceRuleForCalls<T extends Specifics['LanguageType']>(rule: InferFunctionCall<Specifics, T>): FunctionConfigurationChain<Specifics>,
+    inferenceRuleForCalls<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferFunctionCall<Specifics, LanguageKey, LanguageType>): FunctionConfigurationChain<Specifics>,
 
     // TODO for function references (like the declaration, but without any names!) => returns signature (without any names)
 
@@ -268,12 +277,18 @@ class FunctionConfigurationChainImpl<Specifics extends TypirSpecifics> implement
         };
     }
 
-    inferenceRuleForDeclaration<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<FunctionType, Specifics, T>): FunctionConfigurationChain<Specifics> {
+    inferenceRuleForDeclaration<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<FunctionType, Specifics, LanguageKey, LanguageType>): FunctionConfigurationChain<Specifics> {
         this.currentFunctionDetails.inferenceRulesForDeclaration.push(rule as unknown as InferCurrentTypeRule<FunctionType, Specifics>);
         return this;
     }
 
-    inferenceRuleForCalls<T extends Specifics['LanguageType']>(rule: InferFunctionCall<Specifics, T>): FunctionConfigurationChain<Specifics> {
+    inferenceRuleForCalls<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferFunctionCall<Specifics, LanguageKey, LanguageType>): FunctionConfigurationChain<Specifics> {
         this.currentFunctionDetails.inferenceRulesForCalls.push(rule as unknown as InferFunctionCall<Specifics>);
         return this;
     }

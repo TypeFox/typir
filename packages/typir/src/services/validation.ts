@@ -15,7 +15,7 @@ import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
-export interface ValidationMessageProperties { // Using this type only the TypirSpecifics (and not directly in the ValidationProblem below) enables to customize its properties.
+export interface ValidationMessageProperties { // Using this type only in the TypirSpecifics (and not directly in the ValidationProblem below) enables to customize its properties.
     severity: Severity;
     message: string;
     subProblems?: TypirProblem[];

@@ -9,6 +9,7 @@ import { Type } from '../../graph/type-node.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { RuleRegistry } from '../../utils/rule-registration.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey } from '../../utils/utils-definitions.js';
 import { removeFromArray } from '../../utils/utils.js';
 import { OverloadedFunctionsTypeInferenceRule } from './function-inference-overloaded.js';
 import { FunctionKind, InferFunctionCall } from './function-kind.js';
@@ -30,9 +31,13 @@ export interface OverloadedFunctionDetails<Specifics extends TypirSpecifics> {
     sameOutputType: Type | undefined;
 }
 
-export interface SingleFunctionDetails<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> {
+export interface SingleFunctionDetails<
+    Specifics extends TypirSpecifics,
+    LanguageKey extends LanguageKeys<Specifics> = undefined,
+    LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+> {
     functionType: FunctionType;
-    inferenceRuleForCalls: InferFunctionCall<Specifics, T>;
+    inferenceRuleForCalls: InferFunctionCall<Specifics, LanguageKey, LanguageType>;
 }
 
 
@@ -103,7 +108,7 @@ export class AvailableFunctionsManager<Specifics extends TypirSpecifics> impleme
         return this.mapNameTypes.entries();
     }
 
-    addFunction(readyFunctionType: FunctionType, inferenceRulesForCalls: Array<InferFunctionCall<Specifics, Specifics['LanguageType']>>): void {
+    addFunction(readyFunctionType: FunctionType, inferenceRulesForCalls: Array<InferFunctionCall<Specifics, undefined, Specifics['LanguageType']>>): void {
         const overloaded = this.getOrCreateOverloads(readyFunctionType.functionName);
 
         // remember the function type itself
