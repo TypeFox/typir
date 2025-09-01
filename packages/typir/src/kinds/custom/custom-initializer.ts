@@ -111,7 +111,7 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Spec
         }
     }
 
-    onAddedType(newOtherType: Type, _key: string): void {
+    onAddedType(newOtherType: Type, _identifier: string): void {
         const newCustomType = this.getTypeFinal() ?? this.getTypeInitial();
         if (newOtherType !== newCustomType) { // don't relate the new custom type to itself
             const options = this.kind.options;

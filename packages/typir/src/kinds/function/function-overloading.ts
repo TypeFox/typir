@@ -126,7 +126,7 @@ export class AvailableFunctionsManager<Specifics extends TypirSpecifics> impleme
     }
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
-    onRemovedType(type: Type, _key: string): void {
+    onRemovedType(type: Type, _identifier: string): void {
         if (isFunctionType(type)) {
             const overloaded = this.getOverloads(type.functionName);
             if (overloaded) {
