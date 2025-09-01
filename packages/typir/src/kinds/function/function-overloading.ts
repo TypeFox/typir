@@ -7,9 +7,8 @@
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type } from '../../graph/type-node.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
 import { RuleRegistry } from '../../utils/rule-registration.js';
-import { LanguageKeys, LanguageTypeOfLanguageKey } from '../../utils/utils-definitions.js';
 import { removeFromArray } from '../../utils/utils.js';
 import { OverloadedFunctionsTypeInferenceRule } from './function-inference-overloaded.js';
 import { FunctionKind, InferFunctionCall } from './function-kind.js';

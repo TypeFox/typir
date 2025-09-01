@@ -7,8 +7,8 @@
 import { isType, Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../../services/inference.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
-import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, inferenceOptionsBoundToType, skipInferenceRuleForExistingType, ValidationRuleWithOptions, LanguageKeys, LanguageTypeOfLanguageKey } from '../../utils/utils-definitions.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
+import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, inferenceOptionsBoundToType, InferenceRuleWithOptions, skipInferenceRuleForExistingType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
 import { checkNameTypesMap, createTypeCheckStrategy, MapListConverter } from '../../utils/utils-type-comparison.js';
 import { assertTypirType, toArray } from '../../utils/utils.js';
 import { ClassKind, CreateClassTypeDetails, InferClassLiteral } from './class-kind.js';

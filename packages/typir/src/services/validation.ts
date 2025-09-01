@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type, isType } from '../graph/type-node.js';
-import { TypirSpecifics, TypirServices, MakePropertyOptional } from '../typir.js';
+import { LanguageKey, MakePropertyOptional, TypirServices, TypirSpecifics } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
@@ -272,7 +272,7 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
 
     validate(languageNode: Specifics['LanguageType']): Array<ValidationProblem<Specifics>> {
         // determine all keys to check
-        const keysToApply: Array<(keyof Specifics['LanguageKeys']) | undefined> = [];
+        const keysToApply: Array<LanguageKey<Specifics> | undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
         if (languageKey === undefined) {
             keysToApply.push(undefined);

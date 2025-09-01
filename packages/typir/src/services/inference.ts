@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { isType, Type } from '../graph/type-node.js';
-import { TypirSpecifics, TypirServices } from '../typir.js';
+import { LanguageKey, TypirServices, TypirSpecifics } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { assertUnreachable, removeFromArray, toArray } from '../utils/utils.js';
@@ -198,7 +198,7 @@ export class DefaultTypeInferenceCollector<Specifics extends TypirSpecifics> imp
         this.checkForError(languageNode);
 
         // determine all keys to check
-        const keysToApply: Array<(keyof Specifics['LanguageKeys']) | undefined> = [];
+        const keysToApply: Array<LanguageKey<Specifics> | undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
         if (languageKey === undefined) {
             keysToApply.push(undefined);
