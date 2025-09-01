@@ -133,12 +133,12 @@ export class TypeReference<
     }
 
 
-    onAddedType(_addedType: Type, _key: string): void {
+    onAddedType(_addedType: Type, _identifier: string): void {
         // after adding a new type, try to resolve the type
         this.resolve(); // possible performance optimization: is it possible to do this more performant by looking at the "addedType"?
     }
 
-    onRemovedType(removedType: Type, _key: string): void {
+    onRemovedType(removedType: Type, _identifier: string): void {
         // the resolved type of this TypeReference is removed!
         if (removedType === this.resolvedType) {
             // notify observers, that the type reference is broken
