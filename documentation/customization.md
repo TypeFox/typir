@@ -9,7 +9,7 @@ As described in the [design section](./design.md), nearly all features of Typir 
 for which Typir provides classes implementing these interfaces as default implementations. These interfaces and implementations are composed in ...
 
 - `typir.ts` for Typir (core)
-- `typir-langium.ts` for Typir-Langium
+- `typir-langium.ts` for Typir-Langium, reusing and adjusting the Typir core services
 
 Some examples how to customize existing services and how to add new services are sketched in `customization-example.test.ts`.
 
@@ -27,6 +27,7 @@ const customizedTypir = createTypirServices({
     // ... customize as many existing services as you like ...
 });
 ```
+
 
 ## Add additional services
 

@@ -2,7 +2,7 @@
 
 Type inference infers a Typir type for a given language node, i.e. it answers the question, which Tyir type has a language node.
 Therefore type inference is the central part which connects the type system and its type graph with an AST consisting of language nodes.
-These relationships are defined with *inference rules*, which identify the type for some language nodes.
+These relationships are defined with *inference rules*, which identify the type for a given language node.
 
 
 ## API
