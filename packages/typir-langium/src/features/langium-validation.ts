@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { LangiumDefaultCoreServices, Properties, ValidationAcceptor, ValidationChecks } from 'langium';
-import { DefaultValidationCollector, TypirServices, ValidationCollector, ValidationProblem, ValidationRule } from 'typir';
+import { DefaultValidationCollector, LanguageKey, TypirServices, ValidationCollector, ValidationProblem, ValidationRule } from 'typir';
 import { TypirLangiumServices, TypirLangiumSpecifics } from '../typir-langium.js';
 
 export function registerTypirValidationChecks<Specifics extends TypirLangiumSpecifics>(langiumServices: LangiumDefaultCoreServices, typirServices: TypirLangiumServices<Specifics>) {
@@ -110,7 +110,7 @@ export class DefaultLangiumTypirValidator<Specifics extends TypirLangiumSpecific
  * @param T a type definition mapping language specific type names (keys) to the corresponding types (values)
  */
 export type LangiumValidationRules<Specifics extends TypirLangiumSpecifics> = {
-    [K in keyof Specifics['LanguageKeys']]?: Specifics['LanguageKeys'][K] extends Specifics['LanguageType'] ? ValidationRule<Specifics, Specifics['LanguageKeys'][K]> | Array<ValidationRule<Specifics, Specifics['LanguageKeys'][K]>> : never
+    [K in LanguageKey<Specifics>]?: Specifics['LanguageKeys'][K] extends Specifics['LanguageType'] ? ValidationRule<Specifics, Specifics['LanguageKeys'][K]> | Array<ValidationRule<Specifics, Specifics['LanguageKeys'][K]>> : never
 } & {
     AstNode?: ValidationRule<Specifics, Specifics['LanguageType']> | Array<ValidationRule<Specifics, Specifics['LanguageType']>>;
 }

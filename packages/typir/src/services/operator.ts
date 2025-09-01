@@ -8,8 +8,8 @@ import { Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { FunctionFactoryService, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
 import { FunctionType } from '../kinds/function/function-type.js';
-import { TypirSpecifics, TypirServices } from '../typir.js';
-import { LanguageKeys, NameTypePair } from '../utils/utils-definitions.js';
+import { LanguageKeys, TypirServices, TypirSpecifics } from '../typir.js';
+import { NameTypePair } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
 import { ValidationProblemAcceptor } from './validation.js';
 

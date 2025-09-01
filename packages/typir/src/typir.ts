@@ -25,6 +25,9 @@ import { DefaultSubType, SubType } from './services/subtype.js';
 import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints, ValidationMessageProperties } from './services/validation.js';
 import { inject, Module } from './utils/dependency-injection.js';
 
+/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+
 /**
  * Some design decisions for Typir:
  * - We don't use a graph library like graphology to realize the type graph in order to be more flexible and to reduce external dependencies.
@@ -199,3 +202,23 @@ export interface TypirSpecifics {
     /** Properties for validation issues (predefined and custom ones) */
     ValidationMessageProperties: ValidationMessageProperties;
 }
+
+
+/** This type describes a single language key as defined in the given TypirSpecifics, or just `string`, if the keys are not specified. */
+export type LanguageKey<Specifics extends TypirSpecifics> = keyof Specifics['LanguageKeys'];
+
+/** This type allows to specify an arbitrary number of (maybe typed) language keys. */
+export type LanguageKeys<Specifics extends TypirSpecifics> = LanguageKey<Specifics> | Array<LanguageKey<Specifics>> | undefined;
+
+/** Given some language keys, this type provides the TypeScript types of the corresponding language nodes. */
+export type LanguageTypeOfLanguageKey<
+    Specifics extends TypirSpecifics,
+    Keys extends LanguageKeys<Specifics>
+> =
+    // no key => use the base language type
+    Keys extends undefined ? Specifics['LanguageType'] :
+    // single key => use the specified language type from the "list type"
+    Keys extends keyof Specifics['LanguageKeys'] ? Specifics['LanguageKeys'][Keys] :
+    // multiple keys => use the base language type (as fall-back for now)
+    Keys extends Array<infer GivenKeys> ? Specifics['LanguageType'] :
+    never;

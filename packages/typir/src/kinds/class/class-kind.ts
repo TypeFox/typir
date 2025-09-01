@@ -5,13 +5,13 @@
  ******************************************************************************/
 
 import { Type, TypeDetails } from '../../graph/type-node.js';
+import { TypeDescriptor } from '../../initialization/type-descriptor.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
-import { TypeDescriptor } from '../../initialization/type-descriptor.js';
 import { InferenceRuleNotApplicable } from '../../services/inference.js';
 import { ValidationRule } from '../../services/validation.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
-import { InferCurrentTypeRule, LanguageKeys, LanguageTypeOfLanguageKey, RegistrationOptions } from '../../utils/utils-definitions.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
+import { InferCurrentTypeRule, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertTypirType, assertUnreachable, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';

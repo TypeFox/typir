@@ -7,8 +7,7 @@
 import { Type } from '../../graph/type-node.js';
 import { AssignabilitySuccess, isAssignabilityProblem } from '../../services/assignability.js';
 import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceResultWithInferringChildren, TypeInferenceRuleWithInferringChildren } from '../../services/inference.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
-import { LanguageKeys, LanguageTypeOfLanguageKey } from '../../utils/utils-definitions.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
 import { FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
 import { AvailableFunctionsManager } from './function-overloading.js';
