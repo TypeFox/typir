@@ -30,8 +30,8 @@ export interface InferOperatorWithMultipleOperands<Specifics extends TypirSpecif
     validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 }
 
-export type OperatorValidationRule<TypeType extends Type, Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
-    (operatorCall: T, operatorName: string, operatorType: TypeType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
+export type OperatorValidationRule<OperatorType extends Type, Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
+    (operatorCall: T, operatorName: string, operatorType: OperatorType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
 
 export interface AnyOperatorDetails {
     name: string;
