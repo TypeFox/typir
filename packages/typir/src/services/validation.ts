@@ -45,7 +45,7 @@ export type ValidationProblemProperties<
 /** Make some properties optional for convenience, since there are default values for them. */
 export type RelaxedValidationProblem<
     Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
-> = MakePropertyOptional<ValidationProblemProperties<Specifics, T>, 'languageNode'|'severity'|'message'>; // TODO If unknown properties are specified, no TypeScript compiler error is shown
+> = MakePropertyOptional<ValidationProblemProperties<Specifics, T>, 'languageNode'|'severity'|'message'>;
 
 export type ValidationProblemAcceptor<Specifics extends TypirSpecifics>
     = <T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: ValidationProblemProperties<Specifics, T>) => void;
@@ -87,6 +87,12 @@ export interface AnnotatedTypeAfterValidation {
 export type ValidationMessageProvider<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
     // RelaxedValidationProblem enables to specificy only some of the mandatory properties; for the remaining ones, the service implementation provides values
     (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => RelaxedValidationProblem<Specifics, T>;
+    /* Hint: additional properties in a returned RelaxedValidationProblem object are not marked as errors by the TypeScript compiler, while they are marked, if the same object is used as argument for the ValidationProblemAcceptor.
+     * Source for this behaviour is, that the TSC checks objects for input parameters differently than objects for return parameters.
+     * Hint in the specification ("excess property checks"): https://www.typescriptlang.org/docs/handbook/2/objects.html#excess-property-checks
+     * The solution are "exact types", but they are still under discussion: https://github.com/microsoft/TypeScript/issues/12936
+     * => Nothing to do/fix at the moment, let's wait until "exact types" are supported in TypeScript.
+     */
 
 export interface ValidationConstraints<Specifics extends TypirSpecifics> {
     ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
