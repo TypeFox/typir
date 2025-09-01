@@ -49,12 +49,12 @@ export interface ValidationRuleWithOptions<Specifics extends TypirSpecifics, T e
 }
 
 export function bindValidateCurrentTypeRule<
-    TypeType extends Type,
+    CurrentType extends Type,
     Specifics extends TypirSpecifics,
     LanguageKey extends LanguageKeys<Specifics> = undefined,
     LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>
 >(
-    rule: InferCurrentTypeRule<TypeType, Specifics, LanguageKey, LanguageType>, type: TypeType
+    rule: InferCurrentTypeRule<CurrentType, Specifics, LanguageKey, LanguageType>, type: CurrentType
 ): ValidationRuleWithOptions<Specifics, LanguageType> | undefined {
     // check the given rule
     checkRule(rule); // fail early
@@ -121,39 +121,39 @@ export function inferenceOptionsBoundToType<Specifics extends TypirSpecifics, T 
  * At least one of the properties needs to be specified.
  */
 export interface InferCurrentTypeRule<
-    TypeType extends Type, // TODO rename "TypeType" to "CurrentType"?
+    CurrentType extends Type,
     Specifics extends TypirSpecifics,
     LanguageKey extends LanguageKeys<Specifics> = undefined,
     LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
 > {
     languageKey?: LanguageKey;
     filter?: (languageNode: LanguageTypeOfLanguageKey<Specifics, LanguageKey>) => languageNode is LanguageType;
-    matching?: (languageNode: LanguageType, typeToInfer: TypeType) => boolean;
+    matching?: (languageNode: LanguageType, typeToInfer: CurrentType) => boolean;
 
     /**
      * This validation will be applied to all language nodes for which the current type is inferred according to this inference rule.
      * This validation is specific for this inference rule and this inferred type.
      */
-    validation?: InferCurrentTypeValidationRule<TypeType, Specifics, LanguageType> | Array<InferCurrentTypeValidationRule<TypeType, Specifics, LanguageType>>;
+    validation?: InferCurrentTypeValidationRule<CurrentType, Specifics, LanguageType> | Array<InferCurrentTypeValidationRule<CurrentType, Specifics, LanguageType>>;
 
-    skipThisRuleIfThisTypeAlreadyExists?: boolean | ((existingType: TypeType) => boolean); // default is false
+    skipThisRuleIfThisTypeAlreadyExists?: boolean | ((existingType: CurrentType) => boolean); // default is false
 }
 
 export type InferCurrentTypeValidationRule<
-    TypeType extends Type,
+    InferredType extends Type,
     Specifics extends TypirSpecifics,
     T extends Specifics['LanguageType'] = Specifics['LanguageType'],
 > =
-    (languageNode: T, inferredType: TypeType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
+    (languageNode: T, inferredType: InferredType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
 
 
 export function skipInferenceRuleForExistingType<
-    TypeType extends Type,
+    CurrentType extends Type,
     Specifics extends TypirSpecifics,
     LanguageKey extends LanguageKeys<Specifics> = undefined,
     LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>
 >(
-    inferenceRule: InferCurrentTypeRule<TypeType, Specifics, LanguageKey, LanguageType>, newType: TypeType, existingType: TypeType
+    inferenceRule: InferCurrentTypeRule<CurrentType, Specifics, LanguageKey, LanguageType>, newType: CurrentType, existingType: CurrentType
 ): boolean {
     if (newType !== existingType) {
         const skipRuleForExisting = inferenceRule.skipThisRuleIfThisTypeAlreadyExists;
@@ -164,12 +164,12 @@ export function skipInferenceRuleForExistingType<
 }
 
 function checkRule<
-    TypeType extends Type,
+    CurrentType extends Type,
     Specifics extends TypirSpecifics,
     LanguageKey extends LanguageKeys<Specifics> = undefined,
     LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>
 >(
-    rule: InferCurrentTypeRule<TypeType, Specifics, LanguageKey, LanguageType>
+    rule: InferCurrentTypeRule<CurrentType, Specifics, LanguageKey, LanguageType>
 ): void {
     if (rule.languageKey === undefined && rule.filter === undefined && rule.matching === undefined) {
         throw new Error('This inference rule has none of the properties "languageKey", "filter" and "matching" at all and therefore cannot infer any type!');
@@ -177,12 +177,12 @@ function checkRule<
 }
 
 export function bindInferCurrentTypeRule<
-    TypeType extends Type,
+    CurrentType extends Type,
     Specifics extends TypirSpecifics,
     LanguageKey extends LanguageKeys<Specifics> = undefined,
     LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>
 >(
-    rule: InferCurrentTypeRule<TypeType, Specifics, LanguageKey, LanguageType>, type: TypeType
+    rule: InferCurrentTypeRule<CurrentType, Specifics, LanguageKey, LanguageType>, type: CurrentType
 ): InferenceRuleWithOptions<Specifics, LanguageType> {
     checkRule(rule); // fail early
     return {
@@ -224,8 +224,8 @@ export function bindInferCurrentTypeRule<
     };
 }
 
-export function registerInferCurrentTypeRules<TypeType extends Type, Specifics extends TypirSpecifics>(
-    rules: InferCurrentTypeRule<TypeType, Specifics> | Array<InferCurrentTypeRule<TypeType, Specifics>> | undefined, type: TypeType, services: TypirServices<Specifics>
+export function registerInferCurrentTypeRules<CurrentType extends Type, Specifics extends TypirSpecifics>(
+    rules: InferCurrentTypeRule<CurrentType, Specifics> | Array<InferCurrentTypeRule<CurrentType, Specifics>> | undefined, type: CurrentType, services: TypirServices<Specifics>
 ): void {
     for (const ruleSingle of toArray(rules)) {
         // inference
