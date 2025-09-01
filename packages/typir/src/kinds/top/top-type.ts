@@ -29,7 +29,7 @@ export class TopType extends Type implements TypeGraphListener {
         this.kind.services.infrastructure.Graph.removeListener(this);
     }
 
-    onAddedType(type: Type, _key: string): void {
+    onAddedType(type: Type, _identifier: string): void {
         if (type !== this) {
             this.kind.services.Subtype.markAsSubType(type, this, { checkForCycles: false });
         }

@@ -315,7 +315,7 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
     }
 
     /* Get informed about deleted types in order to remove rules which are bound to them. */
-    onRemovedType(type: Type, _key: string): void {
+    onRemovedType(type: Type, _identifier: string): void {
         const typeKey = this.getBoundToTypeKey(type); // TODO only if "typeKey === _key" ?? this needs to be double-checked when making Alias types explicit!
         const entriesToRemove = this.typirTypeToRules.get(typeKey);
 
