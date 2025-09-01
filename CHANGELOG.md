@@ -5,15 +5,26 @@ Note that the versions "0.x.0" probably will include breaking changes.
 For each minor and major version, there is a corresponding [milestone on GitHub](https://github.com/TypeFox/typir/milestones).
 
 
+
 ## v0.4.0 (2025-??-??)
 
 [Linked issues and PRs for v0.4.0](https://github.com/TypeFox/typir/milestone/5)
 
 ### New features
 
+- Introduced `TypirSpecifics['LanguageKeys']` (in `typir.ts`) to make the available language nodes with their keys and TypeScript types explicit (#93):
+  - By default, Typir don't predefine any language nodes in advance (i.e. any `string` values are usable as language key), while Typir-Langium supports exactly the generated types in the `ast.ts`.
+  - When restricting the possible language keys, now the user gets informed by the TypeScript compiler, if other language keys are used, e.g. inside inference rules or for registering validation rules.
+  - If language keys are restricted, inside inference rules with value for `languageKey` and without value for `filter`, it is possible now to skip the expected TypeScript type for the input node of the `matching` property, as demonstrated in the updated examples for (L)OX. This improves the usability of the API.
+
 ### Breaking changes
 
+- Renamed `TypirLangiumSpecifics['AstTypes']` to `TypirLangiumSpecifics['LanguageKeys']` to align it with the new `TypirSpecifics['LanguageKeys']`, as described above (#93)
+
 ### Fixed bugs
+
+-
+
 
 
 ## v0.3.3 (2026-02-10)
@@ -23,11 +34,13 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 - Updated Typir-Langium to Langium v4.2.0 (#103).
 
 
+
 ## v0.3.2 (2026-01-13)
 
 ### Fixed bugs
 
 - Use browser-safe `isSet` and `isMap` implementation to fix #96 (#98, #97).
+
 
 
 ## v0.3.1 (2025-11-27)
@@ -41,6 +54,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 - Initializing optional properties of custom types with `undefined` failed, as reported in [#77](https://github.com/TypeFox/typir/discussions/77#discussioncomment-14149139) (#94).
 - When checking the equality of custom types, the values for the same property might have different TypeScript types, since optional properties might be set to `undefined` (#94).
+
 
 
 ## v0.3.0 (2025-08-15)
@@ -74,7 +88,6 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
        LanguageType: unknown;
     }
     ```
-TODO
   - `TypirLangiumSpecifics` extends the Typir specifics for Langium, concretizes the language type and enables to register the available AST types of the current Langium grammar as `AstTypes`:
 
     ```typescript
@@ -106,6 +119,7 @@ TODO
 - Fixed the implementation for merging modules for dependency injection (DI), it is exactly the same fix from [Langium](https://github.com/eclipse-langium/langium/pull/1939), since we reused its DI implementation (#79).
 
 
+
 ## v0.2.2 (2025-08-01)
 
 - Fixed wrong imports of `assertUnreachable` (#86)
@@ -113,9 +127,11 @@ TODO
 - Updated Typir-Langium to Langium v3.5 (#88)
 
 
+
 ## v0.2.1 (2025-04-09)
 
 - Export `test-utils.ts` which are using `vitest` via the new namespace `'typir/test'` in order to not pollute production code with vitest dependencies (#68)
+
 
 
 ## v0.2.0 (2025-03-31)
@@ -174,10 +190,12 @@ TODO
 - The inference logic in case of zero arguments (e.g. for function calls or class literals) was not accurate enough (#64).
 
 
+
 ## v0.1.2 (2024-12-20)
 
 - Replaced absolute paths in READMEs by relative paths, which is a requirement for correct links on NPM
 - Edit: Note that the tag for this release was accidentally added on the branch `jm/v0.1.2`, not on the `main` branch.
+
 
 
 ## v0.1.1 (2024-12-20)
@@ -185,6 +203,7 @@ TODO
 - Improved the READMEs in the packages `typir` and `typir-langium`.
 - Improved the CONTRIBUTING.md.
 - Improved source code for Tiny Typir in `api-example.test.ts`.
+
 
 
 ## v0.1.0 (2024-12-20)
