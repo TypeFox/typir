@@ -24,6 +24,7 @@ import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.
 import { DefaultSubType, SubType } from './services/subtype.js';
 import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints, ValidationMessageProperties } from './services/validation.js';
 import { inject, Module } from './utils/dependency-injection.js';
+import { DeepPartial } from './utils/utils.js';
 
 /* eslint-disable @typescript-eslint/indent */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -38,10 +39,6 @@ import { inject, Module } from './utils/dependency-injection.js';
  * - Once created/initialized, types are constant, e.g. no additional fields can be added to classes (but their types might be resolved a bit later).
  * - It is possible to use two different Typir instances side-by-side within the same application in general,
  *   since the services are not realized by global functions, but by methods of classes which implement service interfaces.
- */
-
-/** Some open design questions for future releases TODO
- * - How to bundle Typir configurations for reuse ("presets")?
  */
 
 export type TypirServices<Specifics extends TypirSpecifics> = {
@@ -168,19 +165,6 @@ export function createTypirServicesWithAdditionalServices<Specifics extends Typi
     );
 }
 
-
-/**
- * A deep partial type definition for services. We look into T to see whether its type definition contains
- * any methods. If it does, it's one of our services and therefore should not be partialized.
- * Copied from Langium.
- */
-//eslint-disable-next-line @typescript-eslint/ban-types
-export type DeepPartial<T> = T[keyof T] extends Function ? T : {
-    [P in keyof T]?: DeepPartial<T[P]>;
-}
-
-/** Makes only the specified properties of the given type optional */
-export type MakePropertyOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
 
 /**
  * Language-specific services to be partially overridden via dependency injection.

@@ -4,11 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { inject, Module } from '../utils/dependency-injection.js';
 import { DefaultLanguageService } from '../services/language.js';
 import { InferOperatorWithMultipleOperands } from '../services/operator.js';
 import { DefaultTypeConflictPrinter } from '../services/printing.js';
-import { TypirSpecifics, TypirServices, PartialTypirServices, createTypirServices, DeepPartial, createDefaultTypirServicesModule } from '../typir.js';
+import { createDefaultTypirServicesModule, createTypirServices, PartialTypirServices, TypirServices, TypirSpecifics } from '../typir.js';
+import { inject, Module } from '../utils/dependency-injection.js';
+import { DeepPartial } from '../utils/utils.js';
 
 /**
  * Base class for all language nodes,

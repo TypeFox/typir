@@ -5,11 +5,11 @@
  ******************************************************************************/
 
 import { Type, isType } from '../graph/type-node.js';
-import { LanguageKey, MakePropertyOptional, TypirServices, TypirSpecifics } from '../typir.js';
+import { LanguageKey, TypirServices, TypirSpecifics } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
-import { removeFromArray, toArray } from '../utils/utils.js';
+import { MakePropertyOptional, removeFromArray, toArray } from '../utils/utils.js';
 import { TypeInferenceCollector } from './inference.js';
 import { ProblemPrinter } from './printing.js';
 
