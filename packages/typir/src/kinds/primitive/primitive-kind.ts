@@ -5,8 +5,8 @@
  ******************************************************************************/
 
 import { TypeDetails } from '../../graph/type-node.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
-import { InferCurrentTypeRule, LanguageKeys, LanguageTypeOfLanguageKey, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
+import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
 import { Kind, KindOptions } from '../kind.js';
 import { PrimitiveType } from './primitive-type.js';

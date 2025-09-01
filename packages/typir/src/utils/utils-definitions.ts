@@ -5,14 +5,12 @@
  ******************************************************************************/
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable @typescript-eslint/indent */
-/* eslint-disable @typescript-eslint/no-unused-vars */
 
 import { isType, Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { InferenceRuleNotApplicable, TypeInferenceRule, TypeInferenceRuleOptions } from '../services/inference.js';
 import { ValidationProblemAcceptor, ValidationRule, ValidationRuleOptions } from '../services/validation.js';
-import { TypirSpecifics, TypirServices } from '../typir.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../typir.js';
 import { toArray } from './utils.js';
 
 /**
@@ -116,17 +114,6 @@ export function inferenceOptionsBoundToType<Specifics extends TypirSpecifics, T 
         boundToType: type,
     };
 }
-
-export type LanguageKey<Specifics extends TypirSpecifics> = keyof Specifics['LanguageKeys'];
-export type LanguageKeys<Specifics extends TypirSpecifics> = LanguageKey<Specifics> | Array<LanguageKey<Specifics>> | undefined;
-export type LanguageTypeOfLanguageKey<
-    Specifics extends TypirSpecifics,
-    Keys extends LanguageKeys<Specifics>
-> =
-    Keys extends undefined ? Specifics['LanguageType'] : // no key => use the base language type
-    Keys extends keyof Specifics['LanguageKeys'] ? Specifics['LanguageKeys'][Keys] : // single key => use the specified language type from the "list type"
-    Keys extends Array<infer GivenKeys> ? Specifics['LanguageType'] : // multiple keys => use the base language type as fall-back; TODO is it possible to improve this with a union of the GivenKeys?
-    never;
 
 /**
  * An inference rule which is dedicated for inferrring a certain type.

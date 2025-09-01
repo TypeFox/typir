@@ -5,12 +5,12 @@
  ******************************************************************************/
 
 import { Type, TypeDetails } from '../../graph/type-node.js';
+import { TypeDescriptor } from '../../initialization/type-descriptor.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
-import { TypeDescriptor } from '../../initialization/type-descriptor.js';
 import { ValidationRule } from '../../services/validation.js';
-import { TypirSpecifics, TypirServices } from '../../typir.js';
-import { InferCurrentTypeRule, LanguageKeys, LanguageTypeOfLanguageKey, NameTypePair, RegistrationOptions } from '../../utils/utils-definitions.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
+import { InferCurrentTypeRule, NameTypePair, RegistrationOptions } from '../../utils/utils-definitions.js';
 import { TypeCheckStrategy } from '../../utils/utils-type-comparison.js';
 import { Kind, KindOptions } from '../kind.js';
 import { FunctionTypeInitializer } from './function-initializer.js';

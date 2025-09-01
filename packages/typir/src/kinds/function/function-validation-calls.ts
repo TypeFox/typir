@@ -7,7 +7,7 @@
 import { Type } from '../../graph/type-node.js';
 import { InferenceProblem } from '../../services/inference.js';
 import { ValidationProblem, ValidationProblemAcceptor, ValidationRuleLifecycle } from '../../services/validation.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
+import { LanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
 import { RuleCollectorListener, RuleOptions } from '../../utils/rule-registration.js';
 import { NameTypePair, TypirProblem } from '../../utils/utils-definitions.js';
 import { checkTypes, checkValueForConflict, createTypeCheckStrategy, IndexedTypeConflict, ValueConflict } from '../../utils/utils-type-comparison.js';
@@ -59,7 +59,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
         }
     }
 
-    protected noFunctionCallRulesForThisLanguageKey(key: undefined | (keyof Specifics['LanguageKeys'])): boolean {
+    protected noFunctionCallRulesForThisLanguageKey(key: undefined | LanguageKey<Specifics>): boolean {
         for (const overloads of this.functions.getAllOverloads()) {
             if (overloads[1].details.getRulesByLanguageKey(key).length >= 1) {
                 return false;
@@ -70,7 +70,7 @@ export class FunctionCallArgumentsValidation<Specifics extends TypirSpecifics> i
 
     validation(languageNode: Specifics['LanguageType'], accept: ValidationProblemAcceptor<Specifics>, _typir: TypirServices<Specifics>): void {
         // determine all keys to check
-        const keysToApply: Array<(keyof Specifics['LanguageKeys']) | undefined> = [];
+        const keysToApply: Array<LanguageKey<Specifics> | undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
         if (languageKey === undefined) {
             keysToApply.push(undefined);

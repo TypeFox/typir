@@ -7,7 +7,7 @@
 import { Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { TypeReference } from '../initialization/type-reference.js';
-import { TypirSpecifics } from '../typir.js';
+import { LanguageKey, TypirSpecifics } from '../typir.js';
 
 /**
  * This services provides some static information about the language/DSL, for which the type system is created.
@@ -30,21 +30,21 @@ export interface LanguageService<Specifics extends TypirSpecifics> {
      * @param languageNode the given language node
      * @returns the language key or 'undefined', if there is no language key for the given language node
      */
-    getLanguageNodeKey(languageNode: Specifics['LanguageType']): keyof Specifics['LanguageKeys'] | undefined;
+    getLanguageNodeKey(languageNode: Specifics['LanguageType']): LanguageKey<Specifics> | undefined;
 
     /**
      * Returns all keys, which are direct or indirect sub-keys of the given language key.
      * @param languageKey the given language key
      * @returns the list does not contain the given language key itself
      */
-    getAllSubKeys(languageKey: keyof Specifics['LanguageKeys']): Array<keyof Specifics['LanguageKeys']>;
+    getAllSubKeys(languageKey: LanguageKey<Specifics>): Array<LanguageKey<Specifics>>;
 
     /**
      * Returns all keys, which are direct or indirect super-keys of the given language key.
      * @param languageKey the given language key
      * @returns the list does not contain the given language key itself
      */
-    getAllSuperKeys(languageKey: keyof Specifics['LanguageKeys']): Array<keyof Specifics['LanguageKeys']>;
+    getAllSuperKeys(languageKey: LanguageKey<Specifics>): Array<LanguageKey<Specifics>>;
 
     isLanguageNode(node: unknown): node is Specifics['LanguageType'];
 }
@@ -55,15 +55,15 @@ export interface LanguageService<Specifics extends TypirSpecifics> {
  */
 export class DefaultLanguageService<Specifics extends TypirSpecifics> implements LanguageService<Specifics> {
 
-    getLanguageNodeKey(_languageNode: Specifics['LanguageType']): keyof Specifics['LanguageKeys'] | undefined {
+    getLanguageNodeKey(_languageNode: Specifics['LanguageType']): LanguageKey<Specifics> | undefined {
         return undefined;
     }
 
-    getAllSubKeys(_languageKey: keyof Specifics['LanguageKeys']): Array<keyof Specifics['LanguageKeys']> {
+    getAllSubKeys(_languageKey: LanguageKey<Specifics>): Array<LanguageKey<Specifics>> {
         return [];
     }
 
-    getAllSuperKeys(_languageKey: keyof Specifics['LanguageKeys']): Array<keyof Specifics['LanguageKeys']> {
+    getAllSuperKeys(_languageKey: LanguageKey<Specifics>): Array<LanguageKey<Specifics>> {
         return [];
     }
 
