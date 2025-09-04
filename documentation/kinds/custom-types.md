@@ -67,7 +67,7 @@ This sections describes the features of custom types in more detail.
 
 ### Custom properties
 
-Custom types have custom properties ("data") including primitive values, Typir types and nesting/grouping with sets, arrays, and maps, and recursion.
+Custom types have custom properties ("data") including primitive values and `undefined`, Typir types and nesting/grouping with sets, arrays, and maps, and recursion.
 See `custom-nested-properties.test.ts` for some examples.
 It is also possible to mark properties as optional with the `?` operator (see `custom-optional-properties.test.ts` for an example).
 When the initialization of the custom type is done, all its properties are read-only.

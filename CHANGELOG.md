@@ -11,6 +11,8 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 ### New features
 
+- The TypeScript type of properties for custom types might use `undefined` now.
+
 ### Breaking changes
 
 ### Fixed bugs

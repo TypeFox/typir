@@ -21,6 +21,7 @@ export type CustomTypeProperties = {
 export type CustomTypePropertyTypes =
     | Type
     | string | number | boolean | bigint | symbol
+    | undefined // to make properties optional
     | CustomTypePropertyTypes[] | Map<string, CustomTypePropertyTypes> | Set<CustomTypePropertyTypes>
     | CustomTypeProperties // recursive nesting
     ;
@@ -42,6 +43,7 @@ export type CustomTypePropertyInitialization<T extends CustomTypePropertyTypes, 
     T extends Type ? TypeDescriptorForCustomTypes<T, Specifics> :
     // unchanged for the atomic cases:
     T extends (string | number | boolean | bigint | symbol) ? T :
+    T extends undefined ? T :
     // ... in recursive way for the composites:
     T extends Array<infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Array<CustomTypePropertyInitialization<ValueType, Specifics>> : never) :
     T extends Map<string, infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? Map<string, CustomTypePropertyInitialization<ValueType, Specifics>> : never) :
@@ -61,6 +63,7 @@ export type CustomTypePropertyStorage<T extends CustomTypePropertyTypes, Specifi
     T extends Type ? TypeReference<T, Specifics> :
     // unchanged for the atomic cases:
     T extends (string | number | boolean | bigint | symbol) ? T :
+    T extends undefined ? T :
     // ... in recursive way for the composites:
     T extends Array<infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? ReadonlyArray<CustomTypePropertyStorage<ValueType, Specifics>> : never) :
     T extends Map<string, infer ValueType> ? (ValueType extends CustomTypePropertyTypes ? ReadonlyMap<string, CustomTypePropertyStorage<ValueType, Specifics>> : never) :

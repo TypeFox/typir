@@ -48,3 +48,35 @@ describe('Optional custom properties', () => {
     });
 
 });
+
+describe('Custom properties with "undefined" as type', () => {
+    type MyCustomType = {
+        myNumber: number | undefined;
+        myString: string | undefined;
+    };
+
+    let typir: TypirServices<TestingSpecifics>;
+    let customKind: CustomKind<MyCustomType, TestingSpecifics>;
+
+    beforeEach(() => {
+        typir = createTypirServicesForTesting();
+
+        customKind = new CustomKind<MyCustomType, TestingSpecifics>(typir, {
+            name: 'MyCustom1',
+            calculateTypeName: properties => `Custom1-${properties.myNumber}-${properties.myString}`,
+        });
+    });
+
+    test('Specified non-undefined values', () => {
+        const properties = customKind.create({ properties: { myNumber: 123, myString: 'hello' } }).finish().getTypeFinal()!.properties;
+        expect(properties.myNumber).toBe(123);
+        expect(properties.myString).toBe('hello');
+    });
+
+    test('Used "undefined" as values (explicit undefined)', () => {
+        const properties = customKind.create({ properties: { myNumber: undefined, myString: undefined } }).finish().getTypeFinal()!.properties;
+        expect(properties.myNumber).toBe(undefined);
+        expect(properties.myString).toBe(undefined);
+    });
+
+});
