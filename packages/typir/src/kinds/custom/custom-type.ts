@@ -105,12 +105,14 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         // primitives
         else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint' || typeof value === 'symbol') {
             return value as unknown as CustomTypePropertyStorage<T, Specifics>;
+        } else if (value === undefined) { // required for optional properties
+            return undefined as unknown as CustomTypePropertyStorage<T, Specifics>;
         }
         // composite with recursive object / index signature
         else if (typeof value === 'object' && value !== null) {
             return this.replaceAllProperties(value as CustomTypeInitialization<CustomTypeProperties, Specifics>, collectedReferences) as CustomTypePropertyStorage<T, Specifics>;
         } else {
-            throw new Error(`missing implementation for ${value}`);
+            throw new Error(`missing implementation for '${value}'`);
         }
     }
 
@@ -225,6 +227,8 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         }
         // primitives
         else if (typeof value1 === 'string' || typeof value1 === 'number' || typeof value1 === 'boolean' || typeof value1 === 'bigint' || typeof value1 === 'symbol') {
+            return checkValueForConflict(value1, value2, 'value');
+        } else if (value1 === undefined) { // required for optional properties
             return checkValueForConflict(value1, value2, 'value');
         }
         // composite with recursive object / index signature

@@ -137,12 +137,14 @@ export class CustomKind<Properties extends CustomTypeProperties, Specifics exten
         // primitives
         else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint' || typeof value === 'symbol') {
             return String(value);
+        } else if (value === undefined) { // required for optional properties
+            return 'undefined';
         }
         // composite with recursive object / index signature
         else if (typeof value === 'object' && value !== null) {
             return this.calculateIdentifierAll(value as CustomTypeInitialization<Properties, Specifics>);
         } else {
-            throw new Error(`missing implementation for ${value}`);
+            throw new Error(`missing implementation for '${value}'`);
         }
     }
 }
