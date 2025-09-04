@@ -56,6 +56,10 @@ type inference and validations are done on language nodes,
 e.g. an inference rule gets a language node as input and returns its inferred Typir type.
 All information Typir needs to know about language nodes is specified in the APIs, including the APIs for inference rules, validations rules and the [language service](./services/language.md).
 
+### Language type
+
+The TypeScript type of a language node is called *language type*.
+
 ### Language key
 
 Each language node might have a *language key*.
