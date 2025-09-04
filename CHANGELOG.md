@@ -16,6 +16,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
   - By default, Typir don't predefine any language nodes in advance (i.e. any `string` values are usable as language key), while Typir-Langium supports exactly the generated types in the `ast.ts`.
   - When restricting the possible language keys, now the user gets informed by the TypeScript compiler, if other language keys are used, e.g. inside inference rules or for registering validation rules.
   - If language keys are restricted, inside inference rules with value for `languageKey` and without value for `filter`, it is possible now to skip the expected TypeScript type for the input node of the `matching` property, as demonstrated in the updated examples for (L)OX. This improves the usability of the API.
+- When reporting validation issues, `languageProperty` accepts only valid property names of the given `languageNode`.
 
 ### Breaking changes
 

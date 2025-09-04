@@ -122,6 +122,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
                     typir.validation.Constraints.ensureNodeIsAssignable(node.value, node.varRef.ref, accept,
                         (actual, expected) => ({
                             message: `The expression '${node.value.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.varRef.ref!.name}' with type '${expected.name}'.`,
+                            languageNode: node,
                             languageProperty: 'value',
                         }));
                 }
@@ -133,20 +134,20 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
                 if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function
                     typir.validation.Constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType, accept,
-                        () => ({ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, languageProperty: 'value' }));
+                        () => ({ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, languageNode: node, languageProperty: 'value' }));
                 }
             },
             VariableDeclaration: (node, accept, typir) => {
                 typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid, accept,
-                    () => ({ message: "Variables can't be declared with the type 'void'.", languageProperty: 'type' }));
+                    () => ({ message: "Variables can't be declared with the type 'void'.", languageNode: node, languageProperty: 'type' }));
                 typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, accept,
-                    (actual, expected) => ({ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, languageProperty: 'value' }));
+                    (actual, expected) => ({ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, languageNode: node, languageProperty: 'value' }));
             },
             WhileStatement: validateCondition,
         });
         function validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<OxSpecifics>, typir: TypirServices<OxSpecifics>): void {
             typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool, accept,
-                () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' }));
+                () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageNode: node, languageProperty: 'condition' }));
         }
     }
 

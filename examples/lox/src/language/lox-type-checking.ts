@@ -106,7 +106,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> 
                 // this validation will be checked for each call of this operator!
                 validation: (node, _opName, _opType, accept, typir) => typir.validation.Constraints.ensureNodeIsAssignable(node.right, node.left, accept, (actual, expected) => ({
                     message: `The expression '${node.right.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.left.$cstNode?.text}' with type '${expected.name}'`,
-                    languageProperty: 'value' }))})
+                    languageNode: node, languageProperty: 'right' }))})
             .finish();
 
         // unary operators
@@ -282,23 +282,23 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> 
             // the return value must fit to the return type of the function / method
             typir.validation.Constraints.ensureNodeIsAssignable(node.value, callableDeclaration.returnType, accept, (actual, expected) => ({
                 message: `The expression '${node.value!.$cstNode?.text}' of type '${actual.name}' is not usable as return value for the function '${callableDeclaration.name}' with return type '${expected.name}'.`,
-                languageProperty: 'value' }));
+                languageNode: node, languageProperty: 'value' }));
         }
     }
 
     protected validateVariableDeclaration(node: VariableDeclaration, accept: ValidationProblemAcceptor<LoxSpecifics>, typir: TypirServices<LoxSpecifics>): void {
         const typeVoid = typir.factory.Primitives.get({ primitiveName: 'void' })!;
         typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid, accept,
-            () => ({ message: "Variable can't be declared with a type 'void'.", languageProperty: 'type' }));
+            () => ({ message: "Variable can't be declared with a type 'void'.", languageNode: node, languageProperty: 'type' }));
         typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, accept, (actual, expected) => ({
             message: `The expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to '${node.name}' with type '${expected.name}'`,
-            languageProperty: 'value' }));
+            languageNode: node, languageProperty: 'value' }));
     }
 
     protected validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<LoxSpecifics>, typir: TypirServices<LoxSpecifics>): void {
         const typeBool = typir.factory.Primitives.get({ primitiveName: 'boolean' })!;
         typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool, accept,
-            () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' }));
+            () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageNode: node, languageProperty: 'condition' }));
     }
 
 }
