@@ -86,7 +86,7 @@ export class DefaultLangiumTypirValidator<Specifics extends TypirLangiumSpecific
             accept(problem.severity, message, {
                 // these properties are named differently in Langium and Typir:
                 node: problem.languageNode,
-                property: problem.languageProperty as Properties<Specifics['LanguageType']>,
+                property: problem.languageProperty as (Properties<Specifics['LanguageType']> | undefined),
                 index: problem.languageIndex,
                 // copy all other DiagnosticInfo properties:
                 ...problem,
