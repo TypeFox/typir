@@ -4,11 +4,11 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { DefaultTypeInferenceCollector, TypeInferenceCollector, TypeInferenceRule } from 'typir';
+import { DefaultTypeInferenceCollector, LanguageKey, TypeInferenceCollector, TypeInferenceRule } from 'typir';
 import { TypirLangiumSpecifics } from '../typir-langium.js';
 
 export type LangiumTypeInferenceRules<Specifics extends TypirLangiumSpecifics> = {
-    [K in keyof Specifics['AstTypes']]?: Specifics['AstTypes'][K] extends Specifics['LanguageType'] ? TypeInferenceRule<Specifics, Specifics['AstTypes'][K]> | Array<TypeInferenceRule<Specifics, Specifics['AstTypes'][K]>> : never
+    [K in LanguageKey<Specifics>]?: Specifics['LanguageKeys'][K] extends Specifics['LanguageType'] ? TypeInferenceRule<Specifics, Specifics['LanguageKeys'][K]> | Array<TypeInferenceRule<Specifics, Specifics['LanguageKeys'][K]>> : never
 } & {
     AstNode?: TypeInferenceRule<Specifics, Specifics['LanguageType']> | Array<TypeInferenceRule<Specifics, Specifics['LanguageType']>>;
 }

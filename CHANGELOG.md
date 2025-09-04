@@ -5,6 +5,25 @@ Note that the versions "0.x.0" probably will include breaking changes.
 For each minor and major version, there is a corresponding [milestone on GitHub](https://github.com/TypeFox/typir/milestones).
 
 
+## v0.4.0 (2025-??-??)
+
+[Linked issues and PRs for v0.4.0](https://github.com/TypeFox/typir/milestone/5)
+
+### New features
+
+- Introduced `TypirSpecifics['LanguageKeys']` (in `typir.ts`) to make the available language nodes with their keys and TypeScript types explicit:
+  - By default, Typir don't predefine any language nodes in advance (i.e. any `string` values are usable as language key), while Typir-Langium supports exactly the generated types in the `ast.ts`.
+  - When restricting the possible language keys, now the user gets informed by the TypeScript compiler, if other language keys are used, e.g. inside inference rules or for registering validation rules.
+  - If language keys are restricted, inside inference rules with value for `languageKey` and without value for `filter`, it is possible now to skip the expected TypeScript type for the input node of the `matching` property, as demonstrated in the updated examples for (L)OX. This improves the usability of the API.
+- When reporting validation issues, `languageProperty` accepts only valid property names of the given `languageNode`.
+
+### Breaking changes
+
+- Renamed `TypirLangiumSpecifics['AstTypes']` to `TypirLangiumSpecifics['LanguageKeys']` to align it with the new `TypirSpecifics['LanguageKeys']`, as described above
+
+### Fixed bugs
+
+
 ## v0.3.0 (2025-08-15)
 
 [Linked issues and PRs for v0.3.0](https://github.com/TypeFox/typir/milestone/4)
@@ -36,7 +55,6 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
        LanguageType: unknown;
     }
     ```
-
   - `TypirLangiumSpecifics` extends the Typir specifics for Langium, concretizes the language type and enables to register the available AST types of the current Langium grammar as `AstTypes`:
 
     ```typescript

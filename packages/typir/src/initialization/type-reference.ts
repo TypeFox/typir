@@ -133,12 +133,12 @@ export class TypeReference<
     }
 
 
-    onAddedType(_addedType: Type, _key: string): void {
+    onAddedType(_addedType: Type, _identifier: string): void {
         // after adding a new type, try to resolve the type
         this.resolve(); // possible performance optimization: is it possible to do this more performant by looking at the "addedType"?
     }
 
-    onRemovedType(removedType: Type, _key: string): void {
+    onRemovedType(removedType: Type, _identifier: string): void {
         // the resolved type of this TypeReference is removed!
         if (removedType === this.resolvedType) {
             // notify observers, that the type reference is broken
@@ -148,11 +148,11 @@ export class TypeReference<
         }
     }
 
-    onAddedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions): void {
+    onAddedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions<Specifics>): void {
         // after adding a new inference rule, try to resolve the type
         this.resolve(); // possible performance optimization: use only the new inference rule to resolve the type
     }
-    onRemovedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions): void {
+    onRemovedInferenceRule(_rule: TypeInferenceRule<Specifics>, _options: TypeInferenceRuleOptions<Specifics>): void {
         // empty, since removed inference rules don't help to resolve a type
     }
 }

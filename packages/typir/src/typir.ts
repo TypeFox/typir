@@ -24,6 +24,10 @@ import { DefaultTypeConflictPrinter, ProblemPrinter } from './services/printing.
 import { DefaultSubType, SubType } from './services/subtype.js';
 import { DefaultValidationCollector, DefaultValidationConstraints, ValidationCollector, ValidationConstraints, ValidationMessageProperties } from './services/validation.js';
 import { inject, Module } from './utils/dependency-injection.js';
+import { DeepPartial } from './utils/utils.js';
+
+/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 
 /**
  * Some design decisions for Typir:
@@ -35,10 +39,6 @@ import { inject, Module } from './utils/dependency-injection.js';
  * - Once created/initialized, types are constant, e.g. no additional fields can be added to classes (but their types might be resolved a bit later).
  * - It is possible to use two different Typir instances side-by-side within the same application in general,
  *   since the services are not realized by global functions, but by methods of classes which implement service interfaces.
- */
-
-/** Some open design questions for future releases TODO
- * - How to bundle Typir configurations for reuse ("presets")?
  */
 
 export type TypirServices<Specifics extends TypirSpecifics> = {
@@ -167,19 +167,6 @@ export function createTypirServicesWithAdditionalServices<Specifics extends Typi
 
 
 /**
- * A deep partial type definition for services. We look into T to see whether its type definition contains
- * any methods. If it does, it's one of our services and therefore should not be partialized.
- * Copied from Langium.
- */
-//eslint-disable-next-line @typescript-eslint/ban-types
-export type DeepPartial<T> = T[keyof T] extends Function ? T : {
-    [P in keyof T]?: DeepPartial<T[P]>;
-}
-
-/** Makes only the specified properties of the given type optional */
-export type MakePropertyOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;
-
-/**
  * Language-specific services to be partially overridden via dependency injection.
  */
 export type PartialTypirServices<Specifics extends TypirSpecifics> = DeepPartial<TypirServices<Specifics>>
@@ -189,6 +176,44 @@ export type PartialTypirServices<Specifics extends TypirSpecifics> = DeepPartial
  * This type collects all TypeScript types which might be customized by applications or bindings for language workbenches.
  */
 export interface TypirSpecifics {
+    /** This is the TypeScript super-class of all language nodes in the AST */
     LanguageType: unknown;
+
+    /** The set of available language keys:
+     * Each language key maps to the TypeScript type (which extends 'LanguageType') of corresponding language nodes with this language key. */
+    LanguageKeys: Record<string, unknown>;
+
+    /** Properties for validation issues (predefined and custom ones) */
     ValidationMessageProperties: ValidationMessageProperties;
 }
+
+
+/** This type describes a single language key as defined in the given TypirSpecifics, or just `string`, if the keys are not specified. */
+export type LanguageKey<Specifics extends TypirSpecifics> = keyof Specifics['LanguageKeys'];
+
+/** This type allows to specify an arbitrary number of (maybe typed) language keys. */
+export type LanguageKeys<Specifics extends TypirSpecifics> = LanguageKey<Specifics> | Array<LanguageKey<Specifics>> | undefined;
+
+/** Given some language keys, this type provides the TypeScript types of the corresponding language nodes. */
+export type LanguageTypeOfLanguageKey<
+    Specifics extends TypirSpecifics,
+    Keys extends LanguageKeys<Specifics>
+> =
+    // no key => use the base language type
+    Keys extends undefined ? Specifics['LanguageType'] :
+    // single key => use the specified language type from the "list type"
+    Keys extends keyof Specifics['LanguageKeys'] ? Specifics['LanguageKeys'][Keys] :
+    // multiple keys => use the base language type (as fall-back for now)
+    Keys extends Array<infer GivenKeys> ? Specifics['LanguageType'] : // possible extension: calculate the union of language types
+    never;
+
+/** Given the type of a language node (i.e. the "language type"), this type provides the relevant properties of the language type. */
+// possible extension: make this type exchangable, if possible
+export type PropertiesOfLanguageType<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] | undefined = Specifics['LanguageType']> =
+    T extends Specifics['LanguageType']
+        ? keyof Omit<T, // some properties are not usable:
+            | keyof Specifics['LanguageType'] // all properties from the base type => only the specific properties of the concrete language type remain
+            | number | symbol
+        >
+        : never
+;

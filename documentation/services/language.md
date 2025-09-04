@@ -11,7 +11,7 @@ these rules are applied only to those language nodes which have this language ke
 It is possible to associate rules to multiple language keys.
 Rules which are associated to no language key, are applied to all language nodes.
 
-Language keys are represented by string values and might be depending on the DSL implementation/language workbench,
+Language keys are represented by `string` values and might be depending on the DSL implementation/language workbench,
 class names or `$type`-property-information of the language node implementations.
 Language keys might have sub/super language keys ("sub-type relationship of language keys").
 

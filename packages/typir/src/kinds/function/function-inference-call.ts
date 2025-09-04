@@ -7,7 +7,7 @@
 import { Type } from '../../graph/type-node.js';
 import { AssignabilitySuccess, isAssignabilityProblem } from '../../services/assignability.js';
 import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceResultWithInferringChildren, TypeInferenceRuleWithInferringChildren } from '../../services/inference.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
 import { checkTypeArrays } from '../../utils/utils-type-comparison.js';
 import { FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
 import { AvailableFunctionsManager } from './function-overloading.js';
@@ -25,14 +25,18 @@ import { FunctionType } from './function-type.js';
  * - the current function has an output type/parameter, otherwise, this function could not provide any type (and throws an error), when it is called!
  *   (exception: the options contain a type to return in this special case)
  */
-export class FunctionCallInferenceRule<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> implements TypeInferenceRuleWithInferringChildren<Specifics> {
+export class FunctionCallInferenceRule<
+    Specifics extends TypirSpecifics,
+    LanguageKey extends LanguageKeys<Specifics> = undefined,
+    LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+> implements TypeInferenceRuleWithInferringChildren<Specifics> {
     protected readonly typeDetails: FunctionTypeDetails<Specifics>;
-    protected readonly inferenceRuleForCalls: InferFunctionCall<Specifics, T>;
+    protected readonly inferenceRuleForCalls: InferFunctionCall<Specifics, LanguageKey, LanguageType>;
     protected readonly functionType: FunctionType;
     protected readonly functions: AvailableFunctionsManager<Specifics>;
     assignabilitySuccess: Array<AssignabilitySuccess | undefined>; // public, since this information is exploited to determine the best overloaded match in case of multiple matches
 
-    constructor(typeDetails: FunctionTypeDetails<Specifics>, inferenceRuleForCalls: InferFunctionCall<Specifics, T>, functionType: FunctionType, functions: AvailableFunctionsManager<Specifics>) {
+    constructor(typeDetails: FunctionTypeDetails<Specifics>, inferenceRuleForCalls: InferFunctionCall<Specifics, LanguageKey, LanguageType>, functionType: FunctionType, functions: AvailableFunctionsManager<Specifics>) {
         this.typeDetails = typeDetails;
         this.inferenceRuleForCalls = inferenceRuleForCalls;
         this.functionType = functionType;
@@ -44,13 +48,13 @@ export class FunctionCallInferenceRule<Specifics extends TypirSpecifics, T exten
         this.assignabilitySuccess.fill(undefined); // reset the entries
         // 0. The LanguageKeys are already checked by OverloadedFunctionsTypeInferenceRule, nothing to do here
         // 1. Does the filter of the inference rule accept the current language node?
-        const result = this.inferenceRuleForCalls.filter === undefined || this.inferenceRuleForCalls.filter(languageNode);
+        const result = this.inferenceRuleForCalls.filter === undefined || this.inferenceRuleForCalls.filter(languageNode as LanguageTypeOfLanguageKey<Specifics, LanguageKey>);
         if (!result) {
             // the language node has a completely different purpose
             return InferenceRuleNotApplicable;
         }
         // 2. Does the inference rule match this language node?
-        const matching = this.inferenceRuleForCalls.matching === undefined || this.inferenceRuleForCalls.matching(languageNode as T, this.functionType);
+        const matching = this.inferenceRuleForCalls.matching === undefined || this.inferenceRuleForCalls.matching(languageNode as LanguageType, this.functionType);
         if (!matching) {
             // the language node is slightly different
             return InferenceRuleNotApplicable;
@@ -68,7 +72,7 @@ export class FunctionCallInferenceRule<Specifics extends TypirSpecifics, T exten
             return overloadInfos.sameOutputType;
         }
         // 3b. The given arguments need to be checked in detail => infer the types of the parameters now
-        const inputArguments = this.inferenceRuleForCalls.inputArguments(languageNode as T);
+        const inputArguments = this.inferenceRuleForCalls.inputArguments(languageNode as LanguageType);
         return inputArguments;
     }
 

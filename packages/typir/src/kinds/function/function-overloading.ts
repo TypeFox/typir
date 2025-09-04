@@ -7,7 +7,7 @@
 import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type } from '../../graph/type-node.js';
 import { CompositeTypeInferenceRule } from '../../services/inference.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
 import { RuleRegistry } from '../../utils/rule-registration.js';
 import { removeFromArray } from '../../utils/utils.js';
 import { OverloadedFunctionsTypeInferenceRule } from './function-inference-overloaded.js';
@@ -30,9 +30,13 @@ export interface OverloadedFunctionDetails<Specifics extends TypirSpecifics> {
     sameOutputType: Type | undefined;
 }
 
-export interface SingleFunctionDetails<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> {
+export interface SingleFunctionDetails<
+    Specifics extends TypirSpecifics,
+    LanguageKey extends LanguageKeys<Specifics> = undefined,
+    LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+> {
     functionType: FunctionType;
-    inferenceRuleForCalls: InferFunctionCall<Specifics, T>;
+    inferenceRuleForCalls: InferFunctionCall<Specifics, LanguageKey, LanguageType>;
 }
 
 
@@ -103,7 +107,7 @@ export class AvailableFunctionsManager<Specifics extends TypirSpecifics> impleme
         return this.mapNameTypes.entries();
     }
 
-    addFunction(readyFunctionType: FunctionType, inferenceRulesForCalls: Array<InferFunctionCall<Specifics, Specifics['LanguageType']>>): void {
+    addFunction(readyFunctionType: FunctionType, inferenceRulesForCalls: Array<InferFunctionCall<Specifics, undefined, Specifics['LanguageType']>>): void {
         const overloaded = this.getOrCreateOverloads(readyFunctionType.functionName);
 
         // remember the function type itself
@@ -122,7 +126,7 @@ export class AvailableFunctionsManager<Specifics extends TypirSpecifics> impleme
     }
 
     /* Get informed about deleted types in order to remove inference rules which are bound to them. */
-    onRemovedType(type: Type, _key: string): void {
+    onRemovedType(type: Type, _identifier: string): void {
         if (isFunctionType(type)) {
             const overloaded = this.getOverloads(type.functionName);
             if (overloaded) {
