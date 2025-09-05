@@ -88,9 +88,16 @@ export class DefaultTypeAssignability<Specifics extends TypirSpecifics> implemen
             };
         }
 
-        // 2. any path of implicit conversion and sub-type relationships
-        const path = this.algorithms.getEdgePath(source, target, [ConversionEdge, SubTypeEdge],
-            edge => isConversionEdge(edge) ? edge.mode === 'IMPLICIT_EXPLICIT' : true); // no explicit conversion
+        // 2. any path of equality, implicit conversion and sub-type relationships
+        const path = this.algorithms.getEdgePath(
+            source,
+            target,
+            [
+                { $relation: ConversionEdge, direction: 'Unidirectional' },
+                { $relation: SubTypeEdge, direction: 'Unidirectional' },
+            ],
+            edge => isConversionEdge(edge) ? edge.mode === 'IMPLICIT_EXPLICIT' : true // no explicit conversion
+        );
         if (path.length >= 1) {
             return <AssignabilitySuccess>{
                 $result: AssignabilityResult,

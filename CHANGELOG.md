@@ -13,6 +13,9 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 ### Breaking changes
 
+- The graph algorithms in the `typir.infrastructure.GraphAlgorithms` service supported only unidirectional relationships (e.g. conversion, sub-type) between types so far.
+  Now the directionality of relationships needs to be specified in order to support also bidirectional relationships (e.g. equality).
+
 ### Fixed bugs
 
 - Retrieving bidirectional edges from the type graph didn't worked for both directions.

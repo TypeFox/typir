@@ -178,11 +178,11 @@ export class DefaultTypeConversion<Specifics extends TypirSpecifics> implements 
     }
 
     protected collectReachableTypes(from: Type, mode: ConversionModeForSpecification): Set<Type> {
-        return this.algorithms.collectReachableTypes(from, [ConversionEdge], edge => (edge as ConversionEdge).mode === mode);
+        return this.algorithms.collectReachableTypes(from, [{ $relation: ConversionEdge, direction: 'Unidirectional' }], edge => (edge as ConversionEdge).mode === mode);
     }
 
     protected existsEdgePath(from: Type, to: Type, mode: ConversionModeForSpecification): boolean {
-        return this.algorithms.existsEdgePath(from, to, [ConversionEdge], edge => (edge as ConversionEdge).mode === mode);
+        return this.algorithms.existsEdgePath(from, to, [{ $relation: ConversionEdge, direction: 'Unidirectional' }], edge => (edge as ConversionEdge).mode === mode);
     }
 
     protected isTransitivelyConvertable(from: Type, to: Type, mode: ConversionModeForSpecification): boolean {

@@ -31,3 +31,11 @@ export interface TypeEdge {
 export function isTypeEdge(edge: unknown): edge is TypeEdge {
     return typeof edge === 'object' && edge !== null && typeof (edge as TypeEdge).$relation === 'string';
 }
+
+
+export type EdgeDirection = 'Unidirectional' | 'Bidirectional';
+
+export interface RelationInformation {
+    $relation: TypeEdge['$relation'];
+    direction: EdgeDirection;
+}
