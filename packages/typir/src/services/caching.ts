@@ -41,9 +41,10 @@ export class DefaultTypeRelationshipCaching<Specifics extends TypirSpecifics> im
     getRelationshipUnidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined {
         return from.getOutgoingEdges<T>($relation).find(edge => edge.to === to);
     }
-    getRelationshipBidirectional<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation']): T | undefined {
+    getRelationshipBidirectional<T extends TypeEdge>(type1: Type, type2: Type, $relation: T['$relation']): T | undefined {
         // for bidirectional edges, check outgoing and incoming edges, since the graph contains only a single edge!
-        return from.getEdges<T>($relation).find(edge => edge.to === to);
+        return type1.getIncomingEdges<T>($relation).find(edge => edge.from === type2)
+            ?? type1.getOutgoingEdges<T>($relation).find(edge => edge.to   === type2);
     }
 
     setOrUpdateUnidirectionalRelationship<T extends TypeEdge>(edgeToCache: T, edgeCaching: EdgeCachingInformation): T | undefined {

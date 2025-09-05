@@ -113,9 +113,10 @@ export class TypeGraph {
         return from.getOutgoingEdges<T>($relation).find(edge => edge.to === to && edge.cachingInformation === cachingMode);
     }
 
-    getBidirectionalEdge<T extends TypeEdge>(from: Type, to: Type, $relation: T['$relation'], cachingMode: EdgeCachingInformation = 'LINK_EXISTS'): T | undefined {
+    getBidirectionalEdge<T extends TypeEdge>(type1: Type, type2: Type, $relation: T['$relation'], cachingMode: EdgeCachingInformation = 'LINK_EXISTS'): T | undefined {
         // for bidirectional edges, check outgoing and incoming edges, since the graph contains only a single edge!
-        return from.getEdges<T>($relation).find(edge => edge.to === to && edge.cachingInformation === cachingMode);
+        return type1.getIncomingEdges<T>($relation).find(edge => edge.from === type2 && edge.cachingInformation === cachingMode)
+            ?? type1.getOutgoingEdges<T>($relation).find(edge => edge.to   === type2 && edge.cachingInformation === cachingMode);
     }
 
 

@@ -5,6 +5,19 @@ Note that the versions "0.x.0" probably will include breaking changes.
 For each minor and major version, there is a corresponding [milestone on GitHub](https://github.com/TypeFox/typir/milestones).
 
 
+## v0.4.0 (2025-??-??)
+
+[Linked issues and PRs for v0.4.0](https://github.com/TypeFox/typir/milestone/5)
+
+### New features
+
+### Breaking changes
+
+### Fixed bugs
+
+- Retrieving bidirectional edges from the type graph didn't worked for both directions.
+
+
 ## v0.3.0 (2025-08-15)
 
 [Linked issues and PRs for v0.3.0](https://github.com/TypeFox/typir/milestone/4)
