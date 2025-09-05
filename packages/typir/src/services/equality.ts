@@ -4,12 +4,12 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+import { GraphAlgorithms } from '../graph/graph-algorithms.js';
+import { isTypeEdge, TypeEdge } from '../graph/type-edge.js';
+import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
-import { TypirSpecifics, TypirServices } from '../typir.js';
+import { TypirServices, TypirSpecifics } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
-import { EdgeCachingInformation, TypeRelationshipCaching } from './caching.js';
-import { TypeEdge, isTypeEdge } from '../graph/type-edge.js';
-import { assertUnreachable } from '../utils/utils.js';
 
 export interface TypeEqualityProblem extends TypirProblem {
     $problem: 'TypeEqualityProblem';
@@ -27,17 +27,31 @@ export function isTypeEqualityProblem(problem: unknown): problem is TypeEquality
  *
  * In contrast to type comparisons with type1 === type2 or type1.identifier === type2.identifier,
  * equality will take alias types and so on into account as well.
+ *
+ * Equal types behave the same, but have multiple type nodes in the type graph.
+ * Types which are equal need to be interrelated with an equality edge in the type graph.
+ *
+ * There is no dynamic calculation of equality on-demand, since that prevents searching for equality edges in the type graph (or makes it very inefficient).
  */
 export interface TypeEquality {
     areTypesEqual(type1: Type, type2: Type): boolean;
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined;
+
+    /**
+     * Establishes in the type system, that the given two types are equal.
+     * @param type1 a type
+     * @param type2 another type (the order of type1 and type2 does not matter)
+     */
+    markAsEqual(type1: Type, type2: Type): void;
 }
 
 export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements TypeEquality {
-    protected readonly typeRelationships: TypeRelationshipCaching;
+    protected readonly graph: TypeGraph;
+    protected readonly algorithms: GraphAlgorithms;
 
     constructor(services: TypirServices<Specifics>) {
-        this.typeRelationships = services.caching.TypeRelationships;
+        this.graph = services.infrastructure.Graph;
+        this.algorithms = services.infrastructure.GraphAlgorithms;
     }
 
     areTypesEqual(type1: Type, type2: Type): boolean {
@@ -45,62 +59,7 @@ export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements Ty
     }
 
     getTypeEqualityProblem(type1: Type, type2: Type): TypeEqualityProblem | undefined {
-        const cache: TypeRelationshipCaching = this.typeRelationships;
-        const linkData = cache.getRelationshipBidirectional<EqualityEdge>(type1, type2, EqualityEdge);
-        const equalityCaching = linkData?.cachingInformation ?? 'UNKNOWN';
-
-        function save(equalityCaching: EdgeCachingInformation, error: TypeEqualityProblem | undefined): void {
-            const newEdge: EqualityEdge = {
-                $relation: EqualityEdge,
-                from: type1,
-                to: type2,
-                cachingInformation: 'LINK_EXISTS',
-                error,
-            };
-            cache.setOrUpdateBidirectionalRelationship(newEdge, equalityCaching);
-        }
-
-        // skip recursive checking
-        if (equalityCaching === 'PENDING') {
-            /** 'undefined' should be correct here ...
-             * - since this relationship will be checked earlier/higher/upper in the call stack again
-             * - since this values is not cached and therefore NOT reused in the earlier call! */
-            return undefined;
-        }
-
-        // the result is already known
-        if (equalityCaching === 'LINK_EXISTS') {
-            return undefined;
-        }
-        if (equalityCaching === 'NO_LINK') {
-            return {
-                $problem: TypeEqualityProblem,
-                type1,
-                type2,
-                subProblems: linkData?.error ? [linkData.error] : [],
-            };
-        }
-
-        // do the expensive calculation now
-        if (equalityCaching === 'UNKNOWN') {
-            // mark the current relationship as PENDING to detect and resolve cycling checks
-            save('PENDING', undefined);
-
-            // do the actual calculation
-            const result = this.calculateEquality(type1, type2);
-
-            // this allows to cache results (and to re-set the PENDING state)
-            if (result === undefined) {
-                save('LINK_EXISTS', undefined);
-            } else {
-                save('NO_LINK', result);
-            }
-            return result;
-        }
-        assertUnreachable(equalityCaching);
-    }
-
-    protected calculateEquality(type1: Type, type2: Type): TypeEqualityProblem | undefined {
+        // same types are also equal
         if (type1 === type2) {
             return undefined;
         }
@@ -108,28 +67,47 @@ export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements Ty
             return undefined;
         }
 
-        // use the type-specific logic
-        // ask the 1st type
-        const result1 = type1.analyzeTypeEqualityProblems(type2);
-        if (result1.length <= 0) {
+        // check whether the types are interrelated with equality edges in the type graph
+        const path = this.algorithms.getEdgePath(type1, type2, [{ $relation: EqualityEdge, direction: 'Bidirectional' }]); // covers also transitive equality paths
+        if (path.length >= 1) {
             return undefined;
         }
-        // ask the 2nd type
-        const result2 = type2.analyzeTypeEqualityProblems(type1);
-        if (result2.length <= 0) {
-            return undefined;
-        }
-        // both types reported, that they are diffferent
+
+        // report non-equal types
         return {
             $problem: TypeEqualityProblem,
             type1,
             type2,
-            subProblems: [...result1, ...result2] // return the equality problems of both types
+            subProblems: [] // TODO
         };
     }
 
+    markAsEqual(type1: Type, type2: Type): void {
+        let edge = this.getEqualityEdge(type1, type2);
+        if (edge) {
+            edge.cachingInformation = 'LINK_EXISTS';
+        } else {
+            edge = {
+                $relation: EqualityEdge,
+                from: type1,
+                to: type2,
+                cachingInformation: 'LINK_EXISTS',
+                error: undefined,
+            };
+            this.graph.addEdge(edge);
+        }
+    }
+
+    protected getEqualityEdge(type1: Type, type2: Type): EqualityEdge | undefined {
+        return this.graph.getBidirectionalEdge(type1, type2, EqualityEdge, 'LINK_EXISTS');
+    }
 }
 
+
+/**
+ * Describes, that the two connected types are equal.
+ * Equality edges are bidirectional and might form cycles.
+ */
 export interface EqualityEdge extends TypeEdge {
     readonly $relation: 'EqualityEdge';
     readonly error: TypeEqualityProblem | undefined;

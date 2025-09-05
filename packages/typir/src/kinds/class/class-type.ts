@@ -162,7 +162,7 @@ export class ClassType extends Type {
         return `${this.className}${extendedClasses} { ${slots.join(', ')} }`;
     }
 
-    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isClassType(otherType)) {
             if (this.kind.options.typing === 'Structural') {
                 // for structural typing:

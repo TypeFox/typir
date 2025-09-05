@@ -35,7 +35,7 @@ export class MultiplicityType extends Type {
         return this.getName();
     }
 
-    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isMultiplicityKind(otherType)) {
             const conflicts: TypirProblem[] = [];
             // check the multiplicities

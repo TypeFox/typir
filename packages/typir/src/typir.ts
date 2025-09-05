@@ -37,10 +37,6 @@ import { inject, Module } from './utils/dependency-injection.js';
  *   since the services are not realized by global functions, but by methods of classes which implement service interfaces.
  */
 
-/** Some open design questions for future releases TODO
- * - How to bundle Typir configurations for reuse ("presets")?
- */
-
 export type TypirServices<Specifics extends TypirSpecifics> = {
     readonly Assignability: TypeAssignability;
     readonly Equality: TypeEquality;

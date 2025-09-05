@@ -28,7 +28,7 @@ export class PrimitiveType extends Type {
         return this.getIdentifier();
     }
 
-    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isPrimitiveType(otherType)) {
             return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
         } else {

@@ -126,7 +126,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
             ?? this.getName(); // fall-back
     }
 
-    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isCustomType(otherType, this.kind)) {
             const subProblems = this.analyzeTypeEqualityProblemsAll(this.properties, otherType.properties);
             if (subProblems.length >= 1) {

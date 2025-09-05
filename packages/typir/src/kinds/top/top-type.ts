@@ -43,7 +43,7 @@ export class TopType extends Type implements TypeGraphListener {
         return this.getIdentifier();
     }
 
-    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isTopType(otherType)) {
             return [];
         } else {

@@ -101,7 +101,7 @@ export class FunctionType extends Type {
         }
     }
 
-    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isFunctionType(otherType)) {
             const conflicts: TypirProblem[] = [];
             // same name? since functions with different names are different

@@ -44,7 +44,7 @@ export class BottomType extends Type implements TypeGraphListener {
         return this.getIdentifier();
     }
 
-    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isBottomType(otherType)) {
             return [];
         } else {

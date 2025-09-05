@@ -54,7 +54,7 @@ export class FixedParameterType extends Type {
         return this.getName();
     }
 
-    override analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
         if (isFixedParameterType(otherType)) {
             // same name, e.g. both need to be Map, Set, Array, ...
             const baseTypeCheck = checkValueForConflict(this.kind.baseName, otherType.kind.baseName, 'base type');

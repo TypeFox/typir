@@ -10,7 +10,8 @@ This describes the structure and the main content of the documentation for Typir
 ## Services for type checking
 
 - [Assignability](./services/assignability.md)
-- [Language](./services/language.md): Don't interchange "language service" and "language server"!
+- [Equality](./services/equality.md)
+- [Language](./services/language.md): Don't interchange the terms "language service" and "language server"!
 - [Type inference](./services/inference.md)
 - ...
 

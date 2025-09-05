@@ -9,7 +9,7 @@ import { Type } from '../graph/type-node.js';
 import { TypirSpecifics, TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
 import { ConversionEdge, isConversionEdge, TypeConversion } from './conversion.js';
-import { TypeEquality } from './equality.js';
+import { EqualityEdge, TypeEquality } from './equality.js';
 import { SubType, SubTypeEdge } from './subtype.js';
 
 export interface AssignabilityProblem extends TypirProblem {
@@ -77,8 +77,8 @@ export class DefaultTypeAssignability<Specifics extends TypirSpecifics> implemen
     }
 
     getAssignabilityResult(source: Type, target: Type): AssignabilityResult {
-        // 1. are both types equal?
-        if (this.equality.areTypesEqual(source, target)) {
+        // 1. are both types the same?
+        if (source === target) {
             return <AssignabilitySuccess>{
                 $result: AssignabilityResult,
                 source,
@@ -93,6 +93,7 @@ export class DefaultTypeAssignability<Specifics extends TypirSpecifics> implemen
             source,
             target,
             [
+                { $relation: EqualityEdge, direction: 'Bidirectional' },
                 { $relation: ConversionEdge, direction: 'Unidirectional' },
                 { $relation: SubTypeEdge, direction: 'Unidirectional' },
             ],

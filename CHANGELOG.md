@@ -11,10 +11,15 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 ### New features
 
+- The `typir.Equality` service now allows to define two types as equal:
+  - Assignability takes these equality relationships into account.
+  - Equality is not dynamically calculated on-demain anymore, but equality relationships need to be set-up in advance (which is a breaking change).
+
 ### Breaking changes
 
 - The graph algorithms in the `typir.infrastructure.GraphAlgorithms` service supported only unidirectional relationships (e.g. conversion, sub-type) between types so far.
   Now the directionality of relationships needs to be specified in order to support also bidirectional relationships (e.g. equality).
+- Equality is not dynamically calculated on-demain anymore, but equality relationships need to be set-up in advance (see above).
 
 ### Fixed bugs
 
