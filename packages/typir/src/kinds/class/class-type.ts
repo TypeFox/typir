@@ -9,7 +9,7 @@ import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
-import { checkNameTypesMap, checkValueForConflict, createKindConflict, createTypeCheckStrategy, IndexedTypeConflict } from '../../utils/utils-type-comparison.js';
+import { checkNameTypesMap, checkTypeArrays, checkValueForConflict, createKindConflict, createTypeCheckStrategy, IndexedTypeConflict } from '../../utils/utils-type-comparison.js';
 import { assertUnreachable, removeFromArray, toArray } from '../../utils/utils.js';
 import { FunctionType } from '../function/function-type.js';
 import { ClassKind, ClassTypeDetails, isClassKind } from './class-kind.js';
@@ -166,8 +166,12 @@ export class ClassType extends Type {
         if (isClassType(otherType)) {
             if (this.kind.options.typing === 'Structural') {
                 // for structural typing:
-                return checkNameTypesMap(this.getFields(true), otherType.getFields(true), // including fields of super-classes
-                    (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), failFast);
+                return [
+                    ...checkNameTypesMap(this.getFields(true), otherType.getFields(true), // including fields of super-classes
+                        (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), failFast),
+                    ...checkTypeArrays(this.getMethods(true), otherType.getMethods(true), // including methods of super-classes
+                        (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), false, failFast),
+                ];
             } else if (this.kind.options.typing === 'Nominal') {
                 // for nominal typing:
                 return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
