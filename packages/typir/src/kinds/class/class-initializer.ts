@@ -9,7 +9,7 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../../services/inference.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
-import { checkNameTypesMap, createTypeCheckStrategy, MapListConverter } from '../../utils/utils-type-comparison.js';
+import { areTypesEqualUtility, checkNameTypesMap, createTypeCheckStrategy, MapListConverter } from '../../utils/utils-type-comparison.js';
 import { assertTypirType, toArray } from '../../utils/utils.js';
 import { ClassKind, CreateClassTypeDetails, InferClassLiteral } from './class-kind.js';
 import { ClassType, isClassType } from './class-type.js';
@@ -44,7 +44,7 @@ export class ClassTypeInitializer<Specifics extends TypirSpecifics> extends Type
     onSwitchedToIdentifiable(classType: Type): void {
         /* Important explanations:
          * - This logic here (and 'producedType(...)') ensures, that the same ClassType is not registered twice in the type graph.
-         * - By waiting untile the new class has its identifier, 'producedType(...)' is able to check, whether this class type is already existing!
+         * - By waiting until the new class has its identifier, 'producedType(...)' is able to check, whether this class type is already existing!
          * - Accordingly, 'classType' and 'readyClassType' might have different values!
          */
         assertTypirType(classType, isClassType);
@@ -75,6 +75,15 @@ export class ClassTypeInitializer<Specifics extends TypirSpecifics> extends Type
             // keep the existing inference rules, but register it for the unchanged class type
             this.deregisterRules(undefined);
             this.registerRules(readyClassType);
+        }
+
+        // find equal classes, due to properties with types which have equal types
+        if (this.kind.options.typing === 'Structural') {
+            this.services.infrastructure.Graph.getAllRegisteredTypes().filter(isClassType) // TODO make this more performant
+                .filter(other => other !== readyClassType && areTypesEqualUtility(readyClassType, other))
+                .forEach(other => this.services.Equality.markAsEqual(readyClassType, other));
+        } else {
+            // for nominally typed classes, only the names of classes are relevant for identify/equality, not the properties and their types
         }
     }
 

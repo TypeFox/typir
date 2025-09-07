@@ -10,6 +10,7 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { MarkSubTypeOptions } from '../../services/subtype.js';
 import { TypirSpecifics } from '../../typir.js';
 import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
+import { areTypesEqualUtility } from '../../utils/utils-type-comparison.js';
 import { assertTrue, assertTypirType } from '../../utils/utils.js';
 import { CustomTypeProperties } from './custom-definitions.js';
 import { CreateCustomTypeDetails, CustomKind } from './custom-kind.js';
@@ -103,9 +104,19 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Spec
         (options?.getTypesExplicitlyConvertibleToNewCustomType?.call(options.getTypesExplicitlyConvertibleToNewCustomType, newCustomType) ?? [])
             .forEach(from => this.services.Conversion.markAsConvertible(from, newCustomType, 'EXPLICIT'));
 
+        // equality
+        // language-specific equality:
+        (options.getEqualTypesForNewCustomType?.call(options.getEqualTypesForNewCustomType, newCustomType) ?? [])
+            .forEach(other => this.services.Equality.markAsEqual(newCustomType, other));
+        // builtin equality: find equal custom types, due to properties with types as values which are equal
+        this.services.infrastructure.Graph.getAllRegisteredTypes().filter(t => isCustomType(t, this.kind)) // TODO make this more performant
+            .filter(other => other !== newCustomType && areTypesEqualUtility(newCustomType, other))
+            .forEach(other => this.services.Equality.markAsEqual(newCustomType, other));
+
         // handle relationships of the new custom type to types which are not known in advance
         if (options.isNewCustomTypeSubTypeOf || options.isNewCustomTypeSuperTypeOf ||
-            options.isNewCustomTypeConvertibleToType || options.isTypeConvertibleToNewCustomType
+            options.isNewCustomTypeConvertibleToType || options.isTypeConvertibleToNewCustomType ||
+            options.isNewCustomTypeEqualTo
         ) {
             this.services.infrastructure.Graph.addListener(this, { callOnAddedForAllExisting: true });
         }
@@ -132,6 +143,11 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Spec
             const convertOtherToCustom = options.isTypeConvertibleToNewCustomType?.call(options.isTypeConvertibleToNewCustomType, newOtherType, newCustomType) ?? 'NONE';
             if (convertOtherToCustom === 'IMPLICIT_EXPLICIT' || convertOtherToCustom === 'EXPLICIT') {
                 this.services.Conversion.markAsConvertible(newOtherType, newCustomType, convertOtherToCustom);
+            }
+
+            // equality
+            if (options.isNewCustomTypeEqualTo?.call(options.isNewCustomTypeEqualTo, newCustomType, newOtherType)) {
+                this.services.Equality.markAsEqual(newCustomType, newOtherType);
             }
         }
     }

@@ -13,13 +13,16 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 - The `typir.Equality` service now allows to define two types as equal:
   - Assignability takes these equality relationships into account.
-  - Equality is not dynamically calculated on-demain anymore, but equality relationships need to be set-up in advance (which is a breaking change).
+  - Equality is not dynamically calculated on-demand anymore, but equality relationships need to be set-up in advance (which is a breaking change).
+  - There is builtin logic for the complex types (classes, functions, custom):
+    If two complex types have different types as values for the same property and these types are equal (and all other properties are equal), the complex types are marked as equal.
+- Custom types got the option to specify some language-specific rules for their equality relationships.
 
 ### Breaking changes
 
 - The graph algorithms in the `typir.infrastructure.GraphAlgorithms` service supported only unidirectional relationships (e.g. conversion, sub-type) between types so far.
   Now the directionality of relationships needs to be specified in order to support also bidirectional relationships (e.g. equality).
-- Equality is not dynamically calculated on-demain anymore, but equality relationships need to be set-up in advance (see above).
+- Equality is not dynamically calculated on-demand anymore, but equality relationships need to be set-up in advance (see above).
 
 ### Fixed bugs
 

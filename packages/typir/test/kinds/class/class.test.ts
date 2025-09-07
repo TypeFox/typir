@@ -4,16 +4,17 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { describe, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { isClassType } from '../../../src/kinds/class/class-type.js';
 import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { BooleanLiteral, ClassConstructorCall, ClassFieldAccess, createTypirServicesForTesting, IntegerLiteral, Variable } from '../../../src/test/predefined-language-nodes.js';
 import { expectToBeType, expectTypirTypes, expectValidationIssuesStrict } from '../../../src/test/test-utils.js';
 import { assertTypirType } from '../../../src/utils/utils.js';
+import { ClassKind, ClassKindName } from '../../../src/index.js';
 
 describe('Tests some details for class types', () => {
 
-    test('create primitive and get it by name', () => {
+    test('create nominally typed class and get it by name', () => {
         const typir = createTypirServicesForTesting();
         const classType1 = typir.factory.Classes
             .create({ className: 'MyClass1', fields: [], methods: [] }).finish()
@@ -75,6 +76,26 @@ describe('Tests some details for class types', () => {
         const varFieldBooleanValue = new Variable('var3', new ClassFieldAccess(varClass, 'fieldBoolean'));
         expectToBeType(typir.Inference.inferType(varFieldBooleanValue), isPrimitiveType, type => type.getName() === 'boolean');
         expectValidationIssuesStrict(typir, varFieldBooleanValue.initialValue, ["Validated access of 'fieldBoolean' of the variable 'var1'."]);
+    });
+
+    test('check equality of structurally typed classes due to properties with equal types', () => {
+        const typir = createTypirServicesForTesting({
+            factory: {
+                Classes: (services) => services.infrastructure.Kinds.getOrCreateKind(ClassKindName, services => new ClassKind(services, { typing: 'Structural' })),
+            }
+        });
+
+        // primitive types ...
+        const typeA = typir.factory.Primitives.create({ primitiveName: 'A' }).finish();
+        const typeB = typir.factory.Primitives.create({ primitiveName: 'B' }).finish();
+        // ... are marked to be equal
+        typir.Equality.markAsEqual(typeA, typeB);
+
+        // Therefore structurally typed classes with them as properties ...
+        const classA = typir.factory.Classes.create({ className: 'MyClass1', fields: [{ name: 'p1', type: typeA }], methods: [] }).finish().getTypeFinal()!;
+        const classB = typir.factory.Classes.create({ className: 'MyClass2', fields: [{ name: 'p1', type: typeB }], methods: [] }).finish().getTypeFinal()!;
+        // ... are equal as well
+        expect(typir.Equality.areTypesEqual(classA, classB)).toBe(true);
     });
 
 });

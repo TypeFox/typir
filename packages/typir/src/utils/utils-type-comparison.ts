@@ -365,3 +365,25 @@ export class MapListConverter {
         return result;
     }
 }
+
+
+/**
+ * Utility function to simplify calls of the `analyzeTypeEquality` method of types.
+ * This is an internal utility function, i.e. don't use it to compare types in general, use "typir.Equality.areTypesEqual(...)" instead!
+ * @param type a given type
+ * @param typeEqualTo another type to check for equality, note that this function is not always symmetric
+ * @param options some optional options
+ * @returns true, if the types are equal, false otherwise
+ */
+export function areTypesEqualUtility(type: Type, typeEqualTo: Type, options?: { checkOtherDirection?: boolean }): boolean {
+    const resultThisDirection = type.analyzeTypeEquality(typeEqualTo, true);
+    const result = typeof resultThisDirection === 'boolean' ? resultThisDirection : resultThisDirection.length === 0;
+    if (result) {
+        return true;
+    }
+    if (options?.checkOtherDirection) { // on request, check also the equality implementation of the other type
+        const resultOtherDirection = typeEqualTo.analyzeTypeEquality(type, true);
+        return typeof resultOtherDirection === 'boolean' ? resultOtherDirection : resultOtherDirection.length === 0;
+    }
+    return false;
+}

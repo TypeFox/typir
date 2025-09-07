@@ -48,7 +48,9 @@ export interface CustomKindOptions<Properties extends CustomTypeProperties, Spec
     isTypeConvertibleToNewCustomType?: (fromOther: Type, toNewCustom: CustomType<Properties, Specifics>) => ConversionMode;
     // in order to have linear effort (instead of square effort), these methods are called only for the current, new CustomType (not for all existing types)!
 
-    // TODO same for Equality in the future
+    // Equality
+    getEqualTypesForNewCustomType?: (newCustom: CustomType<Properties, Specifics>) => Type[];
+    isNewCustomTypeEqualTo?: (newCustom: CustomType<Properties, Specifics>, other: Type) => boolean;
 }
 
 export interface CustomTypeDetails<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics> extends TypeDetails<Specifics> {

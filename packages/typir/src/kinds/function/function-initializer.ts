@@ -9,6 +9,7 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeInferenceRule } from '../../services/inference.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType } from '../../utils/utils-definitions.js';
+import { areTypesEqualUtility } from '../../utils/utils-type-comparison.js';
 import { assertTypirType } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
 import { CreateFunctionTypeDetails, FunctionKind, FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
@@ -70,7 +71,12 @@ export class FunctionTypeInitializer<Specifics extends TypirSpecifics> extends T
             this.registerRules(functionName, readyFunctionType);
         }
 
-        // There is no need to remove the skipped type, since it is not yet added here, since the new types is skipped in favor of the already existing (and added) type!
+        // find equal functions, due to properties with types which have equal types
+        (this.functions.getOverloads(readyFunctionType.getName())?.overloadedFunctions ?? []) // check only the existing functions with same name, since all others are not equal for sure
+            .filter(other => areTypesEqualUtility(readyFunctionType, other))
+            .forEach(other => this.services.Equality.markAsEqual(readyFunctionType, other));
+
+        // There is no need to remove the skipped type, since it is not yet added here, since the new type is skipped in favor of the already existing (and added) type!
         this.functions.addFunction(readyFunctionType, this.typeDetails.inferenceRulesForCalls);
     }
 
