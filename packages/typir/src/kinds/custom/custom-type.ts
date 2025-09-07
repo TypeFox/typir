@@ -169,7 +169,14 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
     }
 
     protected analyzeTypeEqualityProblemsSingle<T extends CustomTypePropertyTypes>(value1: CustomTypePropertyStorage<T, Specifics>, value2: CustomTypePropertyStorage<T, Specifics>, failFast: boolean): TypirProblem[] {
-        assertTrue(typeof value1 === typeof value2);
+        if (typeof value1 !== typeof value2) {
+            // this case might occur for optional properties, since `undefined` is a different TypeScript type than a non-undefined value
+            return [<ValueConflict>{
+                $problem: ValueConflict,
+                firstValue: typeof value1,
+                secondValue: typeof value2,
+            }];
+        }
         // a type is stored in a TypeReference!
         if (value1 instanceof TypeReference) {
             return checkTypes(value1.getType(), (value2 as TypeReference<Type, Specifics>).getType(), createTypeCheckStrategy('EQUAL_TYPE', this.kind.services), false);
