@@ -101,19 +101,21 @@ export class FunctionType extends Type {
         }
     }
 
-    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
         if (isFunctionType(otherType)) {
             const conflicts: TypirProblem[] = [];
             // same name? since functions with different names are different
             if (this.kind.options.enforceFunctionName) {
                 conflicts.push(...checkValueForConflict(this.getSimpleFunctionName(), otherType.getSimpleFunctionName(), 'simple name'));
+                if (conflicts.length >= 1 && failFast) { return conflicts; }
             }
             // same output?
             conflicts.push(...checkTypes(this.getOutput(), otherType.getOutput(),
                 (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceOutputParameterName));
+            if (conflicts.length >= 1 && failFast) { return conflicts; }
             // same input?
             conflicts.push(...checkTypeArrays(this.getInputs(), otherType.getInputs(),
-                (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames));
+                (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames, failFast));
             return conflicts;
         } else {
             return [<TypeEqualityProblem>{
@@ -133,7 +135,7 @@ export class FunctionType extends Type {
             (sub, superr) => strategy(sub, superr), this.kind.options.enforceOutputParameterName));
         // input: super type inputs must be assignable (which can be configured) to sub type inputs
         conflicts.push(...checkTypeArrays(subType.getInputs(), superType.getInputs(),
-            (sub, superr) => strategy(superr, sub), this.kind.options.enforceInputParameterNames));
+            (sub, superr) => strategy(superr, sub), this.kind.options.enforceInputParameterNames, false));
         return conflicts;
     }
 

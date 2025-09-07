@@ -162,12 +162,12 @@ export class ClassType extends Type {
         return `${this.className}${extendedClasses} { ${slots.join(', ')} }`;
     }
 
-    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
         if (isClassType(otherType)) {
             if (this.kind.options.typing === 'Structural') {
                 // for structural typing:
                 return checkNameTypesMap(this.getFields(true), otherType.getFields(true), // including fields of super-classes
-                    (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2));
+                    (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), failFast);
             } else if (this.kind.options.typing === 'Nominal') {
                 // for nominal typing:
                 return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');

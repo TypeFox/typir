@@ -54,7 +54,7 @@ export class FixedParameterType extends Type {
         return this.getName();
     }
 
-    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
         if (isFixedParameterType(otherType)) {
             // same name, e.g. both need to be Map, Set, Array, ...
             const baseTypeCheck = checkValueForConflict(this.kind.baseName, otherType.kind.baseName, 'base type');
@@ -64,7 +64,7 @@ export class FixedParameterType extends Type {
             } else {
                 // all parameter types must match, e.g. Set<String> !== Set<Boolean>
                 const conflicts: TypirProblem[] = [];
-                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), false));
+                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), false, failFast));
                 return conflicts;
             }
         } else {
@@ -86,7 +86,7 @@ export class FixedParameterType extends Type {
         } else {
             // all parameter types must match, e.g. Set<String> !== Set<Boolean>
             const checkStrategy = createTypeCheckStrategy(this.kind.options.parameterSubtypeCheckingStrategy, this.kind.services);
-            return checkTypeArrays(subType.getParameterTypes(), superType.getParameterTypes(), checkStrategy, false);
+            return checkTypeArrays(subType.getParameterTypes(), superType.getParameterTypes(), checkStrategy, false, false);
         }
     }
 }

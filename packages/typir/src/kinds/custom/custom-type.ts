@@ -9,12 +9,12 @@ import { Type } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
+import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy, ValueConflict } from '../../utils/utils-type-comparison.js';
 import { assertTrue } from '../../utils/utils.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage, TypeDescriptorForCustomTypes } from './custom-definitions.js';
 import { CustomKind, CustomTypeDetails } from './custom-kind.js';
-import { TypirSpecifics } from '../../typir.js';
 
 export class CustomType<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics> extends Type {
     override readonly kind: CustomKind<Properties, Specifics>;
@@ -126,9 +126,9 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
             ?? this.getName(); // fall-back
     }
 
-    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
         if (isCustomType(otherType, this.kind)) {
-            const subProblems = this.analyzeTypeEqualityProblemsAll(this.properties, otherType.properties);
+            const subProblems = this.analyzeTypeEqualityProblemsAll(this.properties, otherType.properties, failFast);
             if (subProblems.length >= 1) {
                 return [<TypeEqualityProblem>{
                     $problem: TypeEqualityProblem,
@@ -149,11 +149,11 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         }
     }
 
-    protected analyzeTypeEqualityProblemsAll(properties1: CustomTypeStorage<Properties, Specifics>, properties2: CustomTypeStorage<Properties, Specifics>): TypirProblem[] {
+    protected analyzeTypeEqualityProblemsAll(properties1: CustomTypeStorage<Properties, Specifics>, properties2: CustomTypeStorage<Properties, Specifics>, failFast: boolean): TypirProblem[] {
         const result: TypirProblem[] = [];
         for (const [key, value1] of Object.entries(properties1)) {
             const value2 = properties2[key];
-            const subProblems = this.analyzeTypeEqualityProblemsSingle(value1, value2);
+            const subProblems = this.analyzeTypeEqualityProblemsSingle(value1, value2, failFast);
             if (subProblems.length >= 1) {
                 result.push(<ValueConflict>{
                     $problem: ValueConflict,
@@ -162,11 +162,13 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
                     secondValue: value2,
                     subProblems,
                 });
+                if (failFast) { return result; }
             }
         }
         return result;
     }
-    protected analyzeTypeEqualityProblemsSingle<T extends CustomTypePropertyTypes>(value1: CustomTypePropertyStorage<T, Specifics>, value2: CustomTypePropertyStorage<T, Specifics>): TypirProblem[] {
+
+    protected analyzeTypeEqualityProblemsSingle<T extends CustomTypePropertyTypes>(value1: CustomTypePropertyStorage<T, Specifics>, value2: CustomTypePropertyStorage<T, Specifics>, failFast: boolean): TypirProblem[] {
         assertTrue(typeof value1 === typeof value2);
         // a type is stored in a TypeReference!
         if (value1 instanceof TypeReference) {
@@ -181,7 +183,8 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
             }
             const contentProblems: TypirProblem[] = [];
             for (let i = 0; i < value1.length; i++) {
-                contentProblems.push(...this.analyzeTypeEqualityProblemsSingle(value1[i], value2[i]));
+                contentProblems.push(...this.analyzeTypeEqualityProblemsSingle(value1[i], value2[i], failFast));
+                if (contentProblems.length >= 1 && failFast) { return contentProblems; }
             }
             return contentProblems;
         } else if (isSet(value1)) {
@@ -194,7 +197,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
             for (const v1 of value1.entries()) {
                 let found = false;
                 for (const v2 of value2.entries()) {
-                    if (this.analyzeTypeEqualityProblemsSingle(v1, v2).length === 0) {
+                    if (this.analyzeTypeEqualityProblemsSingle(v1, v2, failFast).length === 0) {
                         found = true;
                         break;
                     }
@@ -207,6 +210,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
                         location: 'set entries',
                         subProblems: [],
                     });
+                    if (contentProblems.length >= 1 && failFast) { return contentProblems; }
                 }
             }
             return contentProblems;
@@ -219,7 +223,8 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
             const contentProblems: TypirProblem[] = [];
             for (const [key, v1] of value1.entries()) {
                 const v2 = value2.get(key);
-                contentProblems.push(...this.analyzeTypeEqualityProblemsSingle(v1, v2));
+                contentProblems.push(...this.analyzeTypeEqualityProblemsSingle(v1, v2, failFast));
+                if (contentProblems.length >= 1 && failFast) { return contentProblems; }
             }
             return contentProblems;
         }
@@ -229,7 +234,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         }
         // composite with recursive object / index signature
         else if (typeof value1 === 'object' && value1 !== null) {
-            return this.analyzeTypeEqualityProblemsAll(value1 as CustomTypeStorage<Properties, Specifics>, value2 as CustomTypeStorage<Properties, Specifics>);
+            return this.analyzeTypeEqualityProblemsAll(value1 as CustomTypeStorage<Properties, Specifics>, value2 as CustomTypeStorage<Properties, Specifics>, failFast);
         } else {
             throw new Error('missing implementation');
         }

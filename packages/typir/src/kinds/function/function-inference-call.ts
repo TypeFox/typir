@@ -89,6 +89,7 @@ export class FunctionCallInferenceRule<Specifics extends TypirSpecifics, T exten
                 }
             },
             true,
+            false,
         );
         if (comparisonConflicts.length >= 1) {
             // this function type does not match, due to assignability conflicts => return them as errors

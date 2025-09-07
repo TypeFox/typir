@@ -77,7 +77,7 @@ export interface InferFunctionCall<
      *
      * If this function type is overloaded, different values for this property for different overloaded functions might be specified:
      * If the property is switched off for all overloads, no validation issues will be created.
-     * If the property is switched on for at least one overload, validation issues for will be shown for all calls (when none of the signatures match),
+     * If the property is switched on for at least one overload, validation issues will be shown for all calls (when none of the signatures match),
      * since it is unclear, which of the overloads is the desired one!
      * But the shown validation issue/message will not report about signatures for which this validation property is switched off.
      * While different values for this property for different overloads are possible in theory with the defined behaviour,

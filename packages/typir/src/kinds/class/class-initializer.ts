@@ -230,7 +230,8 @@ export class ClassTypeInitializer<Specifics extends TypirSpecifics> extends Type
                     const checkedFieldsProblems = checkNameTypesMap(
                         mapListConverter.toMap(childrenTypes),
                         allExpectedFields,
-                        createTypeCheckStrategy(kind.options.subtypeFieldChecking, typir)
+                        createTypeCheckStrategy(kind.options.subtypeFieldChecking, typir),
+                        false,
                     );
                     if (checkedFieldsProblems.length >= 1) {
                         // (only) for overloaded functions, the types of the parameters need to be inferred in order to determine an exact match

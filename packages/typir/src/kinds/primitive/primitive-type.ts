@@ -28,7 +28,7 @@ export class PrimitiveType extends Type {
         return this.getIdentifier();
     }
 
-    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, _failFast: boolean): boolean | TypirProblem[] {
         if (isPrimitiveType(otherType)) {
             return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
         } else {
@@ -42,7 +42,7 @@ export class PrimitiveType extends Type {
     }
 
     protected analyzeSubTypeProblems(subType: PrimitiveType, superType: PrimitiveType): TypirProblem[] {
-        return subType.analyzeTypeEqualityProblems(superType);
+        return subType.analyzeTypeEquality(superType, false) as TypirProblem[];
     }
 
 }

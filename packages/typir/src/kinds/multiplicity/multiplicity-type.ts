@@ -35,12 +35,13 @@ export class MultiplicityType extends Type {
         return this.getName();
     }
 
-    protected analyzeTypeEqualityProblems(otherType: Type): TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
         if (isMultiplicityKind(otherType)) {
             const conflicts: TypirProblem[] = [];
             // check the multiplicities
             conflicts.push(...checkValueForConflict(this.getLowerBound(), this.getLowerBound(), 'lower bound'));
             conflicts.push(...checkValueForConflict(this.getUpperBound(), this.getUpperBound(), 'upper bound'));
+            if (conflicts.length >= 1 && failFast) { return conflicts; }
             // check the constrained type
             const constrainedTypeConflict = this.kind.services.Equality.getTypeEqualityProblem(this.getConstrainedType(), this.getConstrainedType());
             if (constrainedTypeConflict !== undefined) {

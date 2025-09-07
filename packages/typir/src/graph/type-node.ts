@@ -8,6 +8,7 @@ import { TypeReference } from '../initialization/type-reference.js';
 import { WaitingForIdentifiableAndCompletedTypeReferences, WaitingForInvalidTypeReferences } from '../initialization/type-waiting.js';
 import { Kind } from '../kinds/kind.js';
 import { TypirSpecifics } from '../typir.js';
+import { TypirProblem } from '../utils/utils-definitions.js';
 import { assertTrue, assertUnreachable, removeFromArray } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 
@@ -323,6 +324,16 @@ export abstract class Type {
         }
     }
 
+
+    /**
+     * Analyzes, whether two types are equal.
+     * @param otherType to be compared with the current type
+     * @param failFast if true, a more performant check is done and probably only a boolean value or a single problem is returned,
+     * if false, calculates all problems with all details for a nice error message.
+     * @returns an empty array or true, if both types are equal, otherwise some problems or false which might point to found differences/conflicts between the two types.
+     * These problems are presented to users in order to support them with useful information about the result of this analysis.
+     */
+    abstract analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[];
 
 
     addIncomingEdge(edge: TypeEdge): void {

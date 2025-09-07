@@ -168,6 +168,7 @@ export function checkTypes<Specifics extends TypirSpecifics>(
 export function checkTypeArrays<Specifics extends TypirSpecifics>(
     leftTypes: Array<TypeToCheck<Specifics>>, rightTypes: Array<TypeToCheck<Specifics>>,
     relationToCheck: (l: Type, r: Type, index: number) => (TypirProblem | undefined), checkNamesOfNameTypePairs: boolean,
+    failFast: boolean,
 ): IndexedTypeConflict[] {
     const conflicts: IndexedTypeConflict[] = [];
     // check first common indices
@@ -175,6 +176,7 @@ export function checkTypeArrays<Specifics extends TypirSpecifics>(
         const currentProblems = checkTypes(leftTypes[i], rightTypes[i], (l, r) => relationToCheck(l, r, i), checkNamesOfNameTypePairs);
         currentProblems.forEach(p => p.propertyIndex = i); // add the index
         conflicts.push(...currentProblems);
+        if (conflicts.length >= 1 && failFast) { return conflicts; }
     }
     // missing in the left
     for (let i = leftTypes.length; i < rightTypes.length; i++) {
@@ -191,6 +193,7 @@ export function checkTypeArrays<Specifics extends TypirSpecifics>(
         } else {
             conflicts.push(createOnlyRightConflict(right, i));
         }
+        if (failFast) { return conflicts; }
     }
     // missing in the right
     for (let i = rightTypes.length; i < leftTypes.length; i++) {
@@ -207,6 +210,7 @@ export function checkTypeArrays<Specifics extends TypirSpecifics>(
         } else {
             conflicts.push(createOnlyLeftConflict(left, i));
         }
+        if (failFast) { return conflicts; }
     }
     return conflicts;
 }
@@ -253,7 +257,7 @@ function createOnlyRightConflict(right: Type | NameTypePair | undefined, propert
 }
 
 
-export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, relationToCheck: (s: Type, t: Type) => (TypirProblem | undefined)): IndexedTypeConflict[] {
+export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, targetFields: Map<string, Type|undefined>, relationToCheck: (s: Type, t: Type) => (TypirProblem | undefined), failFast: boolean): IndexedTypeConflict[] {
     const targetCopy = new Map(targetFields);
     const conflicts: IndexedTypeConflict[] = [];
     for (const entry of sourceFields.entries()) {
@@ -274,6 +278,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                     propertyName: name,
                     subProblems: []
                 });
+                if (failFast) { return conflicts; }
             } else if (sourceType !== undefined && targetType === undefined) {
                 // only the source type exists
                 conflicts.push({
@@ -283,6 +288,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                     propertyName: name,
                     subProblems: []
                 });
+                if (failFast) { return conflicts; }
             } else if (sourceType !== undefined && targetType !== undefined) {
                 // both types exist => check them
                 const relationCheckResult = relationToCheck(sourceType, targetType);
@@ -295,6 +301,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                         propertyName: name,
                         subProblems: [relationCheckResult]
                     });
+                    if (failFast) { return conflicts; }
                 } else {
                     // same type
                 }
@@ -313,6 +320,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                     propertyName: name,
                     subProblems: []
                 });
+                if (failFast) { return conflicts; }
             }
         }
     }
@@ -328,6 +336,7 @@ export function checkNameTypesMap(sourceFields: Map<string, Type|undefined>, tar
                 propertyName: index,
                 subProblems: []
             });
+            if (failFast) { return conflicts; }
         }
     }
     return conflicts;
