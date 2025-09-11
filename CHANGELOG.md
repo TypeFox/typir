@@ -16,6 +16,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
   - Equality is not dynamically calculated on-demand anymore, but equality relationships need to be set-up in advance (which is a breaking change).
   - There is builtin logic for the complex types (classes, functions, custom):
     If two complex types have different types as values for the same property and these types are equal (and all other properties are equal), the complex types are marked as equal.
+  - There is a new `TypeEqualityListener` to get informed about added and removed equality relationships.
 - Custom types got the option to specify some language-specific rules for their equality relationships.
 
 ### Breaking changes

@@ -119,6 +119,14 @@ export class TypeGraph {
             ?? type1.getOutgoingEdges<T>($relation).find(edge => edge.to   === type2 && edge.cachingInformation === cachingMode);
     }
 
+    getEdges<T extends TypeEdge>($relation: T['$relation']): T[] {
+        return this.edges.filter(e => e.$relation === $relation) as T[];
+    }
+
+    getAllEdges(): TypeEdge[] {
+        return this.edges;
+    }
+
 
     // register listeners for changed types/edges in the type graph
 

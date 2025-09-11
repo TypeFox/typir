@@ -10,6 +10,7 @@ import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
 import { TypirServices, TypirSpecifics } from '../typir.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
+import { removeFromArray } from '../utils/utils.js';
 
 export interface TypeEqualityProblem extends TypirProblem {
     $problem: 'TypeEqualityProblem';
@@ -43,11 +44,21 @@ export interface TypeEquality {
      * @param type2 another type (the order of type1 and type2 does not matter)
      */
     markAsEqual(type1: Type, type2: Type): void;
+    unmarkAsEqual(type1: Type, type2: Type): void;
+
+    addListener(listener: TypeEqualityListener, options?: { callOnMarkedForAllExisting: boolean }): void
+    removeListener(listener: TypeEqualityListener): void
+}
+
+export interface TypeEqualityListener {
+    onMarkedEqual(type1: Type, type2: Type, edge: TypeEdge): void;
+    onUnmarkedEqual(type1: Type, type2: Type, edge: TypeEdge): void;
 }
 
 export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements TypeEquality {
     protected readonly graph: TypeGraph;
     protected readonly algorithms: GraphAlgorithms;
+    protected readonly listeners: TypeEqualityListener[] = [];
 
     constructor(services: TypirServices<Specifics>) {
         this.graph = services.infrastructure.Graph;
@@ -84,9 +95,12 @@ export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements Ty
 
     markAsEqual(type1: Type, type2: Type): void {
         let edge = this.getEqualityEdge(type1, type2);
+        let notify: boolean;
         if (edge) {
+            notify = edge.cachingInformation !== 'LINK_EXISTS';
             edge.cachingInformation = 'LINK_EXISTS';
         } else {
+            notify = true;
             edge = {
                 $relation: EqualityEdge,
                 from: type1,
@@ -96,10 +110,35 @@ export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements Ty
             };
             this.graph.addEdge(edge);
         }
+        if (notify) {
+            this.listeners.forEach(listener => listener.onMarkedEqual(type1, type2, edge));
+        }
+    }
+
+    unmarkAsEqual(type1: Type, type2: Type): void {
+        const edge = this.getEqualityEdge(type1, type2);
+        const notify = edge && edge.cachingInformation === 'LINK_EXISTS';
+        if (edge) {
+            this.graph.removeEdge(edge);
+        }
+        if (notify) {
+            this.listeners.forEach(listener => listener.onUnmarkedEqual(type1, type2, edge));
+        }
     }
 
     protected getEqualityEdge(type1: Type, type2: Type): EqualityEdge | undefined {
         return this.graph.getBidirectionalEdge(type1, type2, EqualityEdge, 'LINK_EXISTS');
+    }
+
+    addListener(listener: TypeEqualityListener, options?: { callOnMarkedForAllExisting: boolean; }): void {
+        this.listeners.push(listener);
+        if (options?.callOnMarkedForAllExisting) {
+            this.graph.getEdges(EqualityEdge).forEach(e => listener.onMarkedEqual(e.from, e.to, e));
+        }
+    }
+
+    removeListener(listener: TypeEqualityListener): void {
+        removeFromArray(listener, this.listeners);
     }
 }
 
