@@ -10,7 +10,7 @@ import { isPrimitiveType } from '../../../src/kinds/primitive/primitive-type.js'
 import { BooleanLiteral, ClassConstructorCall, ClassFieldAccess, createTypirServicesForTesting, IntegerLiteral, Variable } from '../../../src/test/predefined-language-nodes.js';
 import { expectToBeType, expectTypirTypes, expectValidationIssuesStrict } from '../../../src/test/test-utils.js';
 import { assertTypirType } from '../../../src/utils/utils.js';
-import { ClassKind, ClassKindName } from '../../../src/index.js';
+import { ClassKind, ClassKindName } from '../../../src/kinds/class/class-kind.js';
 
 describe('Tests some details for class types', () => {
 

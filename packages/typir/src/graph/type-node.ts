@@ -44,6 +44,14 @@ export interface TypeDetails<Specifics extends TypirSpecifics> {
     associatedLanguageNode?: Specifics['LanguageType'];
 }
 
+export interface AnalyzeEqualityOptions {
+    /**
+     * if true, a more performant check is done and probably only a boolean value or a single problem is returned,
+     * if false, calculates all problems with all details for a nice error message.
+     */
+    failFast: boolean,
+}
+
 /**
  * Design decisions:
  * - features of types are realized/determined by their kinds
@@ -210,10 +218,13 @@ export abstract class Type {
         preconditionsForCompleted?: PreconditionsForInitializationState,
         /** Must contain all(!) TypeReferences of a type. */
         referencesRelevantForInvalidation?: Array<TypeReference<Type>>,
-        /** typical use cases: calculate the identifier, register inference rules for the type object already now! */
+        /** Typical use cases include to calculate the identifier, or to register inference rules for the type object already now!
+         * This logic is called before listeners of the state of this type are informed about the state change. */
         onIdentifiable?: () => void,
-        /** typical use cases: do some internal checks for the completed properties */
+        /** Typical use cases include do some internal checks for the completed properties.
+         * This logic is called before listeners of the state of this type are informed about the state change. */
         onCompleted?: () => void,
+        /** This logic is called before listeners of the state of this type are informed about the state change. */
         onInvalidated?: () => void,
     }): void {
         // store the reactions
@@ -328,12 +339,11 @@ export abstract class Type {
     /**
      * Analyzes, whether two types are equal.
      * @param otherType to be compared with the current type
-     * @param failFast if true, a more performant check is done and probably only a boolean value or a single problem is returned,
-     * if false, calculates all problems with all details for a nice error message.
+     * @param options some otional options to control the details of the equality check
      * @returns an empty array or true, if both types are equal, otherwise some problems or false which might point to found differences/conflicts between the two types.
      * These problems are presented to users in order to support them with useful information about the result of this analysis.
      */
-    abstract analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[];
+    abstract analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[];
 
 
     addIncomingEdge(edge: TypeEdge): void {

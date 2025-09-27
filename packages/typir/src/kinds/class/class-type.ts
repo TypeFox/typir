@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
@@ -162,15 +162,15 @@ export class ClassType extends Type {
         return `${this.className}${extendedClasses} { ${slots.join(', ')} }`;
     }
 
-    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
         if (isClassType(otherType)) {
             if (this.kind.options.typing === 'Structural') {
                 // for structural typing:
                 return [
                     ...checkNameTypesMap(this.getFields(true), otherType.getFields(true), // including fields of super-classes
-                        (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), failFast),
+                        (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), !!options?.failFast),
                     ...checkTypeArrays(this.getMethods(true), otherType.getMethods(true), // including methods of super-classes
-                        (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), false, failFast),
+                        (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), false, !!options?.failFast),
                 ];
             } else if (this.kind.options.typing === 'Nominal') {
                 // for nominal typing:

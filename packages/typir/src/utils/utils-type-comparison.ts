@@ -376,13 +376,13 @@ export class MapListConverter {
  * @returns true, if the types are equal, false otherwise
  */
 export function areTypesEqualUtility(type: Type, typeEqualTo: Type, options?: { checkOtherDirection?: boolean }): boolean {
-    const resultThisDirection = type.analyzeTypeEquality(typeEqualTo, true);
+    const resultThisDirection = type.analyzeTypeEquality(typeEqualTo, { failFast: true });
     const result = typeof resultThisDirection === 'boolean' ? resultThisDirection : resultThisDirection.length === 0;
     if (result) {
         return true;
     }
     if (options?.checkOtherDirection) { // on request, check also the equality implementation of the other type
-        const resultOtherDirection = typeEqualTo.analyzeTypeEquality(type, true);
+        const resultOtherDirection = typeEqualTo.analyzeTypeEquality(type, { failFast: true });
         return typeof resultOtherDirection === 'boolean' ? resultOtherDirection : resultOtherDirection.length === 0;
     }
     return false;

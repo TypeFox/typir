@@ -198,6 +198,7 @@ export class WaitingForIdentifiableAndCompletedTypeReferences<T extends Type> im
     }
 }
 
+
 export type WaitingForInvalidTypeReferencesListener<T extends Type> = (waiter: WaitingForInvalidTypeReferences<T>) => void;
 
 export class WaitingForInvalidTypeReferences<T extends Type> implements TypeReferenceListener<T> {

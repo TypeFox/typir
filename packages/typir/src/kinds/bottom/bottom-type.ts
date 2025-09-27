@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeGraphListener } from '../../graph/type-graph.js';
-import { isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
@@ -44,7 +44,7 @@ export class BottomType extends Type implements TypeGraphListener {
         return this.getIdentifier();
     }
 
-    override analyzeTypeEquality(otherType: Type, _failFast: boolean): boolean | TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, _options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
         if (isBottomType(otherType)) {
             return true;
         } else {

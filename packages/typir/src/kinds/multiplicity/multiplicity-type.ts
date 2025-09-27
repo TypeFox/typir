@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { isSubTypeProblem } from '../../services/subtype.js';
 import { TypirSpecifics } from '../../typir.js';
@@ -35,13 +35,13 @@ export class MultiplicityType extends Type {
         return this.getName();
     }
 
-    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
         if (isMultiplicityKind(otherType)) {
             const conflicts: TypirProblem[] = [];
             // check the multiplicities
             conflicts.push(...checkValueForConflict(this.getLowerBound(), this.getLowerBound(), 'lower bound'));
             conflicts.push(...checkValueForConflict(this.getUpperBound(), this.getUpperBound(), 'upper bound'));
-            if (conflicts.length >= 1 && failFast) { return conflicts; }
+            if (conflicts.length >= 1 && options?.failFast) { return conflicts; }
             // check the constrained type
             const constrainedTypeConflict = this.kind.services.Equality.getTypeEqualityProblem(this.getConstrainedType(), this.getConstrainedType());
             if (constrainedTypeConflict !== undefined) {

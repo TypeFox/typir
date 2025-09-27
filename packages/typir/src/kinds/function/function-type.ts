@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { Type, isType } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, Type, isType } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
@@ -101,21 +101,21 @@ export class FunctionType extends Type {
         }
     }
 
-    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
         if (isFunctionType(otherType)) {
             const conflicts: TypirProblem[] = [];
             // same name? since functions with different names are different
             if (this.kind.options.enforceFunctionName) {
                 conflicts.push(...checkValueForConflict(this.getSimpleFunctionName(), otherType.getSimpleFunctionName(), 'simple name'));
-                if (conflicts.length >= 1 && failFast) { return conflicts; }
+                if (conflicts.length >= 1 && options?.failFast) { return conflicts; }
             }
             // same output?
             conflicts.push(...checkTypes(this.getOutput(), otherType.getOutput(),
                 (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceOutputParameterName));
-            if (conflicts.length >= 1 && failFast) { return conflicts; }
+            if (conflicts.length >= 1 && options?.failFast) { return conflicts; }
             // same input?
             conflicts.push(...checkTypeArrays(this.getInputs(), otherType.getInputs(),
-                (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames, failFast));
+                (s, t) => this.kind.services.Equality.getTypeEqualityProblem(s, t), this.kind.options.enforceInputParameterNames, !!options?.failFast));
             return conflicts;
         } else {
             return [<TypeEqualityProblem>{

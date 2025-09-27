@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
@@ -54,7 +54,7 @@ export class FixedParameterType extends Type {
         return this.getName();
     }
 
-    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
         if (isFixedParameterType(otherType)) {
             // same name, e.g. both need to be Map, Set, Array, ...
             const baseTypeCheck = checkValueForConflict(this.kind.baseName, otherType.kind.baseName, 'base type');
@@ -64,7 +64,7 @@ export class FixedParameterType extends Type {
             } else {
                 // all parameter types must match, e.g. Set<String> !== Set<Boolean>
                 const conflicts: TypirProblem[] = [];
-                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), false, failFast));
+                conflicts.push(...checkTypeArrays(this.getParameterTypes(), otherType.getParameterTypes(), (t1, t2) => this.kind.services.Equality.getTypeEqualityProblem(t1, t2), false, !!options?.failFast));
                 return conflicts;
             }
         } else {

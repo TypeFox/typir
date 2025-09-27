@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
@@ -28,7 +28,7 @@ export class PrimitiveType extends Type {
         return this.getIdentifier();
     }
 
-    override analyzeTypeEquality(otherType: Type, _failFast: boolean): boolean | TypirProblem[] {
+    override analyzeTypeEquality(otherType: Type, _options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
         if (isPrimitiveType(otherType)) {
             return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
         } else {
@@ -42,7 +42,7 @@ export class PrimitiveType extends Type {
     }
 
     protected analyzeSubTypeProblems(subType: PrimitiveType, superType: PrimitiveType): TypirProblem[] {
-        return subType.analyzeTypeEquality(superType, false) as TypirProblem[];
+        return subType.analyzeTypeEquality(superType, { failFast: false }) as TypirProblem[];
     }
 
 }

@@ -5,9 +5,9 @@
  ******************************************************************************/
 
 import { describe, expect, test } from 'vitest';
-import { PrimitiveType } from '../../../src/index.js';
+import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
-import { TestingSpecifics, createTypirServicesForTesting } from '../../../src/test/predefined-language-nodes.js';
+import { createTypirServicesForTesting, TestingSpecifics } from '../../../src/test/predefined-language-nodes.js';
 
 // These test cases test some other aspects of custom types
 
