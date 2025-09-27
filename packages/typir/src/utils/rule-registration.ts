@@ -213,7 +213,7 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
 
         // inform all listeners about the new rule
         if (added) {
-            this.listeners.forEach(listener => listener.onAddedRule(rule, diffOptions));
+            this.listeners.slice().forEach(listener => listener.onAddedRule(rule, diffOptions));
         }
     }
 
@@ -294,7 +294,7 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
 
         // inform listeners
         if (removed) {
-            this.listeners.forEach(listener => listener.onRemovedRule(rule, diffOptions));
+            this.listeners.slice().forEach(listener => listener.onRemovedRule(rule, diffOptions));
         }
     }
 
@@ -336,7 +336,7 @@ export class RuleRegistry<RuleType, Specifics extends TypirSpecifics> implements
                         });
                     } else {
                         // inform listeners about removed rules
-                        this.listeners.forEach(listener => listener.onRemovedRule(ruleToRemove, {
+                        this.listeners.slice().forEach(listener => listener.onRemovedRule(ruleToRemove, {
                             ...existingOptions,
                             languageKey: existingOptions.languageKeyUndefined ? undefined : existingOptions.languageKeys,
                             boundToType: type,

@@ -111,7 +111,7 @@ export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements Ty
             this.graph.addEdge(edge);
         }
         if (notify) {
-            this.listeners.forEach(listener => listener.onMarkedEqual(type1, type2, edge));
+            this.listeners.slice().forEach(listener => listener.onMarkedEqual(type1, type2, edge));
         }
     }
 
@@ -122,7 +122,7 @@ export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements Ty
             this.graph.removeEdge(edge);
         }
         if (notify) {
-            this.listeners.forEach(listener => listener.onUnmarkedEqual(type1, type2, edge));
+            this.listeners.slice().forEach(listener => listener.onUnmarkedEqual(type1, type2, edge));
         }
     }
 

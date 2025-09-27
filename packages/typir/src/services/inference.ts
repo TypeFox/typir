@@ -321,14 +321,14 @@ export class DefaultTypeInferenceCollector<Specifics extends TypirSpecifics> imp
 
     onAddedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
         // listeners of the composite will be notified about all added inner rules
-        this.listeners.forEach(listener => listener.onAddedInferenceRule(rule, diffOptions));
+        this.listeners.slice().forEach(listener => listener.onAddedInferenceRule(rule, diffOptions));
     }
     onRemovedRule(rule: TypeInferenceRule<Specifics>, diffOptions: RuleOptions): void {
         // clear the cache, since its entries might be created using the removed rule
         // possible performance improvement: remove only entries which depend on the removed rule?
         this.cacheClear();
         // listeners of the composite will be notified about all removed inner rules
-        this.listeners.forEach(listener => listener.onRemovedInferenceRule(rule, diffOptions));
+        this.listeners.slice().forEach(listener => listener.onRemovedInferenceRule(rule, diffOptions));
     }
 
 

@@ -43,7 +43,7 @@ export class TypeGraph {
             }
         } else {
             this.nodes.set(mapKey, type);
-            this.listeners.forEach(listener => listener.onAddedType?.call(listener, type, mapKey));
+            this.listeners.slice().forEach(listener => listener.onAddedType?.call(listener, type, mapKey));
         }
     }
 
@@ -94,7 +94,7 @@ export class TypeGraph {
         edge.to.addIncomingEdge(edge);
         edge.from.addOutgoingEdge(edge);
 
-        this.listeners.forEach(listener => listener.onAddedEdge?.call(listener, edge));
+        this.listeners.slice().forEach(listener => listener.onAddedEdge?.call(listener, edge));
     }
 
     removeEdge(edge: TypeEdge): void {
@@ -103,7 +103,7 @@ export class TypeGraph {
         edge.from.removeOutgoingEdge(edge);
 
         if (removeFromArray(edge, this.edges)) {
-            this.listeners.forEach(listener => listener.onRemovedEdge?.call(listener, edge));
+            this.listeners.slice().forEach(listener => listener.onRemovedEdge?.call(listener, edge));
         } else {
             throw new Error(`Edge does not exist: ${edge.$relation}`);
         }

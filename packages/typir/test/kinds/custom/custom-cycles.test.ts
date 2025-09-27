@@ -107,4 +107,34 @@ describe('Check custom types depending on other types', () => {
         expectToBeType(custom3, type => isCustomType(type, customKind), type => type.properties.myProperty === 3 && type.properties.dependsOnType.getType() === custom2);
     });
 
+    test('Two custom types depend on the same other custom type => only one custom type is created', () => {
+        // custom2 depends on custom1 => waiting
+        const config2 = customKind.create({ typeName: 'C2', properties: {
+            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 })  as unknown as TypeReference<Type, TestingSpecifics>,
+            myProperty: 2 } }).finish();
+        expect(config2.getTypeFinal()).toBeUndefined();
+
+        // custom3 has the same properties as custom2 and therefore depends on custom1 as well => waiting
+        const config3 = customKind.create({ typeName: 'C2', properties: {
+            dependsOnType: customKind.get({ dependsOnType: integerType, myProperty: 1 })  as unknown as TypeReference<Type, TestingSpecifics>,
+            myProperty: 2 } }).finish(); // same value 2 as 'custom2'
+        expect(config3.getTypeFinal()).toBeUndefined();
+
+        // custom1 depends on integer => now, custom2 and custom3 are available, but they are the same types
+        const config1 = customKind.create({ typeName: 'C1', properties: {
+            dependsOnType: integerType,
+            myProperty: 1 } }).finish(); // no listeners for the TypeRef inside C1 registered!
+        const custom1 = config1.getTypeFinal();
+        expectToBeType(custom1, type => isCustomType(type, customKind), type => type.properties.myProperty === 1 && type.properties.dependsOnType.getType() === integerType);
+
+        // check that both configurations result in the same custom type
+        const custom2 = config2.getTypeFinal();
+        const custom3 = config3.getTypeFinal();
+        expectToBeType(custom2, type => isCustomType(type, customKind), type => type.properties.myProperty === 2 && type.properties.dependsOnType.getType() === custom1);
+        expectToBeType(custom3, type => isCustomType(type, customKind), type => type.properties.myProperty === 2 && type.properties.dependsOnType.getType() === custom1);
+        expect(custom2.getName()).toBe('C2');
+        expect(custom3.getName()).toBe('C2');
+        expect(custom2 === custom3).toBe(true);
+    });
+
 });

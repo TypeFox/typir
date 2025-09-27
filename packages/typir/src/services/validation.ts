@@ -344,11 +344,11 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
 
     onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
         // listeners of the composite will be notified about all added inner rules
-        this.listeners.forEach(listener => listener.onAddedValidationRule(rule, diffOptions));
+        this.listeners.slice().forEach(listener => listener.onAddedValidationRule(rule, diffOptions));
     }
     onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
         // listeners of the composite will be notified about all removed inner rules
-        this.listeners.forEach(listener => listener.onRemovedValidationRule(rule, diffOptions));
+        this.listeners.slice().forEach(listener => listener.onRemovedValidationRule(rule, diffOptions));
     }
 }
 
