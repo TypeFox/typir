@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { TypeGraphListener } from '../../graph/type-graph.js';
 import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { MarkSubTypeOptions } from '../../services/subtype.js';
@@ -18,7 +17,7 @@ import { CustomType, isCustomType } from './custom-type.js';
 
 export class CustomTypeInitializer<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics>
     extends TypeInitializer<CustomType<Properties, Specifics>, Specifics>
-    implements TypeStateListener, TypeGraphListener
+    implements TypeStateListener
 {
     protected readonly kind: CustomKind<Properties, Specifics>;
     protected readonly typeDetails: CreateCustomTypeDetails<Properties, Specifics>;
@@ -75,7 +74,6 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Spec
 
     onSwitchedToCompleted(_customType: Type): void {
         this.initialCustomType.removeListener(this);
-        this.services.infrastructure.Graph.removeListener(this);
     }
 
     onSwitchedToInvalid(_customType: Type): void {
@@ -113,43 +111,7 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Spec
             .filter(other => other !== newCustomType && areTypesEqualUtility(newCustomType, other))
             .forEach(other => this.services.Equality.markAsEqual(newCustomType, other));
 
-        // handle relationships of the new custom type to types which are not known in advance
-        if (options.isNewCustomTypeSubTypeOf || options.isNewCustomTypeSuperTypeOf ||
-            options.isNewCustomTypeConvertibleToType || options.isTypeConvertibleToNewCustomType ||
-            options.isNewCustomTypeEqualTo
-        ) {
-            this.services.infrastructure.Graph.addListener(this, { callOnAddedForAllExisting: true });
-        }
-    }
-
-    onAddedType(newOtherType: Type, _key: string): void {
-        const newCustomType = this.getTypeFinal() ?? this.getTypeInitial();
-        if (newOtherType !== newCustomType) { // don't relate the new custom type to itself
-            const options = this.kind.options;
-
-            // sub-type
-            if (options.isNewCustomTypeSubTypeOf?.call(options.isNewCustomTypeSubTypeOf, newCustomType, newOtherType)) {
-                this.services.Subtype.markAsSubType(newCustomType, newOtherType, { checkForCycles: false });
-            }
-            if (options.isNewCustomTypeSuperTypeOf?.call(options.isNewCustomTypeSuperTypeOf, newOtherType, newCustomType)) {
-                this.services.Subtype.markAsSubType(newOtherType, newCustomType, { checkForCycles: false });
-            }
-
-            // conversion
-            const convertCustomToOther = options.isNewCustomTypeConvertibleToType?.call(options.isNewCustomTypeConvertibleToType, newCustomType, newOtherType) ?? 'NONE';
-            if (convertCustomToOther === 'IMPLICIT_EXPLICIT' || convertCustomToOther === 'EXPLICIT') {
-                this.services.Conversion.markAsConvertible(newCustomType, newOtherType, convertCustomToOther);
-            }
-            const convertOtherToCustom = options.isTypeConvertibleToNewCustomType?.call(options.isTypeConvertibleToNewCustomType, newOtherType, newCustomType) ?? 'NONE';
-            if (convertOtherToCustom === 'IMPLICIT_EXPLICIT' || convertOtherToCustom === 'EXPLICIT') {
-                this.services.Conversion.markAsConvertible(newOtherType, newCustomType, convertOtherToCustom);
-            }
-
-            // equality
-            if (options.isNewCustomTypeEqualTo?.call(options.isNewCustomTypeEqualTo, newCustomType, newOtherType)) {
-                this.services.Equality.markAsEqual(newCustomType, newOtherType);
-            }
-        }
+        // relationships of the new custom type to types which are not known in advance are handled by the custom-type.ts itself
     }
 
     protected createRules(customType: CustomType<Properties, Specifics>): void {

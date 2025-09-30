@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { isMap, isSet } from 'util/types';
-import { Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, Type } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
@@ -15,8 +15,9 @@ import { checkTypes, checkValueForConflict, createKindConflict, createTypeCheckS
 import { assertTrue } from '../../utils/utils.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage, TypeDescriptorForCustomTypes } from './custom-definitions.js';
 import { CustomKind, CustomTypeDetails } from './custom-kind.js';
+import { TypeGraphListener } from '../../graph/type-graph.js';
 
-export class CustomType<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics> extends Type {
+export class CustomType<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics> extends Type implements TypeGraphListener {
     override readonly kind: CustomKind<Properties, Specifics>;
     protected readonly typeName: string | undefined;
     protected readonly typeUserRepresentation?: string;
@@ -39,6 +40,14 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
             referencesRelevantForInvalidation: allReferences,
             onIdentifiable: () => {
                 this.identifier = this.kind.calculateIdentifier(typeDetails.properties);
+                if (this.needsTypeNotifications()) {
+                    this.kind.services.infrastructure.Graph.addListener(this, { callOnAddedForAllExisting: true });
+                }
+            },
+            onInvalidated: () => {
+                if (this.needsTypeNotifications()) {
+                    this.kind.services.infrastructure.Graph.removeListener(this);
+                }
             }
         });
     }
@@ -126,9 +135,46 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
             ?? this.getName(); // fall-back
     }
 
-    override analyzeTypeEquality(otherType: Type, failFast: boolean): boolean | TypirProblem[] {
+
+    protected needsTypeNotifications(): boolean {
+        const options = this.kind.options;
+        return options.isNewCustomTypeSubTypeOf !== undefined || options.isNewCustomTypeSuperTypeOf !== undefined ||
+            options.isNewCustomTypeConvertibleToType !== undefined || options.isTypeConvertibleToNewCustomType !== undefined ||
+            options.isNewCustomTypeEqualTo !== undefined;
+    }
+
+    onAddedType(newOtherType: Type, _key: string): void {
+        if (newOtherType !== this) { // don't relate the custom type to itself
+            const options = this.kind.options;
+
+            // sub-type
+            if (options.isNewCustomTypeSubTypeOf?.call(options.isNewCustomTypeSubTypeOf, this, newOtherType)) {
+                this.kind.services.Subtype.markAsSubType(this, newOtherType, { checkForCycles: false });
+            }
+            if (options.isNewCustomTypeSuperTypeOf?.call(options.isNewCustomTypeSuperTypeOf, newOtherType, this)) {
+                this.kind.services.Subtype.markAsSubType(newOtherType, this, { checkForCycles: false });
+            }
+
+            // conversion
+            const convertCustomToOther = options.isNewCustomTypeConvertibleToType?.call(options.isNewCustomTypeConvertibleToType, this, newOtherType) ?? 'NONE';
+            if (convertCustomToOther === 'IMPLICIT_EXPLICIT' || convertCustomToOther === 'EXPLICIT') {
+                this.kind.services.Conversion.markAsConvertible(this, newOtherType, convertCustomToOther);
+            }
+            const convertOtherToCustom = options.isTypeConvertibleToNewCustomType?.call(options.isTypeConvertibleToNewCustomType, newOtherType, this) ?? 'NONE';
+            if (convertOtherToCustom === 'IMPLICIT_EXPLICIT' || convertOtherToCustom === 'EXPLICIT') {
+                this.kind.services.Conversion.markAsConvertible(newOtherType, this, convertOtherToCustom);
+            }
+
+            // equality
+            if (options.isNewCustomTypeEqualTo?.call(options.isNewCustomTypeEqualTo, this, newOtherType)) {
+                this.kind.services.Equality.markAsEqual(this, newOtherType);
+            }
+        }
+    }
+
+    override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
         if (isCustomType(otherType, this.kind)) {
-            const subProblems = this.analyzeTypeEqualityProblemsAll(this.properties, otherType.properties, failFast);
+            const subProblems = this.analyzeTypeEqualityProblemsAll(this.properties, otherType.properties, !!options?.failFast);
             if (subProblems.length >= 1) {
                 return [<TypeEqualityProblem>{
                     $problem: TypeEqualityProblem,
