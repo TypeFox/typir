@@ -51,8 +51,8 @@ export interface TypeEquality {
 }
 
 export interface TypeEqualityListener {
-    onMarkedEqual(type1: Type, type2: Type, edge: TypeEdge): void;
-    onUnmarkedEqual(type1: Type, type2: Type, edge: TypeEdge): void;
+    onMarkedEqual(type1: Type, type2: Type, edge: EqualityEdge): void;
+    onUnmarkedEqual(type1: Type, type2: Type, edge: EqualityEdge): void;
 }
 
 export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements TypeEquality {
@@ -133,7 +133,7 @@ export class DefaultTypeEquality<Specifics extends TypirSpecifics> implements Ty
     addListener(listener: TypeEqualityListener, options?: { callOnMarkedForAllExisting: boolean; }): void {
         this.listeners.push(listener);
         if (options?.callOnMarkedForAllExisting) {
-            this.graph.getEdges(EqualityEdge).forEach(e => listener.onMarkedEqual(e.from, e.to, e));
+            this.graph.getEdges<EqualityEdge>(EqualityEdge).forEach(e => listener.onMarkedEqual(e.from, e.to, e));
         }
     }
 
