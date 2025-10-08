@@ -5,6 +5,7 @@
  ******************************************************************************/
 
 import { DefaultGraphAlgorithms, GraphAlgorithms } from './graph/graph-algorithms.js';
+import { DefaultRelationshipUpdater, RelationshipUpdater } from './graph/relationship-updater.js';
 import { TypeGraph } from './graph/type-graph.js';
 import { DefaultTypeResolver, TypeResolvingService } from './initialization/type-descriptor.js';
 import { BottomFactoryService, BottomKind, BottomKindName } from './kinds/bottom/bottom-kind.js';
@@ -65,6 +66,7 @@ export type TypirServices<Specifics extends TypirSpecifics> = {
         readonly Graph: TypeGraph;
         readonly GraphAlgorithms: GraphAlgorithms;
         readonly Kinds: KindRegistry<Specifics>;
+        readonly RelationshipUpdater: RelationshipUpdater<Specifics>;
         readonly TypeResolver: TypeResolvingService<Specifics>;
     };
 };
@@ -98,6 +100,7 @@ export function createDefaultTypirServicesModule<Specifics extends TypirSpecific
             Graph: () => new TypeGraph(),
             GraphAlgorithms: (services) => new DefaultGraphAlgorithms(services),
             Kinds: (services) => new DefaultKindRegistry(services),
+            RelationshipUpdater: (services) => new DefaultRelationshipUpdater(services),
             TypeResolver: (services) => new DefaultTypeResolver(services),
         },
     };

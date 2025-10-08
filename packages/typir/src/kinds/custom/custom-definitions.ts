@@ -29,7 +29,7 @@ export type CustomTypePropertyTypes =
 /* Corresponding properties for specification during the initialization */
 
 /**
- * TypeDescriptors for custom types don't support strings, since they shall by used as primitive properties (and uncertainty needs to be prevented!).
+ * TypeDescriptors for custom types don't support strings, since they shall by used as primitive properties and not as identifier for searching for a type (and uncertainty needs to be prevented!).
  * As a workaround, encode the string value as a function, e.g. "() => 'MyIndentifer'".
  */
 export type TypeDescriptorForCustomTypes<T extends Type, Specifics extends TypirSpecifics> = Exclude<TypeDescriptor<T, Specifics>, string>;

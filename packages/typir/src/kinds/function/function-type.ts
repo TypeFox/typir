@@ -10,7 +10,7 @@ import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
 import { NameTypePair, TypirProblem } from '../../utils/utils-definitions.js';
 import { checkTypeArrays, checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy } from '../../utils/utils-type-comparison.js';
-import { assertTrue, assertUnreachable } from '../../utils/utils.js';
+import { assertUnreachable } from '../../utils/utils.js';
 import { FunctionKind, FunctionTypeDetails, isFunctionKind } from './function-kind.js';
 
 export interface ParameterDetails {
@@ -31,32 +31,15 @@ export class FunctionType extends Type {
         this.functionName = typeDetails.functionName;
 
         // output parameter
-        const outputType = typeDetails.outputParameter ? new TypeReference(typeDetails.outputParameter.type, this.kind.services) : undefined;
-        if (typeDetails.outputParameter) {
-            assertTrue(outputType !== undefined);
-            this.kind.enforceParameterName(typeDetails.outputParameter.name, this.kind.options.enforceOutputParameterName);
-            this.outputParameter = {
-                name: typeDetails.outputParameter.name,
-                type: outputType,
-            };
-        } else {
-            // no output parameter
-            this.outputParameter = undefined;
-        }
+        this.outputParameter = this.createOutputParameter(typeDetails);
 
         // input parameters
-        this.inputParameters = typeDetails.inputParameters.map(input => {
-            this.kind.enforceParameterName(input.name, this.kind.options.enforceInputParameterNames);
-            return <ParameterDetails>{
-                name: input.name,
-                type: new TypeReference(input.type, this.kind.services),
-            };
-        });
+        this.inputParameters = this.createInputParameters(typeDetails);
 
         // define to wait for the parameter types
         const allParameterRefs = this.inputParameters.map(p => p.type);
-        if (outputType) {
-            allParameterRefs.push(outputType);
+        if (this.outputParameter) {
+            allParameterRefs.push(this.outputParameter.type);
         }
         this.defineTheInitializationProcessOfThisType({
             preconditionsForIdentifiable: {
@@ -74,6 +57,32 @@ export class FunctionType extends Type {
             onInvalidated: () => {
                 // nothing to do
             },
+        });
+    }
+
+    private createOutputParameter(typeDetails: FunctionTypeDetails<TypirSpecifics>): ParameterDetails | undefined {
+        if (typeDetails.outputParameter) {
+            const outputType = new TypeReference(typeDetails.outputParameter.type, this.kind.services);
+            this.kind.enforceParameterName(typeDetails.outputParameter.name, this.kind.options.enforceOutputParameterName);
+            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, outputType);
+            return {
+                name: typeDetails.outputParameter.name,
+                type: outputType,
+            };
+        } else {
+            return undefined;
+        }
+    }
+
+    private createInputParameters(typeDetails: FunctionTypeDetails<TypirSpecifics>): ParameterDetails[] {
+        return typeDetails.inputParameters.map(input => {
+            this.kind.enforceParameterName(input.name, this.kind.options.enforceInputParameterNames);
+            const typeRef = new TypeReference(input.type, this.kind.services);
+            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, typeRef);
+            return <ParameterDetails>{
+                name: input.name,
+                type: typeRef,
+            };
         });
     }
 
@@ -179,6 +188,7 @@ export class FunctionType extends Type {
             }
         });
     }
+
 }
 
 export function isFunctionType(type: unknown): type is FunctionType {

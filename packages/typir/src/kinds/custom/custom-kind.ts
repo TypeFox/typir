@@ -144,7 +144,7 @@ export class CustomKind<Properties extends CustomTypeProperties, Specifics exten
         else if (typeof value === 'object' && value !== null) {
             return this.calculateIdentifierAll(value as CustomTypeInitialization<Properties, Specifics>);
         } else {
-            throw new Error(`missing implementation for ${value}`);
+            throw new Error(`missing implementation for ${String(value)}`);
         }
     }
 }

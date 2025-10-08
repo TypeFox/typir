@@ -36,7 +36,7 @@ export class ClassType extends Type {
     /** The super classes are readonly, since they might be used to calculate the identifier of the current class, which must be stable. */
     protected superClasses: Array<TypeReference<ClassType>>; // if necessary, the array could be replaced by Map<string, ClassType>: name/form -> ClassType, for faster look-ups
     protected readonly subClasses: ClassType[] = []; // additional sub classes might be added later on!
-    protected readonly fields: Map<string, FieldDetails> = new Map(); // unordered
+    protected readonly fields: Map<string, FieldDetails>; // unordered
     protected readonly methods: MethodDetails[]; // unordered
 
     constructor(kind: ClassKind<TypirSpecifics>, typeDetails: ClassTypeDetails<TypirSpecifics>) {
@@ -47,57 +47,19 @@ export class ClassType extends Type {
         this.kind = kind;
         this.className = typeDetails.className;
 
-        // eslint-disable-next-line @typescript-eslint/no-this-alias
-        const thisType = this;
-
         // resolve the super classes
-        this.superClasses = toArray(typeDetails.superClasses).map(superr => {
-            const superRef = new TypeReference<ClassType>(superr, kind.services);
-            superRef.addListener({
-                onTypeReferenceResolved(_reference, superType) {
-                    // after the super-class is complete ...
-                    superType.subClasses.push(thisType); // register this class as sub-class for that super-class
-                    kind.services.Subtype.markAsSubType(thisType, superType, // register the sub-type relationship in the type graph
-                        { checkForCycles: false }); // ignore cycles in sub-super-class relationships for now, since they are reported with a dedicated validation for the user
-                },
-                onTypeReferenceInvalidated(_reference, superType) {
-                    if (superType) {
-                        // if the superType gets invalid ...
-                        removeFromArray(thisType, superType.subClasses); // de-register this class as sub-class of the super-class
-                        // TODO unmark sub-type relationship (or already done automatically, since the type is removed from the graph?? gibt es noch andere Möglichkeiten eine Reference zu invalidieren außer dass der Type entfernt wurde??)
-                    } else {
-                        // initially do nothing
-                    }
-                },
-            }, true);
-            return superRef;
-        });
+        this.superClasses = this.createSuperClasses(typeDetails);
 
         // resolve fields
-        typeDetails.fields
-            .map(field => <FieldDetails>{
-                name: field.name,
-                type: new TypeReference(field.type, kind.services),
-            })
-            .forEach(field => {
-                if (this.fields.has(field.name)) {
-                    // check collisions of field names
-                    throw new Error(`The field name '${field.name}' is not unique for class '${this.className}'.`);
-                } else {
-                    this.fields.set(field.name, field);
-                }
-            });
+        this.fields = this.createFields(typeDetails);
         const refFields: Array<TypeReference<Type>> = [];
         [...this.fields.values()].forEach(f => refFields.push(f.type));
 
         // resolve methods
-        this.methods = typeDetails.methods.map(method => <MethodDetails>{
-            type: new TypeReference<FunctionType>(method.type, kind.services),
-        });
+        this.methods = this.createMethods(typeDetails);
         const refMethods = this.methods.map(m => m.type);
         // the uniqueness of methods can be checked with the predefined UniqueMethodValidation below
 
-        // const all: Array<TypeReference<Type | FunctionType>> = [];
         const fieldsAndMethods: Array<TypeReference<Type>> = [];
         fieldsAndMethods.push(...refFields);
         fieldsAndMethods.push(...(refMethods as unknown as Array<TypeReference<Type>>));
@@ -130,6 +92,69 @@ export class ClassType extends Type {
             onInvalidated: () => {
                 // nothing to do
             },
+        });
+    }
+
+    private createSuperClasses(typeDetails: ClassTypeDetails<TypirSpecifics>): Array<TypeReference<ClassType, TypirSpecifics>> {
+        // eslint-disable-next-line @typescript-eslint/no-this-alias
+        const thisType = this;
+        const thisKind = this.kind;
+        return toArray(typeDetails.superClasses).map(superr => {
+            const superRef = new TypeReference<ClassType>(superr, this.kind.services);
+            superRef.addListener({
+                onTypeReferenceResolved(_reference, superType) {
+                    // after the super-class is complete ...
+                    superType.subClasses.push(thisType); // register this class as sub-class for that super-class
+                    thisKind.services.Subtype.markAsSubType(thisType, superType, // register the sub-type relationship in the type graph
+                        { checkForCycles: false }); // ignore cycles in sub-super-class relationships for now, since they are reported with a dedicated validation for the user
+                },
+                onTypeReferenceInvalidated(_reference, superType) {
+                    if (superType) {
+                        // if the superType gets invalid ...
+                        removeFromArray(thisType, superType.subClasses); // de-register this class as sub-class of the super-class
+                        // there is no need for something like "thisKind.services.Subtype.UNmarkAsSubType", since the type is removed from the graph together with all its relationships
+                    } else {
+                        // initially do nothing
+                    }
+                },
+            }, true);
+            if (this.kind.options.typing === 'Structural') {
+                // super classes contribute fields and methods which are relevant for equality, if the class is structurally typed
+                thisKind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(thisType, superRef);
+            }
+            return superRef;
+        });
+    }
+
+    protected createFields(typeDetails: ClassTypeDetails<TypirSpecifics>): Map<string, FieldDetails> {
+        const result = new Map<string, FieldDetails>();
+        for (const details of typeDetails.fields) {
+            if (result.has(details.name)) {
+                // check collisions of field names
+                throw new Error(`The field name '${details.name}' is not unique for class '${this.className}'.`);
+            } else {
+                const field = <FieldDetails>{
+                    name: details.name,
+                    type: new TypeReference(details.type, this.kind.services),
+                };
+                result.set(details.name, field);
+                if (this.kind.options.typing === 'Structural') {
+                    this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, field.type);
+                }
+            }
+        }
+        return result;
+    }
+
+    private createMethods(typeDetails: ClassTypeDetails<TypirSpecifics>): MethodDetails[] {
+        return typeDetails.methods.map(details => {
+            const method = <MethodDetails>{
+                type: new TypeReference<FunctionType>(details.type, this.kind.services),
+            };
+            if (this.kind.options.typing === 'Structural') {
+                this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, method.type);
+            }
+            return method;
         });
     }
 

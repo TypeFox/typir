@@ -87,6 +87,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         if (typeof value === 'function') {
             const result = new TypeReference<Type, Specifics>(value as TypeDescriptorForCustomTypes<Type, Specifics>, this.kind.services);
             collectedReferences.push(result);
+            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, result);
             return result as unknown as CustomTypePropertyStorage<T, Specifics>;
         } else if (value instanceof Type
             || value instanceof TypeInitializer
@@ -95,6 +96,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         ) {
             const result = new TypeReference<Type, Specifics>(value, this.kind.services);
             collectedReferences.push(result);
+            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, result);
             return result as unknown as CustomTypePropertyStorage<T, Specifics>;
         }
         // grouping with Array, Set, Map
@@ -119,7 +121,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         else if (typeof value === 'object' && value !== null) {
             return this.replaceAllProperties(value as CustomTypeInitialization<CustomTypeProperties, Specifics>, collectedReferences) as CustomTypePropertyStorage<T, Specifics>;
         } else {
-            throw new Error(`missing implementation for ${value}`);
+            throw new Error(`missing implementation for ${String(value)}`);
         }
     }
 
@@ -289,7 +291,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         else if (typeof value1 === 'object' && value1 !== null) {
             return this.analyzeTypeEqualityProblemsAll(value1 as CustomTypeStorage<Properties, Specifics>, value2 as CustomTypeStorage<Properties, Specifics>, failFast);
         } else {
-            throw new Error('missing implementation');
+            throw new Error(`missing implementation for '${String(value1)}' and '${String(value2)}'.`);
         }
     }
 }
