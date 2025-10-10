@@ -29,6 +29,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 ### Fixed bugs
 
 - Retrieving bidirectional edges from the type graph didn't worked for both directions.
+- Analyzing transitive sub-type relationships needs to search for directed/unidirectional paths, not for undirected/bidirectional paths.
 - When checking the equality of custom types, the values for the same property might have different TypeScript types, since optional propeties might be set to `undefined`.
 - The rules for conversion, sub-type and equality (new, see above) of custom types now consider also types which are created later after the current custom type.
 

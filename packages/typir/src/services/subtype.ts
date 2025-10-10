@@ -103,7 +103,7 @@ export class DefaultSubType<Specifics extends TypirSpecifics> implements SubType
 
     getSubTypeResult(subType: Type, superType: Type): SubTypeResult {
         // search for a transitive sub-type relationship
-        const path = this.algorithms.getEdgePath(subType, superType, [{ $relation: SubTypeEdge, direction: 'Bidirectional' }]);
+        const path = this.algorithms.getEdgePath(subType, superType, [{ $relation: SubTypeEdge, direction: 'Unidirectional' }]);
         if (path.length >= 1) {
             return <SubTypeSuccess>{
                 $result: SubTypeResult,
