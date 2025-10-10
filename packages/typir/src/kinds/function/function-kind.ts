@@ -171,7 +171,7 @@ export class FunctionKind<Specifics extends TypirSpecifics> implements Kind, Fun
             enforceOutputParameterName: false,
             identifierPrefix: 'function',
             typeToInferForCallsOfFunctionsWithoutOutput: 'THROW_ERROR',
-            subtypeParameterChecking: 'SUB_TYPE',
+            subtypeParameterChecking: 'EQUAL_OR_SUB_TYPE',
             // the actually overriden values:
             ...options
         };

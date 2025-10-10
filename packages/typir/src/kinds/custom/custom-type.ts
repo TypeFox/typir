@@ -5,7 +5,8 @@
  ******************************************************************************/
 
 import { isMap, isSet } from 'util/types';
-import { AnalyzeEqualityOptions, Type } from '../../graph/type-node.js';
+import { TypeGraphListener } from '../../graph/type-graph.js';
+import { AnalyzeEqualityOptions, AnalyzeSubTypeOptions, Type } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
@@ -15,7 +16,6 @@ import { checkTypes, checkValueForConflict, createKindConflict, createTypeCheckS
 import { assertTrue } from '../../utils/utils.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage, TypeDescriptorForCustomTypes } from './custom-definitions.js';
 import { CustomKind, CustomTypeDetails } from './custom-kind.js';
-import { TypeGraphListener } from '../../graph/type-graph.js';
 
 export class CustomType<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics> extends Type implements TypeGraphListener {
     override readonly kind: CustomKind<Properties, Specifics>;
@@ -87,7 +87,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         if (typeof value === 'function') {
             const result = new TypeReference<Type, Specifics>(value as TypeDescriptorForCustomTypes<Type, Specifics>, this.kind.services);
             collectedReferences.push(result);
-            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, result);
+            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevant(this, result, { updateEquality: true });
             return result as unknown as CustomTypePropertyStorage<T, Specifics>;
         } else if (value instanceof Type
             || value instanceof TypeInitializer
@@ -96,7 +96,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         ) {
             const result = new TypeReference<Type, Specifics>(value, this.kind.services);
             collectedReferences.push(result);
-            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, result);
+            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevant(this, result, { updateEquality: true });
             return result as unknown as CustomTypePropertyStorage<T, Specifics>;
         }
         // grouping with Array, Set, Map
@@ -175,6 +175,9 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
     }
 
     override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
+        if (otherType === this) {
+            return true;
+        }
         if (isCustomType(otherType, this.kind)) {
             const subProblems = this.analyzeTypeEqualityProblemsAll(this.properties, otherType.properties, !!options?.failFast);
             if (subProblems.length >= 1) {
@@ -216,6 +219,7 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         return result;
     }
 
+    // TODO ist das die Default-Implementierung für die IsEqual-Option des CustomKinds??
     protected analyzeTypeEqualityProblemsSingle<T extends CustomTypePropertyTypes>(value1: CustomTypePropertyStorage<T, Specifics>, value2: CustomTypePropertyStorage<T, Specifics>, failFast: boolean): TypirProblem[] {
         if (typeof value1 !== typeof value2) {
             // this case might occur for optional properties, since `undefined` is a different TypeScript type than a non-undefined value
@@ -294,7 +298,14 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
             throw new Error(`missing implementation for '${String(value1)}' and '${String(value2)}'.`);
         }
     }
+
+    protected override analyzeSubSuperTypeProblems(subType: Type, superType: Type, options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        // TODO was ist die Default-Impl? gibt es überhaupt eine sinnvolle? alle Primitives gleich und alle Types müssen gleich oder Sub-Types sein (aber nicht alle gleich!)
+        return false;
+    }
+
 }
+
 
 export function isCustomType<Properties extends CustomTypeProperties, Specifics extends TypirSpecifics>(type: unknown, kind: string | CustomKind<Properties, Specifics>): type is CustomType<Properties, Specifics> {
     return type instanceof CustomType && (typeof kind === 'string' ? type.kind.options.name === kind : type.kind === kind);

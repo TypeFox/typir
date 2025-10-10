@@ -10,6 +10,7 @@ import { TypeGraph } from '../graph/type-graph.js';
 import { Type } from '../graph/type-node.js';
 import { TypirSpecifics, TypirServices } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
+import { removeFromArray } from '../utils/utils.js';
 
 export interface SubTypeProblem extends TypirProblem {
     $problem: 'SubTypeProblem';
@@ -52,9 +53,9 @@ export interface MarkSubTypeOptions {
 
 /**
  * Analyzes, whether there is a sub type-relationship between two types.
- *
  * The sub-type relationship might be direct or indirect (transitive).
- * If both types are the same, no problems will be reported, since a type is considered as sub-type of itself (by definition).
+ *
+ * Two types which are same or equal, they are not considered as sub-types to each other (by definition).
  */
 export interface SubType {
     isSubType(subType: Type, superType: Type): boolean;
@@ -62,6 +63,15 @@ export interface SubType {
     getSubTypeResult(subType: Type, superType: Type): SubTypeResult;
 
     markAsSubType(subType: Type, superType: Type, options?: Partial<MarkSubTypeOptions>): void;
+    unmarkAsSubType(subType: Type, superType: Type): void;
+
+    addListener(listener: SubTypeListener, options?: { callOnMarkedForAllExisting: boolean }): void;
+    removeListener(listener: SubTypeListener): void;
+}
+
+export interface SubTypeListener {
+    onMarkedSubType(subType: Type, superType: Type, edge: SubTypeEdge): void;
+    onUnmarkedSubType(subType: Type, superType: Type, edge: SubTypeEdge): void;
 }
 
 
@@ -75,6 +85,7 @@ export interface SubType {
 export class DefaultSubType<Specifics extends TypirSpecifics> implements SubType {
     protected readonly graph: TypeGraph;
     protected readonly algorithms: GraphAlgorithms;
+    protected readonly listeners: SubTypeListener[] = [];
 
     constructor(services: TypirServices<Specifics>) {
         this.graph = services.infrastructure.Graph;
@@ -129,7 +140,12 @@ export class DefaultSubType<Specifics extends TypirSpecifics> implements SubType
     markAsSubType(subType: Type, superType: Type, options: MarkSubTypeOptions): void {
         const actualOptions = this.collectMarkSubTypeOptions(options);
         let edge = this.getSubTypeEdge(subType, superType);
-        if (!edge) {
+        let notify: boolean;
+        if (edge) {
+            notify = edge.cachingInformation !== 'LINK_EXISTS';
+            edge.cachingInformation = 'LINK_EXISTS';
+        } else {
+            notify = true;
             edge = {
                 $relation: SubTypeEdge,
                 from: subType,
@@ -138,21 +154,48 @@ export class DefaultSubType<Specifics extends TypirSpecifics> implements SubType
                 error: undefined,
             };
             this.graph.addEdge(edge);
-        } else {
-            edge.cachingInformation = 'LINK_EXISTS';
         }
 
-        // check for cycles
-        if (actualOptions.checkForCycles) {
-            const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [{ $relation: SubTypeEdge, direction: 'Unidirectional' }]);
-            if (hasIntroducedCycle) {
-                throw new Error(`Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`);
+        if (notify) {
+            // check for cycles
+            if (actualOptions.checkForCycles) {
+                const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [{ $relation: SubTypeEdge, direction: 'Unidirectional' }]);
+                if (hasIntroducedCycle) {
+                    throw new Error(`Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`);
+                }
             }
+
+            this.listeners.slice().forEach(listener => listener.onMarkedSubType(subType, superType, edge));
         }
+    }
+
+    unmarkAsSubType(subType: Type, superType: Type): void {
+        const edge = this.getSubTypeEdge(subType, superType);
+        const notify = edge?.cachingInformation === 'LINK_EXISTS';
+        if (edge) {
+            this.graph.removeEdge(edge);
+        }
+        if (notify) {
+            this.listeners.slice().forEach(listener => listener.onUnmarkedSubType(subType, superType, edge));
+        }
+    }
+
+    addListener(listener: SubTypeListener, options?: { callOnMarkedForAllExisting: boolean; }): void {
+        this.listeners.push(listener);
+        if (options?.callOnMarkedForAllExisting) {
+            this.graph.getEdges<SubTypeEdge>(SubTypeEdge).forEach(e => listener.onMarkedSubType(e.from, e.to, e));
+        }
+    }
+
+    removeListener(listener: SubTypeListener): void {
+        removeFromArray(listener, this.listeners);
     }
 
 }
 
+/**
+ * Edges representing sub-type-relationships are directed and point from the sub type (start, from) to the super type (end, to).
+ */
 export interface SubTypeEdge extends TypeEdge {
     readonly $relation: 'SubTypeEdge';
     readonly error: SubTypeProblem | undefined;

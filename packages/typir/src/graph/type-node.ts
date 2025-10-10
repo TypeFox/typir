@@ -7,8 +7,10 @@
 import { TypeReference } from '../initialization/type-reference.js';
 import { WaitingForIdentifiableAndCompletedTypeReferences, WaitingForInvalidTypeReferences } from '../initialization/type-waiting.js';
 import { Kind } from '../kinds/kind.js';
+import { SubTypeProblem } from '../services/subtype.js';
 import { TypirSpecifics } from '../typir.js';
 import { TypirProblem } from '../utils/utils-definitions.js';
+import { createKindConflict } from '../utils/utils-type-comparison.js';
 import { assertTrue, assertUnreachable, removeFromArray } from '../utils/utils.js';
 import { TypeEdge } from './type-edge.js';
 
@@ -44,12 +46,17 @@ export interface TypeDetails<Specifics extends TypirSpecifics> {
     associatedLanguageNode?: Specifics['LanguageType'];
 }
 
-export interface AnalyzeEqualityOptions {
+export interface AnalyzeOptions {
     /**
      * if true, a more performant check is done and probably only a boolean value or a single problem is returned,
      * if false, calculates all problems with all details for a nice error message.
      */
     failFast: boolean,
+}
+export interface AnalyzeEqualityOptions extends AnalyzeOptions {
+}
+export interface AnalyzeSubTypeOptions extends AnalyzeOptions {
+    checkForEquality?: boolean; // without check, false might be returned for equal types
 }
 
 /**
@@ -295,6 +302,8 @@ export abstract class Type {
     }
 
     dispose(): void {
+        // switch to invalid
+        // this.switchFromCompleteOrIdentifiableToInvalid(); // TODO
         // clear everything
         this.stateListeners.splice(0, this.stateListeners.length);
         this.waitForInvalid.getWaitForRefsInvalid().forEach(ref => ref.dispose());
@@ -338,12 +347,56 @@ export abstract class Type {
 
     /**
      * Analyzes, whether two types are equal.
+     * A type is considered to be equal to itself.
      * @param otherType to be compared with the current type
      * @param options some otional options to control the details of the equality check
      * @returns an empty array or true, if both types are equal, otherwise some problems or false which might point to found differences/conflicts between the two types.
      * These problems are presented to users in order to support them with useful information about the result of this analysis.
      */
     abstract analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[];
+    // TODO auch hier interne Methode einführen, um z.B. in der allgemeinen Methode den === Fall abzuhandeln?
+
+
+    analyzeSubTypeProblems(otherSubType: Type, options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        // this is the default implementation, might be customized
+        if (otherSubType === this) {
+            return false;
+        }
+        if (this.kind.$name === otherSubType.kind.$name) {
+            return this.analyzeSubSuperTypeProblems(otherSubType, this, options);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                $result: 'SubTypeResult',
+                result: false,
+                subType: otherSubType,
+                superType: this,
+                subProblems: [createKindConflict(otherSubType, this)],
+            }];
+        }
+    }
+
+    analyzeSuperTypeProblems(otherSuperType: Type, options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        // this is the default implementation, might be customized
+        if (otherSuperType === this) {
+            return false;
+        }
+        if (this.kind.$name === otherSuperType.kind.$name) {
+            return this.analyzeSubSuperTypeProblems(this, otherSuperType, options);
+        } else {
+            return [<SubTypeProblem>{
+                $problem: SubTypeProblem,
+                $result: 'SubTypeResult',
+                result: false,
+                subType: this,
+                superType: otherSuperType,
+                subProblems: [createKindConflict(otherSuperType, this)],
+            }];
+        }
+    }
+
+    // TODO welche Annahmen bei Eingabe von equal / identical Types?
+    protected abstract analyzeSubSuperTypeProblems(subType: Type, superType: Type, options?: AnalyzeSubTypeOptions): boolean | TypirProblem[];
 
 
     addIncomingEdge(edge: TypeEdge): void {

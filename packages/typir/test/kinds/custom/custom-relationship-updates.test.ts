@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { beforeEach, describe, expect, test } from 'vitest';
-import { CustomType } from '../../../src/index.js';
+import { CustomType } from '../../../src/kinds/custom/custom-type.js';
 import { CustomKind } from '../../../src/kinds/custom/custom-kind.js';
 import { PrimitiveType } from '../../../src/kinds/primitive/primitive-type.js';
 import { createTypirServicesForTesting, TestingSpecifics } from '../../../src/test/predefined-language-nodes.js';

@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeGraphListener } from '../../graph/type-graph.js';
-import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, AnalyzeSubTypeOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
@@ -57,7 +57,17 @@ export class TopClassType extends Type implements TypeGraphListener {
         }
     }
 
+    override analyzeSubTypeProblems(otherSubType: Type, _options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        return isClassType(otherSubType); // all class types are sub-types of the top-class-type
+    }
+    override analyzeSuperTypeProblems(otherSuperType: Type, _options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        return isTopClassType(otherSuperType) === false; // the top-class-type is no super-type of itself
+    }
+    protected override analyzeSubSuperTypeProblems(_subType: Type, _superType: Type, _options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        throw new Error('this will never be called');
+    }
 }
+
 
 export function isTopClassType(type: unknown): type is TopClassType {
     return isType(type) && isTopClassKind(type.kind);

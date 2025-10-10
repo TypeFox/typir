@@ -46,8 +46,8 @@ export interface TypeEquality {
     markAsEqual(type1: Type, type2: Type): void;
     unmarkAsEqual(type1: Type, type2: Type): void;
 
-    addListener(listener: TypeEqualityListener, options?: { callOnMarkedForAllExisting: boolean }): void
-    removeListener(listener: TypeEqualityListener): void
+    addListener(listener: TypeEqualityListener, options?: { callOnMarkedForAllExisting: boolean }): void;
+    removeListener(listener: TypeEqualityListener): void;
 }
 
 export interface TypeEqualityListener {

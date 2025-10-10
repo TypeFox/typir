@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, AnalyzeSubTypeOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
@@ -29,7 +29,12 @@ export class PrimitiveType extends Type {
     }
 
     override analyzeTypeEquality(otherType: Type, _options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
+        if (otherType === this) {
+            return true;
+        }
         if (isPrimitiveType(otherType)) {
+            // Note that primitives are never equal, since the factory ensures, that the `name` of primitive types is unique,
+            //  but this implementation provides a nicer error message
             return checkValueForConflict(this.getIdentifier(), otherType.getIdentifier(), 'name');
         } else {
             return [<TypeEqualityProblem>{
@@ -41,8 +46,9 @@ export class PrimitiveType extends Type {
         }
     }
 
-    protected analyzeSubTypeProblems(subType: PrimitiveType, superType: PrimitiveType): TypirProblem[] {
-        return subType.analyzeTypeEquality(superType, { failFast: false }) as TypirProblem[];
+    protected override analyzeSubSuperTypeProblems(subType: Type, superType: Type, options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        // TODO
+        return subType.analyzeTypeEquality(superType, options) as TypirProblem[];
     }
 
 }

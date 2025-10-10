@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AnalyzeEqualityOptions, Type, isType } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, AnalyzeSubTypeOptions, Type, isType } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
@@ -64,7 +64,8 @@ export class FunctionType extends Type {
         if (typeDetails.outputParameter) {
             const outputType = new TypeReference(typeDetails.outputParameter.type, this.kind.services);
             this.kind.enforceParameterName(typeDetails.outputParameter.name, this.kind.options.enforceOutputParameterName);
-            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, outputType);
+            // if the type which is used as output type here gets a new super type, the
+            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevant(this, outputType, { updateEquality: true, updateSubType: true });
             return {
                 name: typeDetails.outputParameter.name,
                 type: outputType,
@@ -78,7 +79,7 @@ export class FunctionType extends Type {
         return typeDetails.inputParameters.map(input => {
             this.kind.enforceParameterName(input.name, this.kind.options.enforceInputParameterNames);
             const typeRef = new TypeReference(input.type, this.kind.services);
-            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, typeRef);
+            this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevant(this, typeRef, { updateEquality: true, updateSubTypeSwitched: true });
             return <ParameterDetails>{
                 name: input.name,
                 type: typeRef,
@@ -111,6 +112,9 @@ export class FunctionType extends Type {
     }
 
     override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
+        if (otherType === this) {
+            return true;
+        }
         if (isFunctionType(otherType)) {
             const conflicts: TypirProblem[] = [];
             // same name? since functions with different names are different
@@ -136,15 +140,24 @@ export class FunctionType extends Type {
         }
     }
 
-    protected analyzeSubTypeProblems(subType: FunctionType, superType: FunctionType): TypirProblem[] {
+    // TODO warum kann man hier einfach die Input-Parameter von Type auf FunctionType ändern?
+    protected override analyzeSubSuperTypeProblems(subType: FunctionType, superType: FunctionType, options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
         const conflicts: TypirProblem[] = [];
+        // function name
+        if (this.kind.options.enforceFunctionName) {
+            conflicts.push(...checkValueForConflict(subType.getSimpleFunctionName(), superType.getSimpleFunctionName(), 'simple name'));
+            if (conflicts.length >= 1 && options?.failFast) { return conflicts; }
+        }
         const strategy = createTypeCheckStrategy(this.kind.options.subtypeParameterChecking, this.kind.services);
         // output: sub type output must be assignable (which can be configured) to super type output
         conflicts.push(...checkTypes(subType.getOutput(), superType.getOutput(),
             (sub, superr) => strategy(sub, superr), this.kind.options.enforceOutputParameterName));
+        if (conflicts.length >= 1 && options?.failFast) { return conflicts; }
         // input: super type inputs must be assignable (which can be configured) to sub type inputs
+        // TODO sub-type enthält nicht equals/identic!
+        //  assignable geht nicht wegen Konversion!
         conflicts.push(...checkTypeArrays(subType.getInputs(), superType.getInputs(),
-            (sub, superr) => strategy(superr, sub), this.kind.options.enforceInputParameterNames, false));
+            (sub, superr) => strategy(superr, sub), this.kind.options.enforceInputParameterNames, !!options?.failFast));
         return conflicts;
     }
 

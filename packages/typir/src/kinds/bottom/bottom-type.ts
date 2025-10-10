@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeGraphListener } from '../../graph/type-graph.js';
-import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, AnalyzeSubTypeOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
@@ -57,6 +57,15 @@ export class BottomType extends Type implements TypeGraphListener {
         }
     }
 
+    override analyzeSubTypeProblems(_otherSubType: Type, _options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        return false; // the bottom type has no sub types
+    }
+    override analyzeSuperTypeProblems(otherSuperType: Type, _options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        return isBottomType(otherSuperType) === false; // all types are super-types of the bottom type (except the bottom type itself)
+    }
+    protected override analyzeSubSuperTypeProblems(_subType: Type, _superType: Type, _options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
+        throw new Error('this will never be called');
+    }
 }
 
 export function isBottomType(type: unknown): type is BottomType {

@@ -6,18 +6,24 @@
 
 import { isType, Type } from '../graph/type-node.js';
 import { Kind } from '../kinds/kind.js';
+import { TypeEqualityProblem } from '../services/equality.js';
 import { InferenceProblem } from '../services/inference.js';
 import { TypirServices, TypirSpecifics } from '../typir.js';
 import { assertTrue, assertUnreachable } from '../utils/utils.js';
 import { isNameTypePair, isSpecificTypirProblem, NameTypePair, TypirProblem } from './utils-definitions.js';
 
 export type TypeCheckStrategy =
-    'EQUAL_TYPE' | // the most strict checking
-    'ASSIGNABLE_TYPE' | // SUB_TYPE or implicit conversion
-    'SUB_TYPE'; // more relaxed checking
+    'SAME_TYPE' | // same types
+    'EQUAL_TYPE' | // different types which are equal regarding behaviour (includes SAME_TYPE)
+    'ASSIGNABLE_TYPE' | // EQUAL_TYPE or SUB_TYPE or implicit conversion
+    'SUB_TYPE' | // sub types, but types are neither same nor equal
+    'EQUAL_OR_SUB_TYPE'; // types which are same, equal or sub-types
 
+// TODO hierfür Konstanten einführen!
 export function createTypeCheckStrategy<Specifics extends TypirSpecifics>(strategy: TypeCheckStrategy, typir: TypirServices<Specifics>): (t1: Type, t2: Type) => TypirProblem | undefined {
     switch (strategy) {
+        case 'SAME_TYPE':
+            return (type1: Type, type2: Type) => type1 === type2 ? undefined : <TypeEqualityProblem>{ $problem: TypeEqualityProblem, type1, type2, subProblems: [] };
         case 'ASSIGNABLE_TYPE':
             return typir.Assignability.getAssignabilityProblem // t1 === source, t2 === target
                 .bind(typir.Assignability);
@@ -29,6 +35,13 @@ export function createTypeCheckStrategy<Specifics extends TypirSpecifics>(strate
                 .bind(typir.Subtype);
             // .bind(...) is required to have the correct value for 'this' inside the referenced function/method!
             // see https://stackoverflow.com/questions/20279484/how-to-access-the-correct-this-inside-a-callback
+        case 'EQUAL_OR_SUB_TYPE':
+            return (t1: Type, t2: Type) => {
+                if (typir.Equality.getTypeEqualityProblem(t1, t2) === undefined) {
+                    return undefined; // they are equal
+                }
+                return typir.Subtype.getSubTypeProblem(t1, t2); // are they sub-types?
+            };
         default:
             assertUnreachable(strategy);
     }
@@ -375,7 +388,7 @@ export class MapListConverter {
  * @param options some optional options
  * @returns true, if the types are equal, false otherwise
  */
-export function areTypesEqualUtility(type: Type, typeEqualTo: Type, options?: { checkOtherDirection?: boolean }): boolean {
+export function areTypesEqualUtility(type: Type, typeEqualTo: Type, options?: { checkOtherDirection?: boolean }): boolean { // TODO move to equality.ts (?)
     const resultThisDirection = type.analyzeTypeEquality(typeEqualTo, { failFast: true });
     const result = typeof resultThisDirection === 'boolean' ? resultThisDirection : resultThisDirection.length === 0;
     if (result) {
@@ -383,6 +396,22 @@ export function areTypesEqualUtility(type: Type, typeEqualTo: Type, options?: { 
     }
     if (options?.checkOtherDirection) { // on request, check also the equality implementation of the other type
         const resultOtherDirection = typeEqualTo.analyzeTypeEquality(type, { failFast: true });
+        return typeof resultOtherDirection === 'boolean' ? resultOtherDirection : resultOtherDirection.length === 0;
+    }
+    return false;
+}
+
+export function areTypesSubTypesUtility(subType: Type, superType: Type, options?: { checkOtherDirection?: boolean }): boolean { // TODO move it to subtype.ts (?)
+    if (subType === superType || areTypesEqualUtility(subType, superType, { checkOtherDirection: true })) {
+        return false;
+    }
+    const resultThisDirection = subType.analyzeSuperTypeProblems(superType, { failFast: true });
+    const result = typeof resultThisDirection === 'boolean' ? resultThisDirection : resultThisDirection.length === 0;
+    if (result) {
+        return true;
+    }
+    if (options?.checkOtherDirection) { // on request, check also the sub-type implementation of the other type
+        const resultOtherDirection = superType.analyzeSubTypeProblems(subType, { failFast: true });
         return typeof resultOtherDirection === 'boolean' ? resultOtherDirection : resultOtherDirection.length === 0;
     }
     return false;

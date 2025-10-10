@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, AnalyzeSubTypeOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
@@ -120,7 +120,7 @@ export class ClassType extends Type {
             }, true);
             if (this.kind.options.typing === 'Structural') {
                 // super classes contribute fields and methods which are relevant for equality, if the class is structurally typed
-                thisKind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(thisType, superRef);
+                thisKind.services.infrastructure.RelationshipUpdater.markUseAsRelevant(thisType, superRef, { updateEquality: true, updateSubType: true, updateSubTypeSwitched: true });
             }
             return superRef;
         });
@@ -139,7 +139,7 @@ export class ClassType extends Type {
                 };
                 result.set(details.name, field);
                 if (this.kind.options.typing === 'Structural') {
-                    this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, field.type);
+                    this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevant(this, field.type, { updateEquality: true, updateSubType: true });
                 }
             }
         }
@@ -152,7 +152,7 @@ export class ClassType extends Type {
                 type: new TypeReference<FunctionType>(details.type, this.kind.services),
             };
             if (this.kind.options.typing === 'Structural') {
-                this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevantForEquality(this, method.type);
+                this.kind.services.infrastructure.RelationshipUpdater.markUseAsRelevant(this, method.type, { updateEquality: true, updateSubType: true });
             }
             return method;
         });
@@ -188,6 +188,9 @@ export class ClassType extends Type {
     }
 
     override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
+        if (otherType === this) {
+            return true;
+        }
         if (isClassType(otherType)) {
             if (this.kind.options.typing === 'Structural') {
                 // for structural typing:
@@ -213,16 +216,16 @@ export class ClassType extends Type {
         }
     }
 
-    protected analyzeSubTypeProblems(subType: ClassType, superType: ClassType): TypirProblem[] {
+    protected override analyzeSubSuperTypeProblems(subType: ClassType, superType: ClassType, options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
         if (this.kind.options.typing === 'Structural') {
             // for structural typing, the sub type needs to have all fields of the super type with assignable types (including fields of all super classes):
             const conflicts: IndexedTypeConflict[] = [];
             const subFields = subType.getFields(true);
+            const checkStrategy = createTypeCheckStrategy(this.kind.options.subtypeFieldChecking, this.kind.services);
             for (const [superFieldName, superFieldType] of superType.getFields(true)) {
                 if (subFields.has(superFieldName)) {
                     // field is both in super and sub
                     const subFieldType = subFields.get(superFieldName)!;
-                    const checkStrategy = createTypeCheckStrategy(this.kind.options.subtypeFieldChecking, this.kind.services);
                     const subTypeComparison = checkStrategy(subFieldType, superFieldType);
                     if (subTypeComparison !== undefined) {
                         conflicts.push({
@@ -232,6 +235,7 @@ export class ClassType extends Type {
                             propertyName: superFieldName,
                             subProblems: [subTypeComparison],
                         });
+                        if (options?.failFast) { return conflicts; }
                     } else {
                         // everything is fine
                     }
@@ -244,9 +248,11 @@ export class ClassType extends Type {
                         propertyName: superFieldName,
                         subProblems: []
                     });
+                    if (options?.failFast) { return conflicts; }
                 }
             }
             // Note that it is not necessary to check, whether the sub class has additional fields than the super type!
+            // TODO Methods!
             return conflicts;
         } else if (this.kind.options.typing === 'Nominal') {
             // for nominal typing (takes super classes into account)

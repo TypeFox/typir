@@ -9,7 +9,7 @@ import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeInferenceRule } from '../../services/inference.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType } from '../../utils/utils-definitions.js';
-import { areTypesEqualUtility } from '../../utils/utils-type-comparison.js';
+import { areTypesEqualUtility, areTypesSubTypesUtility } from '../../utils/utils-type-comparison.js';
 import { assertTypirType } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
 import { CreateFunctionTypeDetails, FunctionKind, FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
@@ -73,8 +73,43 @@ export class FunctionTypeInitializer<Specifics extends TypirSpecifics> extends T
 
         // find equal functions, due to properties with types which have equal types
         (this.functions.getOverloads(readyFunctionType.getName())?.overloadedFunctions ?? []) // check only the existing functions with same name, since all others are not equal for sure
-            .filter(other => areTypesEqualUtility(readyFunctionType, other))
+            .filter(other => other !== readyFunctionType && areTypesEqualUtility(readyFunctionType, other))
             .forEach(other => this.services.Equality.markAsEqual(readyFunctionType, other));
+        // find functions which are sub-types to each other
+        for (const other of (this.functions.getOverloads(readyFunctionType.getName())?.overloadedFunctions ?? [])) { // check only the existing functions with same name, since all others are no sub-types to each other for sure
+            if (other === readyFunctionType) {
+                continue;
+            }
+            if (areTypesSubTypesUtility(readyFunctionType, other)) {
+                this.services.Subtype.markAsSubType(readyFunctionType, other);
+            }
+            if (areTypesSubTypesUtility(other, readyFunctionType)) {
+                this.services.Subtype.markAsSubType(other, readyFunctionType);
+            }
+        }
+
+        // TODO react on equality changes
+        // - generische Checks vs alle Members überprüfen?
+        // - wer/wo wird auf Änderungen reagiert?
+        //   - jeder Type macht es selbst
+        //   - im FunctionManager realisieren, um auf weniger Updates reagieren zu müssen?
+        //   - ein Manager für alle/beliebige Typen? ist nachteilig, weil dann spezifische Optimierungen schwierig werden (z.B. können nur Funktionen mit gleichem Namen gleich sein!)
+        // Scenarios
+        // - add Equality edge: are more depending types equal as well
+        // - remove Equality edge: remove equality of depending types
+        // - add type: equal to existing types?? eigentlich nur spezifisch pro Kind lösen, weil ein neuer Type noch nicht verwendet werden kann (?) und noch keine Equality-Edges hat
+        // - remove type: vorher werden alle bestehenden Equality-Edges entfernt => dort schon reagieren
+        // Performance (es bleibt aber quadratischer Aufwand; wenn auch halbiert, weil Equality symmetrisch ist)
+        // - Notifications mit mehreren Edges/Nodes aufeinmal?
+        // - neue/removed Edges sammeln und auf einen Schlag übergeben
+        // - Folge-Updates sammeln und für nächste Notifications übergeben/merken/sammeln => in eigene Komponente auslagern, wird sehr komplex! + slice()-Problematik
+        // oder doch Link zwischen Funktion und Parameter-Typen im TypeGraph ablegen, um Rückverfolgung für bessere Performanz hinzubekommen??
+        // - zusätzliche Kanten anlegen ("use" gerichtet) vs. Kanten zur Realisierung nutzen?
+        // - nur alle direkten "use"rs müssen auf Equality überprüft werden (Vorsicht mit zirkulären "use"-Beziehungen!)
+        //   - alle Users of Type A mit allen Users of Type B vergleichen?
+        //   - oder alle Users der Typen A & B mit allen existierenden Typen vergleichen?
+        // - dann könnte diese Logik sogar zentral und einmal im Equality-Service realisiert werden?!
+        // Gilt der ganze Update-Spaß eigentlich auch für Sub-Type-Berechnungen??
 
         // There is no need to remove the skipped type, since it is not yet added here, since the new type is skipped in favor of the already existing (and added) type!
         this.functions.addFunction(readyFunctionType, this.typeDetails.inferenceRulesForCalls);

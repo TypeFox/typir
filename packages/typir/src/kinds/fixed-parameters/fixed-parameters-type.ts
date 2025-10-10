@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, AnalyzeSubTypeOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirSpecifics } from '../../typir.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
@@ -55,6 +55,9 @@ export class FixedParameterType extends Type {
     }
 
     override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
+        if (otherType === this) {
+            return true;
+        }
         if (isFixedParameterType(otherType)) {
             // same name, e.g. both need to be Map, Set, Array, ...
             const baseTypeCheck = checkValueForConflict(this.kind.baseName, otherType.kind.baseName, 'base type');
@@ -77,7 +80,7 @@ export class FixedParameterType extends Type {
         }
     }
 
-    protected analyzeSubTypeProblems(subType: FixedParameterType, superType: FixedParameterType): TypirProblem[] {
+    protected override analyzeSubSuperTypeProblems(subType: FixedParameterType, superType: FixedParameterType, options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
         // same name, e.g. both need to be Map, Set, Array, ...
         const baseTypeCheck = checkValueForConflict(subType.kind.baseName, superType.kind.baseName, 'base type');
         if (baseTypeCheck.length >= 1) {
@@ -86,10 +89,12 @@ export class FixedParameterType extends Type {
         } else {
             // all parameter types must match, e.g. Set<String> !== Set<Boolean>
             const checkStrategy = createTypeCheckStrategy(this.kind.options.parameterSubtypeCheckingStrategy, this.kind.services);
-            return checkTypeArrays(subType.getParameterTypes(), superType.getParameterTypes(), checkStrategy, false, false);
+            return checkTypeArrays(subType.getParameterTypes(), superType.getParameterTypes(), checkStrategy, false, !!options?.failFast);
         }
     }
+
 }
+
 
 export function isFixedParameterType(type: unknown): type is FixedParameterType {
     return isType(type) && isFixedParametersKind(type.kind);

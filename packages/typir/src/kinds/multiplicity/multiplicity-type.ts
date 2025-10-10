@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-import { AnalyzeEqualityOptions, isType, Type } from '../../graph/type-node.js';
+import { AnalyzeEqualityOptions, AnalyzeSubTypeOptions, isType, Type } from '../../graph/type-node.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { isSubTypeProblem } from '../../services/subtype.js';
 import { TypirSpecifics } from '../../typir.js';
@@ -36,6 +36,9 @@ export class MultiplicityType extends Type {
     }
 
     override analyzeTypeEquality(otherType: Type, options?: AnalyzeEqualityOptions): boolean | TypirProblem[] {
+        if (otherType === this) {
+            return true;
+        }
         if (isMultiplicityKind(otherType)) {
             const conflicts: TypirProblem[] = [];
             // check the multiplicities
@@ -58,11 +61,12 @@ export class MultiplicityType extends Type {
         }
     }
 
-    protected analyzeSubTypeProblems(subType: MultiplicityType, superType: MultiplicityType): TypirProblem[] {
+    protected override analyzeSubSuperTypeProblems(subType: MultiplicityType, superType: MultiplicityType, options?: AnalyzeSubTypeOptions): boolean | TypirProblem[] {
         const conflicts: TypirProblem[] = [];
         // check the multiplicities
         conflicts.push(...checkValueForConflict(subType.getLowerBound(), superType.getLowerBound(), 'lower bound', this.kind.isBoundGreaterEquals));
         conflicts.push(...checkValueForConflict(subType.getUpperBound(), superType.getUpperBound(), 'upper bound', this.kind.isBoundGreaterEquals));
+        if (conflicts.length >= 1 && options?.failFast) { return conflicts; }
         // check the constrained type
         const constrainedTypeConflict = this.kind.services.Subtype.getSubTypeResult(subType.getConstrainedType(), superType.getConstrainedType());
         if (isSubTypeProblem(constrainedTypeConflict)) {
