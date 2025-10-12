@@ -19,6 +19,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
   - Adding new and removing existing equality relationships leads to automatically updated equality relationships of complex types which use them.
   - There is a new `TypeEqualityListener` to get informed about added and removed equality relationships.
 - Custom types got the option to specify some language-specific rules for their equality relationships.
+- Graph algorithms are able to traverse directed/unidirectional edges in inverse direction now.
 
 ### Breaking changes
 

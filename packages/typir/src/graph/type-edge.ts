@@ -33,7 +33,7 @@ export function isTypeEdge(edge: unknown): edge is TypeEdge {
 }
 
 
-export type EdgeDirection = 'Unidirectional' | 'Bidirectional';
+export type EdgeDirection = 'UnidirectionalFromTo' | 'UnidirectionalToFrom' | 'Bidirectional';
 
 export interface RelationInformation {
     $relation: TypeEdge['$relation'];

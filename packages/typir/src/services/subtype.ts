@@ -103,7 +103,7 @@ export class DefaultSubType<Specifics extends TypirSpecifics> implements SubType
 
     getSubTypeResult(subType: Type, superType: Type): SubTypeResult {
         // search for a transitive sub-type relationship
-        const path = this.algorithms.getEdgePath(subType, superType, [{ $relation: SubTypeEdge, direction: 'Unidirectional' }]);
+        const path = this.algorithms.getEdgePath(subType, superType, [{ $relation: SubTypeEdge, direction: 'UnidirectionalFromTo' }]);
         if (path.length >= 1) {
             return <SubTypeSuccess>{
                 $result: SubTypeResult,
@@ -159,7 +159,7 @@ export class DefaultSubType<Specifics extends TypirSpecifics> implements SubType
         if (notify) {
             // check for cycles
             if (actualOptions.checkForCycles) {
-                const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [{ $relation: SubTypeEdge, direction: 'Unidirectional' }]);
+                const hasIntroducedCycle = this.algorithms.existsEdgePath(subType, subType, [{ $relation: SubTypeEdge, direction: 'UnidirectionalFromTo' }]);
                 if (hasIntroducedCycle) {
                     throw new Error(`Adding the sub-type relationship from ${subType.getIdentifier()} to ${superType.getIdentifier()} has introduced a cycle in the type graph.`);
                 }

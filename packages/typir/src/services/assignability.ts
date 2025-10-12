@@ -94,8 +94,8 @@ export class DefaultTypeAssignability<Specifics extends TypirSpecifics> implemen
             target,
             [
                 { $relation: EqualityEdge, direction: 'Bidirectional' },
-                { $relation: ConversionEdge, direction: 'Unidirectional' },
-                { $relation: SubTypeEdge, direction: 'Unidirectional' },
+                { $relation: ConversionEdge, direction: 'UnidirectionalFromTo' },
+                { $relation: SubTypeEdge, direction: 'UnidirectionalFromTo' },
             ],
             edge => isConversionEdge(edge) ? edge.mode === 'IMPLICIT_EXPLICIT' : true // no explicit conversion
         );
