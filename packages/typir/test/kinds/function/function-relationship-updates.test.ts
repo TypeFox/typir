@@ -390,6 +390,58 @@ describe('Create two functions with different parameter types and these paramete
 });
 
 
+describe('Two primitives are marked as equal, as result, two functions which are using them are marked as sub-types, since other used types are only sub-types', () => {
+    let typir: TypirServices<TestingSpecifics>;
+    let primitiveA: PrimitiveType;
+    let primitiveB: PrimitiveType;
+    let primitiveC: PrimitiveType;
+    let primitiveD: PrimitiveType;
+
+    beforeEach(() => {
+        typir = createTypirServicesForTesting();
+        // A and B will get a relationship inside the test cases
+        primitiveA = typir.factory.Primitives.create({ primitiveName: 'A' }).finish();
+        primitiveB = typir.factory.Primitives.create({ primitiveName: 'B' }).finish();
+        // C and D are defined sub-types: D --|> C
+        primitiveC = typir.factory.Primitives.create({ primitiveName: 'C' }).finish();
+        primitiveD = typir.factory.Primitives.create({ primitiveName: 'D' }).finish();
+        typir.Subtype.markAsSubType(primitiveD, primitiveC);
+    });
+
+    test('Output types are already sub-types, input types are marked as equal now', () => {
+        // the functions use different, unrelated types for their input parameter 'p1', while the used output types are sub-types to each other
+        const functionA = typir.factory.Functions.create({ functionName: 'f', inputParameters: [{ name: 'p1', type: primitiveA }],
+            outputParameter: { name: 'out', type: primitiveC } }).finish().getTypeFinal()!;
+        const functionB = typir.factory.Functions.create({ functionName: 'f', inputParameters: [{ name: 'p1', type: primitiveB }],
+            outputParameter: { name: 'out', type: primitiveD } }).finish().getTypeFinal()!;
+        expectUnrelated(typir, functionB, functionA);
+
+        // after defining the primitives A and B as equals (used as input types), the functions have only different output types (which are sub-types) => functions are sub-types as well
+        typir.Equality.markAsEqual(primitiveA, primitiveB);
+        expectSubTypes(typir, functionB, functionA);
+
+        typir.Equality.unmarkAsEqual(primitiveA, primitiveB);
+        expectUnrelated(typir, functionB, functionA);
+    });
+
+    test('Input types are already sub-types, output types are marked as equal now', () => {
+        const functionA = typir.factory.Functions.create({ functionName: 'f', inputParameters: [{ name: 'p1', type: primitiveD }],
+            outputParameter: { name: 'out', type: primitiveB } }).finish().getTypeFinal()!;
+        const functionB = typir.factory.Functions.create({ functionName: 'f', inputParameters: [{ name: 'p1', type: primitiveC }],
+            outputParameter: { name: 'out', type: primitiveA } }).finish().getTypeFinal()!;
+        expectUnrelated(typir, functionB, functionA);
+
+        typir.Equality.markAsEqual(primitiveA, primitiveB);
+        expectSubTypes(typir, functionB, functionA);
+
+        typir.Equality.unmarkAsEqual(primitiveA, primitiveB);
+        expectUnrelated(typir, functionB, functionA);
+    });
+
+});
+
+
+
 function expectEquality(typir: TypirServices<TestingSpecifics>, type1: Type, type2: Type): void {
     expect(typir.Equality.areTypesEqual(type1, type2)).toBe(true);
     expect(typir.Subtype.isSubType(type1, type2)).toBe(false);

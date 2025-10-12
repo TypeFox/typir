@@ -160,21 +160,25 @@ export class DefaultRelationshipUpdater<Specifics extends TypirSpecifics> implem
     }
 
     protected update(): void {
-        // new equality edges: compare all direct users whether they are equal now
-        while (this.newEqualityEdges.length >= 1) {
-            const newEdge = this.newEqualityEdges.pop()!;
-
-            for (const userOfType1 of this.getUsersOf(newEdge.from, { updateEquality: true })) {
-                for (const userOfType2 of this.getUsersOf(newEdge.to, { updateEquality: true })) {
-                    if (this.equality.areTypesEqual(userOfType1, userOfType2) === false && areTypesEqualUtility(userOfType1, userOfType2) === true) {
-                        this.equality.markAsEqual(userOfType1, userOfType2);
-                        // if this relationship is new, another `onMarkedEqual` event is sent, the corresponding new edge is remembered and its users will be later checked as well
-                    }
-                }
+        while (this.newEqualityEdges.length >= 1 || this.newSubtypeEdges.length >= 1 || this.deletedEqualityEdges.length >= 1 || this.deletedSubtypeEdges.length >= 1) {
+            if (this.newEqualityEdges.length >= 1) {
+                const edge = this.newEqualityEdges.pop()!;
+                this.updateNewEquality(edge);
+                this.updateNewSubType(edge);
+            } else if (this.newSubtypeEdges.length >= 1) {
+                const edge = this.newSubtypeEdges.pop()!;
+                this.updateNewSubType(edge);
+            } else if (this.deletedEqualityEdges.length >= 1) {
+                const edge = this.deletedEqualityEdges.pop()!;
+                this.updateDeletedEquality(edge);
+                this.updateDeletedSubType(edge);
+            } else {
+                const edge = this.deletedSubtypeEdges.pop()!;
+                this.updateDeletedSubType(edge);
             }
         }
 
-        // was passiert, wenn ein Use für Equality UND SubType relevant ist?? nur eine Schleife für New und eine für Deleted, die aber Equality, Sub und Super gemeinsam behandeln?
+        // TODO
         // Es gibt zwei Aspekte für Beziehungen zu den verwendeten Typen:
         //   - auf welche Art von new/deleted Edges (Equality, SubType) müssen wir reagieren?
         //   - müssen wir darausfolgend auf neue/veraltete Equality- und/oder SubType-Beziehungen prüfen? (aus einer neuen Equality-Kante kann z.B. eine neue SubType-Kante entstehen!)
@@ -187,70 +191,74 @@ export class DefaultRelationshipUpdater<Specifics extends TypirSpecifics> implem
         //       --> lässt sich das überhaupt sinnvoll generisch lösen?
         //   - Vergleich auf Equality und/oder Sub/SuperType
         //       --> aus Equality kann Equality OR SubType entstehen, aber aus SubType kann nur weiterer TypeType entstehen; d.h. aus Art der neuen Kante könnte abgeleitet werden, was jetzt überprüft wird
-        // Verwendungs-Properties customizable machen, für custom types, für weitere Performanz-Optimierungen
         // können Factories diesen allgemeinen Mechanismus hier anpassen oder ausschalten? z.B. Functions können wegen gleichem Namen deutlich performanter überprüft werden!
         //   - Typen dürfen andere Typen verwenden, auch ohen Use-Kanten anzulegen: ist nur ein Mittel für Performanz-Optimierungen hier!
+        //   - die Update-Mechanik als Service für andere Kinds/Factories anbieten?
 
+    }
+
+    protected updateNewEquality(newEqualityEdge: TypeEdge): void {
+        // new equality edges: compare all direct users whether they are equal now
+        for (const userOfType1 of this.getUsersOf(newEqualityEdge.from, { updateEquality: true })) {
+            for (const userOfType2 of this.getUsersOf(newEqualityEdge.to, { updateEquality: true })) {
+                if (this.equality.areTypesEqual(userOfType1, userOfType2) === false && areTypesEqualUtility(userOfType1, userOfType2) === true) {
+                    this.equality.markAsEqual(userOfType1, userOfType2);
+                    // if this relationship is new, another `onMarkedEqual` event is sent, the corresponding new edge is remembered and its users will be later checked as well
+                }
+            }
+        }
+    }
+
+    protected updateNewSubType(newSubTypeEdge: TypeEdge): void {
         // new sub-type edges: compare all direct users whether they are in a sub-type-relationship now
-        while (this.newSubtypeEdges.length >= 1) {
-            const newEdge = this.newSubtypeEdges.pop()!; // sub --> super
-
-            // Is "user of sub" a sub-type of "user of super"?
-            for (const userOfSub of this.getUsersOf(newEdge.from, { updateSubType: true })) {
-                for (const userOfSuper of this.getUsersOf(newEdge.to, { updateSubType: true })) {
-                    if (this.subtype.isSubType(userOfSub, userOfSuper) === false && areTypesSubTypesUtility(userOfSub, userOfSuper) === true) {
-                        this.subtype.markAsSubType(userOfSub, userOfSuper);
-                    }
-                }
-            }
-            // Is "user of super" a sub-type "user of sub"?
-            for (const userOfSub of this.getUsersOf(newEdge.from, { updateSubTypeSwitched: true })) {
-                for (const userOfSuper of this.getUsersOf(newEdge.to, { updateSubTypeSwitched: true })) {
-                    if (this.subtype.isSubType(userOfSuper, userOfSub) === false && areTypesSubTypesUtility(userOfSuper, userOfSub) === true) {
-                        this.subtype.markAsSubType(userOfSuper, userOfSub);
-                    }
+        // Is "user of sub" a sub-type of "user of super"?
+        for (const userOfSub of this.getUsersOf(newSubTypeEdge.from, { updateSubType: true })) {
+            for (const userOfSuper of this.getUsersOf(newSubTypeEdge.to, { updateSubType: true })) {
+                if (this.subtype.isSubType(userOfSub, userOfSuper) === false && areTypesSubTypesUtility(userOfSub, userOfSuper) === true) {
+                    this.subtype.markAsSubType(userOfSub, userOfSuper);
                 }
             }
         }
+        // Is "user of super" a sub-type "user of sub"?
+        for (const userOfSub of this.getUsersOf(newSubTypeEdge.from, { updateSubTypeSwitched: true })) {
+            for (const userOfSuper of this.getUsersOf(newSubTypeEdge.to, { updateSubTypeSwitched: true })) {
+                if (this.subtype.isSubType(userOfSuper, userOfSub) === false && areTypesSubTypesUtility(userOfSuper, userOfSub) === true) {
+                    this.subtype.markAsSubType(userOfSuper, userOfSub);
+                }
+            }
+        }
+    }
 
-        // TODO
-
+    protected updateDeletedEquality(deletedEqualityEdge: TypeEdge): void {
         // deleted equality edges: compare all direct users whether they are not equal anymore
-        while (this.deletedEqualityEdges.length >= 1) {
-            const deletedEdge = this.deletedEqualityEdges.pop()!;
-
-            for (const userOfType1 of this.getUsersOf(deletedEdge.from, { updateEquality: true })) {
-                for (const userOfType2 of this.getUsersOf(deletedEdge.to, { updateEquality: true })) {
-                    if (this.equality.areTypesEqual(userOfType1, userOfType2) === true && areTypesEqualUtility(userOfType1, userOfType2) === false) {
-                        this.equality.unmarkAsEqual(userOfType1, userOfType2);
-                        // if this relationship is deleted, another `onUnmarkedEqual` event is sent, the corresponding deleted edge is remembered and its users will be later checked as well
-                    }
+        for (const userOfType1 of this.getUsersOf(deletedEqualityEdge.from, { updateEquality: true })) {
+            for (const userOfType2 of this.getUsersOf(deletedEqualityEdge.to, { updateEquality: true })) {
+                if (this.equality.areTypesEqual(userOfType1, userOfType2) === true && areTypesEqualUtility(userOfType1, userOfType2) === false) {
+                    this.equality.unmarkAsEqual(userOfType1, userOfType2);
+                    // if this relationship is deleted, another `onUnmarkedEqual` event is sent, the corresponding deleted edge is remembered and its users will be later checked as well
                 }
             }
         }
+    }
 
+    protected updateDeletedSubType(deletedSubTypeEdge: TypeEdge): void {
         // deleted sub-type edges: compare all direct users whether they are not in a sub-type-relationship anymore
-        while (this.deletedSubtypeEdges.length >= 1) {
-            const deletedEdge = this.deletedSubtypeEdges.pop()!; // sub --> super
-
-            // Is "user of sub" no sub-type of "user of super" anymore?
-            for (const userOfSub of this.getUsersOf(deletedEdge.from, { updateSubType: true })) {
-                for (const userOfSuper of this.getUsersOf(deletedEdge.to, { updateSubType: true })) {
-                    if (this.subtype.isSubType(userOfSub, userOfSuper) === true && areTypesSubTypesUtility(userOfSub, userOfSuper) === false) {
-                        this.subtype.unmarkAsSubType(userOfSub, userOfSuper);
-                    }
-                }
-            }
-            // Is "user of super" no sub-type "user of sub" anymore?
-            for (const userOfSub of this.getUsersOf(deletedEdge.from, { updateSubTypeSwitched: true })) {
-                for (const userOfSuper of this.getUsersOf(deletedEdge.to, { updateSubTypeSwitched: true })) {
-                    if (this.subtype.isSubType(userOfSuper, userOfSub) === true && areTypesSubTypesUtility(userOfSuper, userOfSub) === false) {
-                        this.subtype.unmarkAsSubType(userOfSuper, userOfSub);
-                    }
+        // Is "user of sub" no sub-type of "user of super" anymore?
+        for (const userOfSub of this.getUsersOf(deletedSubTypeEdge.from, { updateSubType: true })) {
+            for (const userOfSuper of this.getUsersOf(deletedSubTypeEdge.to, { updateSubType: true })) {
+                if (this.subtype.isSubType(userOfSub, userOfSuper) === true && areTypesSubTypesUtility(userOfSub, userOfSuper) === false) {
+                    this.subtype.unmarkAsSubType(userOfSub, userOfSuper);
                 }
             }
         }
-
+        // Is "user of super" no sub-type "user of sub" anymore?
+        for (const userOfSub of this.getUsersOf(deletedSubTypeEdge.from, { updateSubTypeSwitched: true })) {
+            for (const userOfSuper of this.getUsersOf(deletedSubTypeEdge.to, { updateSubTypeSwitched: true })) {
+                if (this.subtype.isSubType(userOfSuper, userOfSub) === true && areTypesSubTypesUtility(userOfSuper, userOfSub) === false) {
+                    this.subtype.unmarkAsSubType(userOfSuper, userOfSub);
+                }
+            }
+        }
     }
 
     protected getUsersOf(used: Type, conditions: Partial<UseEdgeDetails>): Type[] {
@@ -301,6 +309,7 @@ export function isUseEdge(edge: unknown): edge is UseEdge {
 }
 
 
+// TODO make this customizable (for custom types, for more performance optimizations)
 export interface UseEdgeDetails {
     updateEquality: boolean;
     updateSubType: boolean;
