@@ -254,11 +254,13 @@ export class DefaultRelationshipUpdater<Specifics extends TypirSpecifics> implem
     }
 
     protected getUsersOf(used: Type, conditions: Partial<UseEdgeDetails>): Type[] {
-        return used.getIncomingEdges<UseEdge>(UseEdge).filter(edge => edge.cachingInformation === 'LINK_EXISTS'
-            && (conditions.updateEquality        === undefined ? true : conditions.updateEquality        === true ? edge.updateEquality        >= 1 : edge.updateEquality        === 0)
-            && (conditions.updateSubType         === undefined ? true : conditions.updateSubType         === true ? edge.updateSubType         >= 1 : edge.updateSubType         === 0)
-            && (conditions.updateSubTypeSwitched === undefined ? true : conditions.updateSubTypeSwitched === true ? edge.updateSubTypeSwitched >= 1 : edge.updateSubTypeSwitched === 0)
-        ).map(edge => edge.from);
+        return used.getIncomingEdges<UseEdge>(UseEdge)
+            .filter(edge => edge.cachingInformation === 'LINK_EXISTS'
+                && (conditions.updateEquality        === undefined ? true : conditions.updateEquality        === true ? edge.updateEquality        >= 1 : edge.updateEquality        === 0)
+                && (conditions.updateSubType         === undefined ? true : conditions.updateSubType         === true ? edge.updateSubType         >= 1 : edge.updateSubType         === 0)
+                && (conditions.updateSubTypeSwitched === undefined ? true : conditions.updateSubTypeSwitched === true ? edge.updateSubTypeSwitched >= 1 : edge.updateSubTypeSwitched === 0)
+            )
+            .map(edge => edge.from);
     }
 
     protected getUseEdge(user: Type, using: Type): UseEdge | undefined {
