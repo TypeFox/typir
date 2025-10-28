@@ -173,8 +173,8 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
             // this case might occur for optional properties, since `undefined` is a different TypeScript type than a non-undefined value
             return [<ValueConflict>{
                 $problem: ValueConflict,
-                firstValue: typeof value1,
-                secondValue: typeof value2,
+                firstValue: `'${String(value1)}' has the TypeScript type ${typeof value1}`,
+                secondValue: `'${String(value2)}' has the TypeScript type ${typeof value2}`,
             }];
         }
         // a type is stored in a TypeReference!
