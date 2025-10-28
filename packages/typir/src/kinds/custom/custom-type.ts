@@ -105,12 +105,14 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         // primitives
         else if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint' || typeof value === 'symbol') {
             return value as unknown as CustomTypePropertyStorage<T, Specifics>;
+        } else if (value === undefined) { // required for optional properties
+            return undefined as unknown as CustomTypePropertyStorage<T, Specifics>;
         }
         // composite with recursive object / index signature
         else if (typeof value === 'object' && value !== null) {
             return this.replaceAllProperties(value as CustomTypeInitialization<CustomTypeProperties, Specifics>, collectedReferences) as CustomTypePropertyStorage<T, Specifics>;
         } else {
-            throw new Error(`missing implementation for ${value}`);
+            throw new Error(`missing implementation for '${value}'`);
         }
     }
 
@@ -167,7 +169,14 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         return result;
     }
     protected analyzeTypeEqualityProblemsSingle<T extends CustomTypePropertyTypes>(value1: CustomTypePropertyStorage<T, Specifics>, value2: CustomTypePropertyStorage<T, Specifics>): TypirProblem[] {
-        assertTrue(typeof value1 === typeof value2);
+        if (typeof value1 !== typeof value2) {
+            // this case might occur for optional properties, since `undefined` is a different TypeScript type than a non-undefined value
+            return [<ValueConflict>{
+                $problem: ValueConflict,
+                firstValue: `'${String(value1)}' has the TypeScript type ${typeof value1}`,
+                secondValue: `'${String(value2)}' has the TypeScript type ${typeof value2}`,
+            }];
+        }
         // a type is stored in a TypeReference!
         if (value1 instanceof TypeReference) {
             return checkTypes(value1.getType(), (value2 as TypeReference<Type, Specifics>).getType(), createTypeCheckStrategy('EQUAL_TYPE', this.kind.services), false);
@@ -225,6 +234,8 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         }
         // primitives
         else if (typeof value1 === 'string' || typeof value1 === 'number' || typeof value1 === 'boolean' || typeof value1 === 'bigint' || typeof value1 === 'symbol') {
+            return checkValueForConflict(value1, value2, 'value');
+        } else if (value1 === undefined) { // required for optional properties
             return checkValueForConflict(value1, value2, 'value');
         }
         // composite with recursive object / index signature
