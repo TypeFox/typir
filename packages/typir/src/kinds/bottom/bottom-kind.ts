@@ -29,7 +29,7 @@ export interface BottomFactoryService<Specifics extends TypirSpecifics> {
     get(typeDetails: BottomTypeDetails<Specifics>): BottomType | undefined;
 }
 
-interface BottomConfigurationChain<Specifics extends TypirSpecifics> {
+export interface BottomConfigurationChain<Specifics extends TypirSpecifics> {
     inferenceRule<T extends Specifics>(rule: InferCurrentTypeRule<BottomType, Specifics, T>): BottomConfigurationChain<Specifics>;
     finish(): BottomType;
 }
