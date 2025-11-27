@@ -11,14 +11,22 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 ### New features
 
-- The TypeScript type of properties for custom types might use `undefined` now.
-
 ### Breaking changes
 
 ### Fixed bugs
 
-- Initializing optional properties of custom types with `undefined` failed, as reported in [#77](https://github.com/TypeFox/typir/discussions/77#discussioncomment-14149139).
-- When checking the equality of custom types, the values for the same property might have different TypeScript types, since optional propeties might be set to `undefined`.
+
+## v0.3.1 (2025-11-27)
+
+### New features
+
+- The TypeScript type of properties for custom types might use `undefined` now (#94).
+- Updated Typir-Langium to Langium v4.1.2
+
+### Fixed bugs
+
+- Initializing optional properties of custom types with `undefined` failed, as reported in [#77](https://github.com/TypeFox/typir/discussions/77#discussioncomment-14149139) (#94).
+- When checking the equality of custom types, the values for the same property might have different TypeScript types, since optional properties might be set to `undefined` (#94).
 
 
 ## v0.3.0 (2025-08-15)

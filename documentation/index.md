@@ -1,4 +1,4 @@
-# Documentation
+# Typir
 
 This describes the structure and the main content of the documentation for Typir.
 
