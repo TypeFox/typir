@@ -1,7 +1,7 @@
 {
     "name": "typir-example-ox",
     "displayName": "ox",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "private": true,
     "description": "",
     "author": {
@@ -14,8 +14,8 @@
         "vscode": "^1.67.0"
     },
     "volta": {
-        "node": "18.20.4",
-        "npm": "10.7.0"
+        "node": "20.19.6",
+        "npm": "10.9.4"
     },
     "scripts": {
         "build": "tsc -b tsconfig.json && node esbuild.mjs",
@@ -29,14 +29,14 @@
     },
     "dependencies": {
         "commander": "~12.1.0",
-        "langium": "~4.0.0",
-        "typir-langium": "~0.3.0",
+        "langium": "~4.1.2",
+        "typir-langium": "~0.3.1",
         "vscode-languageclient": "~9.0.1",
         "vscode-languageserver": "~9.0.1"
     },
     "devDependencies": {
         "@types/vscode": "~1.94.0",
-        "langium-cli": "~4.0.0"
+        "langium-cli": "~4.1.0"
     },
     "files": [
         "bin",

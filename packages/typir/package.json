@@ -1,6 +1,6 @@
 {
   "name": "typir",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "General purpose type checking library",
   "homepage": "https://typir.org",
   "author": {
@@ -20,11 +20,11 @@
   },
   "type": "module",
   "engines": {
-    "node": ">= 18.0.0"
+    "node": ">= 20.19.6"
   },
   "volta": {
-    "node": "18.20.4",
-    "npm": "10.7.0"
+    "node": "20.19.6",
+    "npm": "10.9.4"
   },
   "keywords": [
     "typesystem",
