@@ -1,7 +1,7 @@
 {
     "name": "typir-example-expression",
     "displayName": "expression",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "private": true,
     "description": "",
     "author": {
@@ -14,8 +14,8 @@
         "vscode": "^1.67.0"
     },
     "volta": {
-        "node": "18.20.4",
-        "npm": "10.7.0"
+        "node": "20.19.6",
+        "npm": "10.9.4"
     },
     "scripts": {
         "build": "tsc -b tsconfig.json",
@@ -25,6 +25,6 @@
         "watch": "concurrently -n tsc -c blue \"tsc -b tsconfig.json --watch\""
     },
     "dependencies": {
-        "typir": "~0.3.0"
+        "typir": "~0.3.1"
     }
 }
