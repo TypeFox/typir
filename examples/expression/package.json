@@ -1,7 +1,7 @@
 {
     "name": "typir-example-expression",
     "displayName": "expression",
-    "version": "0.3.0",
+    "version": "0.3.1",
     "private": true,
     "description": "",
     "author": {
@@ -25,6 +25,6 @@
         "watch": "concurrently -n tsc -c blue \"tsc -b tsconfig.json --watch\""
     },
     "dependencies": {
-        "typir": "~0.3.0"
+        "typir": "~0.3.1"
     }
 }
