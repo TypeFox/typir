@@ -14,8 +14,8 @@
         "vscode": "^1.67.0"
     },
     "volta": {
-        "node": "18.20.4",
-        "npm": "10.7.0"
+        "node": "20.19.6",
+        "npm": "10.9.4"
     },
     "scripts": {
         "build": "tsc -b tsconfig.json",
