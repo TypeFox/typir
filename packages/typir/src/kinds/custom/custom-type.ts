@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isMap, isSet } from 'util/types';
 import { Type } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
@@ -91,13 +90,13 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
         // grouping with Array, Set, Map
         else if (Array.isArray(value)) {
             return value.map(content => this.replaceSingleProperty(content, collectedReferences)) as unknown as CustomTypePropertyStorage<T, Specifics>;
-        } else if (isSet(value)) {
+        } else if (value instanceof Set) {
             const result = new Set<CustomTypePropertyStorage<T, Specifics>>();
             for (const entry of value) {
                 result.add(this.replaceSingleProperty(entry, collectedReferences));
             }
             return result as unknown as CustomTypePropertyStorage<T, Specifics>;
-        } else if (isMap(value)) {
+        } else if (value instanceof Map) {
             const result: Map<string, CustomTypePropertyStorage<T, Specifics>> = new Map();
             value.forEach((content, key) => result.set(key, this.replaceSingleProperty(content, collectedReferences)));
             return result as unknown as CustomTypePropertyStorage<T, Specifics>;
@@ -193,8 +192,8 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
                 contentProblems.push(...this.analyzeTypeEqualityProblemsSingle(value1[i], value2[i]));
             }
             return contentProblems;
-        } else if (isSet(value1)) {
-            assertTrue(isSet(value2));
+        } else if (value1 instanceof Set) {
+            assertTrue(value2 instanceof Set);
             const sizeProblem = checkValueForConflict(value1.size, value2.size, 'size');
             if (sizeProblem.length >= 1) {
                 return sizeProblem;
@@ -219,8 +218,8 @@ export class CustomType<Properties extends CustomTypeProperties, Specifics exten
                 }
             }
             return contentProblems;
-        } else if (isMap(value1)) {
-            assertTrue(isMap(value2));
+        } else if (value1 instanceof Map) {
+            assertTrue(value2 instanceof Map);
             const sizeProblem = checkValueForConflict(value1.size, value2.size, 'size');
             if (sizeProblem.length >= 1) {
                 return sizeProblem;

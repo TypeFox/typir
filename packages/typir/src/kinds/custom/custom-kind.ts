@@ -4,7 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isMap, isSet } from 'util/types';
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
@@ -129,9 +128,9 @@ export class CustomKind<Properties extends CustomTypeProperties, Specifics exten
         // grouping with Array, Set, Map
         else if (Array.isArray(value)) {
             return `[${value.map(content => this.calculateIdentifierSingle(content)).join(',')}]`;
-        } else if (isSet(value)) {
+        } else if (value instanceof Set) {
             return `(${Array.from(value.entries()).map(content => this.calculateIdentifierSingle(content)).sort().join(',')})`; // stable order of elements required
-        } else if (isMap(value)) {
+        } else if (value instanceof Map) {
             return `{${Array.from(value.entries()).sort((c1, c2) => (c1[0] as string).localeCompare(c2[0])).map(content => `${content[0]}=${this.calculateIdentifierSingle(content[1])}`).join(',')}}`; // stable order of elements required
         }
         // primitives
