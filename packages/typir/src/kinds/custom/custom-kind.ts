@@ -4,13 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isMap, isSet } from 'util/types';
 import { Type, TypeDetails } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { ConversionMode } from '../../services/conversion.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
 import { InferCurrentTypeRule } from '../../utils/utils-definitions.js';
+import { isMap, isSet } from '../../utils/utils.js';
 import { Kind } from '../kind.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyTypes, CustomTypeStorage, TypeDescriptorForCustomTypes } from './custom-definitions.js';
 import { CustomTypeInitializer } from './custom-initializer.js';

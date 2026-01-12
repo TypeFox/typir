@@ -69,3 +69,19 @@ export function assertTypirType<T extends Type>(type: unknown, check: (type: unk
         throw new Error(msg ?? `'${type}' has another type`);
     }
 }
+
+/**
+ * Browser-safe isSet check
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isSet(value: unknown): value is Set<any> {
+    return value instanceof Set || Object.prototype.toString.call(value) === '[object Set]';
+}
+
+/**
+ * Browser-safe isMap check
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function isMap(value: unknown): value is Map<any, any> {
+    return value instanceof Map || Object.prototype.toString.call(value) === '[object Map]';
+}
