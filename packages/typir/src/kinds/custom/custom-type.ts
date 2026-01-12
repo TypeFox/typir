@@ -4,14 +4,13 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-import { isMap, isSet } from 'util/types';
 import { Type } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeReference } from '../../initialization/type-reference.js';
 import { TypeEqualityProblem } from '../../services/equality.js';
 import { TypirProblem } from '../../utils/utils-definitions.js';
 import { checkTypes, checkValueForConflict, createKindConflict, createTypeCheckStrategy, ValueConflict } from '../../utils/utils-type-comparison.js';
-import { assertTrue } from '../../utils/utils.js';
+import { assertTrue, isMap, isSet } from '../../utils/utils.js';
 import { CustomTypeInitialization, CustomTypeProperties, CustomTypePropertyInitialization, CustomTypePropertyStorage, CustomTypePropertyTypes, CustomTypeStorage, TypeDescriptorForCustomTypes } from './custom-definitions.js';
 import { CustomKind, CustomTypeDetails } from './custom-kind.js';
 import { TypirSpecifics } from '../../typir.js';
