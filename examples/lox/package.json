@@ -30,7 +30,7 @@
     "dependencies": {
         "commander": "~12.1.0",
         "langium": "~4.1.2",
-        "typir-langium": "~0.3.1",
+        "typir-langium": "~0.3.2",
         "vscode-languageclient": "~9.0.1",
         "vscode-languageserver": "~9.0.1"
     },
