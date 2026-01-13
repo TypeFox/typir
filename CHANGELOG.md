@@ -20,7 +20,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 ### Fixed bugs
 
-- Use browser-safe `isSet` and `isMap` implementation (#98, #97).
+- Use browser-safe `isSet` and `isMap` implementation to fix #96 (#98, #97).
 
 
 ## v0.3.1 (2025-11-27)
