@@ -2,7 +2,7 @@
     "name": "typir-workspace",
     "displayName": "typir",
     "description": "Please enter a brief description here",
-    "version": "0.0.1",
+    "version": "0.3.2",
     "private": true,
     "engineStrict": true,
     "type": "module",

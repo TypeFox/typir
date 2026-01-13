@@ -6,8 +6,8 @@
   },
   "references": [{
     "path": "../typir/tsconfig.src.json"
-}],
-"include": [
+  }],
+  "include": [
     "src/**/*.ts"
   ]
 }
