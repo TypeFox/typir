@@ -16,12 +16,19 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 ### Fixed bugs
 
 
+## v0.3.2 (2026-01-13)
+
+### Fixed bugs
+
+- Use browser-safe `isSet` and `isMap` implementation (#98, #97).
+
+
 ## v0.3.1 (2025-11-27)
 
 ### New features
 
 - The TypeScript type of properties for custom types might use `undefined` now (#94).
-- Updated Typir-Langium to Langium v4.1.2
+- Updated Typir-Langium to Langium v4.1.2 (#95).
 
 ### Fixed bugs
 
