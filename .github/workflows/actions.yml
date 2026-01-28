@@ -20,8 +20,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Volta
-      uses: volta-cli/action@v4
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '24'
 
     - name: Install
       shell: bash

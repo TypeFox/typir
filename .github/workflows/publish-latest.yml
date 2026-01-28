@@ -18,11 +18,12 @@ jobs:
     - name: Use Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18.x'
+        node-version: '24'
         registry-url: 'https://registry.npmjs.org'
     - name: Build
       shell: bash
       run: |
+        npm i -g npm
         npm ci
         npm run clean
         npm run build
@@ -33,8 +34,6 @@ jobs:
         npm run test:run
     - name: Publish NPM Packages
       shell: bash
-      env:
-        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       # Update the following list when a new npm package is added
       run: |
         npm run publish:latest --provenance --workspace=typir
