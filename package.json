@@ -10,10 +10,6 @@
         "node": ">= 20.19.6",
         "npm": ">= 10.9.4"
     },
-    "volta": {
-        "node": "20.19.6",
-        "npm": "10.9.4"
-    },
     "scripts": {
         "postinstall": "npm run langium:generate",
         "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo examples/**/lib examples/**/out examples/**/*.tsbuildinfo && npm run clean --workspaces",
