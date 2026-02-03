@@ -18,8 +18,8 @@
         "npm": "10.9.4"
     },
     "scripts": {
+        "clean": "shx rm -rf lib out coverage *.tsbuildinfo",
         "build": "tsc -b tsconfig.json",
-        "clean": "shx rm -rf out *.tsbuildinfo",
         "lint": "eslint src --ext ts",
         "test": "vitest",
         "watch": "concurrently -n tsc -c blue \"tsc -b tsconfig.json --watch\""

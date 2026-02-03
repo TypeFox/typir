@@ -18,8 +18,8 @@
         "npm": "10.9.4"
     },
     "scripts": {
+        "clean": "shx rm -rf lib out coverage *.tsbuildinfo",
         "build": "tsc -b tsconfig.json && node esbuild.mjs",
-        "clean": "shx rm -rf lib out coverage node_modules *.tsbuildinfo",
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
         "lint": "eslint src --ext ts",
