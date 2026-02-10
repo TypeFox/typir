@@ -18,7 +18,7 @@
         "npm": "11.9.0"
     },
     "scripts": {
-        "clean": "shx rm -rf lib out coverage *.tsbuildinfo",
+        "clean": "shx rm -rf lib out *.tsbuildinfo",
         "build": "tsc -b tsconfig.json && node esbuild.mjs",
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
