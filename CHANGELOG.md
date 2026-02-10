@@ -16,6 +16,13 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 ### Fixed bugs
 
 
+## v0.3.3 (2026-02-10)
+
+### New features
+
+- Updated Typir-Langium to Langium v4.2.0 (#103).
+
+
 ## v0.3.2 (2026-01-13)
 
 ### Fixed bugs

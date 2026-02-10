@@ -1,7 +1,7 @@
 {
     "name": "typir-example-expression",
     "displayName": "expression",
-    "version": "0.3.2",
+    "version": "0.3.3",
     "private": true,
     "description": "",
     "author": {
@@ -15,16 +15,16 @@
     },
     "volta": {
         "node": "20.19.6",
-        "npm": "10.9.4"
+        "npm": "11.9.0"
     },
     "scripts": {
+        "clean": "shx rm -rf lib out *.tsbuildinfo",
         "build": "tsc -b tsconfig.json",
-        "clean": "shx rm -rf out *.tsbuildinfo",
         "lint": "eslint src --ext ts",
         "test": "vitest",
         "watch": "concurrently -n tsc -c blue \"tsc -b tsconfig.json --watch\""
     },
     "dependencies": {
-        "typir": "~0.3.2"
+        "typir": "~0.3.3"
     }
 }

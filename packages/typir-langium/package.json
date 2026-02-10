@@ -1,6 +1,6 @@
 {
   "name": "typir-langium",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Typir binding for Langium",
   "homepage": "https://typir.org",
   "author": {
@@ -20,7 +20,7 @@
   },
   "volta": {
     "node": "20.19.6",
-    "npm": "10.9.4"
+    "npm": "11.9.0"
   },
   "keywords": [
     "typesystem",
@@ -34,7 +34,7 @@
     "src"
   ],
   "scripts": {
-    "clean": "shx rm -rf lib out coverage *.tsbuildinfo",
+    "clean": "shx rm -rf lib out *.tsbuildinfo",
     "build": "tsc",
     "watch": "tsc --watch",
     "lint": "eslint src test --ext .ts",
@@ -49,7 +49,7 @@
   },
   "bugs": "https://github.com/TypeFox/typir/issues",
   "dependencies": {
-    "langium": "~4.1.2",
-    "typir": "~0.3.2"
+    "langium": "~4.2.0",
+    "typir": "~0.3.3"
   }
 }
