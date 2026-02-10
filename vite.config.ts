@@ -9,9 +9,9 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
     test: {
         coverage: {
-            provider: 'c8',
+            provider: 'v8',
             reporter: ['text', 'html'],
-            include: ['packages/typir/src'],
+            include: ['packages/typir/src', 'packages/typir-langium/src'],
             exclude: ['**/generated'],
         },
         deps: {

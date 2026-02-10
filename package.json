@@ -8,32 +8,34 @@
     "type": "module",
     "engines": {
         "node": ">= 20.19.6",
-        "npm": ">= 10.9.4"
+        "npm": ">= 11.9.0"
     },
     "volta": {
         "node": "20.19.6",
-        "npm": "10.9.4"
+        "npm": "11.9.0"
     },
     "scripts": {
         "postinstall": "npm run langium:generate",
-        "clean": "shx rm -rf packages/**/lib packages/**/out packages/**/*.tsbuildinfo examples/**/lib examples/**/out examples/**/*.tsbuildinfo && npm run clean --workspaces",
+        "clean": "npm run clean --workspaces && shx rm -rf coverage",
         "build": "tsc -b tsconfig.build.json && npm run build --workspaces",
         "watch": "concurrently -n typir,typir-langium,ox,lox,expression -c blue,blue,green,green \"tsc -b tsconfig.build.json -w\" \"npm run watch --workspace=typir\" \"npm run watch --workspace=typir-langium\" \"npm run watch --workspace=examples/ox\" \"npm run watch --workspace=examples/lox\" \"npm run watch --workspace=examples/expression\"",
         "lint": "npm run lint --workspaces",
         "docs": "typedoc",
         "test": "vitest",
+        "test:coverage": "vitest --coverage",
         "test:run": "vitest --run",
         "test-ui": "vitest --ui",
         "langium:generate": "npm run langium:generate --workspace=examples/ox --workspace=examples/lox",
         "langium:watch": "npm run langium:watch --workspace=examples/ox --workspace=examples/lox",
         "vscode:prepublish": "npm run build && npm run lint",
-        "reset:repo": "git clean -f -X -d",
+        "reset:repo": "git clean -f -d -x",
         "version:dependencies": "node ./scripts/update-version.js && npm install"
     },
     "devDependencies": {
         "@types/node": "~20.19.6",
         "@typescript-eslint/eslint-plugin": "~7.18.0",
         "@typescript-eslint/parser": "~7.18.0",
+        "@vitest/coverage-v8": "~3.2.4",
         "@vitest/ui": "~3.2.4",
         "concurrently": "~9.0.1",
         "editorconfig": "~2.0.0",
