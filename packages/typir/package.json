@@ -24,7 +24,7 @@
   },
   "volta": {
     "node": "20.19.6",
-    "npm": "10.9.4"
+    "npm": "11.9.0"
   },
   "keywords": [
     "typesystem",

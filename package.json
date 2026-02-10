@@ -8,11 +8,11 @@
     "type": "module",
     "engines": {
         "node": ">= 20.19.6",
-        "npm": ">= 10.9.4"
+        "npm": ">= 11.9.0"
     },
     "volta": {
         "node": "20.19.6",
-        "npm": "10.9.4"
+        "npm": "11.9.0"
     },
     "scripts": {
         "postinstall": "npm run langium:generate",
