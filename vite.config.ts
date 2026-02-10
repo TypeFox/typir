@@ -11,7 +11,7 @@ export default defineConfig({
         coverage: {
             provider: 'c8',
             reporter: ['text', 'html'],
-            include: ['packages/typir/src'],
+            include: ['packages/typir/src', 'packages/typir-langium/src'],
             exclude: ['**/generated'],
         },
         deps: {
