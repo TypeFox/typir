@@ -89,12 +89,17 @@ export function bindValidateCurrentTypeRule<
  * These options are used for pre-defined valiations in order to enable the user to decide,
  * how the created pre-defined valiation should be registered.
  */
-export interface RegistrationOptions<Specifics extends TypirSpecifics> {
+export type RegistrationOptions<Specifics extends TypirSpecifics> = (Partial<ValidationRuleOptions<Specifics>> & {
     /**
-     * 'MYSELF' indicates, that the caller is responsible to register the validation rule,
-     * otherwise the given options are used to register the return validation rule now.
+     * 'AUTO' indicates, that the validation rule is automatically registered with the given options now.
      */
-    registration: 'MYSELF' | Partial<ValidationRuleOptions<Specifics>>;
+    registration: 'AUTO';
+}) | {
+    /**
+     * 'MANUAL' indicates, that the caller is responsible to register the validation rule.
+     * In that case, the `ValidationRuleOptions` are specified during the manual registration, i.e. they are not necessary here.
+     */
+    registration: 'MANUAL';
 }
 
 

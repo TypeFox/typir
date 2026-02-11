@@ -248,10 +248,10 @@ export class FunctionKind<Specifics extends TypirSpecifics> implements Kind, Fun
 
     createUniqueFunctionValidation(options: RegistrationOptions<Specifics>): ValidationRule<Specifics> {
         const rule = new UniqueFunctionValidation(this.services);
-        if (options.registration === 'MYSELF') {
+        if (options.registration === 'MANUAL') {
             // do nothing, the user is responsible to register the rule
         } else {
-            this.services.validation.Collector.addValidationRule(rule, options.registration);
+            this.services.validation.Collector.addValidationRule(rule, options);
         }
         return rule;
     }
