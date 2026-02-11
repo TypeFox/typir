@@ -13,10 +13,6 @@
     "engines": {
         "vscode": "^1.67.0"
     },
-    "volta": {
-        "node": "20.19.6",
-        "npm": "11.9.0"
-    },
     "scripts": {
         "clean": "shx rm -rf lib out *.tsbuildinfo",
         "build": "tsc -b tsconfig.json && node esbuild.mjs",
