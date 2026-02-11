@@ -203,9 +203,10 @@ export type LanguageTypeOfLanguageKey<
     Keys extends undefined ? Specifics['LanguageType'] :
     // single key => use the specified language type from the "list type"
     Keys extends keyof Specifics['LanguageKeys'] ? Specifics['LanguageKeys'][Keys] :
-    // multiple keys => use the base language type (as fall-back for now)
-    Keys extends Array<infer GivenKeys> ? Specifics['LanguageType'] : // possible extension: calculate the union of language types
-    never;
+    // multiple keys => calculate the union of language types
+    Keys extends Array<infer GivenKeys> ? (GivenKeys extends LanguageKey<Specifics> ? Specifics['LanguageKeys'][GivenKeys] : never) :
+    never
+;
 
 /** Given the type of a language node (i.e. the "language type"), this type provides the relevant properties of the language type. */
 // possible extension: make this type exchangable, if possible
