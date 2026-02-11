@@ -10,10 +10,6 @@
         "node": ">= 20.19.6",
         "npm": ">= 11.9.0"
     },
-    "volta": {
-        "node": "20.19.6",
-        "npm": "11.9.0"
-    },
     "scripts": {
         "postinstall": "npm run langium:generate",
         "clean": "npm run clean --workspaces && shx rm -rf coverage",
