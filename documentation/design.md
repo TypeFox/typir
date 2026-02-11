@@ -41,8 +41,8 @@ Each type system, i.e. each instance of the `TypirServices`, has one type graph,
 ## Language
 
 Usually, type systems are created to do some type checking on textual languages, including domain-specific languages (DSLs) and general-purpose programming languages. Programs respective text conforming to these languages are parsed and provided as abstract syntax trees (ASTs) in-memory.
-ASTs usually consists of a tree of nodes (realized as JavaScript objects at runtime), which represent a small part of the parsed program/text.
-Establishing cross-references between the nodes of the tree after parsing results in a graph after linking.
+ASTs usually consist of a tree of nodes (realized as JavaScript objects at runtime), which represent a small part of the program/text after parsing.
+During linking, cross-references between the nodes of the tree are established, i.e. the tree becomes a graph.
 Type checking is done on these ASTs.
 
 ### Language node
@@ -64,7 +64,7 @@ The TypeScript type of a language node is called *language type*.
 
 Each language node might have a *language key*.
 Language keys are `string` values and are used to increase performance by registering rules for inference and validation not for all language nodes,
-but only for language nodes with a particular language node.
+but only for language nodes with a particular language key.
 Rules associated to no language key are applied to all language nodes.
 Rules might be associated to multiple language keys.
 Getting the language key of a language node is done by the [language service](./services/language.md).
