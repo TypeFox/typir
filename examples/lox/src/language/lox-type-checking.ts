@@ -160,20 +160,20 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> 
         });
 
         // check for unique function declarations
-        typir.factory.Functions.createUniqueFunctionValidation({ registration: { languageKey: FunctionDeclaration.$type }});
+        typir.factory.Functions.createUniqueFunctionValidation({ registration: 'AUTO', languageKey: FunctionDeclaration.$type });
 
         // check for unique class declarations
-        const uniqueClassValidator = typir.factory.Classes.createUniqueClassValidation({ registration: 'MYSELF' });
+        const uniqueClassValidator = typir.factory.Classes.createUniqueClassValidation({ registration: 'MANUAL' });
         // check for unique method declarations
         typir.factory.Classes.createUniqueMethodValidation({
             isMethodDeclaration: (node) => isMethodMember(node), // MethodMembers could have other $containers?
             getClassOfMethod: (method, _type) => method.$container,
             uniqueClassValidator: uniqueClassValidator,
-            registration: { languageKey: MethodMember.$type },
+            registration: 'AUTO', languageKey: MethodMember.$type,
         });
         typir.validation.Collector.addValidationRule(uniqueClassValidator, { languageKey: Class.$type }); // TODO this order is important, solve it in a different way!
         // check for cycles in super-sub-type relationships
-        typir.factory.Classes.createNoSuperClassCyclesValidation({ registration: { languageKey: Class.$type } });
+        typir.factory.Classes.createNoSuperClassCyclesValidation({ registration: 'AUTO', languageKey: Class.$type });
     }
 
     onNewAstNode(node: AstNode, typir: TypirLangiumServices<LoxSpecifics>): void {

@@ -237,30 +237,30 @@ export class ClassKind<Specifics extends TypirSpecifics> implements Kind, ClassF
 
     createUniqueClassValidation(options: RegistrationOptions<Specifics>): UniqueClassValidation<Specifics> {
         const rule = new UniqueClassValidation<Specifics>(this.services);
-        if (options.registration === 'MYSELF') {
+        if (options.registration === 'MANUAL') {
             // do nothing, the user is responsible to register the rule
         } else {
-            this.services.validation.Collector.addValidationRule(rule, options.registration);
+            this.services.validation.Collector.addValidationRule(rule, options);
         }
         return rule;
     }
 
     createUniqueMethodValidation<T extends Specifics['LanguageType']>(options: UniqueMethodValidationOptions<Specifics, T> & RegistrationOptions<Specifics>): ValidationRule<Specifics> {
         const rule = new UniqueMethodValidation<Specifics, T>(this.services, options);
-        if (options.registration === 'MYSELF') {
+        if (options.registration === 'MANUAL') {
             // do nothing, the user is responsible to register the rule
         } else {
-            this.services.validation.Collector.addValidationRule(rule, options.registration);
+            this.services.validation.Collector.addValidationRule(rule, options);
         }
         return rule;
     }
 
     createNoSuperClassCyclesValidation(options: NoSuperClassCyclesValidationOptions<Specifics> & RegistrationOptions<Specifics>): ValidationRule<Specifics> {
         const rule = new NoSuperClassCyclesValidation<Specifics>(this.services, options);
-        if (options.registration === 'MYSELF') {
+        if (options.registration === 'MANUAL') {
             // do nothing, the user is responsible to register the rule
         } else {
-            this.services.validation.Collector.addValidationRule(rule, options.registration);
+            this.services.validation.Collector.addValidationRule(rule, options);
         }
         return rule;
     }
