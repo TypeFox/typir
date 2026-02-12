@@ -8,6 +8,7 @@ import { BinaryExpression, isAssignment, isBinaryExpression, isCharString, isNum
 
 export interface ExpressionSpecifics extends TypirSpecifics {
     LanguageType: Node;
+    //PropertyExtractorOmittedKeys:
 }
 
 export function initializeTypir() {
@@ -70,6 +71,7 @@ export function initializeTypir() {
 
     typir.validation.Collector.addValidationRule((node, accept) => {
         if (isAssignment(node)) {
+            accept({ message: '', severity: 'error', languageNode: node, languageProperty: 'variable' });
             return typir.validation.Constraints.ensureNodeIsAssignable(node.value, node.variable, accept, (actual, expected) => ({
                 languageNode: node, severity: 'error', message: `'${actual.name}' is not assignable to '${expected.name}'.`,
             }));

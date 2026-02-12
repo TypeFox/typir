@@ -281,12 +281,12 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
     }
 
     protected createAcceptor(problems: Array<ValidationProblem<Specifics>>): ValidationProblemAcceptor<Specifics> {
-        return <T extends Specifics['LanguageType']>(problem: ValidationProblemProperties<Specifics, T>) => {
+        return (<T extends Specifics['LanguageType']>(problem: ValidationProblemProperties<Specifics, T>) => {
             problems.push({
                 ...problem,
                 $problem: ValidationProblem, // add the missing $property-property
             });
-        };
+        }) as ValidationProblemAcceptor<Specifics>;
     }
 
     validateBefore(languageRoot: Specifics['LanguageType']): Array<ValidationProblem<Specifics>> {

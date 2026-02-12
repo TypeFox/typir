@@ -22,6 +22,7 @@ export interface TypirLangiumSpecifics extends TypirSpecifics {
     LanguageKeys: LangiumAstTypes;  // applications should concretize the `LanguageKeys` with XXXAstType from the generated `ast.ts`
     /** Support also the Langium-specific diagnostic properties, e.g. to mark keywords or register code actions */
     ValidationMessageProperties: TypirSpecifics['ValidationMessageProperties'] & Omit<DiagnosticInfo<AstNode>, 'node'|'property'|'index'>; // 'node', 'property', and 'index' are already coverd by TypirSpecifics['ValidationMessageProperties'] with a different name
+    PropertyExtractorOmittedKeys: keyof AstNode; //
 }
 
 /**

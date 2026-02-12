@@ -185,6 +185,9 @@ export interface TypirSpecifics {
 
     /** Properties for validation issues (predefined and custom ones) */
     ValidationMessageProperties: ValidationMessageProperties;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    PropertyExtractorOmittedKeys: string | number | symbol; // the keys of the properties which are not usable for property extractors, e.g. because they are used internally by Typir or not relevant for validation messages
 }
 
 
@@ -213,7 +216,7 @@ export type LanguageTypeOfLanguageKey<
 export type PropertiesOfLanguageType<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] | undefined = Specifics['LanguageType']> =
     T extends Specifics['LanguageType']
         ? keyof Omit<T, // some properties are not usable:
-            | keyof Specifics['LanguageType'] // all properties from the base type => only the specific properties of the concrete language type remain
+            | Extract<Specifics['PropertyExtractorOmittedKeys'], keyof T> // the properties which are not usable for property extractors, e.g. because they are used internally by Typir or not relevant for validation messages
             | number | symbol
         >
         : never
