@@ -82,10 +82,12 @@ export interface MyDSLSpecifics extends TypirLangiumSpecifics {
 Beyond the APIs inherited from Typir core, Typir-Langium provides some *additional APIs* to ease type checking with Typir in Langium projects.
 
 This includes an API to register *validation rules* for `AstNode.$type`s, which is similar to the API of Langium for registering validation checks.
+In contrast to the provided similar core API, `AstNode` might be used as key to register validation rules for all AST nodes.
+By design, the keys are the `$type` values from the generated types in `ast.ts`.
 Here is an excerpt from the LOX example:
 
 ```typescript
-typir.validation.Collector.addValidationRulesForAstNodes({
+typir.validation.Collector.addValidationRulesForLanguageNodes({
     IfStatement: (node /* is of type IfStatement */, accept) => typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool, accept,
             () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' })),
     VariableDeclaration: ... ,
@@ -120,7 +122,7 @@ typir.Inference.addInferenceRulesForAstNodes({
 
 ## Examples
 
-Look at the examples in the `examples/` folder of the repo ([here](../../examples)). There we have some demo projects for you to get started.
+Look at the examples in the `examples/` folder of the repo ([here](../../examples)). There we have some demo projects for you to get started, including LOX and OX.
 
 ## License
 

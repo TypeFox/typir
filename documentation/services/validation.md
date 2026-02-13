@@ -29,6 +29,18 @@ Some options might be given in the options object as second argument:
 - `languageKey`: By default, all validation rules are performed for all language nodes.
   In order to improve performance, validation rules with a given language key are executed only for language nodes with this language key.
 
+To register multiple validation rules for language nodes with language keys at once, use this alternative,
+which provides more TypeScript-safety and requires less manual TypeScript-type checking (if `Specifics['LanguageKeys']` is specified):
+
+```typescript
+typir.validation.Collector.addValidationRulesForLanguageNodes({
+    'IfStatement': (node /* is of type IfStatement */, accept) => { /* use `node.condition` without casting */ },
+    'VariableDeclaration': (node /* is of type VariableDeclaration */, accept) => { /* use `node.initialValue` without casting */ },
+    'LanguageKeyWithTwoValidationRules': [(node, accept) => {}, (node, accept) => {}],
+    // ...
+});
+```
+
 The call `const issues: ValidationProblem = typir.validation.Collector.validate(languageNode)` validates a language node
 by executing all validation rules which are applicable to the given language node and returns all found validation issues.
 Since Typir doesn't know the structure of the AST, there is *no* automatic traversal of the AST, i.e. *only* the given language node is validated.

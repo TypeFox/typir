@@ -116,7 +116,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
         });
 
         // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
-        typir.validation.Collector.addValidationRulesForAstNodes({
+        typir.validation.Collector.addValidationRulesForLanguageNodes({
             AssignmentStatement: (node, accept, typir) => {
                 if (node.varRef.ref) {
                     typir.validation.Constraints.ensureNodeIsAssignable(node.value, node.varRef.ref, accept,

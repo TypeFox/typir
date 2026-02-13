@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type, isType } from '../graph/type-node.js';
-import { LanguageKey, PropertiesOfLanguageType, TypirServices, TypirSpecifics } from '../typir.js';
+import { LanguageKey, LanguageTypeOfLanguageKey, PropertiesOfLanguageType, TypirServices, TypirSpecifics } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
@@ -110,6 +110,27 @@ export type ValidationMessageProvider<
      * => Nothing to do/fix at the moment, let's wait until "exact types" are supported in TypeScript.
      * Another observation: It seems, that this problem also decreases the auto-completion proposals, e.g. for 'languageProperty'.
      */
+
+
+/**
+ * Taken and adapted from 'ValidationChecks' from 'langium'.
+ *
+ * A utility type for associating language keys to corresponding validation rules. For example:
+ *
+ * ```typescript
+ *   addValidationRulesForLanguageNodes({
+ *      VariableDeclaration: (node, typir) => { return [...]; },
+ *      AnotherLanguageKey: (node, typir) => ...,
+ *      // ...
+ *   });
+ * ```
+ *
+ * If `Specifics['LanguageKeys']` contains no list of concrete language keys, any string values are possible as language keys here.
+ */
+export type ValidationRulesForLanguageKeys<Specifics extends TypirSpecifics> = {
+    [K in LanguageKey<Specifics>]?: ValidationRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>> | Array<ValidationRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>>>
+}
+
 
 export interface ValidationConstraints<Specifics extends TypirSpecifics> {
     ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined>(
@@ -259,6 +280,8 @@ export interface ValidationCollector<Specifics extends TypirSpecifics> {
      */
     removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions<Specifics>>): void;
 
+    addValidationRulesForLanguageNodes(rules: ValidationRulesForLanguageKeys<Specifics>): void;
+
     addListener(listener: ValidationCollectorListener<Specifics>): void;
     removeListener(listener: ValidationCollectorListener<Specifics>): void;
 }
@@ -360,6 +383,20 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
             this.ruleRegistryFunctional.removeRule(rule as ValidationRuleFunctional<Specifics>, givenOptions);
         } else {
             this.ruleRegistryLifecycle.removeRule(rule as ValidationRuleLifecycle<Specifics>, givenOptions);
+        }
+    }
+
+    addValidationRulesForLanguageNodes(rules: ValidationRulesForLanguageKeys<Specifics>): void {
+        // map this approach for registering validation rules to the key-value approach above
+        for (const [languageKey, validationRules] of Object.entries(rules)) {
+            const callbacks = validationRules as ValidationRule<Specifics> | Array<ValidationRule<Specifics>>;
+            if (Array.isArray(callbacks)) {
+                for (const callback of callbacks) {
+                    this.addValidationRule(callback, { languageKey });
+                }
+            } else {
+                this.addValidationRule(callbacks, { languageKey });
+            }
         }
     }
 
