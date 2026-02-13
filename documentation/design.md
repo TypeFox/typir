@@ -59,6 +59,14 @@ All information Typir needs to know about language nodes is specified in the API
 ### Language type
 
 The TypeScript type of a language node is called *language type*.
+If the TypeScript types of all possible language nodes have a common super class or interface `CommonSuperType`,
+it should be registered in the specifics of your language in this way:
+
+```typescript
+export interface MySpecifics extends TypirSpecifics {
+    LanguageType: CommonSuperType;
+}
+```
 
 ### Language key
 
@@ -82,6 +90,14 @@ export interface MySpecifics extends TypirSpecifics {
 }
 ```
 
+Even if there is no list of concrete language keys, adopters should override this property with `Record<string, CommonSuperType>`,
+if the `LanguageType` is set to `CommonSuperType` (see section above):
+
+```typescript
+export interface MySpecifics extends TypirSpecifics {
+    LanguageKeys: Record<string, CommonSuperType>;
+}
+```
 
 ## Services and default implementations
 

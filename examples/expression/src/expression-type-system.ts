@@ -8,6 +8,7 @@ import { BinaryExpression, isAssignment, isBinaryExpression, isCharString, isNum
 
 export interface ExpressionSpecifics extends TypirSpecifics {
     LanguageType: Node;
+    LanguageKeys: Record<string, Node>; // there is no list of language keys, but we know, that each element inside the AST extends `Node`
 }
 
 export function initializeTypir() {
