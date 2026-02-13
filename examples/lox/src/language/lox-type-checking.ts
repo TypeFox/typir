@@ -151,7 +151,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> 
         });
 
         // some explicit validations for typing issues with Typir (replaces corresponding functions in the LoxValidator!)
-        typir.validation.Collector.addValidationRulesForAstNodes({
+        typir.validation.Collector.addValidationRulesForLanguageNodes({
             ForStatement: this.validateCondition,
             IfStatement: this.validateCondition,
             ReturnStatement: this.validateReturnStatement,
