@@ -69,7 +69,7 @@ export function createLangiumSpecificTypirServicesModule<Specifics extends Typir
 /**
  * Creates a module that provides a default implementation for each of the additional Typir-Langium services.
  * @param langiumServices Typir-Langium needs to interact with the Langium lifecycle
- * @returns an implementation for each of the additional Tyir-Langium services
+ * @returns an implementation for each of the additional Typir-Langium services
  */
 export function createDefaultTypirLangiumServicesModule<Specifics extends TypirLangiumSpecifics>(langiumServices: LangiumSharedCoreServices): Module<TypirLangiumServices<Specifics>, TypirLangiumAddedServices<Specifics>> {
     return {

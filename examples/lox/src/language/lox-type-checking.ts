@@ -114,7 +114,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> 
         typir.factory.Operators.createUnary({ name: '-', signature: { operand: typeNumber, return: typeNumber }}).inferenceRule(unaryInferenceRule).finish();
 
         // additional inference rules for ...
-        typir.Inference.addInferenceRulesForAstNodes({
+        typir.Inference.addInferenceRulesForLanguageNodes({
             // ... member calls
             MemberCall: (languageNode) => {
                 const ref = languageNode.element?.ref;

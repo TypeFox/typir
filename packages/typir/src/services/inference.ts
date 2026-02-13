@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { isType, Type } from '../graph/type-node.js';
-import { LanguageKey, TypirServices, TypirSpecifics } from '../typir.js';
+import { LanguageKey, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { assertUnreachable, removeFromArray, toArray } from '../utils/utils.js';
@@ -95,6 +95,11 @@ export interface TypeInferenceRuleWithInferringChildren<
 }
 
 
+export type InferenceRulesForLanguageKeys<Specifics extends TypirSpecifics> = {
+    [K in LanguageKey<Specifics>]?: TypeInferenceRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>> | Array<TypeInferenceRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>>>
+}
+
+
 export interface TypeInferenceCollectorListener<Specifics extends TypirSpecifics> {
     onAddedInferenceRule(rule: TypeInferenceRule<Specifics>, options: TypeInferenceRuleOptions<Specifics>): void;
     onRemovedInferenceRule(rule: TypeInferenceRule<Specifics>, options: TypeInferenceRuleOptions<Specifics>): void;
@@ -135,6 +140,8 @@ export interface TypeInferenceCollector<Specifics extends TypirSpecifics> {
      */
     removeInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, options?: Partial<TypeInferenceRuleOptions<Specifics>>): void;
 
+    addInferenceRulesForLanguageNodes(rules: InferenceRulesForLanguageKeys<Specifics>): void;
+
     addListener(listener: TypeInferenceCollectorListener<Specifics>): void;
     removeListener(listener: TypeInferenceCollectorListener<Specifics>): void;
 }
@@ -160,6 +167,20 @@ export class DefaultTypeInferenceCollector<Specifics extends TypirSpecifics> imp
 
     removeInferenceRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: TypeInferenceRule<Specifics, InputType>, optionsToRemove?: Partial<TypeInferenceRuleOptions<Specifics>>): void {
         this.ruleRegistry.removeRule(rule as unknown as TypeInferenceRule<Specifics>, optionsToRemove);
+    }
+
+    addInferenceRulesForLanguageNodes(rules: InferenceRulesForLanguageKeys<Specifics>): void {
+        // map this approach for registering inference rules to the key-value approach above
+        for (const [languageKey, inferenceRules] of Object.entries(rules)) {
+            const callbacks = inferenceRules as TypeInferenceRule<Specifics, Specifics['LanguageType']> | Array<TypeInferenceRule<Specifics, Specifics['LanguageType']>>;
+            if (Array.isArray(callbacks)) {
+                for (const callback of callbacks) {
+                    this.addInferenceRule(callback, { languageKey });
+                }
+            } else {
+                this.addInferenceRule(callbacks, { languageKey });
+            }
+        }
     }
 
     inferType(languageNode: Specifics['LanguageType']): Type | Array<InferenceProblem<Specifics>> {

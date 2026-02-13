@@ -103,7 +103,7 @@ Note that the properties `node`, `property`, and `index` are named `languageNode
 In similar way, it is possible to register *inference rules* for `AstNode.$type`s, as demonstrated in the LOX example:
 
 ```typescript
-typir.Inference.addInferenceRulesForAstNodes({
+typir.Inference.addInferenceRulesForLanguageNodes({
     // ...
     VariableDeclaration: (languageNode /* is of type VariableDeclaration */) => {
         if (languageNode.type) {

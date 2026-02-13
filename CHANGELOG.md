@@ -20,11 +20,13 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 - When reporting validation issues, `languageProperty` accepts only valid property names of the given `languageNode` (#93).
   - Introduced `TypirSpecifics['OmittedLanguageNodeProperties']` to omit some of the existing properties of language nodes.
 - Introduced `typir.validation.Collector.addValidationRulesForLanguageNodes()` to register multiple validation rules for language keys at once with improved TypeScript safety (#93).
+- Introduced `typir.Inference.addInferenceRulesForLanguageNodes()` to register multiple inference rules for language keys at once with improved TypeScript safety (#93).
 
 ### Breaking changes
 
 - Renamed `TypirLangiumSpecifics['AstTypes']` to `TypirLangiumSpecifics['LanguageKeys']` to align it with the new `TypirSpecifics['LanguageKeys']`, as described above (#93).
 - Renamed `typir.validation.Collector.addValidationRulesForAstNodes` to `addValidationRulesForLanguageNodes` to align it with the new API in Typir (core), as described above (#93).
+- Renamed `typir.Inference.addInferenceRulesForAstNodes` to `addInferenceRulesForLanguageNodes` to align it with the new API in Typir (core), as described above (#93).
 
 ### Fixed bugs
 
