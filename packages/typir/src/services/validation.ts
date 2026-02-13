@@ -281,8 +281,8 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
     }
 
     protected createAcceptor(problems: Array<ValidationProblem<Specifics>>): ValidationProblemAcceptor<Specifics> {
-        return <T extends Specifics['LanguageType']>(problem: ValidationProblemProperties<Specifics, T>) => {
-            problems.push({
+        return <T extends Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined>(problem: ValidationProblemProperties<Specifics, T, P>) => {
+            problems.push(<ValidationProblem<Specifics>>{
                 ...problem,
                 $problem: ValidationProblem, // add the missing $property-property
             });

@@ -185,6 +185,16 @@ export interface TypirSpecifics {
 
     /** Properties for validation issues (predefined and custom ones) */
     ValidationMessageProperties: ValidationMessageProperties;
+
+    /**
+     * Contains properties of language nodes, which shall be omitted for validation issues,
+     * i.e. these properties are not possible to attach validation markers to.
+     *
+     * The types given here are usable as (object) keys in general and therefore enable concrete, inheriting `TypirSpecifics` to specify more concrete keys.
+     * The types given here don't skip any keys by default, since (for example) the general "string" is not assignable to concrete keys like "property1" or "value2"
+     * (according to the semantics of the used `Extract<>` below).
+     */
+    OmittedLanguageNodeProperties: string | number | symbol;
 }
 
 
@@ -209,12 +219,19 @@ export type LanguageTypeOfLanguageKey<
 ;
 
 /** Given the type of a language node (i.e. the "language type"), this type provides the relevant properties of the language type. */
-// possible extension: make this type exchangable, if possible
 export type PropertiesOfLanguageType<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] | undefined = Specifics['LanguageType']> =
     T extends Specifics['LanguageType']
-        ? keyof Omit<T, // some properties are not usable:
-            | keyof Specifics['LanguageType'] // all properties from the base type => only the specific properties of the concrete language type remain
-            | number | symbol
+        ? keyof Omit<
+            // support only the properties of the current language node:
+            T,
+            // but hide some of these properties:
+            Extract<
+                // the properties to hide are defined in the `TypirSpecifics` (and might be customized there):
+                Specifics['OmittedLanguageNodeProperties'],
+                // ignore properties, which are not in the current language node
+                //  this enables to have additional/other/non-relevant language keys in the `TypirSpecifics`
+                keyof T
+            >
         >
         : never
 ;

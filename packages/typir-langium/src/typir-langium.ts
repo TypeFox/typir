@@ -4,6 +4,8 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+/* eslint-disable @typescript-eslint/indent */
+
 import { AbstractAstReflection, AstNode, DiagnosticInfo, LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
 import { createDefaultTypirServicesModule, DeepPartial, inject, Module, PartialTypirServices, TypirServices, TypirSpecifics } from 'typir';
 import { LangiumLanguageNodeInferenceCaching } from './features/langium-caching.js';
@@ -21,7 +23,10 @@ export interface TypirLangiumSpecifics extends TypirSpecifics {
     LanguageType: AstNode;          // concretizes the `LanguageType`, since all language nodes of a Langium AST are AstNode's
     LanguageKeys: LangiumAstTypes;  // applications should concretize the `LanguageKeys` with XXXAstType from the generated `ast.ts`
     /** Support also the Langium-specific diagnostic properties, e.g. to mark keywords or register code actions */
-    ValidationMessageProperties: TypirSpecifics['ValidationMessageProperties'] & Omit<DiagnosticInfo<AstNode>, 'node'|'property'|'index'>; // 'node', 'property', and 'index' are already coverd by TypirSpecifics['ValidationMessageProperties'] with a different name
+    ValidationMessageProperties: TypirSpecifics['ValidationMessageProperties'] // use the default properties and the Langium-specific properties
+        & Omit<DiagnosticInfo<AstNode>, 'node'|'property'|'index'>; // 'node', 'property', and 'index' are already coverd by TypirSpecifics['ValidationMessageProperties'] with a different name
+    OmittedLanguageNodeProperties: TypirSpecifics['OmittedLanguageNodeProperties'] // enable adopters to ignore even more concrete properties
+        | keyof AstNode; // omit all meta-data of AstNodes, i.e. omit all "$..."-properties like "$type", "$container", "$cstNode", ...
 }
 
 /**
