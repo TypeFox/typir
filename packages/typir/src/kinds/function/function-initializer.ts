@@ -8,7 +8,7 @@ import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { TypeInferenceRule } from '../../services/inference.js';
 import { TypirServices, TypirSpecifics } from '../../typir.js';
-import { bindInferCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType } from '../../utils/utils-definitions.js';
+import { bindInferCurrentTypeRule, InferenceRuleWithOptions, inferenceOptionsBoundToType, skipInferenceRuleForExistingType } from '../../utils/utils-definitions.js';
 import { assertTypirType } from '../../utils/utils.js';
 import { FunctionCallInferenceRule } from './function-inference-call.js';
 import { CreateFunctionTypeDetails, FunctionKind, FunctionTypeDetails, InferFunctionCall } from './function-kind.js';
@@ -85,20 +85,20 @@ export class FunctionTypeInitializer<Specifics extends TypirSpecifics> extends T
     protected registerRules(functionName: string, functionType: FunctionType | undefined): void {
         for (const rule of this.inferenceForCall) {
             const overloaded = this.functions.getOrCreateOverloads(functionName);
-            overloaded.inferenceRule.addInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
+            overloaded.inferenceRule.addInferenceRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, functionType));
         }
         for (const rule of this.inferenceForDeclaration) {
-            this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
+            this.services.Inference.addInferenceRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, functionType));
         }
     }
 
     protected deregisterRules(functionName: string, functionType: FunctionType | undefined): void {
         for (const rule of this.inferenceForCall) {
             const overloaded = this.functions.getOverloads(functionName);
-            overloaded?.inferenceRule.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
+            overloaded?.inferenceRule.removeInferenceRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, functionType));
         }
         for (const rule of this.inferenceForDeclaration) {
-            this.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, functionType));
+            this.services.Inference.removeInferenceRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, functionType));
         }
     }
 

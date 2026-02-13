@@ -7,8 +7,8 @@
 import { isType, Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { InferenceProblem, InferenceRuleNotApplicable, TypeInferenceRule } from '../../services/inference.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
-import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
+import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, inferenceOptionsBoundToType, InferenceRuleWithOptions, skipInferenceRuleForExistingType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
 import { checkNameTypesMap, createTypeCheckStrategy, MapListConverter } from '../../utils/utils-type-comparison.js';
 import { assertTypirType, toArray } from '../../utils/utils.js';
 import { ClassKind, CreateClassTypeDetails, InferClassLiteral } from './class-kind.js';
@@ -197,7 +197,10 @@ export class ClassTypeInitializer<Specifics extends TypirSpecifics> extends Type
         }
     }
 
-    protected createInferenceRuleForLiteral<T extends Specifics['LanguageType']>(rule: InferClassLiteral<Specifics, T>, classType: ClassType): InferenceRuleWithOptions<Specifics, T> {
+    protected createInferenceRuleForLiteral<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferClassLiteral<Specifics, LanguageKey, LanguageType>, classType: ClassType): InferenceRuleWithOptions<Specifics, LanguageType> {
         const mapListConverter = new MapListConverter();
         const kind = this.kind;
         return {
@@ -254,7 +257,10 @@ export class ClassTypeInitializer<Specifics extends TypirSpecifics> extends Type
         };
     }
 
-    protected createValidationRuleForLiteral<T extends Specifics['LanguageType']>(rule: InferClassLiteral<Specifics, T>, classType: ClassType): ValidationRuleWithOptions<Specifics, T> | undefined {
+    protected createValidationRuleForLiteral<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferClassLiteral<Specifics, LanguageKey, LanguageType>, classType: ClassType): ValidationRuleWithOptions<Specifics, LanguageType> | undefined {
         const validationRules = toArray(rule.validation);
         if (validationRules.length <= 0) {
             return undefined;
@@ -303,13 +309,13 @@ export class ClassTypeInitializer<Specifics extends TypirSpecifics> extends Type
     }
 
     protected registerRules(classType: ClassType | undefined): void {
-        this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, classType)));
-        this.validationRules.forEach(rule => this.services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, classType)));
+        this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, classType)));
+        this.validationRules.forEach(rule => this.services.validation.Collector.addValidationRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, classType)));
     }
 
     protected deregisterRules(classType: ClassType | undefined): void {
-        this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, classType)));
-        this.validationRules.forEach(rule => this.services.validation.Collector.removeValidationRule(rule.rule, optionsBoundToType(rule.options, classType)));
+        this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, classType)));
+        this.validationRules.forEach(rule => this.services.validation.Collector.removeValidationRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, classType)));
     }
 
 }

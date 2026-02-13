@@ -10,7 +10,7 @@ import { LangiumTypeSystemDefinition, TypirLangiumServices, TypirLangiumSpecific
 import { BinaryExpression, ForStatement, FunctionDeclaration, IfStatement, MemberCall, NumberLiteral, OxAstType, TypeReference, UnaryExpression, WhileStatement, isBinaryExpression, isBooleanLiteral, isFunctionDeclaration, isParameter, isTypeReference, isUnaryExpression, isVariableDeclaration } from './generated/ast.js';
 
 export interface OxSpecifics extends TypirLangiumSpecifics { // concretize some OX-specifics here
-    AstTypes: OxAstType; // all AST types from the generated `ast.ts`
+    LanguageKeys: OxAstType; // all AST types from the generated `ast.ts`
 }
 
 export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
@@ -25,10 +25,10 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
         // ... but their primitive kind is provided/preset by Typir
         const typeNumber = typir.factory.Primitives.create({ primitiveName: 'number' })
             .inferenceRule({ languageKey: NumberLiteral.$type })
-            .inferenceRule({ languageKey: TypeReference.$type, matching: (node: TypeReference) => node.primitive === 'number' })
+            .inferenceRule({ languageKey: TypeReference.$type, matching: node => node.primitive === 'number' })
             .finish();
         const typeVoid = typir.factory.Primitives.create({ primitiveName: 'void' })
-            .inferenceRule({ languageKey: TypeReference.$type, matching: (node: TypeReference) => node.primitive === 'void' })
+            .inferenceRule({ languageKey: TypeReference.$type, matching: node => node.primitive === 'void' })
             .finish();
 
         // extract inference rules, which is possible here thanks to the unified structure of the Langium grammar (but this is not possible in general!)
@@ -82,7 +82,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
          */
 
         // additional inference rules ...
-        typir.Inference.addInferenceRulesForAstNodes({
+        typir.Inference.addInferenceRulesForLanguageNodes({
             // ... for member calls (which are used in expressions)
             MemberCall: (languageNode) => {
                 const ref = languageNode.element.ref;
@@ -116,12 +116,13 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
         });
 
         // explicit validations for typing issues, realized with Typir (which replaced corresponding functions in the OxValidator!)
-        typir.validation.Collector.addValidationRulesForAstNodes({
+        typir.validation.Collector.addValidationRulesForLanguageNodes({
             AssignmentStatement: (node, accept, typir) => {
                 if (node.varRef.ref) {
                     typir.validation.Constraints.ensureNodeIsAssignable(node.value, node.varRef.ref, accept,
                         (actual, expected) => ({
                             message: `The expression '${node.value.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.varRef.ref!.name}' with type '${expected.name}'.`,
+                            languageNode: node,
                             languageProperty: 'value',
                         }));
                 }
@@ -133,20 +134,20 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
                 if (functionDeclaration && functionDeclaration.returnType.primitive !== 'void' && node.value) {
                     // the return value must fit to the return type of the function
                     typir.validation.Constraints.ensureNodeIsAssignable(node.value, functionDeclaration.returnType, accept,
-                        () => ({ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, languageProperty: 'value' }));
+                        () => ({ message: `The expression '${node.value!.$cstNode?.text}' is not usable as return value for the function '${functionDeclaration.name}'.`, languageNode: node, languageProperty: 'value' }));
                 }
             },
             VariableDeclaration: (node, accept, typir) => {
                 typir.validation.Constraints.ensureNodeHasNotType(node, typeVoid, accept,
-                    () => ({ message: "Variables can't be declared with the type 'void'.", languageProperty: 'type' }));
+                    () => ({ message: "Variables can't be declared with the type 'void'.", languageNode: node, languageProperty: 'type' }));
                 typir.validation.Constraints.ensureNodeIsAssignable(node.value, node, accept,
-                    (actual, expected) => ({ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, languageProperty: 'value' }));
+                    (actual, expected) => ({ message: `The initialization expression '${node.value?.$cstNode?.text}' of type '${actual.name}' is not assignable to the variable '${node.name}' with type '${expected.name}'.`, languageNode: node, languageProperty: 'value' }));
             },
             WhileStatement: validateCondition,
         });
         function validateCondition(node: IfStatement | WhileStatement | ForStatement, accept: ValidationProblemAcceptor<OxSpecifics>, typir: TypirServices<OxSpecifics>): void {
             typir.validation.Constraints.ensureNodeIsAssignable(node.condition, typeBool, accept,
-                () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageProperty: 'condition' }));
+                () => ({ message: "Conditions need to be evaluated to 'boolean'.", languageNode: node, languageProperty: 'condition' }));
         }
     }
 
@@ -166,7 +167,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
                 // inference rule for function declaration:
                 .inferenceRuleForDeclaration({
                     languageKey: FunctionDeclaration.$type,
-                    matching: (node: FunctionDeclaration) => node === languageNode // only the current function declaration matches!
+                    matching: node => node === languageNode, // only the current function declaration matches!
                 })
                 /** inference rule for funtion calls:
                  * - inferring of overloaded functions works only, if the actual arguments have the expected types!
@@ -174,7 +175,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
                  * - additionally, validations for the assigned values to the expected parameter( type)s are derived */
                 .inferenceRuleForCalls({
                     languageKey: MemberCall.$type,
-                    matching: (call: MemberCall) => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
+                    matching: call => isFunctionDeclaration(call.element.ref) && call.explicitOperationCall && call.element.ref.name === functionName,
                     inputArguments: (call: MemberCall) => call.arguments, // they are needed to check, that the given arguments are assignable to the parameters
                     // Note that OX does not support overloaded function declarations for simplicity: Look into LOX to see how to handle overloaded functions and methods!
                     validateArgumentsOfFunctionCalls: true,

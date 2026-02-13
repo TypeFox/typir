@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { LangiumDefaultCoreServices, Properties, ValidationAcceptor, ValidationChecks } from 'langium';
-import { DefaultValidationCollector, TypirServices, ValidationCollector, ValidationProblem, ValidationRule } from 'typir';
+import { DefaultValidationCollector, TypirServices, ValidationCollector, ValidationProblem, ValidationRule, ValidationRulesForLanguageKeys } from 'typir';
 import { TypirLangiumServices, TypirLangiumSpecifics } from '../typir-langium.js';
 
 export function registerTypirValidationChecks<Specifics extends TypirLangiumSpecifics>(langiumServices: LangiumDefaultCoreServices, typirServices: TypirLangiumServices<Specifics>) {
@@ -86,7 +86,7 @@ export class DefaultLangiumTypirValidator<Specifics extends TypirLangiumSpecific
             accept(problem.severity, message, {
                 // these properties are named differently in Langium and Typir:
                 node: problem.languageNode,
-                property: problem.languageProperty as Properties<Specifics['LanguageType']>,
+                property: problem.languageProperty as (Properties<Specifics['LanguageType']> | undefined),
                 index: problem.languageIndex,
                 // copy all other DiagnosticInfo properties:
                 ...problem,
@@ -101,32 +101,34 @@ export class DefaultLangiumTypirValidator<Specifics extends TypirLangiumSpecific
  *
  * A utility type for associating non-primitive AST types to corresponding validation rules. For example:
  *
- * ```ts
- *   addValidationRulesForAstNodes({
+ * ```typescript
+ *   addValidationRulesForLanguageNodes({
  *      VariableDeclaration: (node, typir) => { return [...]; },
+ *      Another$typeName: (node, typir) => ...,
+ *      // ...
+ *      AstNode: (node, typir) => ..., // executed for all AstNodes
  *   });
  * ```
  *
- * @param T a type definition mapping language specific type names (keys) to the corresponding types (values)
+ * In contrast to Typir (core), Typir-Langium enables to register validation rules to `AstNode` as well.
  */
-export type LangiumValidationRules<Specifics extends TypirLangiumSpecifics> = {
-    [K in keyof Specifics['AstTypes']]?: Specifics['AstTypes'][K] extends Specifics['LanguageType'] ? ValidationRule<Specifics, Specifics['AstTypes'][K]> | Array<ValidationRule<Specifics, Specifics['AstTypes'][K]>> : never
-} & {
+export type LangiumValidationRules<Specifics extends TypirLangiumSpecifics> = ValidationRulesForLanguageKeys<Specifics> & {
+    // TODO nodes inside ValidationRules are typed by the TypeScript compiler as `any` not as `AstNode`
     AstNode?: ValidationRule<Specifics, Specifics['LanguageType']> | Array<ValidationRule<Specifics, Specifics['LanguageType']>>;
 }
 
 
 export interface LangiumValidationCollector<Specifics extends TypirLangiumSpecifics> extends ValidationCollector<Specifics> {
-    addValidationRulesForAstNodes(rules: LangiumValidationRules<Specifics>): void;
+    addValidationRulesForLanguageNodes(rules: LangiumValidationRules<Specifics>): void;
 }
 
 export class DefaultLangiumValidationCollector<Specifics extends TypirLangiumSpecifics> extends DefaultValidationCollector<Specifics> implements LangiumValidationCollector<Specifics> {
 
-    addValidationRulesForAstNodes(rules: LangiumValidationRules<Specifics>): void {
+    override addValidationRulesForLanguageNodes(rules: LangiumValidationRules<Specifics>): void {
         // map this approach for registering validation rules to the key-value approach from core Typir
-        for (const [type, ruleCallbacks] of Object.entries(rules)) {
-            const languageKey = type === 'AstNode' ? undefined : type; // using 'AstNode' as key is equivalent to specifying no key
-            const callbacks = ruleCallbacks as ValidationRule<Specifics> | Array<ValidationRule<Specifics>>;
+        for (const [$type, validationRules] of Object.entries(rules)) {
+            const languageKey = $type === 'AstNode' ? undefined : $type; // using 'AstNode' as key is equivalent to specifying no key: the rule is applied to all AstNodes
+            const callbacks = validationRules as ValidationRule<Specifics> | Array<ValidationRule<Specifics>>;
             if (Array.isArray(callbacks)) {
                 for (const callback of callbacks) {
                     this.addValidationRule(callback, { languageKey });

@@ -12,6 +12,7 @@ This describes the structure and the main content of the documentation for Typir
 - [Assignability](./services/assignability.md)
 - [Language](./services/language.md): Don't interchange "language service" and "language server"!
 - [Type inference](./services/inference.md)
+- [Validation](./services/validation.md)
 - ...
 
 

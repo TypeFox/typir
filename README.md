@@ -204,7 +204,6 @@ The roadmap includes, among other, these features:
 
 - More predefined types: structurally typed classes, lambdas, generics, constrained primitive types (e.g. numbers with upper and lower bound), ...
 - Calculate types, e.g. operators whose return types depend on their current input types
-- Simplified API for custom types
 
 For the released versions of Typir, see the [CHANGELOG.md](./CHANGELOG.md).
 

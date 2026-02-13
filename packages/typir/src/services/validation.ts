@@ -5,25 +5,27 @@
  ******************************************************************************/
 
 import { Type, isType } from '../graph/type-node.js';
-import { TypirSpecifics, TypirServices, MakePropertyOptional } from '../typir.js';
+import { LanguageKey, LanguageTypeOfLanguageKey, PropertiesOfLanguageType, TypirServices, TypirSpecifics } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
-import { removeFromArray, toArray } from '../utils/utils.js';
+import { MakePropertyOptional, removeFromArray, toArray } from '../utils/utils.js';
 import { TypeInferenceCollector } from './inference.js';
 import { ProblemPrinter } from './printing.js';
 
 export type Severity = 'error' | 'warning' | 'info' | 'hint';
 
-export interface ValidationMessageProperties { // Using this type only the TypirSpecifics (and not directly in the ValidationProblem below) enables to customize its properties.
+export interface ValidationMessageProperties { // Using this type only in the TypirSpecifics (and not directly in the ValidationProblem below) enables to customize its properties.
     severity: Severity;
     message: string;
     subProblems?: TypirProblem[];
 }
 
 export type ValidationProblem<
-    Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
-> = ValidationProblemProperties<Specifics, T> & TypirProblem & {
+    Specifics extends TypirSpecifics,
+    T extends Specifics['LanguageType'] = Specifics['LanguageType'],
+    P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined,
+> = ValidationProblemProperties<Specifics, T, P> & TypirProblem & {
     $problem: 'ValidationProblem';
 }
 
@@ -34,21 +36,31 @@ export function isValidationProblem<Specifics extends TypirSpecifics, T extends 
 }
 
 export type ValidationProblemProperties<
-    Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
+    Specifics extends TypirSpecifics,
+    T extends Specifics['LanguageType'] = Specifics['LanguageType'],
+    P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined, // since 'languageProperty' is optional (see the ? below), undefined is the natural choice for the default here
 > = Specifics['ValidationMessageProperties'] & {
     // the following properties are provided always and cannot be customized:
+    /** The validation issue will be associated with / visualized at this language node. */
     languageNode: T;
-    languageProperty?: string; // name of a property of the language node; TODO make this type-safe!
-    languageIndex?: number; // index, if 'languageProperty' is an Array property
+    /** Name of a property of the language node to concretize, where to visualize the validation issue. This property requires `languageNode` to be specified. */
+    languageProperty?: P;
+    /** Index of the element to associate the validation issue with, if the specified `languageProperty` is an array property. */
+    languageIndex?: number;
 }
 
 /** Make some properties optional for convenience, since there are default values for them. */
 export type RelaxedValidationProblem<
-    Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']
-> = MakePropertyOptional<ValidationProblemProperties<Specifics, T>, 'languageNode'|'severity'|'message'>; // TODO If unknown properties are specified, no TypeScript compiler error is shown
+    Specifics extends TypirSpecifics,
+    T extends Specifics['LanguageType'] = Specifics['LanguageType'],
+    P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined,
+> = MakePropertyOptional<ValidationProblemProperties<Specifics, T, P>, 'languageNode'|'severity'|'message'>;
 
-export type ValidationProblemAcceptor<Specifics extends TypirSpecifics>
-    = <T extends Specifics['LanguageType'] = Specifics['LanguageType']>(problem: ValidationProblemProperties<Specifics, T>) => void;
+export type ValidationProblemAcceptor<Specifics extends TypirSpecifics> // this type describes a function with two generics and one input argument ("accept({ ... })")
+    = <
+        T extends Specifics['LanguageType'] = Specifics['LanguageType'],
+        P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined
+    >(problem: ValidationProblemProperties<Specifics, T, P>) => void;
 
 export type ValidationRule<Specifics extends TypirSpecifics, InputType extends Specifics['LanguageType'] = Specifics['LanguageType']> =
     | ValidationRuleFunctional<Specifics, InputType>
@@ -84,28 +96,60 @@ export interface AnnotatedTypeAfterValidation {
     userRepresentation: string;
     name: string;
 }
-export type ValidationMessageProvider<Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
+export type ValidationMessageProvider<
+    Specifics extends TypirSpecifics,
+    T extends Specifics['LanguageType'] = Specifics['LanguageType'],
+    P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined,
+> =
     // RelaxedValidationProblem enables to specificy only some of the mandatory properties; for the remaining ones, the service implementation provides values
-    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => RelaxedValidationProblem<Specifics, T>;
+    (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => RelaxedValidationProblem<Specifics, T, P>;
+    /* Hint: additional properties in a returned RelaxedValidationProblem object are not marked as errors by the TypeScript compiler, while they are marked, if the same object is used as argument for the ValidationProblemAcceptor.
+     * Source for this behaviour is, that the TSC checks objects for input parameters differently than objects for return parameters.
+     * Hint in the specification ("excess property checks"): https://www.typescriptlang.org/docs/handbook/2/objects.html#excess-property-checks
+     * The solution are "exact types", but they are still under discussion: https://github.com/microsoft/TypeScript/issues/12936
+     * => Nothing to do/fix at the moment, let's wait until "exact types" are supported in TypeScript.
+     * Another observation: It seems, that this problem also decreases the auto-completion proposals, e.g. for 'languageProperty'.
+     */
+
+
+/**
+ * Taken and adapted from 'ValidationChecks' from 'langium'.
+ *
+ * A utility type for associating language keys to corresponding validation rules. For example:
+ *
+ * ```typescript
+ *   addValidationRulesForLanguageNodes({
+ *      VariableDeclaration: (node, typir) => { return [...]; },
+ *      AnotherLanguageKey: (node, typir) => ...,
+ *      // ...
+ *   });
+ * ```
+ *
+ * If `Specifics['LanguageKeys']` contains no list of concrete language keys, any string values are possible as language keys here.
+ */
+export type ValidationRulesForLanguageKeys<Specifics extends TypirSpecifics> = {
+    [K in LanguageKey<Specifics>]?: ValidationRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>> | Array<ValidationRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>>>
+}
+
 
 export interface ValidationConstraints<Specifics extends TypirSpecifics> {
-    ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
+    ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined>(
         sourceNode: S | undefined, expected: Type | undefined | E,
         accept: ValidationProblemAcceptor<Specifics>,
-        message: ValidationMessageProvider<Specifics, T>): void;
-    ensureNodeIsEquals<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
+        message: ValidationMessageProvider<Specifics, T, P>): void;
+    ensureNodeIsEquals<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined>(
         sourceNode: S | undefined, expected: Type | undefined | E,
         accept: ValidationProblemAcceptor<Specifics>,
-        message: ValidationMessageProvider<Specifics, T>): void;
-    ensureNodeHasNotType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
+        message: ValidationMessageProvider<Specifics, T, P>): void;
+    ensureNodeHasNotType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined>(
         sourceNode: S | undefined, notExpected: Type | undefined | E,
         accept: ValidationProblemAcceptor<Specifics>,
-        message: ValidationMessageProvider<Specifics, T>): void;
+        message: ValidationMessageProvider<Specifics, T, P>): void;
 
-    ensureNodeRelatedWithType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
+    ensureNodeRelatedWithType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined>(
         languageNode: S | undefined, expected: Type | undefined | E, strategy: TypeCheckStrategy, negated: boolean,
         accept: ValidationProblemAcceptor<Specifics>,
-        message: ValidationMessageProvider<Specifics, T>): void;
+        message: ValidationMessageProvider<Specifics, T, P>): void;
 }
 
 export class DefaultValidationConstraints<Specifics extends TypirSpecifics> implements ValidationConstraints<Specifics> {
@@ -119,35 +163,40 @@ export class DefaultValidationConstraints<Specifics extends TypirSpecifics> impl
         this.printer = services.Printer;
     }
 
-    ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
-        sourceNode: S | undefined, expected: Type | undefined | E,
+    ensureNodeIsAssignable<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined>(
+        sourceNode: S | undefined,
+        expected: Type | undefined | E,
         accept: ValidationProblemAcceptor<Specifics>,
-        message: ValidationMessageProvider<Specifics, T>
+        message: ValidationMessageProvider<Specifics, T, P>
     ): void {
         this.ensureNodeRelatedWithType(sourceNode, expected, 'ASSIGNABLE_TYPE', false, accept, message);
     }
 
-    ensureNodeIsEquals<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
-        sourceNode: S | undefined, expected: Type | undefined | E,
+    ensureNodeIsEquals<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined>(
+        sourceNode: S | undefined,
+        expected: Type | undefined | E,
         accept: ValidationProblemAcceptor<Specifics>,
-        message: ValidationMessageProvider<Specifics, T>
+        message: ValidationMessageProvider<Specifics, T, P>
     ): void {
         this.ensureNodeRelatedWithType(sourceNode, expected, 'EQUAL_TYPE', false, accept, message);
     }
 
-    ensureNodeHasNotType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
-        sourceNode: S | undefined, notExpected: Type | undefined | E,
+    ensureNodeHasNotType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined>(
+        sourceNode: S | undefined,
+        notExpected: Type | undefined | E,
         accept: ValidationProblemAcceptor<Specifics>,
-        message: ValidationMessageProvider<Specifics, T>
+        message: ValidationMessageProvider<Specifics, T, P>
     ): void {
         this.ensureNodeRelatedWithType(sourceNode, notExpected, 'EQUAL_TYPE', true, accept, message);
     }
 
-    ensureNodeRelatedWithType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType']>(
-        languageNode: S | undefined, expected: Type | undefined | E,
-        strategy: TypeCheckStrategy, negated: boolean,
+    ensureNodeRelatedWithType<S extends Specifics['LanguageType'], E extends Specifics['LanguageType'], T extends Specifics['LanguageType'] = Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined = undefined>(
+        languageNode: S | undefined,
+        expected: Type | undefined | E,
+        strategy: TypeCheckStrategy,
+        negated: boolean,
         accept: ValidationProblemAcceptor<Specifics>,
-        message: ValidationMessageProvider<Specifics, T>
+        message: ValidationMessageProvider<Specifics, T, P>
     ): void {
         if (languageNode !== undefined && expected !== undefined) {
             const actualType = isType(languageNode) ? languageNode : this.inference.inferType(languageNode);
@@ -205,11 +254,11 @@ export class DefaultValidationConstraints<Specifics extends TypirSpecifics> impl
 
 
 export interface ValidationCollectorListener<Specifics extends TypirSpecifics> {
-    onAddedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions): void;
-    onRemovedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions): void;
+    onAddedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions<Specifics>): void;
+    onRemovedValidationRule(rule: ValidationRule<Specifics>, options: ValidationRuleOptions<Specifics>): void;
 }
 
-export interface ValidationRuleOptions extends RuleOptions {
+export interface ValidationRuleOptions<Specifics extends TypirSpecifics> extends RuleOptions<Specifics> {
     // no additional properties so far
 }
 
@@ -223,19 +272,21 @@ export interface ValidationCollector<Specifics extends TypirSpecifics> {
      * @param rule a new validation rule
      * @param options some more options to control the handling of the added validation rule
      */
-    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions>): void;
+    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions<Specifics>>): void;
     /**
      * Removes a validation rule.
      * @param rule the validation rule to remove
      * @param options the same options as given for the registration of the validation rule must be given for the removal!
      */
-    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions>): void;
+    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, options?: Partial<ValidationRuleOptions<Specifics>>): void;
+
+    addValidationRulesForLanguageNodes(rules: ValidationRulesForLanguageKeys<Specifics>): void;
 
     addListener(listener: ValidationCollectorListener<Specifics>): void;
     removeListener(listener: ValidationCollectorListener<Specifics>): void;
 }
 
-export class DefaultValidationCollector<Specifics extends TypirSpecifics> implements ValidationCollector<Specifics>, RuleCollectorListener<ValidationRule<Specifics>> {
+export class DefaultValidationCollector<Specifics extends TypirSpecifics> implements ValidationCollector<Specifics>, RuleCollectorListener<Specifics, ValidationRule<Specifics>> {
     protected readonly services: TypirServices<Specifics>;
     protected readonly listeners: Array<ValidationCollectorListener<Specifics>> = [];
 
@@ -253,8 +304,8 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
     }
 
     protected createAcceptor(problems: Array<ValidationProblem<Specifics>>): ValidationProblemAcceptor<Specifics> {
-        return <T extends Specifics['LanguageType']>(problem: ValidationProblemProperties<Specifics, T>) => {
-            problems.push({
+        return <T extends Specifics['LanguageType'], P extends PropertiesOfLanguageType<Specifics, T> | undefined>(problem: ValidationProblemProperties<Specifics, T, P>) => {
+            problems.push(<ValidationProblem<Specifics>>{
                 ...problem,
                 $problem: ValidationProblem, // add the missing $property-property
             });
@@ -272,7 +323,7 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
 
     validate(languageNode: Specifics['LanguageType']): Array<ValidationProblem<Specifics>> {
         // determine all keys to check
-        const keysToApply: Array<string|undefined> = [];
+        const keysToApply: Array<LanguageKey<Specifics> | undefined> = [];
         const languageKey = this.services.Language.getLanguageNodeKey(languageNode);
         if (languageKey === undefined) {
             keysToApply.push(undefined);
@@ -319,7 +370,7 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
         return problems;
     }
 
-    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
+    addValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions<Specifics>>): void {
         if (typeof rule === 'function') {
             this.ruleRegistryFunctional.addRule(rule as ValidationRuleFunctional<Specifics>, givenOptions);
         } else {
@@ -327,11 +378,25 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
         }
     }
 
-    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions>): void {
+    removeValidationRule<InputType extends Specifics['LanguageType'] = Specifics['LanguageType']>(rule: ValidationRule<Specifics, InputType>, givenOptions?: Partial<ValidationRuleOptions<Specifics>>): void {
         if (typeof rule === 'function') {
             this.ruleRegistryFunctional.removeRule(rule as ValidationRuleFunctional<Specifics>, givenOptions);
         } else {
             this.ruleRegistryLifecycle.removeRule(rule as ValidationRuleLifecycle<Specifics>, givenOptions);
+        }
+    }
+
+    addValidationRulesForLanguageNodes(rules: ValidationRulesForLanguageKeys<Specifics>): void {
+        // map this approach for registering validation rules to the key-value approach above
+        for (const [languageKey, validationRules] of Object.entries(rules)) {
+            const callbacks = validationRules as ValidationRule<Specifics> | Array<ValidationRule<Specifics>>;
+            if (Array.isArray(callbacks)) {
+                for (const callback of callbacks) {
+                    this.addValidationRule(callback, { languageKey });
+                }
+            } else {
+                this.addValidationRule(callbacks, { languageKey });
+            }
         }
     }
 
@@ -342,11 +407,11 @@ export class DefaultValidationCollector<Specifics extends TypirSpecifics> implem
         removeFromArray(listener, this.listeners);
     }
 
-    onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
+    onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // listeners of the composite will be notified about all added inner rules
         this.listeners.forEach(listener => listener.onAddedValidationRule(rule, diffOptions));
     }
-    onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
+    onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // listeners of the composite will be notified about all removed inner rules
         this.listeners.forEach(listener => listener.onRemovedValidationRule(rule, diffOptions));
     }
@@ -374,7 +439,7 @@ export class CompositeValidationRule<Specifics extends TypirSpecifics> extends D
         this.validateAfter(languageRoot).forEach(v => accept(v));
     }
 
-    override onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
+    override onAddedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // an inner rule was added
         super.onAddedRule(rule, diffOptions);
 
@@ -385,7 +450,7 @@ export class CompositeValidationRule<Specifics extends TypirSpecifics> extends D
         });
     }
 
-    override onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions): void {
+    override onRemovedRule(rule: ValidationRule<Specifics>, diffOptions: RuleOptions<Specifics>): void {
         // an inner rule was removed
         super.onRemovedRule(rule, diffOptions);
 

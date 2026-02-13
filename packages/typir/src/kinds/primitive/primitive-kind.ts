@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeDetails } from '../../graph/type-node.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
 import { Kind, KindOptions } from '../kind.js';
@@ -31,7 +31,10 @@ export interface PrimitiveFactoryService<Specifics extends TypirSpecifics> {
 }
 
 export interface PrimitiveConfigurationChain<Specifics extends TypirSpecifics> {
-    inferenceRule<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<PrimitiveType, Specifics, T>): PrimitiveConfigurationChain<Specifics>;
+    inferenceRule<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<PrimitiveType, Specifics, LanguageKey, LanguageType>): PrimitiveConfigurationChain<Specifics>;
     finish(): PrimitiveType;
 }
 
@@ -90,7 +93,10 @@ class PrimitiveConfigurationChainImpl<Specifics extends TypirSpecifics> implemen
         };
     }
 
-    inferenceRule<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<PrimitiveType, Specifics, T>): PrimitiveConfigurationChain<Specifics> {
+    inferenceRule<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<PrimitiveType, Specifics, LanguageKey, LanguageType>): PrimitiveConfigurationChain<Specifics> {
         this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<PrimitiveType, Specifics>);
         return this;
     }

@@ -10,10 +10,23 @@ Additionally, inference rules need to be added in order to describe, which langu
 
 TODO
 
+- create types
+- establish relationships between types, e.g. conversion rules
+- add inference rules
+- (once vs for each user-defined type)
+
 
 ## Validation
 
-TODO
+The most obvious use case for type systems is to support type-related validations, e.g. to check in programming language-like languages,
+that the initial value of a variable fits to its declared type or that only boolean-expressions are used as condition in if-statements.
+
+Since such constraints usually always hold, corresponding validation checks are added once during the set-up of Typir.
+For each validation check, a validation rule is created and registered in the `typir.validation.Collector` service.
+After that, language nodes can be validated by the same service.
+The result is a list of the found validation issues, which could be presented to the users of the language.
+
+Read the documentation about [validations](./services/validation.md) to learn the technical details about validations.
 
 
 ## Linking
@@ -28,7 +41,9 @@ which get an AST consisting of language nodes as input and produce some output.
 Often the assumption for language processing is,
 that the AST is correctly linked and no (critical) validation issues are existing (see the two use cases before).
 
+
 TODO type inference with the [type inference service](./services/inference.md)
+
 
 If you transpile or compile programming language-like languages,
 implicit and explicit conversions of values to variables or parameters often need to be handled.

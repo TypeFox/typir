@@ -9,7 +9,7 @@ import { Type, TypeStateListener } from '../../graph/type-node.js';
 import { TypeInitializer } from '../../initialization/type-initializer.js';
 import { MarkSubTypeOptions } from '../../services/subtype.js';
 import { TypirSpecifics } from '../../typir.js';
-import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, optionsBoundToType, skipInferenceRuleForExistingType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
+import { bindInferCurrentTypeRule, bindValidateCurrentTypeRule, InferenceRuleWithOptions, inferenceOptionsBoundToType, skipInferenceRuleForExistingType, ValidationRuleWithOptions } from '../../utils/utils-definitions.js';
 import { assertTrue, assertTypirType } from '../../utils/utils.js';
 import { CustomTypeProperties } from './custom-definitions.js';
 import { CreateCustomTypeDetails, CustomKind } from './custom-kind.js';
@@ -111,7 +111,7 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Spec
         }
     }
 
-    onAddedType(newOtherType: Type, _key: string): void {
+    onAddedType(newOtherType: Type, _identifier: string): void {
         const newCustomType = this.getTypeFinal() ?? this.getTypeInitial();
         if (newOtherType !== newCustomType) { // don't relate the new custom type to itself
             const options = this.kind.options;
@@ -156,13 +156,13 @@ export class CustomTypeInitializer<Properties extends CustomTypeProperties, Spec
     }
 
     protected registerRules(customType: CustomType<Properties, Specifics> | undefined): void {
-        this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, optionsBoundToType(rule.options, customType)));
-        this.validationRules.forEach(rule => this.services.validation.Collector.addValidationRule(rule.rule, optionsBoundToType(rule.options, customType)));
+        this.inferenceRules.forEach(rule => this.services.Inference.addInferenceRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, customType)));
+        this.validationRules.forEach(rule => this.services.validation.Collector.addValidationRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, customType)));
     }
 
     protected deregisterRules(customType: CustomType<Properties, Specifics> | undefined): void {
-        this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule.rule, optionsBoundToType(rule.options, customType)));
-        this.validationRules.forEach(rule => this.services.validation.Collector.removeValidationRule(rule.rule, optionsBoundToType(rule.options, customType)));
+        this.inferenceRules.forEach(rule => this.services.Inference.removeInferenceRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, customType)));
+        this.validationRules.forEach(rule => this.services.validation.Collector.removeValidationRule(rule.rule, inferenceOptionsBoundToType<Specifics>(rule.options, customType)));
     }
 
 }
