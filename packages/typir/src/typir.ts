@@ -179,8 +179,12 @@ export interface TypirSpecifics {
     /** This is the TypeScript super-class of all language nodes in the AST */
     LanguageType: unknown;
 
-    /** The set of available language keys:
-     * Each language key maps to the TypeScript type (which extends 'LanguageType') of corresponding language nodes with this language key. */
+    /**
+     * The set of available language keys:
+     * Each language key maps to the TypeScript type (which has to extend 'LanguageType') of corresponding language nodes with this language key.
+     * If no list of concrete language keys is provided during adoption, all string values are possible as language keys.
+     * Even without list of concrete language keys here, adopters should override this property with `Record<string, ABC>`, if the `LanguageType` is set to `ABC`.
+     */
     LanguageKeys: Record<string, unknown>;
 
     /** Properties for validation issues (predefined and custom ones) */
@@ -212,7 +216,7 @@ export type LanguageTypeOfLanguageKey<
     // no key => use the base language type
     Keys extends undefined ? Specifics['LanguageType'] :
     // single key => use the specified language type from the "list type"
-    Keys extends keyof Specifics['LanguageKeys'] ? Specifics['LanguageKeys'][Keys] :
+    Keys extends LanguageKey<Specifics> ? Specifics['LanguageKeys'][Keys] :
     // multiple keys => calculate the union of language types
     Keys extends Array<infer GivenKeys> ? (GivenKeys extends LanguageKey<Specifics> ? Specifics['LanguageKeys'][GivenKeys] : never) :
     never
