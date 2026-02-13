@@ -82,7 +82,7 @@ export class OxTypeSystem implements LangiumTypeSystemDefinition<OxSpecifics> {
          */
 
         // additional inference rules ...
-        typir.Inference.addInferenceRulesForAstNodes({
+        typir.Inference.addInferenceRulesForLanguageNodes({
             // ... for member calls (which are used in expressions)
             MemberCall: (languageNode) => {
                 const ref = languageNode.element.ref;
