@@ -183,9 +183,14 @@ export interface TypirSpecifics {
      * The set of available language keys:
      * Each language key maps to the TypeScript type (which has to extend 'LanguageType') of corresponding language nodes with this language key.
      * If no list of concrete language keys is provided during adoption, all string values are possible as language keys.
-     * Even without list of concrete language keys here, adopters should override this property with `Record<string, ABC>`, if the `LanguageType` is set to `ABC`.
+     * Even without list of concrete language keys here,
+     * adopters should override this property with `Record<string, ABC>`, if the `LanguageType` is set to `ABC`.
      */
     LanguageKeys: Record<string, unknown>;
+    /** Inference rules might be registered for the usual `LanguageKeys` and for even some more language keys as defined here. */
+    AdditionalLanguageKeysForInference: Record<string, unknown>;
+    /** Validation rules might be registered for the usual `LanguageKeys` and for even some more language keys as defined here. */
+    AdditionalLanguageKeysForValidation: Record<string, unknown>;
 
     /** Properties for validation issues (predefined and custom ones) */
     ValidationMessageProperties: ValidationMessageProperties;
@@ -194,8 +199,10 @@ export interface TypirSpecifics {
      * Contains properties of language nodes, which shall be omitted for validation issues,
      * i.e. these properties are not possible to attach validation markers to.
      *
-     * The types given here are usable as (object) keys in general and therefore enable concrete, inheriting `TypirSpecifics` to specify more concrete keys.
-     * The types given here don't skip any keys by default, since (for example) the general "string" is not assignable to concrete keys like "property1" or "value2"
+     * The types given here are usable as (object) keys in general and therefore enable concrete,
+     * inheriting `TypirSpecifics` to specify more concrete keys.
+     * The types given here don't skip any keys by default,
+     * since (for example) the general "string" is not assignable to concrete keys like "property1" or "value2"
      * (according to the semantics of the used `Extract<>` below).
      */
     OmittedLanguageNodeProperties: string | number | symbol;
@@ -204,21 +211,29 @@ export interface TypirSpecifics {
 
 /** This type describes a single language key as defined in the given TypirSpecifics, or just `string`, if the keys are not specified. */
 export type LanguageKey<Specifics extends TypirSpecifics> = keyof Specifics['LanguageKeys'];
+export type LanguageKeyForInference<Specifics extends TypirSpecifics> = keyof Specifics['LanguageKeys'] | keyof Specifics['AdditionalLanguageKeysForInference'];
+export type LanguageKeyForValidation<Specifics extends TypirSpecifics> = keyof Specifics['LanguageKeys'] | keyof Specifics['AdditionalLanguageKeysForValidation'];
+export type LanguageKeyAll<Specifics extends TypirSpecifics> = keyof Specifics['LanguageKeys'] | keyof Specifics['AdditionalLanguageKeysForInference'] | keyof Specifics['AdditionalLanguageKeysForValidation'];
 
 /** This type allows to specify an arbitrary number of (maybe typed) language keys. */
 export type LanguageKeys<Specifics extends TypirSpecifics> = LanguageKey<Specifics> | Array<LanguageKey<Specifics>> | undefined;
+export type LanguageKeysForInference<Specifics extends TypirSpecifics> = LanguageKeyForInference<Specifics> | Array<LanguageKeyForInference<Specifics>> | undefined;
+export type LanguageKeysForValidation<Specifics extends TypirSpecifics> = LanguageKeyForValidation<Specifics> | Array<LanguageKeyForValidation<Specifics>> | undefined;
+export type LanguageKeysAll<Specifics extends TypirSpecifics> = LanguageKeyAll<Specifics> | Array<LanguageKeyAll<Specifics>> | undefined;
 
 /** Given some language keys, this type provides the TypeScript types of the corresponding language nodes. */
 export type LanguageTypeOfLanguageKey<
     Specifics extends TypirSpecifics,
-    Keys extends LanguageKeys<Specifics>
+    Keys extends LanguageKeysAll<Specifics>
 > =
     // no key => use the base language type
     Keys extends undefined ? Specifics['LanguageType'] :
     // single key => use the specified language type from the "list type"
     Keys extends LanguageKey<Specifics> ? Specifics['LanguageKeys'][Keys] :
+    Keys extends LanguageKeyForInference<Specifics> ? Specifics['AdditionalLanguageKeysForInference'][Keys] :
+    Keys extends LanguageKeyForValidation<Specifics> ? Specifics['AdditionalLanguageKeysForValidation'][Keys] :
     // multiple keys => calculate the union of language types
-    Keys extends Array<infer GivenKeys> ? (GivenKeys extends LanguageKey<Specifics> ? Specifics['LanguageKeys'][GivenKeys] : never) :
+    Keys extends Array<infer GivenKeys> ? (GivenKeys extends LanguageKeyAll<Specifics> ? LanguageTypeOfLanguageKey<Specifics, GivenKeys> : never) :
     never
 ;
 

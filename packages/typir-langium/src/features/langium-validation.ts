@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { LangiumDefaultCoreServices, Properties, ValidationAcceptor, ValidationChecks } from 'langium';
-import { DefaultValidationCollector, TypirServices, ValidationCollector, ValidationProblem, ValidationRule, ValidationRulesForLanguageKeys } from 'typir';
+import { DefaultValidationCollector, TypirServices, ValidationProblem, ValidationRule, ValidationRulesForLanguageKeys } from 'typir';
 import { TypirLangiumServices, TypirLangiumSpecifics } from '../typir-langium.js';
 
 export function registerTypirValidationChecks<Specifics extends TypirLangiumSpecifics>(langiumServices: LangiumDefaultCoreServices, typirServices: TypirLangiumServices<Specifics>) {
@@ -96,35 +96,9 @@ export class DefaultLangiumTypirValidator<Specifics extends TypirLangiumSpecific
 }
 
 
-/**
- * Taken and adapted from 'ValidationChecks' from 'langium'.
- *
- * A utility type for associating non-primitive AST types to corresponding validation rules. For example:
- *
- * ```typescript
- *   addValidationRulesForLanguageNodes({
- *      VariableDeclaration: (node, typir) => { return [...]; },
- *      Another$typeName: (node, typir) => ...,
- *      // ...
- *      AstNode: (node, typir) => ..., // executed for all AstNodes
- *   });
- * ```
- *
- * In contrast to Typir (core), Typir-Langium enables to register validation rules to `AstNode` as well.
- */
-export type LangiumValidationRules<Specifics extends TypirLangiumSpecifics> = ValidationRulesForLanguageKeys<Specifics> & {
-    // TODO nodes inside ValidationRules are typed by the TypeScript compiler as `any` not as `AstNode`
-    AstNode?: ValidationRule<Specifics, Specifics['LanguageType']> | Array<ValidationRule<Specifics, Specifics['LanguageType']>>;
-}
+export class DefaultLangiumValidationCollector<Specifics extends TypirLangiumSpecifics> extends DefaultValidationCollector<Specifics> {
 
-
-export interface LangiumValidationCollector<Specifics extends TypirLangiumSpecifics> extends ValidationCollector<Specifics> {
-    addValidationRulesForLanguageNodes(rules: LangiumValidationRules<Specifics>): void;
-}
-
-export class DefaultLangiumValidationCollector<Specifics extends TypirLangiumSpecifics> extends DefaultValidationCollector<Specifics> implements LangiumValidationCollector<Specifics> {
-
-    override addValidationRulesForLanguageNodes(rules: LangiumValidationRules<Specifics>): void {
+    override addValidationRulesForLanguageNodes(rules: ValidationRulesForLanguageKeys<Specifics>): void {
         // map this approach for registering validation rules to the key-value approach from core Typir
         for (const [$type, validationRules] of Object.entries(rules)) {
             const languageKey = $type === 'AstNode' ? undefined : $type; // using 'AstNode' as key is equivalent to specifying no key: the rule is applied to all AstNodes

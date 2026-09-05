@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { Type, isType } from '../graph/type-node.js';
-import { LanguageKey, LanguageTypeOfLanguageKey, PropertiesOfLanguageType, TypirServices, TypirSpecifics } from '../typir.js';
+import { LanguageKey, LanguageKeyForValidation, LanguageKeysForValidation, LanguageTypeOfLanguageKey, PropertiesOfLanguageType, TypirServices, TypirSpecifics } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { TypirProblem, isSpecificTypirProblem } from '../utils/utils-definitions.js';
 import { TypeCheckStrategy, createTypeCheckStrategy } from '../utils/utils-type-comparison.js';
@@ -103,7 +103,8 @@ export type ValidationMessageProvider<
 > =
     // RelaxedValidationProblem enables to specificy only some of the mandatory properties; for the remaining ones, the service implementation provides values
     (actual: AnnotatedTypeAfterValidation, expected: AnnotatedTypeAfterValidation) => RelaxedValidationProblem<Specifics, T, P>;
-    /* Hint: additional properties in a returned RelaxedValidationProblem object are not marked as errors by the TypeScript compiler, while they are marked, if the same object is used as argument for the ValidationProblemAcceptor.
+    /* Hint: additional properties in a returned RelaxedValidationProblem object are not marked as errors by the TypeScript compiler,
+     * while they are marked, if the same object is used as argument for the ValidationProblemAcceptor.
      * Source for this behaviour is, that the TSC checks objects for input parameters differently than objects for return parameters.
      * Hint in the specification ("excess property checks"): https://www.typescriptlang.org/docs/handbook/2/objects.html#excess-property-checks
      * The solution are "exact types", but they are still under discussion: https://github.com/microsoft/TypeScript/issues/12936
@@ -128,7 +129,7 @@ export type ValidationMessageProvider<
  * If `Specifics['LanguageKeys']` contains no list of concrete language keys, any string values are possible as language keys here.
  */
 export type ValidationRulesForLanguageKeys<Specifics extends TypirSpecifics> = {
-    [K in LanguageKey<Specifics>]?: ValidationRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>> | Array<ValidationRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>>>
+    [K in LanguageKeyForValidation<Specifics>]?: ValidationRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>> | Array<ValidationRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>>>
 }
 
 
@@ -259,7 +260,8 @@ export interface ValidationCollectorListener<Specifics extends TypirSpecifics> {
 }
 
 export interface ValidationRuleOptions<Specifics extends TypirSpecifics> extends RuleOptions<Specifics> {
-    // no additional properties so far
+    // concretizes the inherited property in order to support the additional language keys for validation:
+    languageKey: LanguageKeysForValidation<Specifics>;
 }
 
 export interface ValidationCollector<Specifics extends TypirSpecifics> {

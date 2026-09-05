@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { isType, Type } from '../graph/type-node.js';
-import { LanguageKey, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../typir.js';
+import { LanguageKey, LanguageKeyForInference, LanguageKeysForInference, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../typir.js';
 import { RuleCollectorListener, RuleOptions, RuleRegistry } from '../utils/rule-registration.js';
 import { isSpecificTypirProblem, TypirProblem } from '../utils/utils-definitions.js';
 import { assertUnreachable, removeFromArray, toArray } from '../utils/utils.js';
@@ -96,7 +96,7 @@ export interface TypeInferenceRuleWithInferringChildren<
 
 
 export type InferenceRulesForLanguageKeys<Specifics extends TypirSpecifics> = {
-    [K in LanguageKey<Specifics>]?: TypeInferenceRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>> | Array<TypeInferenceRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>>>
+    [K in LanguageKeyForInference<Specifics>]?: TypeInferenceRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>> | Array<TypeInferenceRule<Specifics, LanguageTypeOfLanguageKey<Specifics, K>>>
 }
 
 
@@ -106,7 +106,8 @@ export interface TypeInferenceCollectorListener<Specifics extends TypirSpecifics
 }
 
 export interface TypeInferenceRuleOptions<Specifics extends TypirSpecifics> extends RuleOptions<Specifics> {
-    // no additional properties so far
+    // concretizes the inherited property in order to support the additional language keys for type inference:
+    languageKey: LanguageKeysForInference<Specifics>;
 }
 
 /**

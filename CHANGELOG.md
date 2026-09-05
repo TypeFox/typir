@@ -6,7 +6,7 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 
 
-## v0.4.0 (2025-??-??)
+## v0.4.0 (2026-??-??)
 
 [Linked issues and PRs for v0.4.0](https://github.com/TypeFox/typir/milestone/5)
 
@@ -21,6 +21,8 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
   - Introduced `TypirSpecifics['OmittedLanguageNodeProperties']` to omit some of the existing properties of language nodes.
 - Introduced `typir.validation.Collector.addValidationRulesForLanguageNodes()` to register multiple validation rules for language keys at once with improved TypeScript safety (#93).
 - Introduced `typir.Inference.addInferenceRulesForLanguageNodes()` to register multiple inference rules for language keys at once with improved TypeScript safety (#93).
+- Introduced `TypirSpecifics['AdditionalLanguageKeysForInference']` and `TypirSpecifics['AdditionalLanguageKeysForValidation']` to enable some more possible language keys (and language types) for inference/validation rules. They are empty by default. Usually, they are used for bindings of Typir, not for usual applications (#93).
+- Typir-Langium: It is possible now to register validation rules and inference rules for any `AstNode` everywhere; just use `AstNode` as language key (#93).
 
 ### Breaking changes
 
