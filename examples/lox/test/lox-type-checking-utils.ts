@@ -29,11 +29,13 @@ export async function validateLox(lox: string, errors: number | string | string[
     const diagnostics: Diagnostic[] = await loxServices.validation.DocumentValidator.validateDocument(document);
 
     // errors
-    const diagnosticsErrors: string[] = diagnostics.filter(d => d.severity === DiagnosticSeverity.Error).map(d => d.message);
+    const diagnosticsErrors: string[] = diagnostics.filter(d => d.severity === DiagnosticSeverity.Error)
+        .map(d => typeof d.message === 'string' ? d.message : d.message.value);
     checkIssues(diagnosticsErrors, errors);
 
     // warnings
-    const diagnosticsWarnings: string[] = diagnostics.filter(d => d.severity === DiagnosticSeverity.Warning).map(d => d.message);
+    const diagnosticsWarnings: string[] = diagnostics.filter(d => d.severity === DiagnosticSeverity.Warning)
+        .map(d => typeof d.message === 'string' ? d.message : d.message.value);
     checkIssues(diagnosticsWarnings, warnings);
 
     return document;

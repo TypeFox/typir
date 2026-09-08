@@ -23,7 +23,8 @@ afterEach(async () => {
 
 export async function validateOx(ox: string, errors: number | string | string[]) {
     const document = await parseDocument(oxServices, ox.trim());
-    const diagnostics: string[] = (await oxServices.validation.DocumentValidator.validateDocument(document)).map(d => d.message);
+    const diagnostics: string[] = (await oxServices.validation.DocumentValidator.validateDocument(document))
+        .map(d => typeof d.message === 'string' ? d.message : d.message.value);
     const msgError = diagnostics.join('\n');
     if (typeof errors === 'number') {
         expect(diagnostics, msgError).toHaveLength(errors);
