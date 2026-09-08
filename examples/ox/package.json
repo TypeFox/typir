@@ -32,7 +32,7 @@
     },
     "devDependencies": {
         "@types/vscode": "~1.94.0",
-        "langium-cli": "~4.2.0"
+        "langium-cli": "~4.2.1"
     },
     "files": [
         "bin",
