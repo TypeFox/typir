@@ -23,7 +23,6 @@ jobs:
         uses: jdx/mise-action@v4
         with:
           version: v2026.8.16
-          install: true
       - name: Build API docs
         run: |
           npm ci

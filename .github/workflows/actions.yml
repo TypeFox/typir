@@ -24,7 +24,6 @@ jobs:
       uses: jdx/mise-action@v4
       with:
         version: v2026.8.16
-        install: true
 
     - name: Install
       shell: bash
