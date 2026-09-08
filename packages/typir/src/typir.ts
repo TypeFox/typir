@@ -199,8 +199,8 @@ export interface TypirSpecifics {
      * Contains properties of language nodes, which shall be omitted for validation issues,
      * i.e. these properties are not possible to attach validation markers to.
      *
-     * The types given here are usable as (object) keys in general and therefore enable concrete,
-     * inheriting `TypirSpecifics` to specify more concrete keys.
+     * The types given here are usable as (object) keys in general
+     * and therefore enable to specify concrete keys in bindings for Typir or applications of Typir.
      * The types given here don't skip any keys by default,
      * since (for example) the general "string" is not assignable to concrete keys like "property1" or "value2"
      * (according to the semantics of the used `Extract<>` below).
