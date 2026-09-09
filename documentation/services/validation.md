@@ -25,9 +25,30 @@ The `ValidationCollector` is the central place for managing the validation.
 Validation rules are registered at and collected by the validation collector with `typir.validation.Collector.addValidationRule(rule, { ... })`.
 Some options might be given in the options object as second argument:
 
-- `boundToType`: If the given type is removed from the type system, this rule will be automatically removed as well.
+- `boundToType`: If the given type is removed from the type system, this rule will be automatically removed as well. As an example, you could bind validations for user-defined `interfaceType`s to them:
+  ```typescript
+  typir.validation.Collector.addValidationRule(
+    (node, accept) => {
+      if (isVariableDeclaration(node)) {
+        // ... check that the `interfaceType` is used only at valid locations ...
+      }
+    },
+    { boundToType: interfaceType }
+  );
+  ```
 - `languageKey`: By default, all validation rules are performed for all language nodes.
-  In order to improve performance, validation rules with a given language key are executed only for language nodes with this language key.
+  In order to improve performance, validation rules with a given language key are executed only for language nodes with this language key. Additionally, it could reduce TypeScript-type assertions as in this example:
+  ```typescript
+  typir.validation.Collector.addValidationRule(
+    (node: InterfaceNode, accept) => {
+      // ... directly check the interface `node` ...
+      if (node.extends.includes(node)) {
+        accept('error', 'No cycles of extended interfaces', { node: node, property: 'extends' });
+      }
+    },
+    { languageKey: 'InterfaceNode' }
+  );
+  ```
 
 To register multiple validation rules for language nodes with language keys at once, use this alternative,
 which provides more TypeScript-safety and requires less manual TypeScript-type checking (if `Specifics['LanguageKeys']` is specified):
@@ -73,7 +94,8 @@ The following properties are supported by default by Typir (core):
 * A `languageProperty` can be specified only, if the `languageNode` is specified, and marks a property as more fine-grained source of the issue.
 * The `languageIndex` makes only sense, if the `languageProperty` is specified, and gives even more details for the source of the issue.
 
-The available properties can be customized via `TypirSpecifics['ValidationMessageProperties']`, which is useful for supporting new language workbenches.
+The available properties can be customized via `TypirSpecifics['ValidationMessageProperties']`, which is useful for supporting new language workbenches
+([packages/typir-langium/src/typir-langium.ts](../../packages/typir-langium/src/typir-langium.ts) contains an example).
 Don't forget to store or apply the values for the customized properties,
 which requires some more customizations when postprocessing the validtion issues returned by Typir.
 As an example, Typir-Langium provides some properties for validation issues, which are specific for Langium.
@@ -84,12 +106,12 @@ To simplify the checking and creating of validation issues,
 the `ValidationConstraints` service available via `typir.validation.Constraints` provides some constraints as short-cuts for recurring validation checks,
 which can be used inside validation rules.
 
-As an example, if you have a `node` which represents a `VariableDeclaration`, you could validate, whether the given initial `value` is assignable to the declared `type` of the variable in this way:
+As an example, if you have a `node` which represents a `VariableDeclaration`, you could validate, whether the given initial `value` is assignable to the declared `variableType` of the variable in this way:
 
 ```typescript
 typir.validation.Constraints.ensureNodeIsAssignable(
   node.value, // the initial value, its Typir type is inferred internally
-  node.type, // the declared (language) type, the corresponding Typir type is inferred internally
+  node.variableType, // the declared (language) type, the corresponding Typir type is inferred internally
   accept, // the validation acceptor
   (actual, expected) => ({ // callback to create a meaningful validation issue, if the value does not fit to the type
     message: `The initial value of type '${actual.name}' is not assignable to '${node.name}' of type '${expected.name}'.`,

@@ -82,6 +82,9 @@ The available language keys could be restricted by customizing the specifics of 
 export type MyAstTypes = {
     LanguageKey1: LanguageType1;
     LanguageKey2: LanguageType2;
+    // e.g.:
+    Variable: VariableDeclaration;
+    Class: Class;
     // ...
 }
 
