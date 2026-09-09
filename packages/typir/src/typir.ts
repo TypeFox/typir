@@ -31,14 +31,14 @@ import { DeepPartial } from './utils/utils.js';
 
 /**
  * Some design decisions for Typir:
- * - We don't use a graph library like graphology to realize the type graph in order to be more flexible and to reduce external dependencies.
+ * - We don't use a graph library like graphology to implement the type graph in order to be more flexible and to reduce external dependencies.
  * - Where should inference rules be stored? Inference rules are stored in the central service, optionally bound to types in order to simplify removal of deleted types.
  *   Inference rules are not linked to kinds (at least for now), since different types (of the same kind) might have different inference rules.
  * - No NameProvider for the name of types, since the name depends on the type of the kind => change the implementation of the kind.
  * - The type 'void' has a primitive kind (no dedicated kind for now).
  * - Once created/initialized, types are constant, e.g. no additional fields can be added to classes (but their types might be resolved a bit later).
  * - It is possible to use two different Typir instances side-by-side within the same application in general,
- *   since the services are not realized by global functions, but by methods of classes which implement service interfaces.
+ *   since the services are not implemented by global functions, but by methods of classes which implement service interfaces.
  */
 
 export type TypirServices<Specifics extends TypirSpecifics> = {

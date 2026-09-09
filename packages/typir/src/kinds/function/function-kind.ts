@@ -153,7 +153,7 @@ export interface FunctionConfigurationChain<Specifics extends TypirSpecifics> {
  * TODO possible Extensions:
  * - multiple output parameters
  * - create variants of this, e.g. functions, procedures, lambdas
- * - (structural vs nominal typing? somehow realized by the three options above ...)
+ * - (structural vs nominal typing? somehow specified by the three options above ...)
  * - optional parameters
  * - parameters which are used for output AND input
  */

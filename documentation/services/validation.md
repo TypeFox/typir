@@ -7,7 +7,7 @@ Typir provides some services and concepts, to create validation checks, which ch
 ### Validation rules
 
 Validation rules are single checks, which are executed on a given language node and result in an arbitrary number of validation issues.
-Simple validation rules are realized as TypeScript functions:
+Simple validation rules are implemented as TypeScript functions:
 
 ```typescript
 type ValidationRuleFunctional = (languageNode: LanguageType, accept: ValidationProblemAcceptor, typir: TypirServices) => void;
@@ -17,7 +17,7 @@ The given `languageNode` is the starting point for doing some type-related check
 Found validation issues are not returned, but reported to the `ValidationProblemAcceptor` by calling it with `accept({ ... })`.
 The properties to specify in the given object are described in the next section.
 
-To realize more advanced checks in more performant way, there is also `ValidationRuleLifecycle`.
+To implement more advanced checks in more performant way, there is also `ValidationRuleLifecycle`.
 
 ### Validation collector
 

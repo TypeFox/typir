@@ -41,7 +41,7 @@ Each type system, i.e. each instance of the `TypirServices`, has one type graph,
 ## Language
 
 Usually, type systems are created to do some type checking on textual languages, including domain-specific languages (DSLs) and general-purpose programming languages. Programs respective text conforming to these languages are parsed and provided as abstract syntax trees (ASTs) in-memory.
-ASTs usually consist of a tree of nodes (realized as JavaScript objects at runtime), which represent a small part of the program/text after parsing.
+ASTs usually consist of a tree of nodes (implemented as JavaScript objects at runtime), which represent a small part of the program/text after parsing.
 During linking, cross-references between the nodes of the tree are established, i.e. the tree becomes a graph.
 Type checking is done on these ASTs.
 

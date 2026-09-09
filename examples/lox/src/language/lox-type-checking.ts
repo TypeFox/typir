@@ -81,7 +81,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> 
             typir.factory.Operators.createBinary({ name: operator, signature: { left: typeBool, right: typeBool, return: typeBool }}).inferenceRule(binaryInferenceRule).finish();
         }
 
-        // ==, != for all data types (the warning for different types is realized below)
+        // ==, != for all data types (the warning for different types is implemented below)
         for (const operator of ['==', '!=']) {
             typir.factory.Operators.createBinary({ name: operator, signature: { left: typeAny, right: typeAny, return: typeBool }})
                 .inferenceRule({
@@ -99,7 +99,7 @@ export class LoxTypeSystem implements LangiumTypeSystemDefinition<LoxSpecifics> 
                 })
                 .finish();
         }
-        // = for SuperType = SubType (Note that this implementation of LOX realized assignments as operators!)
+        // = for SuperType = SubType (Note that this implementation of LOX implemented assignments as operators!)
         typir.factory.Operators.createBinary({ name: '=', signature: { left: typeAny, right: typeAny, return: typeAny }})
             .inferenceRule({
                 ...binaryInferenceRule,

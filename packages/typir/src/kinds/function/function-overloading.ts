@@ -54,7 +54,7 @@ export class AvailableFunctionsManager<Specifics extends TypirSpecifics> impleme
      * - The types could be collected with the TypeGraphListener, but the additional information like inference rules are not available.
      *   Therefore this map needs to be maintained here.
      * - Main purpose is to support inference and validation for overloaded functions:
-     *   Since overloaded functions are realized with one function type for each variant,
+     *   Since overloaded functions are designed with one function type for each variant,
      *   the corresponding rules and logic need to involve multiple types,
      *   which makes it more complex and requires to manage them here and not in the single types.
      */

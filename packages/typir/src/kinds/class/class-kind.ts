@@ -112,7 +112,7 @@ export interface ClassConfigurationChain<Specifics extends TypirSpecifics> {
 
 /**
  * Classes have a name and have an arbitrary number of fields, consisting of a name and a type, and an arbitrary number of super-classes.
- * Fields have exactly one type and no multiplicity (which can be realized with a type of kind 'MultiplicityKind').
+ * Fields have exactly one type and no multiplicity (which can be specified with a type of kind 'MultiplicityKind').
  * Fields have exactly one name which must be unique for the current class (TODO what about same field names in extended class?).
  * The field name is used to identify fields of classes.
  * The order of fields is not defined, i.e. there is no order of fields.
