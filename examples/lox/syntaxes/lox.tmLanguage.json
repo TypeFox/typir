@@ -10,7 +10,7 @@
     },
     {
       "name": "keyword.control.lox",
-      "match": "\\b(and|boolean|class|else|false|for|fun|if|nil|number|or|print|return|string|super|this|true|var|void|while)\\b"
+      "match": "\\b(boolean|number|return|string|class|false|print|super|while|else|this|true|void|and|for|fun|nil|var|if|or)\\b"
     },
     {
       "name": "string.quoted.double.lox",
