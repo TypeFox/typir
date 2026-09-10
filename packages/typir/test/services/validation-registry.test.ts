@@ -289,10 +289,10 @@ describe('Tests the logic for registering rules (applied to state-less validatio
     function removeType(type: Type): void {
         typir.infrastructure.Graph.removeNode(type);
     }
-    function addValidationRule(rule: ValidationRule<TestingSpecifics>, options?: Partial<ValidationRuleOptions>) {
+    function addValidationRule(rule: ValidationRule<TestingSpecifics>, options?: Partial<ValidationRuleOptions<TestingSpecifics>>) {
         typir.validation.Collector.addValidationRule(rule, options);
     }
-    function removeValidationRule(rule: ValidationRule<TestingSpecifics>, options?: Partial<ValidationRuleOptions>) {
+    function removeValidationRule(rule: ValidationRule<TestingSpecifics>, options?: Partial<ValidationRuleOptions<TestingSpecifics>>) {
         typir.validation.Collector.removeValidationRule(rule, options);
     }
 

@@ -80,7 +80,7 @@ A work-in-progress documentation in Markdown format is provided in the [document
 ## Tiny Typir Example
 
 Both the LOX and OX examples have been created with Langium. Here is a very small example for using Typir with a tiny expression language, which is independent from any language workbench like Langium. We show how to use the Typir API for type checking of Tiny Typir. You can also find the example in the repository, implemented in form of an executable [test case](./packages/typir/test/api-example.test.ts).
-Our Tiny Typir language has only a few concepts (all are realized as `AstElement`s), namely numbers (`NumberLiteral`), strings (`StringLiteral`), binary expressions (`BinaryExpression`), variables (`Variable`), and assignments (`AssignmentStatement`). They are implemented in a very simple way, see for example our `BinaryExpression`:
+Our Tiny Typir language has only a few concepts (all are implemented as `AstElement`s), namely numbers (`NumberLiteral`), strings (`StringLiteral`), binary expressions (`BinaryExpression`), variables (`Variable`), and assignments (`AssignmentStatement`). They are implemented in a very simple way, see for example our `BinaryExpression`:
 
 ```typescript
 class BinaryExpression extends AstElement {
@@ -204,7 +204,6 @@ The roadmap includes, among other, these features:
 
 - More predefined types: structurally typed classes, lambdas, generics, constrained primitive types (e.g. numbers with upper and lower bound), ...
 - Calculate types, e.g. operators whose return types depend on their current input types
-- Simplified API for custom types
 
 For the released versions of Typir, see the [CHANGELOG.md](./CHANGELOG.md).
 

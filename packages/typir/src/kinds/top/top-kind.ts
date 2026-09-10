@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { TypeDetails } from '../../graph/type-node.js';
-import { TypirServices, TypirSpecifics } from '../../typir.js';
+import { LanguageKeys, LanguageTypeOfLanguageKey, TypirServices, TypirSpecifics } from '../../typir.js';
 import { InferCurrentTypeRule, registerInferCurrentTypeRules } from '../../utils/utils-definitions.js';
 import { assertTrue } from '../../utils/utils.js';
 import { Kind, KindOptions } from '../kind.js';
@@ -30,7 +30,10 @@ export interface TopFactoryService<Specifics extends TypirSpecifics> {
 }
 
 export interface TopConfigurationChain<Specifics extends TypirSpecifics> {
-    inferenceRule<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<TopType, Specifics, T>): TopConfigurationChain<Specifics>;
+    inferenceRule<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<TopType, Specifics, LanguageKey, LanguageType>): TopConfigurationChain<Specifics>;
     finish(): TopType;
 }
 
@@ -91,7 +94,10 @@ class TopConfigurationChainImpl<Specifics extends TypirSpecifics> implements Top
         };
     }
 
-    inferenceRule<T extends Specifics['LanguageType']>(rule: InferCurrentTypeRule<TopType, Specifics, T>): TopConfigurationChain<Specifics> {
+    inferenceRule<
+        LanguageKey extends LanguageKeys<Specifics> = undefined,
+        LanguageType extends LanguageTypeOfLanguageKey<Specifics, LanguageKey> = LanguageTypeOfLanguageKey<Specifics, LanguageKey>,
+    >(rule: InferCurrentTypeRule<TopType, Specifics, LanguageKey, LanguageType>): TopConfigurationChain<Specifics> {
         this.typeDetails.inferenceRules.push(rule as unknown as InferCurrentTypeRule<TopType, Specifics>);
         return this;
     }

@@ -17,7 +17,7 @@ import { Type } from './type-node.js';
  * Users of edges who know about the $relation also know, whether the corresponding edges are unidirectional or bidirectional.
  * Graph algorithms also know, whether they work on unidirectional or on bidirectional edges.
  *
- * Edges are realized as interfaces (and not as classes), since there are no methods to reuse or to override for customizations.
+ * Edges are implemented as interfaces (and not as classes), since there are no methods to reuse or to override for customizations.
  */
 export interface TypeEdge {
     readonly $relation: string;

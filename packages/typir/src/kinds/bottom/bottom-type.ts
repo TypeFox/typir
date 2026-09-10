@@ -29,7 +29,7 @@ export class BottomType extends Type implements TypeGraphListener {
         this.kind.services.infrastructure.Graph.removeListener(this);
     }
 
-    onAddedType(type: Type, _key: string): void {
+    onAddedType(type: Type, _identifier: string): void {
         // this method is called for the already existing types and for all upcomping types
         if (type !== this) {
             this.kind.services.Subtype.markAsSubType(this, type, { checkForCycles: false });

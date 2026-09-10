@@ -48,7 +48,6 @@ export interface TypeDetails<Specifics extends TypirSpecifics> {
 
 /**
  * Design decisions:
- * - features of types are realized/determined by their kinds
  * - Identifiers of types must be unique!
  */
 export abstract class Type {

@@ -1,6 +1,6 @@
 # Typir applied to LOX
 
-This package contains an adapted version of [LOX](https://craftinginterpreters.com/the-lox-language.html), [realized with Langium](https://github.com/TypeFox/langium-lox) and statically type-checked with [Typir](https://typir.org/).
+This package contains an adapted version of [LOX](https://craftinginterpreters.com/the-lox-language.html), [implemented with Langium](https://github.com/TypeFox/langium-lox) and statically type-checked with [Typir](https://typir.org/).
 
 Typir is used here to make LOX a statically typed language:
 

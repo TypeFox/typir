@@ -5,7 +5,7 @@
  ******************************************************************************/
 
 import { AbstractAstReflection, isAstNode } from 'langium';
-import { DefaultLanguageService, LanguageService, removeFromArray } from 'typir';
+import { DefaultLanguageService, LanguageKey, LanguageService, removeFromArray } from 'typir';
 import { TypirLangiumSpecifics } from '../typir-langium.js';
 
 /**
@@ -14,27 +14,27 @@ import { TypirLangiumSpecifics } from '../typir-langium.js';
  */
 export class LangiumLanguageService<Specifics extends TypirLangiumSpecifics> extends DefaultLanguageService<Specifics> implements LanguageService<Specifics> {
     protected readonly reflection: AbstractAstReflection;
-    protected superKeys: Map<string, string[]> | undefined = undefined; // key => all its super-keys
+    protected superKeys: Map<LanguageKey<Specifics>, Array<LanguageKey<Specifics>>> | undefined = undefined; // key => all its super-keys
 
     constructor(reflection: AbstractAstReflection) {
         super();
         this.reflection = reflection;
     }
 
-    override getLanguageNodeKey(languageNode: Specifics['LanguageType']): string {
+    override getLanguageNodeKey(languageNode: Specifics['LanguageType']): LanguageKey<Specifics> {
         return languageNode.$type;
     }
 
-    override getAllSubKeys(languageKey: string): string[] {
-        const result = this.reflection.getAllSubTypes(languageKey);
+    override getAllSubKeys(languageKey: LanguageKey<Specifics>): Array<LanguageKey<Specifics>> {
+        const result = this.reflection.getAllSubTypes(languageKey as string);
         removeFromArray(languageKey, result); // Langium adds the given type in the list of all sub-types, therefore it must be removed here
         return result;
     }
 
-    override getAllSuperKeys(languageKey: string): string[] {
+    override getAllSuperKeys(languageKey: LanguageKey<Specifics>): Array<LanguageKey<Specifics>> {
         if (this.superKeys === undefined) {
             // collect all super types (Sets ensure uniqueness of super-keys)
-            const map: Map<string, Set<string>> = new Map();
+            const map: Map<LanguageKey<Specifics>, Set<LanguageKey<Specifics>>> = new Map();
             for (const superKey of this.reflection.getAllTypes()) {
                 for (const subKey of this.getAllSubKeys(superKey)) {
                     let entries = map.get(subKey);

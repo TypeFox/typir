@@ -19,7 +19,7 @@ import { Type } from './type-node.js';
  */
 export class TypeGraph {
 
-    protected readonly nodes: Map<string, Type> = new Map(); // type name => Type
+    protected readonly nodes: Map<string, Type> = new Map(); // type identifier => Type
     protected readonly edges: TypeEdge[] = [];
 
     protected readonly listeners: TypeGraphListener[] = [];
@@ -28,13 +28,13 @@ export class TypeGraph {
      * Usually this method is called by kinds after creating a corresponding type.
      * Therefore it is usually not needed to call this method in an other context.
      * @param type the new type
-     * @param key an optional key to register the type, since it is allowed to register the same type with different keys in the graph
+     * @param identifier an optional identifier to register the type, since it is allowed to register the same type with different identifiers in the graph (TODO remove this property when supporting alias/proxy types!)
      */
-    addNode(type: Type, key?: string): void {
-        if (!key) {
+    addNode(type: Type, identifier?: string): void {
+        if (!identifier) {
             assertTrue(type.isInStateOrLater('Identifiable')); // the key of the type must be available!
         }
-        const mapKey = key ?? type.getIdentifier();
+        const mapKey = identifier ?? type.getIdentifier();
         if (this.nodes.has(mapKey)) {
             if (this.nodes.get(mapKey) === type) {
                 // this type is already registered => that is OK
@@ -53,10 +53,10 @@ export class TypeGraph {
      * This is the central API call to remove a type from the type system in case that it is no longer valid/existing/needed.
      * It is not required to directly inform the kind of the removed type yourself, since the kind itself will take care of removed types.
      * @param typeToRemove the type to remove
-     * @param key an optional key to register the type, since it is allowed to register the same type with different keys in the graph
+     * @param identifier an optional identifier to register the type, since it is allowed to register the same type with different identifiers in the graph (TODO remove this property when supporting alias/proxy types!)
      */
-    removeNode(typeToRemove: Type, key?: string): void {
-        const mapKey = key ?? typeToRemove.getIdentifier();
+    removeNode(typeToRemove: Type, identifier?: string): void {
+        const mapKey = identifier ?? typeToRemove.getIdentifier();
         // remove all edges which are connected to the type to remove
         typeToRemove.getAllIncomingEdges().forEach(e => this.removeEdge(e));
         typeToRemove.getAllOutgoingEdges().forEach(e => this.removeEdge(e));
@@ -70,11 +70,11 @@ export class TypeGraph {
         }
     }
 
-    getNode(key: string): Type | undefined {
-        return this.nodes.get(key);
+    getNode(identifier: string): Type | undefined {
+        return this.nodes.get(identifier);
     }
-    getType(key: string): Type | undefined {
-        return this.getNode(key);
+    getType(identifier: string): Type | undefined {
+        return this.getNode(identifier);
     }
 
     getAllRegisteredTypes(): Type[] {
@@ -124,7 +124,7 @@ export class TypeGraph {
     addListener(listener: TypeGraphListener, options?: { callOnAddedForAllExisting: boolean }): void {
         this.listeners.push(listener);
         if (options?.callOnAddedForAllExisting && listener.onAddedType) {
-            this.nodes.forEach((type, key) => listener.onAddedType!.call(listener, type, key));
+            this.nodes.forEach((type, identifier) => listener.onAddedType!.call(listener, type, identifier));
         }
     }
     removeListener(listener: TypeGraphListener): void {
@@ -137,8 +137,8 @@ export class TypeGraph {
 }
 
 export type TypeGraphListener = Partial<{
-    onAddedType(type: Type, key: string): void;
-    onRemovedType(type: Type, key: string): void;
+    onAddedType(type: Type, identifier: string): void;
+    onRemovedType(type: Type, identifier: string): void;
     onAddedEdge(edge: TypeEdge): void;
     onRemovedEdge(edge: TypeEdge): void;
 }>

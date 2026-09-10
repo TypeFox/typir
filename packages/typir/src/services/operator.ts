@@ -8,7 +8,7 @@ import { Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { FunctionFactoryService, NO_PARAMETER_NAME } from '../kinds/function/function-kind.js';
 import { FunctionType } from '../kinds/function/function-type.js';
-import { TypirSpecifics, TypirServices } from '../typir.js';
+import { LanguageKeys, TypirServices, TypirSpecifics } from '../typir.js';
 import { NameTypePair } from '../utils/utils-definitions.js';
 import { toArray } from '../utils/utils.js';
 import { ValidationProblemAcceptor } from './validation.js';
@@ -30,8 +30,8 @@ export interface InferOperatorWithMultipleOperands<Specifics extends TypirSpecif
     validateArgumentsOfCalls?: boolean | ((languageNode: T) => boolean);
 }
 
-export type OperatorValidationRule<TypeType extends Type, Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
-    (operatorCall: T, operatorName: string, operatorType: TypeType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
+export type OperatorValidationRule<OperatorType extends Type, Specifics extends TypirSpecifics, T extends Specifics['LanguageType'] = Specifics['LanguageType']> =
+    (operatorCall: T, operatorName: string, operatorType: OperatorType, accept: ValidationProblemAcceptor<Specifics>, typir: TypirServices<Specifics>) => void;
 
 export interface AnyOperatorDetails {
     name: string;
@@ -112,7 +112,7 @@ export interface OperatorConfigurationGenericChain<Specifics extends TypirSpecif
 
 
 /**
- * This implementation realizes operators as functions and creates types of kind 'function'.
+ * This implementation designs operators as functions and creates types of kind 'function'.
  * If Typir does not use the function kind so far, it will be automatically added.
  * (Alternative implementation strategies for operators would be a dedicated kind for operators, which might extend the 'function' kind)
  *
@@ -120,7 +120,7 @@ export interface OperatorConfigurationGenericChain<Specifics extends TypirSpecif
  * - Operators have no declaration.
  * - It is not possible to have references to operators.
  *
- * The same operator (i.e. same operator name, e.g. "+" or "XOR") with different types for its operands will be realized as different function types,
+ * The same operator (i.e. same operator name, e.g. "+" or "XOR") with different types for its operands will be designed as different function types,
  * e.g. there are two functions for "+" for numbers and for strings.
  *
  * All operands are mandatory.
@@ -291,9 +291,11 @@ class OperatorConfigurationGenericChainImpl<Specifics extends TypirSpecifics> im
         });
         // infer the operator when the operator is called!
         for (const inferenceRule of this.typeDetails.inferenceRules) {
-            newOperatorType.inferenceRuleForCalls({
+            newOperatorType.inferenceRuleForCalls<LanguageKeys<Specifics>, Specifics['LanguageType']>({
                 languageKey: inferenceRule.languageKey,
-                filter: inferenceRule.filter ? ((languageNode: Specifics['LanguageType']): languageNode is Specifics['LanguageType'] => inferenceRule.filter!(languageNode, this.typeDetails.name)) : undefined,
+                filter: inferenceRule.filter
+                    ? ((languageNode: Specifics['LanguageType']): languageNode is Specifics['LanguageType'] => inferenceRule.filter!(languageNode, this.typeDetails.name))
+                    : undefined,
                 matching: (languageNode: Specifics['LanguageType']) => inferenceRule.matching(languageNode, this.typeDetails.name),
                 inputArguments: (languageNode: Specifics['LanguageType']) => this.getInputArguments(inferenceRule, languageNode),
                 validation: toArray(inferenceRule.validation).map(validationRule =>

@@ -4,24 +4,32 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
+/* eslint-disable @typescript-eslint/indent */
+
 import { AbstractAstReflection, AstNode, DiagnosticInfo, LangiumDefaultCoreServices, LangiumSharedCoreServices } from 'langium';
 import { createDefaultTypirServicesModule, DeepPartial, inject, Module, PartialTypirServices, TypirServices, TypirSpecifics } from 'typir';
 import { LangiumLanguageNodeInferenceCaching } from './features/langium-caching.js';
-import { DefaultLangiumTypeInferenceCollector, LangiumTypeInferenceCollector } from './features/langium-inference.js';
 import { LangiumLanguageService } from './features/langium-language.js';
 import { LangiumProblemPrinter } from './features/langium-printing.js';
 import { DefaultLangiumTypeCreator, LangiumTypeCreator, LangiumTypeSystemDefinition } from './features/langium-type-creator.js';
-import { DefaultLangiumTypirValidator, DefaultLangiumValidationCollector, LangiumTypirValidator, LangiumValidationCollector, registerTypirValidationChecks } from './features/langium-validation.js';
+import { DefaultLangiumTypirValidator, LangiumTypirValidator, registerTypirValidationChecks } from './features/langium-validation.js';
 import { LangiumAstTypes } from './utils/typir-langium-utils.js';
 
 /**
  * This type collects all TypeScript types which might be customized by applications of Typir-Langium.
  */
 export interface TypirLangiumSpecifics extends TypirSpecifics {
-    LanguageType: AstNode;      // concretizes the `LanguageType`, since all language nodes of a Langium AST are AstNode's
-    AstTypes: LangiumAstTypes;  // applications should concretize the `AstTypes` with XXXAstType from the generated `ast.ts`
+    LanguageType: AstNode;          // concretizes the `LanguageType`, since all language nodes of a Langium AST are AstNode's
+    LanguageKeys: LangiumAstTypes;  // applications should concretize the `LanguageKeys` with XXXAstType from the generated `ast.ts`
+    // In contrast to Typir (core), Typir-Langium enables to register inference rules to `AstNode` as well.
+    AdditionalLanguageKeysForInference: { AstNode: AstNode };
+    // In contrast to Typir (core), Typir-Langium enables to register validation rules to `AstNode` as well.
+    AdditionalLanguageKeysForValidation: { AstNode: AstNode };
     /** Support also the Langium-specific diagnostic properties, e.g. to mark keywords or register code actions */
-    ValidationMessageProperties: TypirSpecifics['ValidationMessageProperties'] & Omit<DiagnosticInfo<AstNode>, 'node'|'property'|'index'>; // 'node', 'property', and 'index' are already coverd by TypirSpecifics['ValidationMessageProperties'] with a different name
+    ValidationMessageProperties: TypirSpecifics['ValidationMessageProperties'] // use the default properties and the Langium-specific properties
+        & Omit<DiagnosticInfo<AstNode>, 'node'|'property'|'index'>; // 'node', 'property', and 'index' are already coverd by TypirSpecifics['ValidationMessageProperties'] with a different name
+    OmittedLanguageNodeProperties: TypirSpecifics['OmittedLanguageNodeProperties'] // enable adopters to ignore even more concrete properties
+        | keyof AstNode; // omit all meta-data of AstNodes, i.e. omit all "$..."-properties like "$type", "$container", "$cstNode", ...
 }
 
 /**
@@ -29,14 +37,12 @@ export interface TypirLangiumSpecifics extends TypirSpecifics {
  * in order to be used e.g. for scoping/linking in Langium.
  */
 export type TypirLangiumAddedServices<Specifics extends TypirLangiumSpecifics> = {
-    readonly Inference: LangiumTypeInferenceCollector<Specifics>; // concretizes the TypeInferenceCollector for Langium
     readonly langium: { // all new services which are specific for Langium
         readonly LangiumServices: LangiumSharedCoreServices; // store the Langium services to make them available for all Typir services
         readonly TypeCreator: LangiumTypeCreator;
         readonly TypeSystemDefinition: LangiumTypeSystemDefinition<Specifics>;
     };
     readonly validation: {
-        readonly Collector: LangiumValidationCollector<Specifics>; // concretizes the ValidationCollector for Langium
         readonly TypeValidation: LangiumTypirValidator<Specifics>; // new service to integrate the validations into the Langium infrastructure
     };
 }
@@ -64,18 +70,16 @@ export function createLangiumSpecificTypirServicesModule<Specifics extends Typir
 /**
  * Creates a module that provides a default implementation for each of the additional Typir-Langium services.
  * @param langiumServices Typir-Langium needs to interact with the Langium lifecycle
- * @returns an implementation for each of the additional Tyir-Langium services
+ * @returns an implementation for each of the additional Typir-Langium services
  */
 export function createDefaultTypirLangiumServicesModule<Specifics extends TypirLangiumSpecifics>(langiumServices: LangiumSharedCoreServices): Module<TypirLangiumServices<Specifics>, TypirLangiumAddedServices<Specifics>> {
     return {
-        Inference: (typirServices) => new DefaultLangiumTypeInferenceCollector(typirServices),
         langium: {
             LangiumServices: () => langiumServices,
             TypeCreator: (typirServices) => new DefaultLangiumTypeCreator(typirServices),
             TypeSystemDefinition: () => { throw new Error('The type system needs to be specified!'); }, // to be replaced later
         },
         validation: {
-            Collector: (typirServices) => new DefaultLangiumValidationCollector(typirServices),
             TypeValidation: (typirServices) => new DefaultLangiumTypirValidator(typirServices),
         },
     };
