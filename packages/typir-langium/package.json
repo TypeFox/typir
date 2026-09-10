@@ -16,7 +16,8 @@
   },
   "type": "module",
   "engines": {
-    "node": ">= 20.19.6"
+    "node": ">= 22.23.2",
+    "npm": ">= 12.0.2"
   },
   "keywords": [
     "typesystem",
@@ -45,7 +46,7 @@
   },
   "bugs": "https://github.com/TypeFox/typir/issues",
   "dependencies": {
-    "langium": "~4.2.0",
+    "langium": "~4.3.1",
     "typir": "~0.3.3"
   }
 }

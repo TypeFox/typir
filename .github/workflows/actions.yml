@@ -20,10 +20,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Use Node.js
-      uses: actions/setup-node@v3
+    - name: Use MISE config to install the required Node version
+      uses: jdx/mise-action@v4
       with:
-        node-version: '24'
+        version: v2026.8.16
 
     - name: Install
       shell: bash
