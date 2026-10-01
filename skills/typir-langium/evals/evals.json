@@ -1,0 +1,63 @@
+{
+  "skill_name": "typir-langium",
+  "evals": [
+    {
+      "id": 1,
+      "name": "bootstrap-mini",
+      "prompt": "I have a Langium language called Mini (grammar in src/language/mini.langium, AST already generated in src/language/generated). There is nothing type related yet. Please add type checking with Typir (typir and typir-langium are already installed):\n- primitive types int, bool, string, void and their literals\n- + - * / on ints, + also concatenates strings, < > on ints give bool, == and != for two values of the same type, && || ! on bools, unary minus on ints\n- let declarations: the declared type if there is one, otherwise the type of the initializer; the initializer must fit the declared type; variables can't be void\n- assignments must be type correct, if conditions must be bool\n- user-defined functions: arguments of calls must fit the parameter types, a call has the return type of the function (void if there is none), returned values must fit the return type\nIgnore classes, new, null and member access for now. Type errors should show up as normal Langium diagnostics. Write vitest tests in test/ (test/mini-utils.ts has a parse helper) for valid and invalid programs. `npm run build` and `npm test` need to pass.",
+      "expected_output": "Typir wired into the Langium module with createTypirLangiumServices and initializeLangiumTypirServices, a LangiumTypeSystemDefinition with primitives, operators, delegation rules, validations, and function types from onNewAstNode; passing tests that clean up documents and assert message texts.",
+      "files": ["fixtures/mini-base"],
+      "assertions": [
+        "npm run build passes",
+        "the agent's own npm test passes",
+        "module uses createTypirLangiumServices with the generated reflection and calls initializeLangiumTypirServices",
+        "probe: valid program with operators, variables, functions and if yields no diagnostics",
+        "probe: if (1) {} yields an error",
+        "probe: let x: int = \"a\"; yields an error, and x = \"a\" after let x = 1; yields an error",
+        "probe: let x = 1 + true; yields an error",
+        "probe: with fn f(): int and fn g(): string, let x: int = g(); yields an error and let y: int = f(); does not (calls match their own declaration)",
+        "probe: a wrong argument type in a call and a wrong return value each yield an error",
+        "probe: running the same program in two documents one after another gives the same diagnostics (no leaking rules or types)",
+        "tests delete documents between tests (deleteAllDocuments or equivalent) and assert message texts, not only counts"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "classes-and-member-access",
+      "prompt": "Type checking in our Mini language (Langium + Typir) works for primitives and functions, see src/language/mini-type-system.ts and the tests in test/. Now I need classes, which the grammar already supports: class declarations with fields and single inheritance (extends), `new Dog()`, variables and parameters typed with a class, and member access like `d.owner.name` (right now these member references don't resolve at all). `null` must be assignable to class typed variables, but not to int and the other primitives. A subclass is assignable to its superclass, not the other way round. Report duplicate class names and inheritance cycles. Classes may be used before they are declared and may live in other files of the workspace; when someone edits a class in one file, files using it must get updated errors. Please extend the type system and add tests, including one with two documents. The existing tests must keep passing and `npm run build` and `npm test` must pass.",
+      "expected_output": "Class types created in onNewAstNode with rules for declarations, new expressions, type references and field access; null conversion; unique class and cycle validations; a ScopeProvider using Typir inference for member access; tests including a multi-document update.",
+      "files": ["fixtures/mini-functions"],
+      "assertions": [
+        "npm run build passes",
+        "the agent's own npm test passes, including the 11 original tests",
+        "probe: a valid program with inheritance, class typed variables, chained member access (d.owner.name), an inherited field (d.name) and null yields no diagnostics",
+        "probe: let d: Dog = new Animal(); yields an error and let a: Animal = new Dog(); does not",
+        "probe: let n: int = new Dog().name; (name is a string field) yields an error",
+        "probe: let i: int = null; yields an error",
+        "probe: let d: Dog = 1; yields an error (class typed declarations are checked)",
+        "probe: a class used before its declaration yields no diagnostics",
+        "probe: duplicate class names and an inheritance cycle are reported",
+        "probe: changing a field type in lib.mini updates the diagnostics of main.mini, and deleting lib.mini removes the class types",
+        "agent's tests include a test with two documents"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "debug-broken-integration",
+      "prompt": "Our Mini type checker (Langium + Typir, see src/language/mini-type-system.ts) has some problems and I can't figure out why:\n1. `if (1) { }` is accepted without any error.\n2. With `fn f(): int { return 1; }` and `fn g(): string { return \"a\"; }`, `let s: string = g();` complains that 'int' is not assignable, as if it was calling f, and `let x: int = g();` is accepted.\n3. Variables declared with a class type are not checked: `let d: Dog = 1;` gives no error. And with `let d: Dog = new Dog();`, `d.name` says it can't resolve the reference, while it works with `let d = new Dog();`.\n4. In VS Code, after editing a file for a while, return type errors show up two or three times. In test/type-system.test.ts the test 'wrong return value again' fails when I run the whole file, but passes when I run it alone.\nPlease find the causes, fix them, explain each one, and add regression tests. `npm run build` and `npm test` must pass.",
+      "expected_output": "Finds and fixes: string languageKey 'IfStatement' instead of IfStmt.$type; call matching that accepts any function; missing class literal rule for TypeRef; validation rule registered globally inside onNewAstNode (moved to onInitialize); tests that never delete documents. Explains each and adds tests.",
+      "files": ["fixtures/mini-buggy"],
+      "assertions": [
+        "npm run build passes",
+        "the agent's own npm test passes, and passes when the whole suite runs",
+        "identifies and fixes the wrong language key for if statements ('IfStatement' vs IfStmt.$type)",
+        "identifies and fixes the call matching so calls are bound to their own declaration",
+        "identifies and fixes the missing class literal inference rule for type references",
+        "identifies that the return validation is a global rule added in onNewAstNode that is never removed, and moves it to onInitialize (or binds it to the type)",
+        "identifies that tests never delete documents and adds deleteAllDocuments (or equivalent) between tests",
+        "probe: all four reported symptoms are resolved",
+        "probe: parsing the same function in several documents in a row reports each return error exactly once"
+      ]
+    }
+  ]
+}

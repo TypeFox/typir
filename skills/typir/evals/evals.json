@@ -1,0 +1,67 @@
+{
+  "skill_name": "typir",
+  "evals": [
+    {
+      "id": 1,
+      "name": "bootstrap-calc",
+      "prompt": "I'm building a small language called Calc. The AST is in src/ast.ts (no parser yet, the file has helper functions to build ASTs). typir is already installed. Please set up type checking with typir:\n- number, string, boolean literals\n- + - * / on numbers, + also concatenates strings, < > on numbers give boolean, == for two values of the same primitive type, && || ! on booleans, unary minus on numbers\n- the three built-in functions mentioned in the FunctionCall comment\n- variables: if a declaration has a type annotation, that's its type, otherwise the type of the initializer; the initializer must fit the annotation\n- assignments must be type correct, if conditions must be boolean\n- numbers may be used wherever a string is expected\nPut the type system in src/type-system.ts, add a function that validates a whole Program and returns the problems, and write vitest tests in test/ covering both valid and invalid programs. `npm run build` and `npm test` need to pass.",
+      "expected_output": "A working type system, recursive whole-program validator, and passing tests that check concrete error messages for nested expressions.",
+      "files": [
+        "src/ast.ts"
+      ],
+      "assertions": [
+        "npm run build passes",
+        "the agent's own npm test passes",
+        "probe: print(1 + true) nested in an ExpressionStatement yields a validation error (validator recurses)",
+        "probe: if (1) {} yields a 'condition must be boolean' style error",
+        "probe: var x: number = \"a\" yields an error; var s: string = 1 yields none (implicit number->string)",
+        "probe: x = \"a\" after var x = 1 yields an assignment error",
+        "probe: references to string/boolean variables infer string/boolean; true && false infers boolean",
+        "probe: valid program with builtins (print, len, max) yields no errors",
+        "tests assert concrete error messages for invalid programs (not just counts)"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "debug-broken-checker",
+      "prompt": "my typir based type checker for Calc (src/type-system.ts + src/validator.ts) is basically not working and I don't get why. string and boolean literals don't seem to get a type, variables never have a type, `print(1 + true)` produces no error at all, `if (1) {}` is accepted, and `true && false` doesn't infer anything. there are no exceptions, it's just silent. can you find out what's wrong, fix it, and add some vitest tests so this doesn't regress? please explain each problem you found.",
+      "expected_output": "Finds and fixes: missing Language service for languageKey rules, missing finish() on && and ||, missing validateArgumentsOfCalls on binary operators, non-recursive validator. Adds tests; build and tests pass.",
+      "files": [
+        "src/type-system.ts",
+        "src/validator.ts",
+        "src/ast.ts"
+      ],
+      "assertions": [
+        "npm run build passes",
+        "the agent's own npm test passes",
+        "identifies that languageKey rules never fire without a custom Language service, and fixes it (service or replacing keys)",
+        "identifies and fixes the missing finish() on the && / || operators",
+        "identifies and fixes missing validateArgumentsOfCalls on the binary operator rule",
+        "identifies and fixes the non-recursive validator",
+        "probe: all five reported symptoms are resolved"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "vectors-custom-kind",
+      "prompt": "Our Calc type system works (src/type-system.ts, tests in test/). I just added a VectorLiteral node to src/ast.ts, e.g. [1, 2, 3]. I want fixed-size number vectors in the type system: a literal with N number elements has type vecN (any N >= 1, shown as 'vec3' etc. in messages), all elements must be numbers, vec + vec and vec - vec are allowed only for the same length and return that vector type, vec * number scales and returns the vector type. Mismatched lengths like [1,2] + [1,2,3] must produce a validation error. Please extend the type system and validator and add tests. Existing tests must keep passing.",
+      "expected_output": "Uses a CustomKind (or similar) with get-or-create in an inference rule, handles vector operators for arbitrary N, reports length mismatches, tests pass.",
+      "files": [
+        "src/type-system.ts",
+        "src/validator.ts",
+        "src/ast.ts",
+        "test/type-system.test.ts"
+      ],
+      "assertions": [
+        "npm run build passes",
+        "npm test passes, including the 7 original tests",
+        "probe: [1, 2, 3] infers a type named 'vec3', and a 7-element literal infers 'vec7'",
+        "probe: [1,2] + [3,4] and [1,2] - [3,4] infer vec2; [1,2] * 3 infers vec2",
+        "probe: [1,2] + [1,2,3] yields a validation error",
+        "probe: [1, \"a\"] yields a validation error",
+        "probe: existing behavior intact (1 + 2 infers number, \"a\" + \"b\" infers string)",
+        "uses a CustomKind (or another single kind) with get-or-create, not hard coded vector sizes"
+      ]
+    }
+  ]
+}
