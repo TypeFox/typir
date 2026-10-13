@@ -10,7 +10,7 @@
     },
     {
       "name": "keyword.control.ox",
-      "match": "\\b(and|boolean|else|false|for|fun|if|number|or|print|return|true|var|void|while)\\b"
+      "match": "\\b(boolean|number|return|false|print|while|else|true|void|and|for|fun|var|if|or)\\b"
     }
   ],
   "repository": {

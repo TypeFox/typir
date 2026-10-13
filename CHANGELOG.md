@@ -11,6 +11,10 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 
 ### New features
 
+- Updated Typir-Langium to Langium v4.4.0 (#113, #114).
+- Updated dependencies, including Node 22, Vitest 4 (#113).
+- Added `mise.toml` configurations (#113).
+
 ### Breaking changes
 
 ### Fixed bugs

@@ -25,14 +25,14 @@
     },
     "dependencies": {
         "commander": "~12.1.0",
-        "langium": "~4.3.1",
+        "langium": "~4.4.0",
         "typir-langium": "~0.3.3",
-        "vscode-languageclient": "~10.0.1",
-        "vscode-languageserver": "~10.0.1"
+        "vscode-languageclient": "~10.1.0",
+        "vscode-languageserver": "~10.1.0"
     },
     "devDependencies": {
         "@types/vscode": "~1.94.0",
-        "langium-cli": "~4.3.0"
+        "langium-cli": "~4.4.0"
     },
     "files": [
         "bin",
