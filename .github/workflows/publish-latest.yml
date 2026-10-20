@@ -28,11 +28,6 @@ jobs:
       with:
         version: v2026.8.16
 
-    - name: Check dependencies
-      shell: bash
-      run: |
-        npm run version:check-dependencies
-
     - name: Build
       shell: bash
       run: |
@@ -40,6 +35,12 @@ jobs:
         npm ci
         npm run clean
         npm run build
+
+    - name: Check dependencies
+      shell: bash
+      run: |
+        npm run version:check-dependencies
+
     - name: Test
       if: success() || failure()
       shell: bash
