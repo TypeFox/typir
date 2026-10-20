@@ -31,9 +31,13 @@ jobs:
       shell: bash
       run: |
         npm run test:run
-    - name: Publish NPM Packages
-      shell: bash
-      # Update the following list when a new npm package is added
-      run: |
-        npm run publish:latest --provenance --workspace=typir
-        npm run publish:latest --provenance --workspace=typir-langium
+    - name: Publish
+      uses: TypeFox/gh-publish-npm@7183224bef010236e419a2367208633ff284337a # v0.5.0
+      with:
+        dry-run: ${{ github.event_name == 'pull_request' }}
+        npm-packages: |
+          packages/typir
+          packages/typir-langium
+          examples/expression
+          examples/lox
+          examples/ox
