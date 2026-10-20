@@ -54,6 +54,3 @@ jobs:
         npm-packages: |
           packages/typir
           packages/typir-langium
-          examples/expression
-          examples/lox
-          examples/ox
