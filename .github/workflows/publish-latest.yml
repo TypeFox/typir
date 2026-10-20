@@ -27,6 +27,12 @@ jobs:
       uses: jdx/mise-action@v4
       with:
         version: v2026.8.16
+
+    - name: Check dependencies
+      shell: bash
+      run: |
+        npm run version:check-dependencies
+
     - name: Build
       shell: bash
       run: |
@@ -39,6 +45,7 @@ jobs:
       shell: bash
       run: |
         npm run test:run
+
     - name: Publish
       uses: TypeFox/gh-publish-npm@7183224bef010236e419a2367208633ff284337a # v0.5.0
       with:

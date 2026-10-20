@@ -25,7 +25,8 @@
         "langium:watch": "npm run langium:watch --workspace=examples/ox --workspace=examples/lox",
         "vscode:prepublish": "npm run build && npm run lint",
         "reset:repo": "git clean -f -d -x",
-        "version:dependencies": "node ./scripts/update-version.js && npm install"
+        "version:dependencies": "node ./scripts/update-version.js && npm install",
+        "version:check-dependencies": "node ./scripts/check-versions.js"
     },
     "devDependencies": {
         "@types/node": "~24.1.0",
