@@ -4,8 +4,16 @@ permissions:
   id-token: write
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+    paths:
+      - '**/package.json'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**/package.json'
 
 jobs:
   publish:
