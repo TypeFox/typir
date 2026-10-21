@@ -4,8 +4,16 @@ permissions:
   id-token: write
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+    paths:
+      - '**/package.json'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '**/package.json'
 
 jobs:
   publish:
@@ -19,6 +27,7 @@ jobs:
       uses: jdx/mise-action@v4
       with:
         version: v2026.8.16
+
     - name: Build
       shell: bash
       run: |
@@ -26,14 +35,22 @@ jobs:
         npm ci
         npm run clean
         npm run build
+
+    - name: Check dependencies
+      shell: bash
+      run: |
+        npm run version:check-dependencies
+
     - name: Test
       if: success() || failure()
       shell: bash
       run: |
         npm run test:run
-    - name: Publish NPM Packages
-      shell: bash
-      # Update the following list when a new npm package is added
-      run: |
-        npm run publish:latest --provenance --workspace=typir
-        npm run publish:latest --provenance --workspace=typir-langium
+
+    - name: Publish
+      uses: TypeFox/gh-publish-npm@7183224bef010236e419a2367208633ff284337a # v0.5.0
+      with:
+        dry-run: ${{ github.event_name == 'pull_request' }}
+        npm-packages: |
+          packages/typir
+          packages/typir-langium
