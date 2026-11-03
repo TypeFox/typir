@@ -5,19 +5,29 @@ Note that the versions "0.x.0" probably will include breaking changes.
 For each minor and major version, there is a corresponding [milestone on GitHub](https://github.com/TypeFox/typir/milestones).
 
 
-## v0.4.0 (2025-??-??)
+## v0.4.0 (2026-??-??)
 
 [Linked issues and PRs for v0.4.0](https://github.com/TypeFox/typir/milestone/5)
 
 ### New features
 
-- Updated Typir-Langium to Langium v4.4.0 (#113, #114).
-- Updated dependencies, including Node 22, Vitest 4 (#113).
-- Added `mise.toml` configurations (#113).
-
 ### Breaking changes
 
 ### Fixed bugs
+
+
+## v0.3.4 (2026-11-04)
+
+### New features
+
+- Updated Typir-Langium to Langium v4.4.0 (#113, #114).
+- Updated dependencies, including Node 22, Vitest 4 (#113).
+- Added `mise.toml` configurations (#113) as replacement for Volta (#101).
+
+### Fixed bugs
+
+- Fixed issue in dependency injection (#115).
+- Updated some patch versions (#104, #117, #119, #120).
 
 
 ## v0.3.3 (2026-02-10)
