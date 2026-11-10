@@ -1,7 +1,7 @@
 import fs from 'fs-extra';
-import path from 'path';
+import { getVersionOf, getPath } from './shared.js';
 
-async function runUpdate() {
+async function runCheck() {
     const versions = await Promise.all([
         getVersionOf('typir'),
         getVersionOf('typir-langium'),
@@ -35,16 +35,6 @@ async function checkAll(project, pkg, versions) {
     return success;
 }
 
-function getPath(project, pkg) {
-    return path.join(pkg ? 'packages' : 'examples', project, 'package.json');
-}
-
-async function getVersionOf(project) {
-    const typirPath = getPath(project, true);
-    const typirPackage = await fs.readJson(typirPath);
-    return [project, typirPackage.version];
-}
-
-if(!await runUpdate()) {
+if(!await runCheck()) {
     process.exit(1);
 }

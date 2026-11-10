@@ -1,5 +1,5 @@
 import fs from 'fs-extra';
-import path from 'path';
+import { getVersionOf, getPath } from './shared.js';
 
 async function runUpdate() {
     const versions = await Promise.all([
@@ -23,16 +23,6 @@ async function replaceAll(project, pkg, versions) {
         content = content.replace(regex, version);
     });
     await fs.writeFile(path, content);
-}
-
-function getPath(project, pkg) {
-    return path.join(pkg ? 'packages' : 'examples', project, 'package.json');
-}
-
-async function getVersionOf(project) {
-    const typirPath = getPath(project, true);
-    const typirPackage = await fs.readJson(typirPath);
-    return [project, typirPackage.version];
 }
 
 runUpdate();
