@@ -4,7 +4,7 @@
  * terms of the MIT License, which is available in the project root.
 ******************************************************************************/
 
-/* eslint-disable @typescript-eslint/indent */
+/* eslint-disable @stylistic/indent */
 
 import { Type } from '../../graph/type-node.js';
 import { TypeReference } from '../../initialization/type-reference.js';

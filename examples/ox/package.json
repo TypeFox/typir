@@ -18,7 +18,7 @@
         "build": "tsc -b tsconfig.json && node esbuild.mjs",
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
-        "lint": "eslint src --ext ts",
+        "lint": "eslint src test --ext ts",
         "test": "vitest",
         "vscode:prepublish": "npm run build && npm run lint",
         "watch": "concurrently -n tsc,esbuild -c blue,yellow \"tsc -b tsconfig.json --watch\" \"node esbuild.mjs --watch\""

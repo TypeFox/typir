@@ -103,8 +103,8 @@ describe('Some examples how to customize the Typir services, focusing on adding 
             }
             doSomething(): string {
                 // all services are usable here!
-                this.services.Assignability; // existing service
-                this.services.TestService; // new service
+                void this.services.Assignability; // existing service
+                void this.services.TestService; // new service
                 return 'something';
             }
         }

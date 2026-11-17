@@ -16,7 +16,7 @@
     "scripts": {
         "clean": "shx rm -rf lib out *.tsbuildinfo",
         "build": "tsc -b tsconfig.json",
-        "lint": "eslint src --ext ts",
+        "lint": "eslint src test --ext ts",
         "test": "vitest",
         "watch": "concurrently -n tsc -c blue \"tsc -b tsconfig.json --watch\""
     },
