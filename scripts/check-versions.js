@@ -18,20 +18,20 @@ async function runCheck() {
 
 async function checkAll(project, pkg, versions) {
     const path = getPath(project, pkg);
-    const content = await fs.readFile(path, 'utf-8');
+    const manifest = await fs.readJson(path);
     let success = true;
-    versions.forEach(([project, version]) => {
-        const regex = new RegExp("(?<=\"" + project + "\": \"[~\\^]?)(\\d+\\.\\d+\\.\\d+)", "g");
-        const matches = content.match(regex);
-        if(matches) {
-            for (const match of matches) {
-                if(match !== version) {
-                    console.log(`Version mismatch for ${project}: expected ${version}, found ${match} !`);
+    for (const [dependency, version] of versions) {
+        for (const section of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+            const declared = manifest[section]?.[dependency];
+            if (declared !== undefined) {
+                const actual = declared.replace(/^[~^]/, '');
+                if (actual !== version) {
+                    console.log(`Version mismatch for ${dependency}: expected ${version}, found ${actual} !`);
                     success = false;
                 }
             }
         }
-    });
+    }
     return success;
 }
 
