@@ -1,11 +1,46 @@
 import js from '@eslint/js';
-import { fixupPluginRules } from '@eslint/compat';
+import pluginTypescriptEslint from '@typescript-eslint/eslint-plugin';
+import pluginUnusedImports from 'eslint-plugin-unused-imports';
 import stylistic from '@stylistic/eslint-plugin';
-import header from 'eslint-plugin-header';
 import tseslint from 'typescript-eslint';
 
-const headerPlugin = fixupPluginRules(header);
-headerPlugin.rules.header.meta = { ...headerPlugin.rules.header.meta, schema: [{ type: 'string' }, {}, {}] };
+// Replaces the unmaintained `eslint-plugin-header`, which is stuck on the eslintrc API.
+const HEADER_PATTERN = /MIT License|DO NOT EDIT MANUALLY!/;
+const pluginTypir = {
+    rules: {
+        header: {
+            meta: {
+                type: 'layout',
+                schema: [],
+                messages: {
+                    incorrectHeader: 'Missing or incorrect file header, expected a leading block comment matching {{pattern}}.'
+                }
+            },
+            create(context) {
+                return {
+                    Program(node) {
+                        const { sourceCode } = context;
+                        const text = sourceCode.getText();
+                        // A shebang line is allowed to precede the header comment
+                        const headerStart = text.startsWith('#!') ? text.indexOf('\n') + 1 : 0;
+                        const comment = sourceCode.getAllComments().find(c => c.range[0] >= headerStart);
+                        const isHeader = comment
+                            && comment.type === 'Block'
+                            && text.slice(headerStart, comment.range[0]).trim().length === 0
+                            && HEADER_PATTERN.test(comment.value);
+                        if (!isHeader) {
+                            context.report({
+                                loc: comment?.loc ?? node.loc,
+                                messageId: 'incorrectHeader',
+                                data: { pattern: String(HEADER_PATTERN) }
+                            });
+                        }
+                    }
+                };
+            }
+        }
+    }
+};
 
 export default [
     { ignores: ['**/node_modules/', '**/lib/', '**/bin/', '**/*.js'] },
@@ -18,8 +53,10 @@ export default [
             sourceType: 'module',
         },
         plugins: {
+            '@typescript-eslint': pluginTypescriptEslint,
+            'unused-imports': pluginUnusedImports,
             '@stylistic': stylistic,
-            header: headerPlugin,
+            typir: pluginTypir,
         },
         rules: {
             'arrow-parens': ['off', 'as-needed'],
@@ -51,7 +88,8 @@ export default [
             semi: ['error', 'always'],
             '@stylistic/quotes': ['error', 'single', { avoidEscape: true }],
             '@stylistic/type-annotation-spacing': 'error',
-            'header/header': ['error', 'block', { pattern: 'MIT License|DO NOT EDIT MANUALLY!' }],
+            // Use MIT file header
+            'typir/header': 'error',
             '@typescript-eslint/adjacent-overload-signatures': 'error',
             '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
             '@typescript-eslint/no-empty-object-type': ['error', { allowInterfaces: 'with-single-extends' }],
