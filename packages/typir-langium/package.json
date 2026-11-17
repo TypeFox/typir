@@ -34,10 +34,7 @@
     "clean": "shx rm -rf lib out *.tsbuildinfo",
     "build": "tsc",
     "watch": "tsc --watch",
-    "lint": "eslint src test --ext .ts",
-    "version:next": "npm --no-git-tag-version version \"$(semver $npm_package_version -i minor)-next.$(git rev-parse --short HEAD)\"",
-    "publish:latest": "npm publish --tag latest --access public",
-    "publish:next": "npm publish --tag next"
+    "lint": "eslint src test --ext .ts"
   },
   "repository": {
     "type": "git",
