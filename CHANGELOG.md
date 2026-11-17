@@ -16,12 +16,12 @@ For each minor and major version, there is a corresponding [milestone on GitHub]
 ### Fixed bugs
 
 
-## v0.3.4 (2026-11-04)
+## v0.3.4 (2026-11-18)
 
 ### New features
 
 - Updated Typir-Langium to Langium v4.4.0 (#113, #114).
-- Updated dependencies, including Node 22, Vitest 4 (#113).
+- Updated dependencies, including Node 22, Vitest 4, eslint (#113, #121).
 - Added `mise.toml` configurations (#113) as replacement for Volta (#101).
 
 ### Fixed bugs

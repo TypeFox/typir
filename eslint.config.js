@@ -43,7 +43,7 @@ const pluginTypir = {
 };
 
 export default [
-    { ignores: ['**/node_modules/', '**/lib/', '**/bin/', '**/*.js'] },
+    { ignores: ['**/node_modules/', '**/lib/', '**/bin/', '**/*.{js,mjs,cjs}'] },
     js.configs.recommended,
     ...tseslint.configs.recommended,
     {
