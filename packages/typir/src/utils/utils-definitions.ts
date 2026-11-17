@@ -4,8 +4,6 @@
  * terms of the MIT License, which is available in the project root.
  ******************************************************************************/
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { isType, Type } from '../graph/type-node.js';
 import { TypeInitializer } from '../initialization/type-initializer.js';
 import { InferenceRuleNotApplicable, TypeInferenceRule, TypeInferenceRuleOptions } from '../services/inference.js';
